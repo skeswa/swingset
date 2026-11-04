@@ -21,18 +21,25 @@ NOW = "2026-09-12T00:00:00Z"
 def test_archive_results_have_separate_coverage_and_stable_repeated_build(tmp_path: Path) -> None:
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run',?,1)", (NOW,))
+        conn.execute("INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', %s, 1)", (NOW,))
         for source, via, snapshot in (
             ("wsdc_registry", "origin", "registry"),
             ("eepro", "wayback", "round"),
         ):
             conn.execute(
-                "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES (?,?, 'event','GET','https://example.test','test','sealed')",
+                (
+                    "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, %s, "
+                    "'event', 'GET', 'https://example.test', 'test', 'sealed')"
+                ),
                 (snapshot, source),
             )
             conn.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification,via,captured_at,observed_at) "
-                "VALUES (?,?,'GET','https://example.test',?,200,0,1,'run','Ok',?,'2019-09-01T00:00:00Z','2019-09-01T00:00:00Z')",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_bytes, content_changed, run_id, classification, via, captured_at, observed_at) VALUES "
+                    "(%s, %s, 'GET', 'https://example.test', %s, 200, 0, 1, 'run', 'Ok', %s, "
+                    "'2019-09-01T00:00:00Z', '2019-09-01T00:00:00Z')"
+                ),
                 (snapshot, snapshot, NOW, via),
             )
         provenance = dict(
@@ -101,7 +108,15 @@ def test_archive_results_have_separate_coverage_and_stable_repeated_build(tmp_pa
             )
             rebuild_coverage(conn, now=NOW)
         rows = {
-            (row["source"], row["via"]): dict(row) for row in conn.execute("SELECT * FROM coverage")
+            (row["source"], row["via"]): dict(row)
+            for row in conn.execute(
+                "SELECT coverage.year, coverage.source, coverage.via, coverage.events, coverage.contests, "
+                "coverage.rounds, coverage.entries, coverage.events_registry_only, "
+                "coverage.events_index_only, coverage.events_sheets_partial, "
+                "coverage.events_sheets_complete, coverage.events_day_precision, "
+                "coverage.events_listed_only, coverage.events_accepted, coverage.expected_rounds, "
+                "coverage.parsed_rounds, coverage.unresolved_findings, coverage.last_changed_at FROM coverage"
+            )
         }
         assert rows["wsdc_registry", "origin"]["rounds"] == 0
         assert rows["eepro", "wayback"]["rounds"] == 1
@@ -109,11 +124,11 @@ def test_archive_results_have_separate_coverage_and_stable_repeated_build(tmp_pa
         assert rows["eepro", "wayback"]["events_sheets_complete"] == 0
         assert rows["eepro", "wayback"]["expected_rounds"] is None
         assert not any(row["events_accepted"] for row in rows.values())
-        before = conn.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()[0]
+        before = conn.execute("SELECT value FROM revisions WHERE name = 'canonical'").fetchone()[0]
         rebuild_coverage(conn, now="2026-09-13T00:00:00Z")
         assert (
             before
-            == conn.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()[0]
+            == conn.execute("SELECT value FROM revisions WHERE name = 'canonical'").fetchone()[0]
         )
         assert {row[0] for row in conn.execute("SELECT last_changed_at FROM coverage")} == {NOW}
         materialize_seeded_outputs(database, now=NOW, run_id="run")

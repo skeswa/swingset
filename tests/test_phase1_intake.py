@@ -87,7 +87,7 @@ def test_intake_resumes_skips_digest_duplicates_and_explains_failures(tmp_path):
         assert len(calls) == 3
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM findings WHERE owner_kind='phase1_capture' AND closed_at IS NULL"
+                "SELECT COUNT(*) FROM findings WHERE owner_kind = 'phase1_capture' AND closed_at IS NULL"
             ).fetchone()[0]
             == 1
         )
@@ -191,7 +191,8 @@ def test_pending_catalog_and_invalid_dates_keep_year_gate_closed(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run','2016-01-01',NULL,1,NULL)"
+            "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+            "'2016-01-01', NULL, 1, NULL)"
         )
         pending = year_gaps(conn, (target,), {}, final_year=2017, history_start=date(2010, 1, 1))
         assert pending[2015] and pending[2016] and pending[2017]
@@ -200,10 +201,14 @@ def test_pending_catalog_and_invalid_dates_keep_year_gate_closed(tmp_path):
         with pytest.raises(ValueError, match="unresolved"):
             accept_year(conn, 2016, accepted_by="owner", accepted_at="2016-01-01T00:00:00+00:00")
         conn.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES ('w','swingdancecouncil','index','GET','https://example.test','swingdancecouncil.events','sealed')"
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES ('w', "
+            "'swingdancecouncil', 'index', 'GET', 'https://example.test', 'swingdancecouncil.events', "
+            "'sealed')"
         )
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('capture','w','GET','https://example.test','2016-01-01',200,1,1,'run','Ok')"
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES ('capture', 'w', 'GET', "
+            "'https://example.test', '2016-01-01', 200, 1, 1, 'run', 'Ok')"
         )
         replace_findings(
             conn,
@@ -223,7 +228,7 @@ def test_pending_catalog_and_invalid_dates_keep_year_gate_closed(tmp_path):
             run_id="run",
         )
         # The malformed year cannot narrow the affected capture horizon.
-        conn.execute("UPDATE findings SET snapshot_id='capture' WHERE owner_kind='parse'")
+        conn.execute("UPDATE findings SET snapshot_id = 'capture' WHERE owner_kind = 'parse'")
         gaps = year_gaps(
             conn,
             (target,),
@@ -266,13 +271,17 @@ def test_dismissed_parse_failure_clears_a_finding_status_capture(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run','2016-01-01',NULL,1,NULL)"
+            "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+            "'2016-01-01', NULL, 1, NULL)"
         )
         conn.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES ('w','wsdc_calendar','index','GET','https://example.test','wsdc_calendar.events','sealed')"
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES ('w', "
+            "'wsdc_calendar', 'index', 'GET', 'https://example.test', 'wsdc_calendar.events', 'sealed')"
         )
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('capture','w','GET','https://example.test','2016-01-01',200,1,1,'run','Ok')"
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES ('capture', 'w', 'GET', "
+            "'https://example.test', '2016-01-01', 200, 1, 1, 'run', 'Ok')"
         )
         replace_findings(
             conn,
@@ -291,7 +300,9 @@ def test_dismissed_parse_failure_clears_a_finding_status_capture(tmp_path):
             opened_at="2016-01-01",
             run_id="run",
         )
-        conn.execute("UPDATE findings SET snapshot_id='capture' WHERE owner_kind='parse_failure'")
+        conn.execute(
+            "UPDATE findings SET snapshot_id = 'capture' WHERE owner_kind = 'parse_failure'"
+        )
         ledger = {target.target_id: {"status": "finding", "snapshot_id": "capture"}}
         # A capture whose parser failed keeps every year open until a reviewer
         # dismisses that failure (D-0187); a map widget with unnamed markers
@@ -339,7 +350,7 @@ def test_an_archive_read_of_a_live_watch_url_leaves_the_watch_live(tmp_path):
         with db.transaction() as conn:
             upsert_watch(conn, live, clock.now())
             conn.execute(
-                "UPDATE watches SET next_check_at=? WHERE watch_id=?", (due, live.watch_id)
+                "UPDATE watches SET next_check_at = %s WHERE watch_id = %s", (due, live.watch_id)
             )
         result = run_intake(
             db, catalog, config=Config({}, {}), clock=clock, transport=httpx.MockTransport(response)
@@ -347,13 +358,13 @@ def test_an_archive_read_of_a_live_watch_url_leaves_the_watch_live(tmp_path):
         assert result["targets"][target.target_id]["status"] == "parsed"
         assert tuple(
             db.connection.execute(
-                "SELECT state,archive_url,next_check_at FROM watches WHERE watch_id=?",
+                "SELECT state, archive_url, next_check_at FROM watches WHERE watch_id = %s",
                 (live.watch_id,),
             ).fetchone()
         ) == ("live", None, due)
         assert (
             db.connection.execute(
-                "SELECT via FROM snapshots WHERE watch_id=?", (live.watch_id,)
+                "SELECT via FROM snapshots WHERE watch_id = %s", (live.watch_id,)
             ).fetchone()[0]
             == "wayback"
         )

@@ -1,0 +1,149 @@
+{
+  "format": 1,
+  "created_at": "2026-11-05T05:47:58.408740+00:00",
+  "trigger": "Complete unchanged 2510-case core has one failure: original control CLI 0.2-second servicing deadline. Profile control path before changing it.",
+  "method": "Four simultaneous fresh native pytest processes run the original test_control_cli.py::test_pause_commits_while_cycle_owns_process_lock_without_accepting_inputs under identical sitecustomize stage timers and cProfile, followed by four with only registered_selectors source-name lookup replaced in memory. No repository runtime edits during the pair.",
+  "command": [
+    "mise",
+    "exec",
+    "--",
+    "uv",
+    "run",
+    "pytest",
+    "-q",
+    "tests/test_control_cli.py::test_pause_commits_while_cycle_owns_process_lock_without_accepting_inputs"
+  ],
+  "source_sha256": {
+    "src/swingset/state/controls.py": "f0baa2976af753560affcac46c92ff5ed69260e34573da0c6f704918bc4b9bb9",
+    "src/swingset/sources/registry.py": "1cfc9b5d4378612809840abc1fa81617672464f98ce2302e4b7ce6105bcefccc"
+  },
+  "modes": {
+    "original": {
+      "concurrent_original_cases": 4,
+      "passed": 4,
+      "samples": [
+        {
+          "stages_seconds": {
+            "connect": 0.0038709589280188084,
+            "validate_schema": 0.0016119582578539848,
+            "assert_pair": 0.00478754099458456,
+            "control_connection": 0.013225041795521975,
+            "apply_control": 0.06806849967688322,
+            "change_control": 0.08894229168072343
+          },
+          "driver_queries": 31
+        },
+        {
+          "stages_seconds": {
+            "connect": 0.004143999889492989,
+            "validate_schema": 0.0017828326672315598,
+            "assert_pair": 0.00518624996766448,
+            "control_connection": 0.013730083126574755,
+            "apply_control": 0.06546920910477638,
+            "change_control": 0.08715745899826288
+          },
+          "driver_queries": 31
+        },
+        {
+          "stages_seconds": {
+            "connect": 0.003932958003133535,
+            "validate_schema": 0.0016768751665949821,
+            "assert_pair": 0.004835833329707384,
+            "control_connection": 0.013051874935626984,
+            "apply_control": 0.06655495800077915,
+            "change_control": 0.08816791605204344
+          },
+          "driver_queries": 31
+        },
+        {
+          "stages_seconds": {
+            "connect": 0.003980500157922506,
+            "validate_schema": 0.001781540922820568,
+            "assert_pair": 0.004986959043890238,
+            "control_connection": 0.013653249945491552,
+            "apply_control": 0.06742429221048951,
+            "change_control": 0.08873312501236796
+          },
+          "driver_queries": 31
+        }
+      ],
+      "median_change_control_seconds": 0.0884505205322057
+    },
+    "registry_names_prototype": {
+      "concurrent_original_cases": 4,
+      "passed": 4,
+      "samples": [
+        {
+          "stages_seconds": {
+            "connect": 0.003976040985435247,
+            "validate_schema": 0.0017136670649051666,
+            "assert_pair": 0.004982000216841698,
+            "control_connection": 0.013426625169813633,
+            "apply_control": 0.0034813331440091133,
+            "change_control": 0.024440332781523466
+          },
+          "driver_queries": 31
+        },
+        {
+          "stages_seconds": {
+            "connect": 0.004059750121086836,
+            "validate_schema": 0.0016897497698664665,
+            "assert_pair": 0.005131250247359276,
+            "control_connection": 0.01369179179891944,
+            "apply_control": 0.005244165658950806,
+            "change_control": 0.027345249895006418
+          },
+          "driver_queries": 31
+        },
+        {
+          "stages_seconds": {
+            "connect": 0.004202334210276604,
+            "validate_schema": 0.0017780838534235954,
+            "assert_pair": 0.005204417277127504,
+            "control_connection": 0.014189417008310556,
+            "apply_control": 0.006354207638651133,
+            "change_control": 0.02757708402350545
+          },
+          "driver_queries": 31
+        },
+        {
+          "stages_seconds": {
+            "connect": 0.004429750144481659,
+            "validate_schema": 0.0019661253318190575,
+            "assert_pair": 0.005646249745041132,
+            "control_connection": 0.014865874778479338,
+            "apply_control": 0.003936040680855513,
+            "change_control": 0.027201041113585234
+          },
+          "driver_queries": 31
+        }
+      ],
+      "median_change_control_seconds": 0.027273145504295826
+    }
+  },
+  "registered_source_names_equal": true,
+  "registered_names": [
+    "dcn",
+    "eepro",
+    "scoringdance",
+    "steprightsolutions",
+    "swingdancecouncil",
+    "swingdirector",
+    "wdr",
+    "wsdc_calendar",
+    "wsdc_newsletter",
+    "wsdc_registry"
+  ],
+  "profile": {
+    "original_adapter_import_seconds_total": 0.248,
+    "original_registered_selectors_seconds_total": 0.259,
+    "original_change_control_seconds_total": 0.353,
+    "original_cases": 4
+  },
+  "limitations": [
+    "Native Mac focused concurrent cases, not the complete 16-worker Linux workload; this establishes the avoidable cold adapter import cost, not a complete core budget pass.",
+    "cProfile and stage timers add overhead.",
+    "All actual connections, identity UUID/environment comparisons, schema and role checks, selector unions, locks, durable mutation, and original 0.2-second deadline are retained."
+  ],
+  "raw_scratch": "/tmp/swingset-control-profile"
+}

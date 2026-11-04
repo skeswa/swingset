@@ -19,7 +19,7 @@ from .accounting import Accounting, account_keys
 from .report import Field, Guard
 
 KINDS = frozenset({"dcn.archive", "dcn.event"})
-VERSIONS = dict.fromkeys(sorted(KINDS), "1")
+VERSIONS = {"dcn.archive": "1", "dcn.event": "1"}
 
 KNOWN_BOUNDED_WARNINGS = frozenset(
     {

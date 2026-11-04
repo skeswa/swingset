@@ -1,13 +1,13 @@
-"""Real SQLite concurrency and durable H13 control boundaries, without requests."""
+"""Real Postgres concurrency and durable H13 control boundaries, without requests."""
 
 import contextlib
-import sqlite3
 import threading
 import time
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from test_postgres_schema import fresh_database  # noqa: F401
 
 from swingset.backup.checkpoint import (
     create_checkpoint,
@@ -15,7 +15,7 @@ from swingset.backup.checkpoint import (
     restore_from_checkpoint,
 )
 from swingset.clock import FakeClock
-from swingset.state import controls
+from swingset.state import controls, engine
 from swingset.state.attempts import begin_attempt, finish_attempt
 from swingset.state.control_lock import ControlTimeout, control_lock
 from swingset.state.controls import (
@@ -31,7 +31,14 @@ from swingset.state.controls import (
     status,
 )
 from swingset.state.db import SCHEMA_VERSION, open_database
+from swingset.state.environment import FixtureIO
 from swingset.state.work import WorkUnit, enqueue
+
+
+class EmptyHub(FixtureIO):
+    def head(self):
+        return None
+
 
 NOW = datetime(2026, 9, 13, tzinfo=UTC)
 SCOPE = ActionScope(frozenset({"eepro"}), frozenset({"round_observations"}), "example.test")
@@ -61,7 +68,7 @@ def test_controls_commit_while_data_writer_lock_is_held_and_restart_retains_paus
         with pytest.raises(ControlPaused):
             with admission(db, action_id="denied", action_kind="request", scope=SCOPE, now=NOW):
                 pytest.fail("paused action started")
-        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
     with open_database(tmp_path) as db:
         assert status(db.connection, now=NOW)["pauses"][0]["pause_id"] == receipt["pause_id"]
         resumed = change(tmp_path, paused=False)
@@ -73,7 +80,7 @@ def test_controls_commit_while_data_writer_lock_is_held_and_restart_retains_paus
 def test_overlapping_scopes_expiry_and_resume_preserve_automatic_host_block(tmp_path):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO hosts(host,paused_until,pause_reason) VALUES ('example.test',?,'Blocked')",
+            "INSERT INTO hosts (host, paused_until, pause_reason) VALUES ('example.test', %s, 'Blocked')",
             ((NOW + timedelta(days=1)).isoformat(),),
         )
         change(tmp_path)
@@ -91,7 +98,7 @@ def test_overlapping_scopes_expiry_and_resume_preserve_automatic_host_block(tmp_
             pass
         assert (
             db.connection.execute(
-                "SELECT action FROM control_events WHERE pause_id=? ORDER BY event_id DESC",
+                "SELECT action FROM control_events WHERE pause_id = %s ORDER BY event_id DESC NULLS LAST",
                 (timed["pause_id"],),
             ).fetchone()[0]
             == "expire"
@@ -142,7 +149,7 @@ def test_waiting_pause_wins_before_next_admission_after_atomic_unit(tmp_path, mo
         with admission(db, action_id="first", action_kind="project", scope=SCOPE, now=NOW):
             pass
         with db.transaction() as conn:
-            conn.execute("INSERT INTO meta VALUES ('atomic-output','committed')")
+            conn.execute("INSERT INTO meta (key, value) VALUES ('atomic-output', 'committed')")
             worker = threading.Thread(target=lambda: results.append(change(tmp_path, timeout=2)))
             worker.start()
             assert acquired.wait(1)
@@ -156,7 +163,9 @@ def test_waiting_pause_wins_before_next_admission_after_atomic_unit(tmp_path, mo
             worker.join(2)
         assert results[0]["persisted"]
         assert (
-            db.connection.execute("SELECT value FROM meta WHERE key='atomic-output'").fetchone()[0]
+            db.connection.execute("SELECT value FROM meta WHERE key = 'atomic-output'").fetchone()[
+                0
+            ]
             == "committed"
         )
 
@@ -176,10 +185,10 @@ def test_admission_rollback_and_lock_order_guard(tmp_path):
             with admission(
                 db, action_id="rollback", action_kind="fetch", scope=SCOPE, now=NOW
             ) as conn:
-                conn.execute("INSERT INTO meta VALUES ('issued','yes')")
+                conn.execute("INSERT INTO meta (key, value) VALUES ('issued', 'yes')")
                 raise RuntimeError("issuance failed")
         assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
-        assert not db.connection.execute("SELECT 1 FROM meta WHERE key='issued'").fetchone()
+        assert not db.connection.execute("SELECT 1 FROM meta WHERE key = 'issued'").fetchone()
         with db.transaction():
             with pytest.raises(ValueError, match="precede"):
                 with admission(db, action_id="deadlock", action_kind="fetch", scope=SCOPE, now=NOW):
@@ -226,7 +235,7 @@ def test_recovery_settles_requests_and_keeps_publication_uncertain(tmp_path):
         rows = {
             row[0]: (row[1], row[2])
             for row in db.connection.execute(
-                "SELECT action_id,state,outcome FROM execution_admissions"
+                "SELECT action_id, state, outcome FROM execution_admissions"
             )
         }
         assert rows == {
@@ -256,11 +265,16 @@ def test_admission_refuses_leased_units(tmp_path, kwargs):
 
 def _ledger_row(conn, action_id, kind, settled_at, *, state="settled", outcome="completed"):
     conn.execute(
-        "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,"
-        "all_sources,all_kinds,state,settled_at,outcome) VALUES (?,?,?,0,0,0,?,?,?)",
+        (
+            "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+            "all_sources, all_kinds, state, settled_at, outcome) VALUES (%s, %s, %s, 0, 0, 0, %s, %s, %s)"
+        ),
         (action_id, kind, settled_at, state, None if state != "settled" else settled_at, outcome),
     )
-    conn.execute("INSERT INTO execution_dependencies VALUES (?,'source','eepro')", (action_id,))
+    conn.execute(
+        "INSERT INTO execution_dependencies (action_id, scope_kind, scope_id) VALUES (%s, 'source', 'eepro')",
+        (action_id,),
+    )
 
 
 def test_prune_drops_old_settled_rows_but_newest_builds_publications_and_quota_rows(tmp_path):
@@ -289,8 +303,10 @@ def test_prune_drops_old_settled_rows_but_newest_builds_publications_and_quota_r
             _ledger_row(conn, "quota-request", "request", old)
             run = db.start_run(NOW - timedelta(days=31))
             conn.execute(
-                "INSERT INTO scheduler_requests(action_id,host,day,category,work_key,run_id,"
-                "issued_at) VALUES ('quota-request','example.test','d','c','k',?,?)",
+                (
+                    "INSERT INTO scheduler_requests (action_id, host, day, category, work_key, run_id, "
+                    "issued_at) VALUES ('quota-request', 'example.test', 'd', 'c', 'k', %s, %s)"
+                ),
                 (run, old),
             )
         config = SimpleNamespace(scheduler=SimpleNamespace(build_interval_seconds=3600 * 24 * 90))
@@ -313,10 +329,15 @@ def test_prune_drops_old_settled_rows_but_newest_builds_publications_and_quota_r
         assert {
             row[0] for row in db.connection.execute("SELECT action_id FROM execution_dependencies")
         } == kept
-        assert not db.connection.execute("PRAGMA foreign_key_check").fetchall()
+        assert not db.connection.execute(
+            "SELECT conname FROM pg_catalog.pg_constraint WHERE contype='f' AND NOT convalidated"
+        ).fetchall()
 
 
-def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path):
+def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path, legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_controls.py", "test_pause_checkpoint_restore_preserves_controls_and_retry_evidence"
+    )
     original, restored = tmp_path / "original", tmp_path / "restored"
     with open_database(original) as db:
         run = db.start_run(NOW)
@@ -331,11 +352,15 @@ def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path
             now=NOW,
             retry_at=NOW + timedelta(minutes=5),
         )
+        disposable = ("pending_work", "work_generations", "work_attempts")
+        assert all(
+            db.connection.execute(f"SELECT 1 FROM {table}").fetchone() for table in disposable
+        )
+        receipt = change(original)
         preserved = {
             table: [tuple(row) for row in db.connection.execute(f"SELECT * FROM {table}")]
-            for table in ("pending_work", "work_generations", "work_attempts")
+            for table in ("operator_pauses", "control_events", "control_state")
         }
-        receipt = change(original)
         checkpoint = create_checkpoint(
             original,
             db.connection,
@@ -346,20 +371,42 @@ def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path
         )
     assert "control.lock" not in checkpoint.files
     restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
-    with pytest.raises(RuntimeError, match="restore verification"):
-        change(restored, paused=False)
-    with open_database(restored, lock=False, read_only=True) as db:
+    with open_database(restored, lock=False, read_only=True, allow_restore_pending=True) as db:
         assert status(db.connection, now=NOW)["pauses"][0]["pause_id"] == receipt["pause_id"]
         for table, rows in preserved.items():
             assert [tuple(row) for row in db.connection.execute(f"SELECT * FROM {table}")] == rows
+        # Queue hints and unrooted attempts are reconstructed from domain facts.
+        # This missing-artifact hint has no retained domain root to rebuild.
+        assert all(
+            not db.connection.execute(f"SELECT 1 FROM {table}").fetchone() for table in disposable
+        )
+    change(restored, paused=False)
+    assert (restored / "RESTORE_PENDING").is_file()
+    with pytest.raises(RuntimeError, match="restore verification"):
+        with open_database(restored):
+            pytest.fail("resuming controls must not remove the restore barrier")
+    with open_database(restored, lock=False, read_only=True, allow_restore_pending=True) as db:
+        assert not db.connection.execute("SELECT 1 FROM operator_pauses").fetchone()
+        assert (
+            db.connection.execute("SELECT COUNT(*) FROM control_events").fetchone()[0]
+            == len(preserved["control_events"]) + 1
+        )
+        assert [
+            tuple(row)
+            for row in db.connection.execute(
+                "SELECT * FROM control_events ORDER BY event_id LIMIT %s",
+                (len(preserved["control_events"]),),
+            )
+        ] == preserved["control_events"]
+    activated = tmp_path / "activated"
     restore_from_checkpoint(
         checkpoint.path,
-        restored,
-        SimpleNamespace(head=lambda: None),
+        activated,
+        EmptyHub(),
         FakeClock(NOW),
         lock_timeout=0,
     )
-    with open_database(restored) as db:
+    with open_database(activated) as db:
         with pytest.raises(ControlPaused):
             with admission(
                 db, action_id="after-restore", action_kind="request", scope=SCOPE, now=NOW
@@ -368,6 +415,11 @@ def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path
         assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
         for table, rows in preserved.items():
             assert [tuple(row) for row in db.connection.execute(f"SELECT * FROM {table}")] == rows
+        # Queue hints and unrooted attempts are reconstructed from domain facts.
+        # This missing-artifact hint has no retained domain root to rebuild.
+        assert all(
+            not db.connection.execute(f"SELECT 1 FROM {table}").fetchone() for table in disposable
+        )
     before = {p.name for p in checkpoint.path.iterdir()}
     with pytest.raises(ValueError, match="immutable"):
         change(checkpoint.path)
@@ -385,48 +437,66 @@ def test_unknown_selectors_do_not_change_control_history(tmp_path, kind, identif
         assert not db.connection.execute("SELECT 1 FROM control_events").fetchone()
 
 
-def test_control_open_never_migrates_older_state(tmp_path, monkeypatch):
-    from swingset.state import db as db_module
-
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 11)
-    with open_database(tmp_path):
-        pass
-    with pytest.raises(RuntimeError, match="does not migrate"):
+def test_control_open_never_migrates_older_state(tmp_path):
+    with open_database(tmp_path) as database:
+        database.connection.execute("UPDATE ops.meta SET value='11' WHERE key='schema_version'")
+    with pytest.raises(RuntimeError, match="schema version"):
         change(tmp_path)
-    conn = sqlite3.connect(tmp_path / "state.sqlite")
-    try:
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 11
-    finally:
-        conn.close()
+    with engine.connect(engine.resolve_dsn(tmp_path)) as conn:
+        assert (
+            conn.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+            == "11"
+        )
+        assert conn.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 0
 
 
 def test_control_mutex_fences_lifecycle_replacement(tmp_path):
-    with open_database(tmp_path):
-        with control_lock(tmp_path):
+    with open_database(tmp_path) as database:
+        with control_lock(tmp_path, connection=database.connection):
             with pytest.raises(ControlTimeout):
                 change(tmp_path, timeout=0)
 
 
-def test_legacy_pause_migration_retains_selector_reason_expiry_and_unknown_actor(
-    tmp_path, monkeypatch
-):
-    from swingset.state import db as db_module
+def test_legacy_pause_import_retains_selector_reason_expiry_and_unknown_actor(
+    tmp_path,
+    fresh_database,  # noqa: F811
+):  # noqa: F811
+    import hashlib
+    import sqlite3 as checkpoint_sqlite
+    from pathlib import Path
 
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 11)
-    with open_database(tmp_path) as db:
-        db.connection.execute(
-            "INSERT INTO operator_pauses VALUES ('source','eepro',NULL,'legacy maintenance')"
+    from swingset.state import postgres_import
+
+    service, name, destination = fresh_database
+    source = tmp_path / "source" / "state.sqlite"
+    source.parent.mkdir()
+    with checkpoint_sqlite.connect(source) as conn:
+        conn.executescript(Path("tests/fixtures/postgres/schema37.sql").read_text())
+        conn.execute("PRAGMA user_version=37")
+        conn.execute(
+            "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason,pause_id,actor,control_revision,created_at) VALUES('source','eepro',NULL,'legacy maintenance','legacy_fixture','legacy:unknown',0,NULL)"
         )
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 12)
-    with open_database(tmp_path) as db:
-        paused = status(db.connection, now=NOW)["pauses"][0]
+        conn.execute(
+            "INSERT INTO control_events(control_revision,pause_id,scope_kind,scope_id,action,actor,reason,until_at,occurred_at) VALUES(0,'legacy_fixture','source','eepro','legacy_import','legacy:unknown','legacy maintenance',NULL,?)",
+            (NOW.isoformat(),),
+        )
+    imported = postgres_import.load(
+        source, destination, expected_sha256=hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+    assert imported["complete"] and imported["audit"]["equal"]
+    state = tmp_path / "imported"
+    engine.write_settings(
+        state, service.dsn(name, role="worker"), control_dsn=service.dsn(name, role="control")
+    )
+    with open_database(state) as database:
+        paused = status(database.connection, now=NOW)["pauses"][0]
         assert paused["scope_id"] == "eepro"
         assert paused["reason"] == "legacy maintenance"
         assert paused["actor"] == "legacy:unknown"
         assert paused["paused_duration_seconds"] is None
         assert paused["pause_id"].startswith("legacy_")
         assert (
-            db.connection.execute("SELECT action FROM control_events").fetchone()[0]
+            database.connection.execute("SELECT action FROM control_events").fetchone()[0]
             == "legacy_import"
         )
 
@@ -455,38 +525,33 @@ def test_paused_publication_still_validates_safety_before_admission(tmp_path):
 def test_checkpoint_control_snapshot_stays_consistent_while_controls_continue(
     tmp_path, monkeypatch
 ):
-    """The checkpoint resolves one point in time, and a control change waits for it.
+    """A resume after snapshot pinning commits without changing captured controls."""
+    from swingset.backup import snapshot
 
-    The copied database is taken before the closure, so a resume that arrives
-    while the checkpoint runs cannot change what it carries. Since D-0164 the
-    closure and copy also hold the control lock, so that resume waits rather
-    than landing mid-copy; it lands as soon as the copy is done.
-    """
-    from swingset.backup import checkpoint as checkpoint_module
-
-    original_closure = checkpoint_module._artifact_closure
+    original_export = snapshot.postgres_backup.export
     state = tmp_path / "state"
     with open_database(state) as db:
         receipt = change(state)
         resumed = threading.Thread(target=lambda: change(state, paused=False))
 
-        def capture_closure(state_dir, conn, candidates):
+        def capture_export(conn, *args, **kwargs):
             assert (
                 conn.execute("SELECT pause_id FROM operator_pauses").fetchone()[0]
                 == receipt["pause_id"]
             )
             resumed.start()
-            # The resume cannot commit while the copy runs: it is waiting for
-            # the control lock this checkpoint holds.
-            time.sleep(0.05)
-            assert resumed.is_alive()
+            resumed.join(5)
+            # The short control turn is released once the snapshot and files
+            # are pinned. A later resume commits without changing that snapshot.
+            assert not resumed.is_alive()
             assert (
                 conn.execute("SELECT pause_id FROM operator_pauses").fetchone()[0]
                 == receipt["pause_id"]
             )
-            return original_closure(state_dir, conn, candidates)
+            assert not db.connection.execute("SELECT 1 FROM operator_pauses").fetchone()
+            return original_export(conn, *args, **kwargs)
 
-        monkeypatch.setattr(checkpoint_module, "_artifact_closure", capture_closure)
+        monkeypatch.setattr(snapshot.postgres_backup, "export", capture_export)
         checkpoint = create_checkpoint(
             state,
             db.connection,
@@ -495,67 +560,87 @@ def test_checkpoint_control_snapshot_stays_consistent_while_controls_continue(
             versions={},
             input_bundle_hash=None,
         )
-        resumed.join(30)
         assert not resumed.is_alive()
-        assert not db.connection.execute("SELECT 1 FROM operator_pauses").fetchone()
-    conn = sqlite3.connect(
-        f"{(checkpoint.path / 'state.sqlite').as_uri()}?mode=ro&immutable=1", uri=True
-    )
-    try:
+    restored = tmp_path / "snapshot-restored"
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
+    with open_database(restored, lock=False, read_only=True, allow_restore_pending=True) as copied:
+        conn = copied.connection
         assert (
             conn.execute("SELECT pause_id FROM operator_pauses").fetchone()[0]
             == receipt["pause_id"]
         )
-        assert conn.execute("SELECT count(*) FROM control_events").fetchone()[0] == 1
-    finally:
-        conn.close()
+        assert conn.execute("SELECT COUNT(*) FROM control_events").fetchone()[0] == 1
 
 
 def test_publication_fence_allows_control_and_receipt_writes_only(tmp_path):
     with open_database(tmp_path) as db:
         with admission(db, action_id="publish", action_kind="publication", scope=SCOPE, now=NOW):
             pass
-        with pytest.raises(sqlite3.IntegrityError, match="fences semantic writes"):
-            db.connection.execute("INSERT INTO meta VALUES ('stale-input','bad')")
-        with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
+        with pytest.raises(engine.IntegrityError, match="fences semantic writes"):
+            db.connection.execute("INSERT INTO meta (key, value) VALUES ('stale-input', 'bad')")
+        with pytest.raises(engine.IntegrityError) as duplicate:
             with admission(db, action_id="second", action_kind="publish", scope=SCOPE, now=NOW):
                 pass
+        assert duplicate.value.sqlstate == "23505"
         assert change(tmp_path)["state"] == "pausing"
         with db.transaction() as conn:
             settle(conn, "publish", now=NOW, outcome="response_lost", uncertain=True)
-        db.connection.execute("INSERT INTO meta VALUES ('new-correction','accepted')")
+        db.connection.execute("INSERT INTO meta (key, value) VALUES ('new-correction', 'accepted')")
         assert status(db.connection, now=NOW)["state"] == "pausing"
 
 
 def test_future_migration_recovers_stale_reservation_and_fences_new_tables(tmp_path, monkeypatch):
-    from swingset.state import db as db_module
+    import shutil
+
+    from swingset.dev.services import ensure_service
+    from swingset.state import postgres_schema, rwlock
+    from swingset.state.db import Database
 
     state = tmp_path / "state"
-    with open_database(state) as db:
+    with open_database(state) as database:
+        name = database.connection.info.dbname
+        identity = database.connection.execute(
+            "SELECT database_id FROM ops.environment_identity"
+        ).fetchone()[0]
         with admission(
-            db, action_id="old-publication", action_kind="publication", scope=SCOPE, now=NOW
+            database, action_id="old-publication", action_kind="publication", scope=SCOPE, now=NOW
         ):
             pass
-    source = tmp_path / "new-source"
-    migrations = source / "migrations"
-    migrations.mkdir(parents=True)
-    (migrations / f"{SCHEMA_VERSION + 1:04d}_future.sql").write_text(
-        "CREATE TABLE future_evidence (id TEXT PRIMARY KEY);"
+    migrations = tmp_path / "future-migrations"
+    shutil.copytree(postgres_schema.ROOT, migrations)
+    (migrations / "0038_fixture_probe.sql").write_text(
+        "CREATE TABLE ops.future_evidence(id TEXT PRIMARY KEY);"
+        "GRANT SELECT,INSERT,UPDATE,DELETE ON ops.future_evidence TO swingset_worker;"
     )
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", SCHEMA_VERSION + 1)
-    monkeypatch.setattr(db_module, "__file__", str(source / "db.py"))
-    with open_database(state) as db:
-        assert db.schema_version == SCHEMA_VERSION + 1
+    monkeypatch.setattr(postgres_schema, "ROOT", migrations)
+    monkeypatch.setattr(postgres_schema, "SCHEMA_VERSION", 38)
+    with pytest.raises(RuntimeError, match="schema version|checksum"):
+        open_database(state)
+    with ensure_service().connect(name) as raw:
+        conn = engine.connect(raw.info.dsn, password=raw.info.password)
+    held = rwlock.exclusive(state, connection=conn)
+    with Database(state, conn, held) as migration:
+        with control_lock(state, connection=conn), migration.transaction():
+            recover_admissions(conn, now=NOW)
+            postgres_schema.migrate(conn)
+    with open_database(state) as database:
+        assert database.schema_version == 38
         assert (
-            db.connection.execute("SELECT state FROM execution_admissions").fetchone()[0]
+            database.connection.execute(
+                "SELECT database_id FROM ops.environment_identity"
+            ).fetchone()[0]
+            == identity
+        )
+        assert (
+            database.connection.execute("SELECT state FROM execution_admissions").fetchone()[0]
             == "uncertain"
         )
         with admission(
-            db, action_id="new-publication", action_kind="publication", scope=SCOPE, now=NOW
+            database, action_id="new-publication", action_kind="publication", scope=SCOPE, now=NOW
         ):
             pass
-        with pytest.raises(sqlite3.IntegrityError, match="fences semantic writes"):
-            db.connection.execute("INSERT INTO future_evidence VALUES ('unsafe')")
+        with pytest.raises(engine.IntegrityError, match="fences semantic writes"):
+            database.connection.execute("INSERT INTO ops.future_evidence(id) VALUES('unsafe')")
 
 
 def test_operation_keeps_control_live_across_body_commits_and_records_failure(tmp_path):
@@ -571,7 +656,9 @@ def test_operation_keeps_control_live_across_body_commits_and_records_failure(tm
                 assert not db.connection.in_transaction
                 assert change(tmp_path)["state"] == "pausing"
                 with db.transaction() as conn:
-                    conn.execute("INSERT INTO meta VALUES ('bounded-checkpoint','retained')")
+                    conn.execute(
+                        "INSERT INTO meta (key, value) VALUES ('bounded-checkpoint', 'retained')"
+                    )
                 raise ValueError("body failed")
         assert status(db.connection, now=NOW)["state"] == "paused"
         assert (
@@ -580,7 +667,7 @@ def test_operation_keeps_control_live_across_body_commits_and_records_failure(tm
         )
         assert (
             db.connection.execute(
-                "SELECT value FROM meta WHERE key='bounded-checkpoint'"
+                "SELECT value FROM meta WHERE key = 'bounded-checkpoint'"
             ).fetchone()[0]
             == "retained"
         )
@@ -650,7 +737,7 @@ def test_write_deadline_persists_waiting_pause_before_control_bound(
             with pytest.raises(write_deadline.WriteDeadlineExceeded):
                 with db.transaction() as conn:
                     conn.execute(
-                        "INSERT INTO meta VALUES ('uncommitted-slow-output','must rollback')"
+                        "INSERT INTO meta (key, value) VALUES ('uncommitted-slow-output', 'must rollback')"
                     )
                     worker.start()
                     assert acquired.wait(1)
@@ -664,7 +751,7 @@ def test_write_deadline_persists_waiting_pause_before_control_bound(
         assert elapsed < 1
         assert results[0]["persisted"] and results[0]["state"] == "pausing"
         assert not db.connection.execute(
-            "SELECT 1 FROM meta WHERE key='uncommitted-slow-output'"
+            "SELECT 1 FROM meta WHERE key = 'uncommitted-slow-output'"
         ).fetchone()
         with db.transaction() as conn:
             settle(conn, "slow-unit", now=NOW, outcome="write_deadline_exceeded")
@@ -712,16 +799,16 @@ def test_a_pause_commits_before_its_drain_report_and_survives_a_failing_unit_sco
     seen = []
 
     def failing(conn, leased):
-        other = sqlite3.connect(tmp_path / "state.sqlite")
+        other = engine.connect(engine.resolve_dsn(tmp_path))
         try:
             seen.append(
                 other.execute(
-                    "SELECT count(*) FROM operator_pauses WHERE scope_id='eepro'"
+                    "SELECT COUNT(*) FROM operator_pauses WHERE scope_id = 'eepro'"
                 ).fetchone()[0]
             )
         finally:
             other.close()
-        raise sqlite3.DatabaseError("malformed scope")
+        raise engine.DatabaseError("malformed scope")
 
     result = change(tmp_path, "source", "eepro", unit_scope=failing)
     assert seen == [1]  # committed before the drain report read
@@ -752,7 +839,7 @@ def test_maintain_prunes_in_batches_until_done_or_stopped(tmp_path, monkeypatch)
                 _ledger_row(conn, f"request-{index}", "request", old)
 
     def left(db):
-        return db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0]
+        return db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0]
 
     with open_database(tmp_path) as db:
         seed(db)
@@ -773,3 +860,174 @@ def test_maintain_prunes_in_batches_until_done_or_stopped(tmp_path, monkeypatch)
 
         assert prune_admissions(db, now=NOW, stop=stop) == 2
         assert left(db) == 3
+
+
+def test_control_role_cannot_write_data_or_change_schema(tmp_path):
+    with open_database(tmp_path) as database:
+        with engine.connect(engine.resolve_control_dsn(tmp_path)) as control:
+            for statement in (
+                "INSERT INTO ops.meta(key,value) VALUES('forbidden','value')",
+                "UPDATE ops.environment_identity SET environment='production'",
+                "CREATE TABLE ops.forbidden_fixture(value TEXT)",
+            ):
+                with pytest.raises(engine.DatabaseError) as denied:
+                    control.execute(statement)
+                assert denied.value.sqlstate == "42501"
+        assert (
+            database.connection.execute("SELECT 1 FROM ops.meta WHERE key='forbidden'").fetchone()
+            is None
+        )
+
+
+def test_worker_credentials_cannot_stand_in_for_a_control_role(tmp_path):
+    with open_database(tmp_path):
+        worker = engine.resolve_dsn(tmp_path)
+        engine.write_settings(tmp_path, worker, control_dsn=worker)
+        with pytest.raises(PermissionError, match="restricted control role"):
+            change(tmp_path)
+
+
+def test_control_lost_commit_acknowledgement_never_claims_no_persistence(tmp_path, monkeypatch):
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict
+
+    with open_database(tmp_path) as database:
+        control_user = conninfo_to_dict(engine.resolve_control_dsn(tmp_path))["user"]
+        original = psycopg.Connection.commit
+        calls = []
+
+        def lose_ack(conn):
+            original(conn)
+            if conn.info.user == control_user:
+                calls.append(1)
+                raise psycopg.OperationalError("private transport detail")
+
+        monkeypatch.setattr(psycopg.Connection, "commit", lose_ack)
+        with pytest.raises(engine.CommitUncertain):
+            change(tmp_path)
+        assert calls == [1]
+        assert (
+            database.connection.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 1
+        )
+
+
+def test_operation_checks_active_admission_before_any_outside_effect(tmp_path, monkeypatch):
+    from swingset.state.db import Database
+
+    original = controls.check_admission
+    issued = []
+
+    def revoke(conn, action_id):
+        with Database(tmp_path, conn, None).transaction():
+            settle(conn, action_id, now=NOW, outcome="revoked", uncertain=True)
+        original(conn, action_id)
+
+    with open_database(tmp_path) as database:
+        monkeypatch.setattr(controls, "check_admission", revoke)
+        with pytest.raises(controls.AdmissionLost):
+            with operation(
+                database,
+                action_id="fixture-request",
+                action_kind="request",
+                scope=SCOPE,
+                clock=FakeClock(NOW),
+            ):
+                issued.append("outside call")
+        assert issued == []
+
+
+def test_explicit_admission_can_reuse_its_callers_control_turn(tmp_path):
+    with open_database(tmp_path) as database:
+        with control_lock(tmp_path, connection=database.connection):
+            with admission(
+                database,
+                action_id="owned-turn",
+                action_kind="request",
+                scope=SCOPE,
+                now=NOW,
+                reuse_control_turn=True,
+            ):
+                pass
+            controls.check_admission(database.connection, "owned-turn")
+        with admission(
+            database, action_id="next-turn", action_kind="request", scope=SCOPE, now=NOW
+        ):
+            pass
+
+
+@pytest.mark.parametrize("environment_flag", [None, "dev", "production"])
+def test_control_credentials_for_another_database_are_rejected(
+    tmp_path, monkeypatch, environment_flag
+):
+    state, other_state = tmp_path / "state", tmp_path / "other"
+    with open_database(state) as database, open_database(other_state) as other:
+        original = engine.read_settings(state)
+        wrong = engine.resolve_control_dsn(other_state)
+        assert (
+            database.connection.execute(
+                "SELECT database_id FROM ops.environment_identity"
+            ).fetchone()[0]
+            != other.connection.execute(
+                "SELECT database_id FROM ops.environment_identity"
+            ).fetchone()[0]
+        )
+        engine.write_settings(
+            state, original["dsn"], environment=original["environment"], control_dsn=wrong
+        )
+        if environment_flag is None:
+            monkeypatch.delenv("SWINGSET_ENV", raising=False)
+        else:
+            monkeypatch.setenv("SWINGSET_ENV", environment_flag)
+        with pytest.raises(RuntimeError, match="configured state database|database identity"):
+            change_control(
+                state,
+                selector=Selector("all", "all"),
+                paused=True,
+                actor="operator",
+                reason="must refuse",
+                now=NOW,
+            )
+        assert database.connection.execute("SELECT count(*) FROM control_events").fetchone()[0] == 0
+        assert other.connection.execute("SELECT count(*) FROM control_events").fetchone()[0] == 0
+
+
+def test_admission_rejects_a_connection_from_another_database(tmp_path):
+    from swingset.state.db import Database
+
+    with open_database(tmp_path / "state") as expected, open_database(tmp_path / "other") as other:
+        mismatched = Database(expected.state_dir, other.connection, None)
+        with pytest.raises(RuntimeError, match="database identity"):
+            with admission(
+                mismatched,
+                action_id="request:wrong-db",
+                action_kind="acquisition",
+                scope=ActionScope(),
+                now=NOW,
+            ):
+                raise AssertionError("a mismatched admission was issued")
+        assert (
+            other.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+        )
+
+
+def test_selector_registration_uses_names_without_importing_adapters_and_keeps_retired_pauses(
+    tmp_path, monkeypatch
+):
+    from swingset import sources
+    from swingset.sources.registry import ADAPTERS
+
+    with open_database(tmp_path) as database:
+        change(tmp_path, "source", "eepro")
+        monkeypatch.delitem(ADAPTERS, "eepro")
+        monkeypatch.setitem(ADAPTERS, "registered_without_import", "not.an.importable.adapter")
+
+        def forbidden_adapter_imports():
+            raise AssertionError("listing source names must not import adapters")
+
+        monkeypatch.setattr(sources, "sources", forbidden_adapter_imports)
+        found = controls.registered_selectors(
+            database.connection, sources=("configured_source",), hosts=("configured.test",)
+        )
+        assert found["source"] == sorted({*ADAPTERS, "configured_source", "eepro"})
+        assert "configured.test" in found["host"]
+        assert found["all"] == ["all"]

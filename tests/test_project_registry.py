@@ -21,14 +21,22 @@ def project(tmp_path: Path, payload: DancerLookup):
         spec = SOURCE.watch(payload.requested_wsdc_id)
         upsert_watch(conn, spec, datetime(2026, 9, 9, tzinfo=UTC))
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-09-09T00:00:00Z',1)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', '2026-09-09T00:00:00Z', 1)"
         )
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('snap',?,'POST',?,'2026-09-09T00:00:00Z',200,1,1,'run','Ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification) VALUES ('snap', %s, 'POST', %s, "
+                "'2026-09-09T00:00:00Z', 200, 1, 1, 'run', 'Ok')"
+            ),
             (spec.watch_id, spec.url),
         )
         conn.execute(
-            "INSERT INTO observations VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, %s, "
+                "%s, %s, %s, %s, %s)"
+            ),
             (
                 observation_id(spec.watch_id, "snap", payload.kind, 0),
                 spec.watch_id,

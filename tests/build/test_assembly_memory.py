@@ -260,152 +260,189 @@ def full_fixture(directory: Path) -> None:
         ["pipeline", f"version/extract/synthetic.kind{number}", "x" * 40 + str(number)]
         for number in range(RECIPE_INPUTS)
     ]
-    with open_database(directory / "state") as database, database.transaction() as conn:
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('synthetic',?,1)", (now,))
-        conn.execute(
-            "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) "
-            "VALUES ('synthetic.round','1','r1')"
-        )
-        conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
-        )
-        for number in range(FULL_SNAPSHOTS):
-            watch, snapshot = f"w{number}", f"s{number}"
-            event = f"ev{number % FULL_EVENTS:04d}"
+    with open_database(directory / "state") as database:
+        with database.transaction() as conn:
             conn.execute(
-                "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
-                "VALUES (?,'eepro','round','GET',?,'synthetic.round','live')",
-                (watch, f"https://example.test/{number}"),
+                "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('synthetic', %s, 1)", (now,)
             )
             conn.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-                "body_bytes,content_changed,run_id,classification) "
-                "VALUES (?,?,'GET',?,?,200,1,1,'synthetic','Ok')",
-                (snapshot, watch, f"https://example.test/{number}", now),
-            )
-            payload = {"round": number, "event": event, "marks": list(range(12))}
-            observation = {"kind": "round_sheet", "scope": {"kind": "event", "ref": event}}
-            conn.execute(
-                "INSERT INTO observations VALUES (?,?,?,'round_sheet','event',?,0,'1','1',?)",
-                (f"o{number}", watch, snapshot, event, _canonical(payload)),
-            )
-            recipe = {
-                "context": {"snapshot_id": snapshot, "source": "eepro", "watch_id": watch},
-                "parser_version": "1",
-                "extract_version": "1",
-                "contract_version": "1",
-                "accepted_inputs": inputs,
-            }
-            conn.execute(
-                "INSERT INTO source_units(unit_key,watch_id,page_kind,accepted_generation_id) "
-                "VALUES (?,?,'synthetic.round',NULL)",
-                (f"u{number}", watch),
-            )
-            generation = f"gen_{number:06d}"
-            conn.execute(
-                "INSERT INTO source_generations(generation_id,unit_key,page_kind,contract_version,"
-                "input_fingerprint,manifest_json,recipe_json,result_json,report_json,created_at,"
-                "run_id,state,removal_authority) VALUES (?,?,'synthetic.round','1',?,'[]',?,?,"
-                "'{\"failures\":[]}',?,'synthetic','accepted','none')",
-                (
-                    generation,
-                    f"u{number}",
-                    generation,
-                    _canonical(recipe),
-                    _canonical({"observations": [{**observation, "payload": payload}]}),
-                    now,
-                ),
+                "INSERT INTO admission_policies (page_kind, contract_version, policy_revision) VALUES "
+                "('synthetic.round', '1', 'r1')"
             )
             conn.execute(
-                "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,"
-                "policy_revision) VALUES (?,'accepted','synthetic',?,'r1')",
-                (generation, now),
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('empty', "
+                "'[]') ON CONFLICT DO NOTHING"
             )
+        # Fixture loading is not one production write: keep every real
+        # transaction within the unchanged 60-second bound.
+        for start in range(0, FULL_SNAPSHOTS, 100):
+            with database.transaction() as conn:
+                for number in range(start, min(start + 100, FULL_SNAPSHOTS)):
+                    watch, snapshot = f"w{number}", f"s{number}"
+                    event = f"ev{number % FULL_EVENTS:04d}"
+                    conn.execute(
+                        (
+                            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, "
+                            "'eepro', 'round', 'GET', %s, 'synthetic.round', 'live')"
+                        ),
+                        (watch, f"https://example.test/{number}"),
+                    )
+                    conn.execute(
+                        (
+                            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 1, "
+                            "1, 'synthetic', 'Ok')"
+                        ),
+                        (snapshot, watch, f"https://example.test/{number}", now),
+                    )
+                    payload = {"round": number, "event": event, "marks": list(range(12))}
+                    observation = {"kind": "round_sheet", "scope": {"kind": "event", "ref": event}}
+                    conn.execute(
+                        (
+                            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, "
+                            "'round_sheet', 'event', %s, 0, '1', '1', %s)"
+                        ),
+                        (f"o{number}", watch, snapshot, event, _canonical(payload)),
+                    )
+                    recipe = {
+                        "context": {"snapshot_id": snapshot, "source": "eepro", "watch_id": watch},
+                        "parser_version": "1",
+                        "extract_version": "1",
+                        "contract_version": "1",
+                        "accepted_inputs": inputs,
+                    }
+                    conn.execute(
+                        (
+                            "INSERT INTO source_units (unit_key, watch_id, page_kind, accepted_generation_id) VALUES "
+                            "(%s, %s, 'synthetic.round', NULL)"
+                        ),
+                        (f"u{number}", watch),
+                    )
+                    generation = f"gen_{number:06d}"
+                    conn.execute(
+                        (
+                            "INSERT INTO source_generations (generation_id, unit_key, page_kind, contract_version, "
+                            "input_fingerprint, manifest_json, recipe_json, result_json, report_json, created_at, "
+                            "run_id, state, removal_authority) VALUES (%s, %s, 'synthetic.round', '1', %s, '[]', %s, %s, "
+                            "'{\"failures\":[]}', %s, 'synthetic', 'accepted', 'none')"
+                        ),
+                        (
+                            generation,
+                            f"u{number}",
+                            generation,
+                            _canonical(recipe),
+                            _canonical({"observations": [{**observation, "payload": payload}]}),
+                            now,
+                        ),
+                    )
+                    conn.execute(
+                        (
+                            "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+                            "VALUES (%s, 'accepted', 'synthetic', %s, 'r1')"
+                        ),
+                        (generation, now),
+                    )
         for index in range(FULL_EVENTS):
-            event = f"ev{index:04d}"
-            contest = f"{event}/jj"
-            common = {"source": "eepro", "parser_version": "1"}
-            output = [
-                (
-                    "events",
-                    _canonical([event]),
-                    {
-                        "event_id": event,
-                        "series_id": event,
-                        "name": f"Synthetic {index}",
-                        "year": 2026,
-                        "start_date": "2026-05-01",
-                        "end_date": "2026-05-02",
-                        "event_month": "2026-05",
-                        "date_precision": "day",
-                        "wsdc_status": "registry",
-                        "snapshot_id": f"s{index}",
-                        **common,
-                    },
-                ),
-                (
-                    "contests",
-                    _canonical([contest]),
-                    {
-                        "contest_id": contest,
-                        "event_id": event,
-                        "name_raw": "Jack & Jill",
-                        "snapshot_id": f"s{index}",
-                        **common,
-                    },
-                ),
-            ]
-            output += [
-                (
-                    "rounds",
-                    _canonical([f"{contest}/r{number}"]),
-                    {
-                        "round_id": f"{contest}/r{number}",
-                        "contest_id": contest,
-                        "round_index": 1,
-                        "snapshot_id": f"s{number}",
-                        **common,
-                    },
-                )
-                for number in range(index, FULL_SNAPSHOTS, FULL_EVENTS)
-            ]
-            digest = hashlib.sha256()
-            created = f"dg_{index:04d}"
-            for ordinal, (table, key, payload) in enumerate(output):
-                stored = _canonical(payload)
-                sha = hashlib.sha256(stored.encode()).hexdigest()
+            with database.transaction() as conn:
+                event = f"ev{index:04d}"
+                contest = f"{event}/jj"
+                common = {"source": "eepro", "parser_version": "1"}
+                output = [
+                    (
+                        "events",
+                        _canonical([event]),
+                        {
+                            "event_id": event,
+                            "series_id": event,
+                            "name": f"Synthetic {index}",
+                            "year": 2026,
+                            "start_date": "2026-05-01",
+                            "end_date": "2026-05-02",
+                            "event_month": "2026-05",
+                            "date_precision": "day",
+                            "wsdc_status": "registry",
+                            "snapshot_id": f"s{index}",
+                            **common,
+                        },
+                    ),
+                    (
+                        "contests",
+                        _canonical([contest]),
+                        {
+                            "contest_id": contest,
+                            "event_id": event,
+                            "name_raw": "Jack & Jill",
+                            "snapshot_id": f"s{index}",
+                            **common,
+                        },
+                    ),
+                ]
+                output += [
+                    (
+                        "rounds",
+                        _canonical([f"{contest}/r{number}"]),
+                        {
+                            "round_id": f"{contest}/r{number}",
+                            "contest_id": contest,
+                            "round_index": 1,
+                            "snapshot_id": f"s{number}",
+                            **common,
+                        },
+                    )
+                    for number in range(index, FULL_SNAPSHOTS, FULL_EVENTS)
+                ]
+                digest = hashlib.sha256()
+                created = f"dg_{index:04d}"
+                for ordinal, (table, key, payload) in enumerate(output):
+                    stored = _canonical(payload)
+                    sha = hashlib.sha256(stored.encode()).hexdigest()
+                    conn.execute(
+                        "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                        (sha, stored),
+                    )
+                    conn.execute(
+                        (
+                            "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                            "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                        ),
+                        (created, ordinal, table, key, sha),
+                    )
+                    digest.update(_canonical((table, key, stored)).encode() + b"\n")
                 conn.execute(
-                    "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (sha, stored)
+                    (
+                        "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                        "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                        "row_count, created_at, run_id) VALUES (%s, 'project', 'event', %s, 'f', '{}', 'empty', "
+                        "NULL, %s, %s, %s, 'synthetic')"
+                    ),
+                    (created, event, digest.hexdigest(), len(output), now),
+                )
+                # The canonical row the generation materialized: selection
+                # partitions only events state holds (D-0262).
+                conn.execute(
+                    (
+                        "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+                        "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+                        "(%s, %s, %s, 2026, '2026-05-01', '2026-05-02', 'registry', '[\"eepro\"]', 'eepro', %s, '1', "
+                        "%s, %s, 'synthetic')"
+                    ),
+                    (event, event, f"Synthetic {index}", f"s{index}", now, now),
                 )
                 conn.execute(
-                    "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
-                    (created, ordinal, table, key, sha),
+                    (
+                        "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                        "'event', %s, %s) ON CONFLICT DO NOTHING"
+                    ),
+                    (event, now),
                 )
-                digest.update(_canonical((table, key, stored)).encode() + b"\n")
-            conn.execute(
-                "INSERT INTO derivation_generations VALUES "
-                "(?,'project','event',?,'f','{}','empty',NULL,?,?,?,'synthetic')",
-                (created, event, digest.hexdigest(), len(output), now),
-            )
-            # The canonical row the generation materialized: selection
-            # partitions only events state holds (D-0262).
-            conn.execute(
-                "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,"
-                "wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,"
-                "last_seen_at,run_id) VALUES (?,?,?,2026,'2026-05-01','2026-05-02',"
-                "'registry','[\"eepro\"]','eepro',?,'1',?,?,'synthetic')",
-                (event, event, f"Synthetic {index}", f"s{index}", now, now),
-            )
-            conn.execute(
-                "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-                "VALUES ('project','event',?,?)",
-                (event, now),
-            )
-            conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=? "
-                "WHERE stage='project' AND unit_kind='event' AND unit_id=?",
-                (created, event),
-            )
+                conn.execute(
+                    (
+                        "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = 'project' AND "
+                        "unit_kind = 'event' AND unit_id = %s"
+                    ),
+                    (created, event),
+                )
 
 
 def full_build(directory: Path) -> dict[str, object]:

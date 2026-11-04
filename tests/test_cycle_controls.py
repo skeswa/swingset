@@ -53,7 +53,11 @@ def seed_held(db, clock):
     body = b"retained unsupported source layout"
     sha = Archive(db.state_dir).store_body(body)
     db.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) VALUES ('held',?,'GET',?,?,200,?,?,1,?,'Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_sha256, body_bytes, content_changed, run_id, classification) VALUES ('held', %s, "
+            "'GET', %s, %s, 200, %s, %s, 1, %s, 'Ok')"
+        ),
         (watch.watch_id, watch.url, clock.now().isoformat(), sha, len(body), run),
     )
     enqueue(
@@ -105,16 +109,16 @@ def test_paused_backlog_does_not_starve_real_independent_fetch_and_projection(
     assert not result.failed
     assert result.checked == 1
     with open_database(state) as db:
-        assert db.connection.execute("SELECT count(*) FROM events").fetchone()[0] == 1
+        assert db.connection.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM work_attempts WHERE unit_id='held'"
+                "SELECT COUNT(*) FROM work_attempts WHERE unit_id = 'held'"
             ).fetchone()[0]
             == 0
         )
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM pending_work WHERE unit_id='held'"
+                "SELECT COUNT(*) FROM pending_work WHERE unit_id = 'held'"
             ).fetchone()[0]
             == 1
         )
@@ -164,11 +168,11 @@ def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
     assert result.accepted_inputs
     with open_database(state) as db:
         assert status(db.connection, now=clock.now())["state"] == "paused"
-        assert db.connection.execute("SELECT count(*) FROM watches").fetchone()[0] > 0
-        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM watches").fetchone()[0] > 0
+        assert db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
         for record in result.values():
             assert db.connection.execute(
-                "SELECT finished_at FROM runs WHERE run_id=?", (record["run_id"],)
+                "SELECT finished_at FROM runs WHERE run_id = %s", (record["run_id"],)
             ).fetchone()[0]
 
 
@@ -182,7 +186,10 @@ def test_startup_recovers_abandoned_publication_before_start_run(
     state = tmp_path / "state"
     with open_database(state) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('abandoned','publication',?,0,1,1,'active')",
+            (
+                "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                "all_sources, all_kinds, state) VALUES ('abandoned', 'publication', %s, 0, 1, 1, 'active')"
+            ),
             (clock.now().isoformat(),),
         )
     original = Database.start_run
@@ -242,7 +249,7 @@ def test_held_early_correction_does_not_abort_independent_work(
     assert released["reconciliation"]["state"] == "draining"
     assert released["reconciliation"]["reason"] == "prior receipt pending"
     with open_database(state) as db:
-        assert db.connection.execute("SELECT count(*) FROM events").fetchone()[0] == 1
+        assert db.connection.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
 
 
 def test_saved_crosscheck_is_held_by_its_shared_kind(tmp_path, configuration, monkeypatch):
@@ -259,7 +266,9 @@ def test_saved_crosscheck_is_held_by_its_shared_kind(tmp_path, configuration, mo
     with open_database(state) as db:
         accept(db, capture(config, overrides, db.state_dir, versions()), clock)
         db.connection.execute("DELETE FROM pending_work")
-        db.connection.execute("INSERT INTO meta VALUES ('registry_crosscheck_due','retained')")
+        db.connection.execute(
+            "INSERT INTO meta (key, value) VALUES ('registry_crosscheck_due', 'retained')"
+        )
         change_control(
             db.state_dir,
             selector=Selector("kind", "registry_event_association"),
@@ -274,7 +283,7 @@ def test_saved_crosscheck_is_held_by_its_shared_kind(tmp_path, configuration, mo
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_due'"
             ).fetchone()[0]
             == "retained"
         )
@@ -374,7 +383,7 @@ def test_cycle_reports_publication_held_reason_without_claiming_failure(
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT state FROM execution_admissions WHERE action_kind='build'"
+                "SELECT state FROM execution_admissions WHERE action_kind = 'build'"
             ).fetchone()[0]
             == "settled"
         )
@@ -434,8 +443,11 @@ def test_build_interval_defers_any_build_admitted_within_it(tmp_path):
     with open_database(tmp_path / "state") as db:
         assert not build_deferred_for_interval(db.connection, hourly, now=clock.now())
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state,outcome) "
-            "VALUES ('build_x','build',?,0,1,1,'settled','failed')",
+            (
+                "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                "all_sources, all_kinds, state, outcome) VALUES ('build_x', 'build', %s, 0, 1, 1, 'settled', "
+                "'failed')"
+            ),
             (clock.now().isoformat(),),
         )
         assert not build_deferred_for_interval(db.connection, unset, now=clock.now())
@@ -486,27 +498,41 @@ def test_history_interval_paces_nothing(tmp_path):
 
 def _materialize(conn, kind, generation, at, run, unit_id="all"):
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-        "VALUES ('project',?,?,?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+            "%s, %s, %s) ON CONFLICT DO NOTHING"
+        ),
         (kind, unit_id, at.isoformat()),
     )
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+        "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('empty', "
+        "'[]') ON CONFLICT DO NOTHING"
     )
     conn.execute(
-        "INSERT INTO derivation_generations VALUES (?,'project',?,?,'f','{}','empty',NULL,'d',0,?,?)",
+        (
+            "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+            "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+            "row_count, created_at, run_id) VALUES (%s, 'project', %s, %s, 'f', '{}', 'empty', NULL, "
+            "'d', 0, %s, %s)"
+        ),
         (generation, kind, unit_id, at.isoformat(), run),
     )
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=? WHERE unit_kind=? AND unit_id=?",
+        "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE unit_kind = %s AND unit_id = %s",
         (generation, kind, unit_id),
     )
 
 
 def _equivalence(conn, kind, generation, at, run, unit_id="all"):
-    conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
     conn.execute(
-        "INSERT INTO derivation_equivalences VALUES ('project',?,?,?,?,'r','empty',?,?)",
+        "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES ('r', '{}') ON CONFLICT DO NOTHING"
+    )
+    conn.execute(
+        (
+            "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+            "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES ('project', %s, "
+            "%s, %s, %s, 'r', 'empty', %s, %s)"
+        ),
         (kind, unit_id, "f-" + at.isoformat(), generation, at.isoformat(), run),
     )
 
@@ -557,24 +583,25 @@ def test_a_calendar_replay_the_inventory_has_not_read_lifts_its_wait(tmp_path):
     `accept-year` read calendar-only values. The gate lets it run instead,
     and the watchdog's mirror of the gate agrees."""
     import importlib.util
-    import sqlite3
     from datetime import timedelta
     from pathlib import Path
     from types import SimpleNamespace
 
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.schedule.pacing import calendar_replayed
+    from swingset.state import engine
     from swingset.state.work import WorkUnit
 
     spec = importlib.util.spec_from_file_location(
-        "swingset_watchdog_pacing", Path(__file__).resolve().parents[1] / "nix/watchdog.py"
+        "swingset_watchdog_pacing",
+        Path(__file__).resolve().parents[1] / "src/swingset/ops/watchdog.py",
     )
     assert spec is not None and spec.loader is not None
     watchdog = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(watchdog)
 
     def mirrored() -> bool:
-        db = sqlite3.connect(f"file:{tmp_path / 'state/state.sqlite'}?mode=ro", uri=True)
+        db = engine.connect(engine.resolve_dsn(tmp_path / "state"), read_only=True)
         try:
             return bool(watchdog._calendar_replayed(db))
         finally:
@@ -596,18 +623,26 @@ def test_a_calendar_replay_the_inventory_has_not_read_lifts_its_wait(tmp_path):
             derivations.bump_replay(conn, "project", "calendar", now=start)
         assert calendar_replayed(conn, inventory) and mirrored()
         assert not deferred_for_interval(conn, paced, inventory, now=later)
-        conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
+        conn.execute(
+            "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES ('r', '{}') ON CONFLICT DO NOTHING"
+        )
 
         def reads(epoch: int, hours: int) -> None:
             """The inventory's next run, a cutoff, read `epoch`."""
             read = f'[{{"key":["project","calendar"],"kind":"replay","version":{epoch}}}]'
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+                (
+                    "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s) "
+                    "ON CONFLICT DO NOTHING"
+                ),
                 (f"read{epoch}", read),
             )
             conn.execute(
-                "INSERT INTO derivation_equivalences VALUES "
-                "('project','inventory','all',?,'dg_i','r',?,?,?)",
+                (
+                    "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                    "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES ('project', "
+                    "'inventory', 'all', %s, 'dg_i', 'r', %s, %s, %s)"
+                ),
                 (f"f{epoch}", f"read{epoch}", (start + timedelta(hours=hours)).isoformat(), run),
             )
 
@@ -642,18 +677,26 @@ def test_a_calendar_generation_newer_than_the_inventory_lifts_its_wait(tmp_path)
 
     def calendar(scope, generation, at, run):
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-            "VALUES ('project','calendar',?,?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                "'calendar', %s, %s) ON CONFLICT DO NOTHING"
+            ),
             (scope, at.isoformat()),
         )
         conn.execute(
-            "INSERT INTO derivation_generations VALUES "
-            "(?,'project','calendar',?,'f','{}','empty',NULL,'d',0,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, 'project', 'calendar', %s, 'f', '{}', 'empty', "
+                "NULL, 'd', 0, %s, %s)"
+            ),
             (generation, scope, at.isoformat(), run),
         )
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=? "
-            "WHERE unit_kind='calendar' AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE unit_kind = 'calendar' "
+                "AND unit_id = %s"
+            ),
             (generation, scope),
         )
 
@@ -799,7 +842,7 @@ def test_a_failed_report_read_still_writes_the_derive_run_record(
     assert record["failed"]
     with open_database(state) as db:
         stored = db.connection.execute(
-            "SELECT summary_json FROM runs WHERE run_id=?", (record["run_id"],)
+            "SELECT summary_json FROM runs WHERE run_id = %s", (record["run_id"],)
         ).fetchone()[0]
     assert json.loads(stored)["error"] == record["error"]
     saved = state / "runs" / f"{record['run_id']}.json"
@@ -936,7 +979,7 @@ def test_a_cycle_deletes_hints_for_units_that_are_already_current(tmp_path, conf
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM pending_work WHERE stage IN ('project','link')"
+                "SELECT COUNT(*) FROM pending_work WHERE stage IN ('project', 'link')"
             ).fetchone()[0]
             == 0
         )

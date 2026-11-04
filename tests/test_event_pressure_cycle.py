@@ -55,15 +55,15 @@ def test_cycle_recovers_lost_parse_hint_during_pause_without_executing_it(
     assert result["derive"]["parse_hint_recovery"]["enqueued"] == 1
     assert (
         f.conn.execute(
-            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",
+            "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
             (unit.unit_id,),
         ).fetchone()[0]
         == original_token
     )
     assert not f.conn.execute(
-        "SELECT 1 FROM work_attempts WHERE stage='parse' AND unit_id=?", (unit.unit_id,)
+        "SELECT 1 FROM work_attempts WHERE stage = 'parse' AND unit_id = %s", (unit.unit_id,)
     ).fetchone()
-    assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests>0").fetchone()
+    assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests > 0").fetchone()
 
 
 @pytest.mark.parametrize("paused", [False, True])
@@ -80,8 +80,8 @@ def test_cycle_pressure_refresh_uses_control_boundary_and_read_only_archive(
         assert archive.recovery is None
         assert 0 < wall_seconds <= 1
         active = database.connection.execute(
-            "SELECT action_kind FROM execution_admissions "
-            "WHERE state='active' AND action_id LIKE 'event_pressure_%'"
+            "SELECT action_kind FROM execution_admissions WHERE state = 'active' AND action_id ILIKE "
+            "'event_pressure_%'"
         ).fetchall()
         assert [row[0] for row in active] == ["project"]
         seen.append(now)
@@ -122,13 +122,13 @@ def test_cycle_pressure_refresh_uses_control_boundary_and_read_only_archive(
             assert result["plan"]["event_pressure_refresh"] == {"test_observation": True}
         assert (
             database.connection.execute(
-                "SELECT count(*) FROM execution_admissions WHERE state='active'"
+                "SELECT COUNT(*) FROM execution_admissions WHERE state = 'active'"
             ).fetchone()[0]
             == 0
         )
         assert (
             database.connection.execute(
-                "SELECT coalesce(sum(requests),0) FROM host_budget"
+                "SELECT COALESCE(SUM(requests), 0) FROM host_budget"
             ).fetchone()[0]
             == 0
         )

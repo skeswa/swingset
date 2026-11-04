@@ -138,7 +138,10 @@ def reviewed(
         date="2026-09-13",
         supersedes=supersedes,
     )
-    conn.execute("BEGIN IMMEDIATE")
+    conn.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+    from swingset.state.engine.locks import acquire_writer
+
+    acquire_writer(conn)
     try:
         accept_journal(conn, encode_journal((*previous, row)), bundle_digest="bundle", now=NOW)
         conn.commit()

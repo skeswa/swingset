@@ -1,0 +1,62 @@
+{
+  "command": [
+    "docker",
+    "run",
+    "--rm",
+    "--platform",
+    "linux/arm64",
+    "--network",
+    "none",
+    "--memory",
+    "2g",
+    "--memory-swap",
+    "2g",
+    "--cpus",
+    "8",
+    "--mount",
+    "type=bind,src=<checkout>,dst=/workspace,readonly",
+    "--workdir",
+    "/workspace",
+    "--env",
+    "PYTHONPATH=/workspace/src:/workspace/tests",
+    "--env",
+    "SWINGSET_REVISION=",
+    "--entrypoint",
+    "python",
+    "swingset-test:stage1-arm64-measure",
+    "/probe.py"
+  ],
+  "interpretation": "The exact digest pin preserves every versions() value while avoiding repeated source reads. This bounded micro-measurement does not establish a complete-core timing. Compute the exact mounted source digest once in the disposable test job launcher and verify that digest after the job; no production identity cache is justified by this probe.",
+  "measured_at": "2026-11-05T03:02:52.974362+00:00",
+  "outcomes_identical": true,
+  "probe_sha256": "dbb49471feb1eaaccf2ada8e58fbe021115be1a652f00c641e473f64412b4282",
+  "runs": [
+    {
+      "calls": 3,
+      "counts": {
+        "open": 990,
+        "os.scandir": 396,
+        "pathlib.Path.rglob": 3,
+        "read_bytes": 12140448,
+        "read_calls": 990
+      },
+      "equal_all_calls": true,
+      "mode": "fallback",
+      "outcome_sha256": "f590ab73f88a23142a6883d16ad27884cadbc966ef762988e3fcb2621756b469",
+      "wall_seconds": 0.0489178360439837
+    },
+    {
+      "calls": 3,
+      "counts": {},
+      "equal_all_calls": true,
+      "mode": "pinned",
+      "outcome_sha256": "f590ab73f88a23142a6883d16ad27884cadbc966ef762988e3fcb2621756b469",
+      "wall_seconds": 2.9709073714911938e-05
+    }
+  ],
+  "single_digest_wall_seconds": 0.016751660034060478,
+  "source_digest": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "source_digest_after": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "source_files": 330,
+  "source_stable": true
+}

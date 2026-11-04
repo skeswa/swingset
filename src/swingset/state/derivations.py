@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -19,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from swingset import cutoff
+from swingset.state import engine
 
 from . import output_packs
 from .attempts import SupersededWorkError
@@ -99,7 +99,7 @@ Rows = Callable[[], Iterable[OutputRow]] | Iterable[OutputRow]
 
 @dataclass
 class _Group:
-    connection: sqlite3.Connection
+    connection: engine.Connection
     selected: dict[WorkUnit, Selection] = field(default_factory=dict)
     completed: set[WorkUnit] = field(default_factory=set)
     # A member whose provisional id another member captured never cuts off.
@@ -117,20 +117,24 @@ class _Group:
 _group: ContextVar[_Group | None] = ContextVar("derivation_consistency_group", default=None)
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='derivation_scopes'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'derivation_scopes' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
 
 
-def materialized_at(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
+def materialized_at(conn: engine.Connection, unit: WorkUnit) -> str | None:
     """When the scope's selected generation last became current: when it was
     written, or when a later run cut off to it (D-0205), whichever is newer."""
     row = conn.execute(
-        "SELECT g.created_at FROM derivation_scopes s JOIN derivation_generations g "
-        "ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+        (
+            "SELECT g.created_at FROM derivation_scopes AS s JOIN derivation_generations AS g ON "
+            "g.generation_id = s.materialized_generation_id WHERE s.stage = %s AND s.unit_kind = %s AND "
+            "s.unit_id = %s"
+        ),
         _key(unit),
     ).fetchone()
     if row is None:
@@ -138,13 +142,12 @@ def materialized_at(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
     stamps = [str(row[0])]
     try:
         cut = conn.execute(
-            "SELECT max(e.created_at) FROM derivation_scopes s JOIN derivation_equivalences e "
-            "ON e.stage=s.stage AND e.unit_kind=s.unit_kind AND e.unit_id=s.unit_id "
-            "AND e.generation_id=s.materialized_generation_id "
-            "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+            (
+                "SELECT MAX(e.created_at) AS _value_0 FROM derivation_scopes AS s JOIN derivation_equivalences AS e ON e.stage = s.stage AND e.unit_kind = s.unit_kind AND e.unit_id = s.unit_id AND e.generation_id = s.materialized_generation_id WHERE s.stage = %s AND s.unit_kind = %s AND s.unit_id = %s"
+            ),
             _key(unit),
         ).fetchone()
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" not in str(exc):
             raise
         cut = None
@@ -153,19 +156,40 @@ def materialized_at(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
     return max(stamps, key=lambda stamp: datetime.fromisoformat(stamp))
 
 
-def selected_generation(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
+def selected_generation(conn: engine.Connection, unit: WorkUnit) -> str | None:
     active = _group.get()
     if active is not None and active.connection is conn and unit in active.selected:
         return active.effective.get(unit, active.selected[unit].generation_id)
     row = conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = %s AND unit_kind = "
+            "%s AND unit_id = %s"
+        ),
         _key(unit),
     ).fetchone()
     return None if row is None else row[0]
 
 
+def _restore_cache_scope(conn: engine.Connection, scope: tuple[str, str, str]) -> bool:
+    if not getattr(conn, "restore_pending", False) or scope[0] not in {"project", "link"}:
+        return False
+    from .derivation_dependencies import retired
+
+    return not retired(WorkUnit(*scope))
+
+
+def _restore_certificate_missing(conn: engine.Connection, scope: tuple[str, str, str]) -> bool:
+    if not _restore_cache_scope(conn, scope):
+        return False
+    row = conn.execute(
+        "SELECT materialized_signature FROM derivation_scopes WHERE stage=%s AND unit_kind=%s AND unit_id=%s",
+        scope,
+    ).fetchone()
+    return row is None or row[0] is None
+
+
 def materialized_for(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     scope: tuple[str, str, str],
     generation_id: str | None,
     fingerprint: str,
@@ -180,8 +204,11 @@ def materialized_for(
     """
     if generation_id is None:
         return False
+    if _restore_certificate_missing(conn, scope):
+        # The historical label is a cutoff witness, not a live-cache proof.
+        return False
     row = conn.execute(
-        "SELECT input_fingerprint FROM derivation_generations WHERE generation_id=?",
+        "SELECT input_fingerprint FROM derivation_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     if row is None:
@@ -192,7 +219,7 @@ def materialized_for(
 
 
 def _equivalent(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     scope: tuple[str, str, str],
     generation_id: str,
     fingerprint: str,
@@ -200,20 +227,21 @@ def _equivalent(
     try:
         return (
             conn.execute(
-                "SELECT 1 FROM derivation_equivalences WHERE stage=? AND unit_kind=? AND unit_id=? "
-                "AND input_fingerprint=? AND generation_id=?",
+                (
+                    "SELECT 1 AS _value_0 FROM derivation_equivalences WHERE stage = %s AND unit_kind = %s AND unit_id = %s AND input_fingerprint = %s AND generation_id = %s"
+                ),
                 (*scope, fingerprint, generation_id),
             ).fetchone()
             is not None
         )
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" in str(exc):
             return False
         raise
 
 
 def current_for(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     *,
     recipe: Mapping[str, str] | None = None,
@@ -222,7 +250,8 @@ def current_for(
     """Whether the scope's selected generation is materialized for its desired inputs.
 
     Unlike `current()` this takes an explicit recipe, such as the helper recipe
-    a project unit captures, and never trusts a stored signature. The answer
+    a project unit captures, and always recomputes the desired fingerprint.
+    A staged restore also requires a completed live-cache certificate. The answer
     does not depend on how provisional generation ids are minted.
     """
     selected = selected_generation(conn, unit)
@@ -233,7 +262,7 @@ def current_for(
 
 
 def bump_replay(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     stage: str,
     kind: str,
     *,
@@ -255,12 +284,13 @@ def bump_replay(
         _bump_unit_replay(conn, WorkUnit(stage, kind, unit_id), now=now)
     key = canonical((stage, kind))
     conn.execute(
-        "INSERT INTO derivation_input_versions VALUES ('replayed',?,1) "
-        "ON CONFLICT(namespace,input_key) DO UPDATE SET version=version+1",
+        (
+            "INSERT INTO derivation_input_versions (namespace, input_key, version) VALUES ('replayed', %s, 1) ON CONFLICT(namespace, input_key) DO UPDATE SET version = derivation_input_versions.version + 1"
+        ),
         (key,),
     )
     row = conn.execute(
-        "SELECT version FROM derivation_input_versions WHERE namespace='replayed' AND input_key=?",
+        "SELECT version FROM derivation_input_versions WHERE namespace = 'replayed' AND input_key = %s",
         (key,),
     ).fetchone()
     # The epoch makes dependents stale by fingerprint alone. Queue hints for
@@ -271,38 +301,42 @@ def bump_replay(
     queued_at = _at(now)
     for dependent_stage, dependent_kind in replay_dependents(stage, kind):
         conn.execute(
-            "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
-            "SELECT stage,unit_kind,unit_id,? FROM derivation_scopes WHERE stage=? AND unit_kind=?",
+            (
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) SELECT stage, unit_kind, "
+                "unit_id, %s FROM derivation_scopes WHERE stage = %s AND unit_kind = %s ON CONFLICT DO "
+                "NOTHING"
+            ),
             (queued_at, dependent_stage, dependent_kind),
         )
     return int(row[0])
 
 
 def _bump_unit_replay(
-    conn: sqlite3.Connection, unit: WorkUnit, *, now: datetime | str | None
+    conn: engine.Connection, unit: WorkUnit, *, now: datetime | str | None
 ) -> None:
     from .derivation_dependencies import UNIT_REPLAY, read_hints
 
     conn.execute(
-        "INSERT INTO derivation_input_versions VALUES (?,?,1) "
-        "ON CONFLICT(namespace,input_key) DO UPDATE SET version=version+1",
+        (
+            "INSERT INTO derivation_input_versions (namespace, input_key, version) VALUES (%s, %s, 1) ON CONFLICT(namespace, input_key) DO UPDATE SET version = derivation_input_versions.version + 1"
+        ),
         (UNIT_REPLAY, canonical(_key(unit))),
     )
     read_hints(conn, "/".join(_key(unit)), enqueued_at=_at(now))
 
 
-def replay_epochs(conn: sqlite3.Connection) -> dict[str, int]:
+def replay_epochs(conn: engine.Connection) -> dict[str, int]:
     """Each kind's replay epoch, keyed `stage/kind`."""
     return {
         "/".join(json.loads(key)): int(version)
         for key, version in conn.execute(
-            "SELECT input_key,version FROM derivation_input_versions WHERE namespace='replayed'"
+            "SELECT input_key, version FROM derivation_input_versions WHERE namespace = 'replayed'"
         )
     }
 
 
 def cycle_progress(
-    conn: sqlite3.Connection, run_id: str, replayed_before: Mapping[str, int] | None
+    conn: engine.Connection, run_id: str, replayed_before: Mapping[str, int] | None
 ) -> dict[str, dict[str, int]]:
     """Generations and equivalences one run wrote, by `stage/kind`, and the
     replay epochs that moved since `replayed_before`. Without a starting read
@@ -319,14 +353,14 @@ def cycle_progress(
         return {
             f"{stage}/{kind}": int(count)
             for stage, kind, count in conn.execute(
-                f"SELECT stage,unit_kind,count(*) FROM {table} WHERE run_id=?{extra} GROUP BY 1,2",
+                f"SELECT stage,unit_kind,count(*) FROM {table} WHERE run_id=%s{extra} GROUP BY 1,2",
                 (run_id,),
             )
         }
 
     try:
         equivalences = by_kind("derivation_equivalences")
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" not in str(exc):
             raise
         equivalences = {}
@@ -343,13 +377,13 @@ def cycle_progress(
     return result
 
 
-def selected_dependency(conn: sqlite3.Connection, unit: WorkUnit) -> dict[str, Any]:
+def selected_dependency(conn: engine.Connection, unit: WorkUnit) -> dict[str, Any]:
     generation = selected_generation(conn, unit)
     return {"kind": "derivation", "key": list(_key(unit)), "generation_id": generation}
 
 
 def desired(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     *,
     recipe: Mapping[str, str] | None = None,
@@ -397,7 +431,8 @@ def desired(
         # it is the whole dependency. No pointer or graph is read here.
         if (
             conn.execute(
-                "SELECT 1 FROM release_manifests WHERE manifest_digest=?", (release_manifest,)
+                "SELECT 1 AS _value_0 FROM release_manifests WHERE manifest_digest = %s",
+                (release_manifest,),
             ).fetchone()
             is None
         ):
@@ -424,9 +459,11 @@ def desired(
         }
     )
     row = conn.execute(
-        "SELECT s.materialized_generation_id,g.input_fingerprint,g.recipe_json FROM derivation_scopes s "
-        "LEFT JOIN derivation_generations g ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+        (
+            "SELECT s.materialized_generation_id, g.input_fingerprint, g.recipe_json FROM "
+            "derivation_scopes AS s LEFT JOIN derivation_generations AS g ON g.generation_id = "
+            "s.materialized_generation_id WHERE s.stage = %s AND s.unit_kind = %s AND s.unit_id = %s"
+        ),
         _key(unit),
     ).fetchone()
     previous = None if row is None else row[0]
@@ -481,13 +518,15 @@ def desired(
     )
 
 
-def _equivalence_recipe(conn: sqlite3.Connection, unit: WorkUnit, fingerprint: str) -> str:
+def _equivalence_recipe(conn: engine.Connection, unit: WorkUnit, fingerprint: str) -> str:
     row = conn.execute(
-        "SELECT r.recipe_json FROM derivation_scopes s JOIN derivation_equivalences e "
-        "ON e.stage=s.stage AND e.unit_kind=s.unit_kind AND e.unit_id=s.unit_id "
-        "AND e.generation_id=s.materialized_generation_id "
-        "JOIN derivation_recipes r ON r.recipe_sha256=e.recipe_sha256 "
-        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=? AND e.input_fingerprint=?",
+        (
+            "SELECT r.recipe_json FROM derivation_scopes AS s JOIN derivation_equivalences AS e ON "
+            "e.stage = s.stage AND e.unit_kind = s.unit_kind AND e.unit_id = s.unit_id AND "
+            "e.generation_id = s.materialized_generation_id JOIN derivation_recipes AS r ON "
+            "r.recipe_sha256 = e.recipe_sha256 WHERE s.stage = %s AND s.unit_kind = %s AND s.unit_id = "
+            "%s AND e.input_fingerprint = %s"
+        ),
         (*_key(unit), fingerprint),
     ).fetchone()
     if row is None:
@@ -496,7 +535,7 @@ def _equivalence_recipe(conn: sqlite3.Connection, unit: WorkUnit, fingerprint: s
 
 
 def capture(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     *,
     now: datetime | str | None = None,
@@ -512,15 +551,19 @@ def capture(
     if not conn.in_transaction:
         raise ValueError("capture requires the admission transaction")
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+            "%s, %s) ON CONFLICT DO NOTHING"
+        ),
         (*_key(unit), _at(now)),
     )
     selection = replace(
         desired(conn, unit, recipe=recipe, context=context, reads=reads), witness=_witness(conn)
     )
     conn.execute(
-        "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,desired_fingerprint,registered_at) VALUES (?,?,?,?,?) "
-        "ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET desired_fingerprint=excluded.desired_fingerprint",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, desired_fingerprint, registered_at) VALUES (%s, %s, %s, %s, %s) ON CONFLICT(stage, unit_kind, unit_id) DO UPDATE SET desired_fingerprint = excluded.desired_fingerprint"
+        ),
         (*_key(unit), selection.fingerprint, _at(now)),
     )
     for set_id, members in selection.dependency_sets.items():
@@ -532,8 +575,8 @@ def capture(
     return selection
 
 
-def _witness(conn: sqlite3.Connection) -> tuple[tuple[str, int], ...]:
-    placeholders = ",".join("?" for _ in WITNESS)
+def _witness(conn: engine.Connection) -> tuple[tuple[str, int], ...]:
+    placeholders = ",".join("%s" for _ in WITNESS)
     return tuple(
         (str(name), int(value))
         for name, value in conn.execute(
@@ -574,7 +617,7 @@ def _pin(active: _Group, unit: WorkUnit, selection: Selection) -> None:
 
 
 @contextmanager
-def group(conn: sqlite3.Connection) -> Iterator[None]:
+def group(conn: engine.Connection) -> Iterator[None]:
     """Reserve inline member identities and require all members to commit together."""
     if not conn.in_transaction:
         raise ValueError("a derivation group requires an output transaction")
@@ -611,7 +654,7 @@ def group(conn: sqlite3.Connection) -> Iterator[None]:
         _group.reset(token)
 
 
-def _validate_dependencies(conn: sqlite3.Connection, selection: Selection) -> None:
+def _validate_dependencies(conn: engine.Connection, selection: Selection) -> None:
     for dependency in (
         *selection.dependencies,
         *(item for members in selection.dependency_sets.values() for item in members),
@@ -619,7 +662,7 @@ def _validate_dependencies(conn: sqlite3.Connection, selection: Selection) -> No
         if dependency["kind"] == "derivation" and dependency.get("generation_id") is not None:
             if (
                 conn.execute(
-                    "SELECT 1 FROM derivation_generations WHERE generation_id=?",
+                    "SELECT 1 AS _value_0 FROM derivation_generations WHERE generation_id = %s",
                     (dependency["generation_id"],),
                 ).fetchone()
                 is None
@@ -627,7 +670,7 @@ def _validate_dependencies(conn: sqlite3.Connection, selection: Selection) -> No
                 raise SupersededWorkError("selected dependency generation is incomplete")
 
 
-def interned(conn: sqlite3.Connection) -> bool:
+def interned(conn: engine.Connection) -> bool:
     """Whether derivation output rows are stored once behind the `derivation_rows` view.
 
     Schema 32 splits the old `derivation_rows` table into `derivation_payloads`
@@ -641,14 +684,14 @@ def interned(conn: sqlite3.Connection) -> bool:
     """
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='derivation_row_refs'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'derivation_row_refs') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
 
 
 def retain_output(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     rows: Iterable[OutputRow],
     *,
@@ -702,7 +745,7 @@ def retain_output(
     row_table = "derivation_row_refs" if interned(conn) else "derivation_rows"
     references = int(
         conn.execute(
-            f"SELECT count(*) FROM {row_table} WHERE generation_id=?", (generation_id,)
+            f"SELECT count(*) FROM {row_table} WHERE generation_id=%s", (generation_id,)
         ).fetchone()[0]
     )
     if not references:
@@ -717,15 +760,15 @@ def retain_output(
     _restore(conn, generation_id, rows, recorded)
 
 
-def _recorded_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int] | None:
+def _recorded_label(conn: engine.Connection, generation_id: str) -> tuple[str, int] | None:
     row = conn.execute(
-        "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
+        "SELECT output_digest, row_count FROM derivation_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     return None if row is None else (str(row[0]), int(row[1]))
 
 
-def _partial_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int] | None:
+def _partial_label(conn: engine.Connection, generation_id: str) -> tuple[str, int] | None:
     """The recorded label of a generation with rows still to store, else None.
 
     Such a generation is one a staged run stopped storing. Its building row
@@ -739,7 +782,7 @@ def _partial_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, i
     if recorded is None or recorded[1] == 0 or not interned(conn) or not building_available(conn):
         return None
     last = conn.execute(
-        "SELECT 1 FROM derivation_row_refs WHERE generation_id=? AND ordinal=?",
+        "SELECT 1 AS _value_0 FROM derivation_row_refs WHERE generation_id = %s AND ordinal = %s",
         (generation_id, recorded[1] - 1),
     ).fetchone()
     if last is not None or output_packs.evicted(conn, generation_id):
@@ -749,7 +792,7 @@ def _partial_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, i
     return recorded
 
 
-def _payload_bytes_missing(conn: sqlite3.Connection, generation_id: str) -> bool:
+def _payload_bytes_missing(conn: engine.Connection, generation_id: str) -> bool:
     """Does any reference of this generation name payload bytes that are gone?
 
     Never, before interning: a row of the one table carries its own bytes, so a
@@ -759,16 +802,16 @@ def _payload_bytes_missing(conn: sqlite3.Connection, generation_id: str) -> bool
         return False
     return bool(
         conn.execute(
-            "SELECT EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=? "
-            "AND NOT EXISTS(SELECT 1 FROM derivation_payloads p "
-            "WHERE p.payload_sha256=r.payload_sha256))",
+            (
+                "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_row_refs AS r WHERE r.generation_id = %s AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_payloads AS p WHERE p.payload_sha256 = r.payload_sha256)) AS INT) AS _value_0"
+            ),
             (generation_id,),
         ).fetchone()[0]
     )
 
 
 def _store(
-    conn: sqlite3.Connection, generation_id: str, rows: Iterable[OutputRow]
+    conn: engine.Connection, generation_id: str, rows: Iterable[OutputRow]
 ) -> Iterator[tuple[str, str, str]]:
     """Write one payload per distinct row and one reference per row, in order.
 
@@ -781,18 +824,21 @@ def _store(
         payload = canonical(dict(row.payload))
         if not shared:
             conn.execute(
-                "INSERT INTO derivation_rows VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_rows VALUES (%s, %s, %s, %s, %s)",
                 (generation_id, ordinal, row.table, row.key, payload),
             )
             yield row.table, row.key, payload
             continue
         payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)",
+            "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
             (payload_sha256, payload),
         )
         conn.execute(
-            "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+            ),
             (generation_id, ordinal, row.table, row.key, payload_sha256),
         )
         yield row.table, row.key, payload
@@ -805,7 +851,7 @@ def _offered(rows: Iterable[OutputRow]) -> Iterator[tuple[str, str, str]]:
 
 
 def _restore(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     rows: Iterable[OutputRow],
     expected: tuple[str, int],
@@ -822,7 +868,7 @@ def _restore(
         wanted = {
             str(row[0])
             for row in conn.execute(
-                "SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id=?",
+                "SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id = %s",
                 (generation_id,),
             )
         }
@@ -831,7 +877,7 @@ def _restore(
             payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
             if payload_sha256 in wanted:
                 conn.execute(
-                    "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)",
+                    "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
                     (payload_sha256, payload),
                 )
     # Before interning a row's bytes never leave it, so there is nothing to put
@@ -859,7 +905,7 @@ Moved = Mapping[str, Sequence[str]]
 
 
 def _without(
-    conn: sqlite3.Connection, generation_id: str, moved: Moved
+    conn: engine.Connection, generation_id: str, moved: Moved
 ) -> Iterator[tuple[str, str, str]]:
     """A stored generation's rows in order, with the moved columns taken out.
 
@@ -877,7 +923,7 @@ def _without(
 
 
 def _same_output(
-    conn: sqlite3.Connection, generation_id: str, label: tuple[str, int], moved: Moved
+    conn: engine.Connection, generation_id: str, label: tuple[str, int], moved: Moved
 ) -> bool:
     """Whether a run's output label is the stored generation's output.
 
@@ -918,7 +964,7 @@ def _once(rows: Rows) -> Iterable[OutputRow]:
 
 
 def _cutoff_candidate(
-    conn: sqlite3.Connection, selection: Selection, pointer: str | None, active: _Group | None
+    conn: engine.Connection, selection: Selection, pointer: str | None, active: _Group | None
 ) -> bool:
     """Whether a re-run may keep its scope's pointer when its output is identical.
 
@@ -937,13 +983,13 @@ def _cutoff_candidate(
         and not (active is not None and selection.unit in active.pinned)
         # Before schema 33 there is nowhere to record an equivalence.
         and conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='derivation_equivalences'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'derivation_equivalences') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
 
 
-def _fence(conn: sqlite3.Connection, selection: Selection, message: str) -> None:
+def _fence(conn: engine.Connection, selection: Selection, message: str) -> None:
     fresh = desired(
         conn,
         selection.unit,
@@ -967,7 +1013,7 @@ def _generation_recipe(selection: Selection) -> str:
 
 
 def _store_dependency_sets(
-    conn: sqlite3.Connection, selection: Selection, *, now: datetime | str | None
+    conn: engine.Connection, selection: Selection, *, now: datetime | str | None
 ) -> str:
     """Store the selection's sets (again: a set A captured may have been collected)."""
     at = _at(now)
@@ -979,7 +1025,7 @@ def _store_dependency_sets(
 
 
 def _record_equivalence(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     selection: Selection,
     kept: str,
     *,
@@ -991,10 +1037,15 @@ def _record_equivalence(
     recipe_json = _generation_recipe(selection)
     recipe_sha256 = hashlib.sha256(recipe_json.encode()).hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_recipes VALUES (?,?)", (recipe_sha256, recipe_json)
+        "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+        (recipe_sha256, recipe_json),
     )
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_equivalences VALUES (?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+            "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES (%s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
+        ),
         (
             *_key(selection.unit),
             selection.fingerprint,
@@ -1008,7 +1059,7 @@ def _record_equivalence(
 
 
 def complete(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     selection: Selection,
     *,
     rows: Rows,
@@ -1036,7 +1087,7 @@ def complete(
     replay = _replayable(rows)
     kept: str | None = None
     existing = conn.execute(
-        "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
+        "SELECT output_digest, row_count FROM derivation_generations WHERE generation_id = %s",
         (selection.generation_id,),
     ).fetchone()
     building = _building_label(conn, selection.generation_id)
@@ -1086,7 +1137,11 @@ def complete(
                 if label is not None and (output_digest, row_count) != label:
                     raise NondeterministicOutputError("derivation output is not deterministic")
                 conn.execute(
-                    "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                        "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                        "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    ),
                     (
                         selection.generation_id,
                         *_key(selection.unit),
@@ -1110,7 +1165,10 @@ def complete(
         # back whole in this transaction before the pointer names it.
         output_packs.page_in(conn, selection.generation_id, now=_now(now))
         conn.execute(
-            "UPDATE derivation_scopes SET desired_fingerprint=?,materialized_generation_id=? WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET desired_fingerprint = %s, materialized_generation_id = %s "
+                "WHERE stage = %s AND unit_kind = %s AND unit_id = %s"
+            ),
             (selection.fingerprint, selection.generation_id, *_key(selection.unit)),
         )
         if pointer != selection.generation_id:
@@ -1118,7 +1176,10 @@ def complete(
     else:
         # The pointer stays, so the selected epoch does not move.
         conn.execute(
-            "UPDATE derivation_scopes SET desired_fingerprint=? WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET desired_fingerprint = %s WHERE stage = %s AND unit_kind = %s "
+                "AND unit_id = %s"
+            ),
             (selection.fingerprint, *_key(selection.unit)),
         )
     _record_reads(conn, selection)
@@ -1154,12 +1215,12 @@ def complete(
     if building_available(conn):
         # This completion finished a generation a staged run had started.
         conn.execute(
-            "DELETE FROM derivation_building WHERE generation_id=?", (selection.generation_id,)
+            "DELETE FROM derivation_building WHERE generation_id = %s", (selection.generation_id,)
         )
     return effective
 
 
-def _record_reads(conn: sqlite3.Connection, selection: Selection) -> None:
+def _record_reads(conn: engine.Connection, selection: Selection) -> None:
     """Make a completed link's read set its recorded one (`derivation_reads`).
 
     Before schema 35 there is no table; `recorded_reads` then reads the set
@@ -1172,7 +1233,7 @@ def _record_reads(conn: sqlite3.Connection, selection: Selection) -> None:
     read_index.replace(conn, selection.unit, selection.reads)
 
 
-def _hint_readers(conn: sqlite3.Connection, unit: WorkUnit, now: datetime | str) -> None:
+def _hint_readers(conn: engine.Connection, unit: WorkUnit, now: datetime | str) -> None:
     """A project scope's pointer moved: queue the units whose read set names it."""
     if unit.stage != "project":
         return
@@ -1181,18 +1242,17 @@ def _hint_readers(conn: sqlite3.Connection, unit: WorkUnit, now: datetime | str)
     read_hints(conn, "/".join(_key(unit)), enqueued_at=_at(now))
 
 
-def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+def _has_table(conn: engine.Connection, name: str) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = %s) AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))",
+            (name,),
         ).fetchone()
         is not None
     )
 
 
-def check_reads(
-    conn: sqlite3.Connection, selection: Selection, observed: Mapping[str, Any]
-) -> None:
+def check_reads(conn: engine.Connection, selection: Selection, observed: Mapping[str, Any]) -> None:
     """Raise when a link input moved between the run's load and its commit.
 
     ``observed`` holds each read key's value at load (plan F20). The values
@@ -1209,7 +1269,7 @@ def check_reads(
 
 
 def _check_capture(
-    conn: sqlite3.Connection, selection: Selection, now: datetime | str
+    conn: engine.Connection, selection: Selection, now: datetime | str
 ) -> str | None:
     """Check a selection against its inputs now and return the scope pointer.
 
@@ -1240,11 +1300,17 @@ def _check_capture(
         _validate_artifacts=False,
     )
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+            "%s, %s) ON CONFLICT DO NOTHING"
+        ),
         (*_key(selection.unit), _at(now)),
     )
     pointer = conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = %s AND unit_kind = "
+            "%s AND unit_id = %s"
+        ),
         _key(selection.unit),
     ).fetchone()
     if (
@@ -1264,7 +1330,7 @@ def _check_capture(
 #: path when it is a project year or its kept generation has more rows.
 CHUNK_ROWS = 5000
 
-Output = Callable[[sqlite3.Connection], Iterable[OutputRow]]
+Output = Callable[[engine.Connection], Iterable[OutputRow]]
 
 
 @dataclass(frozen=True)
@@ -1290,7 +1356,7 @@ class Deferred:
 class Chunking:
     """One processing transaction's permission to stage one unit."""
 
-    connection: sqlite3.Connection
+    connection: engine.Connection
     unit: WorkUnit
     enabled: bool
     deferred: Deferred | None = None
@@ -1300,7 +1366,7 @@ _chunking: ContextVar[Chunking | None] = ContextVar("derivation_chunking", defau
 
 
 @contextmanager
-def chunking(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[Chunking]:
+def chunking(conn: engine.Connection, unit: WorkUnit) -> Iterator[Chunking]:
     """Let ``unit``'s completion inside the next transaction take the staged path.
 
     Only `derive_one` sets this, around its processing transaction. A caller
@@ -1315,16 +1381,16 @@ def chunking(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[Chunking]:
         _chunking.reset(token)
 
 
-def building_available(conn: sqlite3.Connection) -> bool:
+def building_available(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='derivation_building'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'derivation_building') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
 
 
-def stageable(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def stageable(conn: engine.Connection, unit: WorkUnit) -> bool:
     """Whether a completion of ``unit`` about to be captured may be staged.
 
     Asked before the unit opens its consistency group: a unit captured
@@ -1345,9 +1411,11 @@ def stageable(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     if (unit.stage, unit.unit_kind) == ("project", "year"):
         return True
     row = conn.execute(
-        "SELECT g.row_count FROM derivation_scopes s JOIN derivation_generations g "
-        "ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+        (
+            "SELECT g.row_count FROM derivation_scopes AS s JOIN derivation_generations AS g ON "
+            "g.generation_id = s.materialized_generation_id WHERE s.stage = %s AND s.unit_kind = %s AND "
+            "s.unit_id = %s"
+        ),
         _key(unit),
     ).fetchone()
     if row is not None and int(row[0]) > CHUNK_ROWS:
@@ -1357,9 +1425,9 @@ def stageable(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     # whole inside one inline transaction.
     return output_packs.available(conn) and (
         conn.execute(
-            "SELECT 1 FROM derivation_generations g JOIN derivation_evicted e "
-            "ON e.generation_id=g.generation_id WHERE g.stage=? AND g.unit_kind=? "
-            "AND g.unit_id=? AND g.row_count>? LIMIT 1",
+            (
+                "SELECT 1 AS _value_0 FROM derivation_generations AS g JOIN derivation_evicted AS e ON e.generation_id = g.generation_id WHERE g.stage = %s AND g.unit_kind = %s AND g.unit_id = %s AND g.row_count > %s LIMIT 1"
+            ),
             (*_key(unit), CHUNK_ROWS),
         ).fetchone()
         is not None
@@ -1367,7 +1435,7 @@ def stageable(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
 
 
 def stage(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     selection: Selection,
     *,
     output: Output,
@@ -1408,8 +1476,10 @@ def stage(
     first = selection.witness
     live_moved = first is None or first != written
     for other, stored in conn.execute(
-        "SELECT generation_id,witness_json FROM derivation_building "
-        "WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "SELECT generation_id, witness_json FROM derivation_building WHERE stage = %s AND unit_kind "
+            "= %s AND unit_id = %s"
+        ),
         _key(selection.unit),
     ).fetchall():
         if other != generation_id:
@@ -1426,12 +1496,15 @@ def stage(
         }
     )
     row = conn.execute(
-        "SELECT label_digest FROM derivation_building WHERE generation_id=?", (generation_id,)
+        "SELECT label_digest FROM derivation_building WHERE generation_id = %s", (generation_id,)
     ).fetchone()
     if row is None:
         conn.execute(
-            "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
-            "input_fingerprint,witness_json,run_id,started_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_building (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, witness_json, run_id, started_at, updated_at) VALUES (%s, %s, %s, %s, "
+                "%s, %s, %s, %s, %s)"
+            ),
             (generation_id, *_key(selection.unit), selection.fingerprint, witness, run_id, at, at),
         )
     else:
@@ -1440,8 +1513,7 @@ def stage(
         # a generation row that is gone (a restore from an older copy) needs
         # no reset here; `_begin_generation` writes it again.
         conn.execute(
-            "UPDATE derivation_building SET witness_json=?,run_id=?,updated_at=? "
-            "WHERE generation_id=?",
+            "UPDATE derivation_building SET witness_json = %s, run_id = %s, updated_at = %s WHERE generation_id = %s",
             (witness, run_id, at, generation_id),
         )
     partial = _partial_label(conn, generation_id)
@@ -1449,7 +1521,7 @@ def stage(
         # A partial generation whose building row was collected: B resumes it
         # by ordinal under its recorded label instead of reusing it as whole.
         conn.execute(
-            "UPDATE derivation_building SET label_digest=?,label_rows=? WHERE generation_id=?",
+            "UPDATE derivation_building SET label_digest = %s, label_rows = %s WHERE generation_id = %s",
             (*partial, generation_id),
         )
     active.completed.add(selection.unit)
@@ -1471,7 +1543,7 @@ def finish_building(
     database: Database,
     deferred: Deferred,
     *,
-    commit: Callable[[sqlite3.Connection], None] | None = None,
+    commit: Callable[[engine.Connection], None] | None = None,
 ) -> str:
     """Pass 1, step B and step C of a staged completion; return the effective id.
 
@@ -1488,7 +1560,8 @@ def finish_building(
     with database.reader() as reader:
         label = _fingerprint(_offered(deferred.output(reader)))
         if not reader.execute(
-            "SELECT 1 FROM derivation_building WHERE generation_id=?", (generation_id,)
+            "SELECT 1 AS _value_0 FROM derivation_building WHERE generation_id = %s",
+            (generation_id,),
         ).fetchone():
             raise SupersededWorkError("staged generation lost its building row")
         building = _building_label(reader, generation_id)
@@ -1544,7 +1617,7 @@ def _stored_witness(value: str | None) -> _StoredWitness:
     return _StoredWitness(first, moved)
 
 
-def building_moved(conn: sqlite3.Connection, unit: WorkUnit, generation_id: str) -> bool:
+def building_moved(conn: engine.Connection, unit: WorkUnit, generation_id: str) -> bool:
     """Whether a staged step A of ``unit`` moved its live rows under its pointer.
 
     True when the building row of ``generation_id`` says an A moved them, or
@@ -1556,26 +1629,28 @@ def building_moved(conn: sqlite3.Connection, unit: WorkUnit, generation_id: str)
     return any(
         other != generation_id or _stored_witness(stored).moved
         for other, stored in conn.execute(
-            "SELECT generation_id,witness_json FROM derivation_building "
-            "WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "SELECT generation_id, witness_json FROM derivation_building WHERE stage = %s AND unit_kind "
+                "= %s AND unit_id = %s"
+            ),
             _key(unit),
         )
     )
 
 
-def building(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def building(conn: engine.Connection, unit: WorkUnit) -> bool:
     """Whether a staged completion of ``unit`` committed its live rows and has not finished."""
     return (
         building_available(conn)
         and conn.execute(
-            "SELECT 1 FROM derivation_building WHERE stage=? AND unit_kind=? AND unit_id=? LIMIT 1",
+            "SELECT 1 AS _value_0 FROM derivation_building WHERE stage = %s AND unit_kind = %s AND unit_id = %s LIMIT 1",
             _key(unit),
         ).fetchone()
         is not None
     )
 
 
-def unfinished_excluded(conn: sqlite3.Connection, table: str = "derivation_generations") -> str:
+def unfinished_excluded(conn: engine.Connection, table: str = "derivation_generations") -> str:
     """An SQL condition, starting with AND, that leaves out unfinished staged output.
 
     A generation still building, or one a staged run stopped storing (fewer
@@ -1604,7 +1679,7 @@ def unfinished_excluded(conn: sqlite3.Connection, table: str = "derivation_gener
     return "".join(clauses)
 
 
-def incomplete_generations(conn: sqlite3.Connection) -> dict[str, int]:
+def incomplete_generations(conn: engine.Connection) -> dict[str, int]:
     """Partial generations no building row names: how many, and their references.
 
     `collect_orphans` leaves these when a unit's inputs changed between B
@@ -1624,15 +1699,12 @@ def incomplete_generations(conn: sqlite3.Connection) -> dict[str, int]:
         # Evicted generations are whole in their packs (F33).
         building += " AND g.generation_id NOT IN (SELECT generation_id FROM derivation_evicted)"
     rows, refs = conn.execute(
-        "SELECT count(*),coalesce(sum(stored),0) FROM (SELECT g.row_count,"
-        "coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r "
-        "WHERE r.generation_id=g.generation_id),0) AS stored "
-        f"FROM derivation_generations g WHERE 1{building}) WHERE stored<row_count"
+        f"SELECT count(*),coalesce(sum(stored),0) FROM (SELECT g.row_count,coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r WHERE r.generation_id=g.generation_id),0) AS stored FROM derivation_generations g WHERE TRUE{building}) WHERE stored<row_count"
     ).fetchone()
     return {"rows": int(rows), "refs": int(refs)}
 
 
-def holding_generations(conn: sqlite3.Connection) -> int:
+def holding_generations(conn: engine.Connection) -> int:
     """Partial generations that still hold references: `incomplete_generations`
     without the labels whose references the collector removed (D-0231).
     Maintain records it for the watchdog's `[incomplete-generations]`."""
@@ -1646,10 +1718,7 @@ def holding_generations(conn: sqlite3.Connection) -> int:
     if output_packs.available(conn):
         building += " AND g.generation_id NOT IN (SELECT generation_id FROM derivation_evicted)"
     row = conn.execute(
-        "SELECT count(*) FROM (SELECT g.row_count,(SELECT max(r.ordinal)+1 "
-        "FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) AS stored "
-        f"FROM derivation_generations g WHERE 1{building}) "
-        "WHERE stored IS NOT NULL AND stored<row_count"
+        f"SELECT count(*) FROM (SELECT g.row_count,(SELECT max(r.ordinal)+1 FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) AS stored FROM derivation_generations g WHERE TRUE{building}) WHERE stored IS NOT NULL AND stored<row_count"
     ).fetchone()
     return int(row[0])
 
@@ -1670,19 +1739,21 @@ def collect_orphans(database: Database, unit: WorkUnit, *, keep: str | None) -> 
     with database.transaction() as conn:
         return int(
             conn.execute(
-                "DELETE FROM derivation_building WHERE stage=? AND unit_kind=? AND unit_id=? "
-                "AND generation_id IS NOT ?",
+                (
+                    "DELETE FROM derivation_building WHERE stage = %s AND unit_kind = %s AND unit_id = %s AND "
+                    "generation_id IS DISTINCT FROM %s"
+                ),
                 (*_key(unit), keep),
             ).rowcount
         )
 
 
-def _building_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int] | None:
+def _building_label(conn: engine.Connection, generation_id: str) -> tuple[str, int] | None:
     """The label a staged run is storing a generation under, if it got that far."""
     if not building_available(conn):
         return None
     row = conn.execute(
-        "SELECT label_digest,label_rows FROM derivation_building WHERE generation_id=?",
+        "SELECT label_digest, label_rows FROM derivation_building WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     return None if row is None or row[0] is None else (str(row[0]), int(row[1]))
@@ -1742,13 +1813,17 @@ def _page_in_building(
                 return
 
 
-def _begin_generation(conn: sqlite3.Connection, deferred: Deferred, label: tuple[str, int]) -> None:
+def _begin_generation(conn: engine.Connection, deferred: Deferred, label: tuple[str, int]) -> None:
     """Write the generation row under its pass-1 label, once, and the building label."""
     selection = deferred.selection
     generation_id = selection.generation_id
     if _recorded_label(conn, generation_id) is None:
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ),
             (
                 generation_id,
                 *_key(selection.unit),
@@ -1764,19 +1839,22 @@ def _begin_generation(conn: sqlite3.Connection, deferred: Deferred, label: tuple
         # Without its generation row no reference can have committed, so the
         # progress count starts again.
         conn.execute(
-            "UPDATE derivation_building SET rows_stored=0 WHERE generation_id=?", (generation_id,)
+            "UPDATE derivation_building SET rows_stored = 0 WHERE generation_id = %s",
+            (generation_id,),
         )
     elif _recorded_label(conn, generation_id) != label:
         raise NondeterministicOutputError("derivation output is not deterministic")
     conn.execute(
-        "UPDATE derivation_building SET label_digest=?,label_rows=?,updated_at=? "
-        "WHERE generation_id=?",
+        (
+            "UPDATE derivation_building SET label_digest = %s, label_rows = %s, updated_at = %s WHERE "
+            "generation_id = %s"
+        ),
         (*label, deferred.now, generation_id),
     )
 
 
 def _store_chunk(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     first: int,
     rows: Sequence[OutputRow],
@@ -1790,8 +1868,10 @@ def _store_chunk(
     stored = {
         int(ordinal): (str(table), str(key), str(sha))
         for ordinal, table, key, sha in conn.execute(
-            "SELECT ordinal,table_name,record_key,payload_sha256 FROM derivation_row_refs "
-            "WHERE generation_id=? AND ordinal>=? AND ordinal<?",
+            (
+                "SELECT ordinal, table_name, record_key, payload_sha256 FROM derivation_row_refs WHERE "
+                "generation_id = %s AND ordinal >= %s AND ordinal < %s"
+            ),
             (generation_id, first, first + len(rows)),
         )
     }
@@ -1801,24 +1881,30 @@ def _store_chunk(
         have = stored.get(ordinal)
         if have is None:
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (payload_sha256, payload)
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (payload_sha256, payload),
             )
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (generation_id, ordinal, row.table, row.key, payload_sha256),
             )
         elif have != (row.table, row.key, payload_sha256):
             raise NondeterministicOutputError("a stored row of a building generation differs")
         yield row.table, row.key, payload
     conn.execute(
-        "UPDATE derivation_building SET rows_stored=max(rows_stored,?),updated_at=? "
-        "WHERE generation_id=?",
+        (
+            "UPDATE derivation_building SET rows_stored = GREATEST(rows_stored, %s), updated_at = %s "
+            "WHERE generation_id = %s"
+        ),
         (first + len(rows), now, generation_id),
     )
 
 
 def _store_all(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     rows: Iterable[OutputRow],
     label: tuple[str, int],
@@ -1839,7 +1925,7 @@ def _store_all(
     _check_stored(conn, generation_id, label)
 
 
-def _check_stored(conn: sqlite3.Connection, generation_id: str, label: tuple[str, int]) -> None:
+def _check_stored(conn: engine.Connection, generation_id: str, label: tuple[str, int]) -> None:
     """A generation is whole when its label is recorded and every row is
     referenced, or it is evicted and its pack holds every row (F33)."""
     if _recorded_label(conn, generation_id) != label:
@@ -1847,14 +1933,15 @@ def _check_stored(conn: sqlite3.Connection, generation_id: str, label: tuple[str
     if output_packs.evicted(conn, generation_id):
         return
     references = conn.execute(
-        "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?", (generation_id,)
+        "SELECT COUNT(*) AS _value_0 FROM derivation_row_refs WHERE generation_id = %s",
+        (generation_id,),
     ).fetchone()[0]
     if int(references) != label[1]:
         raise SupersededWorkError("staged generation is incomplete")
 
 
 def _finish(
-    conn: sqlite3.Connection, deferred: Deferred, *, kept: str | None, existing: bool
+    conn: engine.Connection, deferred: Deferred, *, kept: str | None, existing: bool
 ) -> str:
     """Step C: fence, flip or keep, replay, certify; inside the caller's transaction."""
     selection = deferred.selection
@@ -1862,7 +1949,10 @@ def _finish(
     generation_id = selection.generation_id
     _fence(conn, selection, "derivation inputs changed while output was being stored")
     pointer = conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = %s AND unit_kind = "
+            "%s AND unit_id = %s"
+        ),
         _key(unit),
     ).fetchone()
     allowed = (kept,) if kept is not None else (selection.previous_generation_id, generation_id)
@@ -1871,7 +1961,10 @@ def _finish(
     if kept is not None:
         _record_equivalence(conn, selection, kept, now=deferred.now, run_id=deferred.run_id)
         conn.execute(
-            "UPDATE derivation_scopes SET desired_fingerprint=? WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET desired_fingerprint = %s WHERE stage = %s AND unit_kind = %s "
+                "AND unit_id = %s"
+            ),
             (selection.fingerprint, *_key(unit)),
         )
     else:
@@ -1890,7 +1983,10 @@ def _finish(
         # pointer against a partial generation taken for whole.
         _check_stored(conn, generation_id, label)
         conn.execute(
-            "UPDATE derivation_scopes SET desired_fingerprint=?,materialized_generation_id=? WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET desired_fingerprint = %s, materialized_generation_id = %s "
+                "WHERE stage = %s AND unit_kind = %s AND unit_id = %s"
+            ),
             (selection.fingerprint, generation_id, *_key(unit)),
         )
         if pointer[0] != generation_id:
@@ -1909,12 +2005,12 @@ def _finish(
     _certify(conn, selection, effective, now=deferred.now)
     if replayed:
         bump_replay(conn, unit.stage, unit.unit_kind, now=deferred.now, unit_id=unit.unit_id)
-    conn.execute("DELETE FROM derivation_building WHERE generation_id=?", (generation_id,))
+    conn.execute("DELETE FROM derivation_building WHERE generation_id = %s", (generation_id,))
     return effective
 
 
 def current(
-    conn: sqlite3.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
+    conn: engine.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
 ) -> bool:
     # A shared prerequisite can block thousands of event candidates. Reuse its
     # exact answer only for one owned read selection; worker/write transactions
@@ -1931,13 +2027,18 @@ def current(
 
 
 def _current(
-    conn: sqlite3.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
+    conn: engine.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
 ) -> bool:
     pointer = conn.execute(
-        "SELECT materialized_generation_id,materialized_signature FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "SELECT materialized_generation_id, materialized_signature FROM derivation_scopes WHERE "
+            "stage = %s AND unit_kind = %s AND unit_id = %s"
+        ),
         _key(unit),
     ).fetchone()
     if pointer is None or pointer[0] is None:
+        return False
+    if pointer[1] is None and _restore_cache_scope(conn, _key(unit)):
         return False
     if unit.stage in {"project", "link"} and building(conn, unit):
         # A staged A committed live rows its pointer does not stand for,
@@ -1954,7 +2055,7 @@ def _current(
         if pointer[1] == proof_id:
             return (
                 conn.execute(
-                    "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id=? AND manifest_json=?",
+                    "SELECT 1 AS _value_0 FROM derivation_dependency_sets WHERE dependency_set_id = %s AND manifest_json = %s",
                     (proof_id, proof),
                 ).fetchone()
                 is not None
@@ -1970,7 +2071,7 @@ def _current(
 
 
 def _certify(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     selection: Selection,
     generation_id: str,
     *,
@@ -1989,12 +2090,15 @@ def _certify(
     proof, proof_id = materialized_proof(generation_id, signature)
     store_set(conn, proof_id, proof, created_at=_at(now))
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_signature=? WHERE stage=? AND unit_kind=? AND unit_id=? AND materialized_generation_id=?",
+        (
+            "UPDATE derivation_scopes SET materialized_signature = %s WHERE stage = %s AND unit_kind = "
+            "%s AND unit_id = %s AND materialized_generation_id = %s"
+        ),
         (proof_id, *_key(selection.unit), generation_id),
     )
 
 
-def _artifact_valid(conn: sqlite3.Connection, generation: str) -> bool:
+def _artifact_valid(conn: engine.Connection, generation: str) -> bool:
     from swingset.publish.safety import StaleCandidateError, verify_candidate_files
 
     try:
@@ -2010,7 +2114,23 @@ def _artifact_valid(conn: sqlite3.Connection, generation: str) -> bool:
     try:
         for artifact in artifacts:
             payload = json.loads(artifact)
-            path = Path(payload["path"])
+            if not isinstance(payload, dict) or not isinstance(payload.get("path"), str):
+                return False
+            state = getattr(conn, "state_dir", None)
+            candidate = payload.get("candidate_id")
+            if (
+                state is None
+                or not isinstance(candidate, str)
+                or not candidate
+                or candidate in {".", ".."}
+                or Path(candidate).name != candidate
+            ):
+                return False
+            root = (Path(state) / "candidates").resolve()
+            path = root / candidate
+            if path.resolve().parent != root:
+                return False
+            # Receipt paths are historical provenance, never cross-volume authority.
             verify_candidate_files(path)
             built = json.loads((path / "BUILT").read_bytes())
             if built["manifest_hash"] != payload["manifest_hash"]:
@@ -2030,13 +2150,13 @@ def _artifact_valid(conn: sqlite3.Connection, generation: str) -> bool:
     return True
 
 
-def known_units(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
+def known_units(conn: engine.Connection, stage: str) -> Iterator[WorkUnit]:
     from .derivation_dependencies import scopes
 
     yield from scopes(conn, stage)
 
 
-def pending_units(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
+def pending_units(conn: engine.Connection, stage: str) -> Iterator[WorkUnit]:
     """Every unit that is not current.
 
     A unit whose recipe cannot be formed (`RecipeScopeMissing`) cannot be
@@ -2058,7 +2178,7 @@ def pending_units(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
 
 
 def candidate_units(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     stage: str,
     *,
     kind: str | None = None,
@@ -2076,10 +2196,10 @@ def candidate_units(
 
     with query(conn):
         seen: set[WorkUnit] = set()
-        condition = " AND unit_kind=?" if kind is not None else ""
+        condition = " AND unit_kind=%s" if kind is not None else ""
         args = (stage, kind) if kind is not None else (stage,)
         for row in conn.execute(
-            "SELECT stage,unit_kind,unit_id,enqueued_at FROM pending_work WHERE stage=?"
+            "SELECT stage,unit_kind,unit_id,enqueued_at FROM pending_work WHERE stage=%s"
             + condition
             + " ORDER BY enqueued_at,unit_kind,unit_id",
             args,
@@ -2093,7 +2213,9 @@ def candidate_units(
             elif current_hints is not None:
                 current_hints[unit] = str(row[3])
         for row in conn.execute(
-            "SELECT stage,unit_kind,unit_id FROM derivation_scopes WHERE stage=? AND materialized_generation_id IS NULL"
+            (
+                "SELECT stage,unit_kind,unit_id FROM derivation_scopes WHERE stage=%s AND materialized_generation_id IS NULL"
+            )
             + condition
             + " ORDER BY unit_kind,unit_id",
             args,
@@ -2124,8 +2246,7 @@ def drop_current_hints(database: Database, hints: Mapping[WorkUnit, str]) -> int
     with database.transaction() as conn:
         return sum(
             conn.execute(
-                "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=? "
-                "AND enqueued_at=?",
+                "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s AND enqueued_at = %s",
                 (*_key(unit), enqueued_at),
             ).rowcount
             for unit, enqueued_at in sorted(hints.items())
@@ -2136,7 +2257,7 @@ def drop_current_hints(database: Database, hints: Mapping[WorkUnit, str]) -> int
 #: A pacing gate's own answer, set by `schedule/pacing.configured`: whether it
 #: holds a unit on purpose (the inventory within its interval), and its clock.
 _paced: ContextVar[
-    tuple[Callable[[sqlite3.Connection, WorkUnit], bool], Callable[[], datetime]] | None
+    tuple[Callable[[engine.Connection, WorkUnit], bool], Callable[[], datetime]] | None
 ] = ContextVar("derivation_pacing_gate", default=None)
 #: Prerequisites readiness took as settled at their pointer, by reason.
 _settled: ContextVar[dict[str, set[str]] | None] = ContextVar("derivation_settled", default=None)
@@ -2144,7 +2265,7 @@ _settled: ContextVar[dict[str, set[str]] | None] = ContextVar("derivation_settle
 
 @contextmanager
 def pacing_gate(
-    holds: Callable[[sqlite3.Connection, WorkUnit], bool], now: Callable[[], datetime]
+    holds: Callable[[engine.Connection, WorkUnit], bool], now: Callable[[], datetime]
 ) -> Iterator[None]:
     """Let readiness take a unit the pacing gate holds as settled, for the block."""
     token = _paced.set((holds, now))
@@ -2165,7 +2286,7 @@ def counting_settled() -> Iterator[dict[str, set[str]]]:
         _settled.reset(token)
 
 
-def settled_reason(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
+def settled_reason(conn: engine.Connection, unit: WorkUnit) -> str | None:
     """Why a prerequisite that is not current is settled at its pointer, or None.
 
     A unit that is quarantined, waits for input or backs off to a later
@@ -2179,10 +2300,10 @@ def settled_reason(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
     paced = _paced.get()
     try:
         row = conn.execute(
-            "SELECT state,next_attempt_at FROM work_queue WHERE stage=? AND unit_kind=? AND unit_id=?",
+            "SELECT state, next_attempt_at FROM work_queue WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
             _key(unit),
         ).fetchone()
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" not in str(exc):
             raise
         row = None
@@ -2201,7 +2322,9 @@ def settled_reason(conn: sqlite3.Connection, unit: WorkUnit) -> str | None:
     return None
 
 
-def _counted_settled(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def _counted_settled(conn: engine.Connection, unit: WorkUnit) -> bool:
+    if _restore_certificate_missing(conn, _key(unit)):
+        return False  # A cold cache cannot stand at its historical pointer.
     reason = settled_reason(conn, unit)
     if reason is None:
         return False
@@ -2211,7 +2334,7 @@ def _counted_settled(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     return True
 
 
-def ready(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def ready(conn: engine.Connection, unit: WorkUnit) -> bool:
     # Bulk prerequisite checks must observe one snapshot. Reuse existing caller
     # transactions; never commit or retain a cache across any caller write.
     snapshot = unit.stage == "link" and _group.get() is None and not conn.in_transaction
@@ -2224,7 +2347,7 @@ def ready(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
             conn.rollback()
 
 
-def _ready(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def _ready(conn: engine.Connection, unit: WorkUnit) -> bool:
     from .derivation_dependencies import prerequisites, waits_for
 
     active = _group.get()
@@ -2245,14 +2368,16 @@ def _ready(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
         )
     )
     if active is None and global_kinds:
-        placeholders = ",".join("?" for _ in global_kinds)
+        placeholders = ",".join("%s" for _ in global_kinds)
+        missing = "materialized_generation_id IS NULL"
+        if getattr(conn, "restore_pending", False):
+            missing = "(" + missing + " OR materialized_signature IS NULL)"
         # A unit that never materialized and is quarantined or waits stands
         # absent (`settled_reason`); any other one holds the unit back.
         if any(
             not _counted_settled(conn, WorkUnit("project", str(kind), str(identifier)))
             for kind, identifier in conn.execute(
-                f"SELECT unit_kind,unit_id FROM derivation_scopes WHERE stage='project' "
-                f"AND unit_kind IN ({placeholders}) AND materialized_generation_id IS NULL",
+                f"SELECT unit_kind,unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind IN ({placeholders}) AND {missing}",
                 global_kinds,
             )
         ):
@@ -2269,13 +2394,16 @@ def _ready(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     )
 
 
-def refresh(conn: sqlite3.Connection, now: datetime | str | None = None) -> int:
+def refresh(conn: engine.Connection, now: datetime | str | None = None) -> int:
     """Register retained scopes without making queues or cached desires authoritative."""
     count = 0
     for stage in ("project", "link"):
         for unit in known_units(conn, stage):
             count += conn.execute(
-                "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+                (
+                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+                    "%s, %s) ON CONFLICT DO NOTHING"
+                ),
                 (*_key(unit), _at(now)),
             ).rowcount
     return count

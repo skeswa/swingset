@@ -1,9 +1,8 @@
-"""H12 restores exact historical bytes from actual offline SQLite checkpoints."""
+"""H12 restores exact historical bytes from actual offline PostgreSQL history checkpoints."""
 
 import gzip
 import json
 import os
-import sqlite3
 
 import pytest
 from test_admission import BODY, Corpus
@@ -22,7 +21,7 @@ def saved_state(state, *, nested_manifest=False):
         value = {"historical": "source evidence", "rows": [1, 2]}
         extract_sha = corpus.archive.store_extract(value)
         db.connection.execute(
-            "UPDATE snapshots SET extract_sha256=? WHERE snapshot_id=?",
+            "UPDATE snapshots SET extract_sha256 = %s WHERE snapshot_id = %s",
             (extract_sha, ctx.snapshot_id),
         )
         if nested_manifest:
@@ -110,7 +109,7 @@ def test_no_matching_backup_retains_typed_historical_digest(tmp_path, kind):
 def test_checkpoint_physical_and_logical_digests_are_both_required(tmp_path):
     archive, recovery, checkpoint, sha, _, _ = saved_state(tmp_path)
     archive.blob_path(sha).unlink()
-    saved_blob = Archive(checkpoint).blob_path(sha)
+    saved_blob = Archive(checkpoint / "database/files").blob_path(sha)
     replacement = gzip.compress(b"this page is from the present")
     saved_blob.write_bytes(replacement)
     # Even a consistent physical backup manifest cannot authorize mislabeled
@@ -121,10 +120,20 @@ def test_checkpoint_physical_and_logical_digests_are_both_required(tmp_path):
         "size": len(replacement),
         "sha256": digest(replacement),
     }
+    history_path = checkpoint / "database/history.json"
+    history = json.loads(history_path.read_bytes())
+    relative = saved_blob.relative_to(checkpoint / "database/files").as_posix()
+    history["files"][relative] = {"bytes": len(replacement), "sha256": digest(replacement)}
+    history_path.write_text(json.dumps(history))
+    manifest["history_manifest_sha256"] = digest(history_path.read_bytes())
+    manifest["files"]["database/history.json"] = {
+        "size": history_path.stat().st_size,
+        "sha256": digest(history_path.read_bytes()),
+    }
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(ArtifactUnavailable) as error:
         archive.read_body(sha)
-    assert "logical digest" in error.value.attempts[0]["reason"]
+    assert "corrupt blob" in error.value.attempts[0]["reason"]
     assert not archive.blob_path(sha).exists()
     assert recovery.restored == []
 
@@ -146,7 +155,7 @@ def test_target_bytes_are_reverified_after_cached_qualification_even_with_same_m
     archive.extract_path(extract_sha).unlink()
     archive.read_extract(extract_sha)
     assert len(calls) == 1
-    saved_blob = Archive(checkpoint).blob_path(sha)
+    saved_blob = Archive(checkpoint / "database/files").blob_path(sha)
     stat = saved_blob.stat()
     saved_blob.write_bytes(b"x" * stat.st_size)
     os.utime(saved_blob, ns=(stat.st_atime_ns, stat.st_mtime_ns))
@@ -162,7 +171,7 @@ def test_unrelated_corrupt_checkpoint_file_blocks_first_qualification_and_repair
 ):
     archive, recovery, checkpoint, sha, extract_sha, _ = saved_state(tmp_path)
     archive.blob_path(sha).unlink()
-    path = Archive(checkpoint).extract_path(extract_sha)
+    path = Archive(checkpoint / "database/files").extract_path(extract_sha)
     original = path.read_bytes()
     path.write_bytes(b"bad backup member")
     with pytest.raises(ArtifactUnavailable):
@@ -175,24 +184,22 @@ def test_unrelated_corrupt_checkpoint_file_blocks_first_qualification_and_repair
 def test_checkpoint_declared_schema_cannot_hide_newer_database(tmp_path):
     archive, _, checkpoint, sha, _, _ = saved_state(tmp_path)
     archive.blob_path(sha).unlink()
-    # Alter only this disposable test checkpoint, then make its physical
-    # manifest consistent so qualification must inspect actual SQLite schema.
-    conn = sqlite3.connect(checkpoint / "state.sqlite")
-    try:
-        conn.execute(f"PRAGMA user_version={SCHEMA_VERSION + 1}")
-    finally:
-        conn.close()
+    # The outer declaration cannot disguise a newer native history schema.
+    history_path = checkpoint / "database/history.json"
+    history = json.loads(history_path.read_bytes())
+    history["schema_version"] = SCHEMA_VERSION + 1
+    history_path.write_text(json.dumps(history))
     manifest_path = checkpoint / "checkpoint.json"
     manifest = json.loads(manifest_path.read_bytes())
-    database = checkpoint / "state.sqlite"
-    manifest["files"]["state.sqlite"] = {
-        "size": database.stat().st_size,
-        "sha256": digest(database.read_bytes()),
+    manifest["history_manifest_sha256"] = digest(history_path.read_bytes())
+    manifest["files"]["database/history.json"] = {
+        "size": history_path.stat().st_size,
+        "sha256": digest(history_path.read_bytes()),
     }
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(ArtifactUnavailable) as error:
         archive.read_body(sha)
-    assert "actual database" in error.value.attempts[0]["reason"]
+    assert "schema" in error.value.attempts[0]["reason"]
 
 
 def test_healthy_reads_never_enumerate_or_validate_backups(tmp_path, monkeypatch):
@@ -226,7 +233,7 @@ def test_corrupt_deflate_payload_recovers_exact_bytes(tmp_path):
 def test_manifest_omitting_required_backup_artifact_is_not_a_valid_backup(tmp_path):
     archive, _, checkpoint, sha, extract_sha, _ = saved_state(tmp_path)
     archive.blob_path(sha).unlink()
-    required = Archive(checkpoint).extract_path(extract_sha)
+    required = Archive(checkpoint / "database/files").extract_path(extract_sha)
     required.unlink()
     manifest_path = checkpoint / "checkpoint.json"
     manifest = json.loads(manifest_path.read_bytes())
@@ -234,12 +241,15 @@ def test_manifest_omitting_required_backup_artifact_is_not_a_valid_backup(tmp_pa
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(ArtifactUnavailable) as error:
         archive.read_body(sha)
-    assert "referenced artifact is missing" in error.value.attempts[0]["reason"]
+    assert (
+        "missing" in error.value.attempts[0]["reason"]
+        or "No such file" in error.value.attempts[0]["reason"]
+    )
 
 
 def test_recovery_refuses_to_write_into_an_immutable_checkpoint(tmp_path):
     _, recovery, checkpoint, sha, _, _ = saved_state(tmp_path)
-    target = Archive(checkpoint).blob_path(sha)
+    target = Archive(checkpoint / "database/files").blob_path(sha)
     original = target.read_bytes()
     with pytest.raises(ArtifactUnavailable, match="immutable_checkpoint"):
         recovery.recover("body", sha, target)

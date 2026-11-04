@@ -105,10 +105,11 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
         projected_at=clock.now().isoformat(),
     )
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:live','fixture-live','explicit',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:live', 'fixture-live', 'explicit', 1)"
     )
     # Corpus's unused default watch is setup scaffolding, not cohort demand.
-    f.conn.execute("DELETE FROM watches WHERE watch_id=?", (f.corpus.spec.watch_id,))
+    f.conn.execute("DELETE FROM watches WHERE watch_id = %s", (f.corpus.spec.watch_id,))
     names = [f"round-{number:02}.htm" for number in range(33)]
     admit_parent(f, names)
     finish_bootstrap(f)
@@ -160,17 +161,17 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
         upsert_watch(f.conn, arriving, clock.now())
         # External stimulus: a live event remains due throughout the experiment.
         f.conn.execute(
-            "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+            "UPDATE watches SET next_check_at = %s WHERE watch_id = %s",
             (clock.now().isoformat(), current.watch_id),
         )
         clock.sleep(5)
         max_watch_rows = max(
-            max_watch_rows, f.conn.execute("SELECT count(*) FROM watches").fetchone()[0]
+            max_watch_rows, f.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0]
         )
         max_due_rows = max(
             max_due_rows,
             f.conn.execute(
-                "SELECT count(*) FROM watches WHERE next_check_at<=? AND state NOT IN ('sealed','retired')",
+                "SELECT COUNT(*) FROM watches WHERE next_check_at <= %s AND NOT state IN ('sealed', 'retired')",
                 (clock.now().isoformat(),),
             ).fetchone()[0],
         )
@@ -179,7 +180,17 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
         choice = next_watch(f.conn, config, now=clock.now(), run_id=run)
         assert choice is not None
         watch = f.conn.execute(
-            "SELECT * FROM watches WHERE watch_id=?", (choice.watch_id,)
+            (
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches WHERE watch_id = %s"
+            ),
+            (choice.watch_id,),
         ).fetchone()
         client = FetchClient(
             f.conn,
@@ -192,9 +203,22 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
         try:
             if len(completed) >= 4 and not paused_once:
                 before = len(wire)
-                usage = [tuple(row) for row in f.conn.execute("SELECT * FROM host_budget")]
+                usage = [
+                    tuple(row)
+                    for row in f.conn.execute(
+                        "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM host_budget"
+                    )
+                ]
                 turns = [
-                    tuple(row) for row in f.conn.execute("SELECT * FROM scheduler_event_turns")
+                    tuple(row)
+                    for row in f.conn.execute(
+                        "SELECT scheduler_event_turns.host, scheduler_event_turns.category, "
+                        "scheduler_event_turns.owner_key, scheduler_event_turns.source, "
+                        "scheduler_event_turns.source_ref, scheduler_event_turns.position, "
+                        "scheduler_event_turns.used, scheduler_event_turns.policy_digest, "
+                        "scheduler_event_turns.target_requests, scheduler_event_turns.enrolled_at, "
+                        "scheduler_event_turns.last_issued_at FROM scheduler_event_turns"
+                    )
                 ]
                 change_control(
                     f.db.state_dir,
@@ -212,9 +236,22 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
                     )
                 clock.sleep(60)
                 assert len(wire) == before
-                assert [tuple(row) for row in f.conn.execute("SELECT * FROM host_budget")] == usage
                 assert [
-                    tuple(row) for row in f.conn.execute("SELECT * FROM scheduler_event_turns")
+                    tuple(row)
+                    for row in f.conn.execute(
+                        "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM host_budget"
+                    )
+                ] == usage
+                assert [
+                    tuple(row)
+                    for row in f.conn.execute(
+                        "SELECT scheduler_event_turns.host, scheduler_event_turns.category, "
+                        "scheduler_event_turns.owner_key, scheduler_event_turns.source, "
+                        "scheduler_event_turns.source_ref, scheduler_event_turns.position, "
+                        "scheduler_event_turns.used, scheduler_event_turns.policy_digest, "
+                        "scheduler_event_turns.target_requests, scheduler_event_turns.enrolled_at, "
+                        "scheduler_event_turns.last_issued_at FROM scheduler_event_turns"
+                    )
                 ] == turns
                 change_control(
                     f.db.state_dir,
@@ -247,7 +284,8 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
             assert not parsed.failed and parsed.selection is None
             assert (
                 f.conn.execute(
-                    "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (fetched.snapshot_id,)
+                    "SELECT parse_status FROM snapshots WHERE snapshot_id = %s",
+                    (fetched.snapshot_id,),
                 ).fetchone()[0]
                 == "ok"
             )
@@ -272,20 +310,20 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
     assert categories["current"] > 0 and categories["new"] > 33
     assert lanes["listed_result"] >= 33 and lanes["discovery"] > 0
     assert max(b - a for a, b in zip([0, *target_positions], target_positions, strict=False)) <= 128
-    assert f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == len(wire)
-    assert f.conn.execute("SELECT count(*) FROM scheduler_requests").fetchone()[0] == len(wire)
-    assert f.conn.execute("SELECT sum(bytes) FROM host_budget").fetchone()[0] == sum(
+    assert f.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == len(wire)
+    assert f.conn.execute("SELECT COUNT(*) FROM scheduler_requests").fetchone()[0] == len(wire)
+    assert f.conn.execute("SELECT SUM(bytes) FROM host_budget").fetchone()[0] == sum(
         row[2] for row in wire
     )
-    assert f.conn.execute("SELECT count(DISTINCT action_id) FROM scheduler_requests").fetchone()[
+    assert f.conn.execute("SELECT COUNT(DISTINCT action_id) FROM scheduler_requests").fetchone()[
         0
     ] == len(wire)
-    assert f.conn.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == len(
+    assert f.conn.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == len(
         wire
     )
     assert (
         f.conn.execute(
-            "SELECT count(*) FROM scheduler_event_requests WHERE source_ref='eepro:monterey'"
+            "SELECT COUNT(*) FROM scheduler_event_requests WHERE source_ref = 'eepro:monterey'"
         ).fetchone()[0]
         == 34
     )  # 33 pages plus initial robots.
@@ -339,7 +377,7 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
     assert observed["assessment"] == "locally_accounted"
     assert observed["stages"]["interpreted"] == dict(positive=33, negative=0, unknown=0)
     assert observed["listed_pages"] == 33
-    assert len(wire) == f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0]
+    assert len(wire) == f.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0]
 
     metrics = {
         "max_watch_rows": max_watch_rows,
@@ -349,10 +387,10 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
         "category_selections": dict(categories),
         "capacity_selections": dict(lanes),
         "category_requests": dict(
-            f.conn.execute("SELECT category,count(*) FROM scheduler_requests GROUP BY category")
+            f.conn.execute("SELECT category, COUNT(*) FROM scheduler_requests GROUP BY category")
         ),
         "capacity_requests": dict(
-            f.conn.execute("SELECT lane,count(*) FROM scheduler_capacity_requests GROUP BY lane")
+            f.conn.execute("SELECT lane, COUNT(*) FROM scheduler_capacity_requests GROUP BY lane")
         ),
         "target_first_request": target_positions[0],
         "target_last_request": target_positions[-1],
@@ -361,7 +399,8 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
         ),
         "created_arrival_indexes": number + 1,
         "pending_arrival_indexes": f.conn.execute(
-            "SELECT count(*) FROM watches WHERE source_ref LIKE 'eepro:arrival-%' AND parser='eepro.autoindex' AND last_checked_at IS NULL"
+            "SELECT COUNT(*) FROM watches WHERE source_ref ILIKE 'eepro:arrival-%' AND parser = "
+            "'eepro.autoindex' AND last_checked_at IS NULL"
         ).fetchone()[0],
         "artifact_refresh_visits": visit + 1,
         "known_cohort_pages": 33,
@@ -398,7 +437,7 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
     before_pressure = event_pressure.admission(f.conn, config, host="eepro.com", now=clock.now())
     assert before_pressure["watermark_deferred"]
     assert before_pressure["pressure_subjects"] == 101
-    watch_count = f.conn.execute("SELECT count(*) FROM watches").fetchone()[0]
+    watch_count = f.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0]
     for pressure_visit in range(15):
         with operation(
             f.db,
@@ -419,7 +458,7 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
             break
     assert not after_pressure["deferred"]
     assert after_pressure["pressure_subjects"] < config.scheduler.event_pressure_low
-    assert f.conn.execute("SELECT count(*) FROM watches").fetchone()[0] == watch_count
+    assert f.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == watch_count
     assert len(wire) == 406
     clock.sleep(5)
     with f.db.transaction() as conn:
@@ -427,7 +466,17 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
     resumed = next_watch(f.conn, config, now=clock.now(), run_id=run)
     assert resumed and resumed.capacity and resumed.capacity.lane == "discovery"
     resumed_watch = f.conn.execute(
-        "SELECT * FROM watches WHERE watch_id=?", (resumed.watch_id,)
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s"
+        ),
+        (resumed.watch_id,),
     ).fetchone()
     assert resumed_watch["last_checked_at"] is None
     client = FetchClient(
@@ -445,9 +494,9 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
     finally:
         client.close()
     assert len(wire) == 407
-    assert f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 407
-    assert f.conn.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 407
-    assert f.conn.execute("SELECT sum(bytes) FROM host_budget").fetchone()[0] == sum(
+    assert f.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 407
+    assert f.conn.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == 407
+    assert f.conn.execute("SELECT SUM(bytes) FROM host_budget").fetchone()[0] == sum(
         row[2] for row in wire
     )
     metrics["pressure_refresh_visits"] = pressure_visit + 1

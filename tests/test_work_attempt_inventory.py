@@ -39,13 +39,22 @@ def failed_work(db):
 
 
 def full_scan(db, c):
-    db.connection.execute("UPDATE requirement_scan SET cursor='' WHERE singleton=1")
+    db.connection.execute("UPDATE requirement_scan SET cursor = '' WHERE singleton = 1")
     while scan(db, c.clock.now(), c.run, limit=2) == 2:
         pass
 
 
 def finding(conn):
-    return conn.execute("SELECT * FROM findings WHERE kind='work_attempt'").fetchone()
+    return conn.execute(
+        "SELECT findings.finding_id, findings.owner_kind, findings.owner_id, findings.kind, "
+        "findings.subject_kind, findings.subject_id, findings.watch_id, findings.snapshot_id, "
+        "findings.severity, findings.summary, findings.evidence_json, findings.suggested_override, "
+        "findings.opened_at, findings.run_id, findings.closed_at, findings.closed_by, "
+        "findings.policy_version, findings.desired_fingerprint, findings.state, findings.source, "
+        "findings.next_action, findings.blocking_reason, findings.next_eligible_at, "
+        "findings.attempt_count, findings.last_progress_at, findings.status_at FROM findings WHERE "
+        "kind = 'work_attempt'"
+    ).fetchone()
 
 
 def outcome(conn, unit):
@@ -67,7 +76,7 @@ def test_unavailable_work_leaves_no_finding_through_inventory_scans(tmp_path):
         assert row["requirement_id"] is None
         full_scan(db, c)
         assert finding(db.connection) is None
-        assert db.connection.execute("SELECT count(*) FROM finding_support").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM finding_support").fetchone()[0] == 0
         assert inventory(db.connection, c.clock.now(), kind="work_attempt")["unmet"] == 0
         assert not eligible(
             db.connection, unit, input_fingerprint(db.connection, unit), c.clock.now()
@@ -191,7 +200,12 @@ def test_explicit_cli_reparse_releases_only_selected_failed_attempt_latch(tmp_pa
     with open_database(state) as db:
         rows = {
             row["unit_id"]: dict(row)
-            for row in db.connection.execute("SELECT * FROM work_generations WHERE stage='parse'")
+            for row in db.connection.execute(
+                "SELECT work_generations.stage, work_generations.unit_kind, work_generations.unit_id, "
+                "work_generations.generation, work_generations.retry_generation, "
+                "work_generations.retry_reason, work_generations.retry_requested_at FROM work_generations "
+                "WHERE stage = 'parse'"
+            )
         }
         assert rows[older.unit_id]["retry_generation"] == 0
         assert rows[selected.unit_id]["retry_generation"] == 1

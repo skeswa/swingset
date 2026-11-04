@@ -32,8 +32,15 @@ def parse_snapshot(
 ) -> ParseAttempt:
     conn = database.connection
     row = conn.execute(
-        """SELECT s.*,w.source,w.parser,w.source_ref,w.current_observation_snapshot_id,w.kind AS watch_kind
-        FROM snapshots s JOIN watches w USING(watch_id) WHERE snapshot_id=?""",
+        (
+            "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+            "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+            "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+            "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+            "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, w.source, "
+            "w.parser, w.source_ref, w.current_observation_snapshot_id, w.kind AS watch_kind FROM "
+            "snapshots AS s JOIN watches AS w USING (watch_id) WHERE snapshot_id = %s"
+        ),
         (unit.unit_id,),
     ).fetchone()
     if row is None:
@@ -99,7 +106,7 @@ def parse_snapshot(
         generation = staged.generation_id
         with database.transaction() as tx:
             before = tx.execute(
-                "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",
+                "SELECT parse_status, parser_version FROM snapshots WHERE snapshot_id = %s",
                 (unit.unit_id,),
             ).fetchone()
             try:
@@ -151,8 +158,9 @@ def parse_snapshot(
                     )
                 elif (
                     tx.execute(
-                        "SELECT 1 FROM snapshots WHERE snapshot_id=? AND parse_status='ok' "
-                        "AND extract_version IS ? AND parser_version IS ?",
+                        (
+                            "SELECT 1 AS _value_0 FROM snapshots WHERE snapshot_id = %s AND parse_status = 'ok' AND extract_version IS NOT DISTINCT FROM %s AND parser_version IS NOT DISTINCT FROM %s"
+                        ),
                         (unit.unit_id, str(page.EXTRACT_VERSION), str(page.PARSER_VERSION)),
                     ).fetchone()
                     is None
@@ -170,28 +178,28 @@ def parse_snapshot(
             except ValueError as exc:
                 raise ParseError(str(exc)) from exc
             tx.execute(
-                "UPDATE snapshots SET extract_status='ok',extract_sha256=? WHERE snapshot_id=?",
+                "UPDATE snapshots SET extract_status = 'ok', extract_sha256 = %s WHERE snapshot_id = %s",
                 (sha, unit.unit_id),
             )
             if has_recipe_cache:
                 tx.execute(
-                    "UPDATE snapshots SET extract_recipe_sha256=? WHERE snapshot_id=?",
+                    "UPDATE snapshots SET extract_recipe_sha256 = %s WHERE snapshot_id = %s",
                     (extract_recipe, unit.unit_id),
                 )
             after = tx.execute(
-                "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",
+                "SELECT parse_status, parser_version FROM snapshots WHERE snapshot_id = %s",
                 (unit.unit_id,),
             ).fetchone()
             if tuple(before) != tuple(after):
                 bump_revision(tx, "snapshots")
             # Only the newest successful snapshot may own the watch's cache.
             latest = tx.execute(
-                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
+                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
                 (ctx.watch_id,),
             ).fetchone()[0]
             if latest == ctx.snapshot_id:
                 tx.execute(
-                    "UPDATE watches SET fingerprint=?,extract_version=? WHERE watch_id=?",
+                    "UPDATE watches SET fingerprint = %s, extract_version = %s WHERE watch_id = %s",
                     (sha, str(page.EXTRACT_VERSION), ctx.watch_id),
                 )
                 replace_findings(
@@ -221,7 +229,7 @@ def parse_snapshot(
                     run_id=run_id,
                 )
                 tx.execute(
-                    "UPDATE watches SET state='sealed',next_check_at=NULL WHERE watch_id=?",
+                    "UPDATE watches SET state = 'sealed', next_check_at = NULL WHERE watch_id = %s",
                     (ctx.watch_id,),
                 )
             # Parent content changes refresh child round pages as well as slow clocks.
@@ -237,7 +245,7 @@ def parse_snapshot(
                 )
             ):
                 tx.execute(
-                    "UPDATE watches SET next_check_at=? WHERE parent_watch_id=? AND state!='gone'",
+                    "UPDATE watches SET next_check_at = %s WHERE parent_watch_id = %s AND state <> 'gone'",
                     (now, ctx.watch_id),
                 )
             if ctx.source == "wsdc_registry":
@@ -271,14 +279,15 @@ def parse_snapshot(
             )
         with database.transaction() as tx:
             before = tx.execute(
-                "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",
+                "SELECT parse_status, parser_version FROM snapshots WHERE snapshot_id = %s",
                 (unit.unit_id,),
             ).fetchone()
             tx.execute(
-                "UPDATE snapshots SET parse_status='failed',parsed_at=?,"
-                "extract_status=CASE WHEN ? THEN 'failed' ELSE extract_status END,"
-                "extract_sha256=CASE WHEN ? THEN NULL ELSE ? END,"
-                "extract_version=?,parser_version=? WHERE snapshot_id=?",
+                (
+                    "UPDATE snapshots SET parse_status = 'failed', parsed_at = %s, extract_status = CASE WHEN %s "
+                    "THEN 'failed' ELSE extract_status END, extract_sha256 = CASE WHEN %s THEN NULL ELSE %s END, "
+                    "extract_version = %s, parser_version = %s WHERE snapshot_id = %s"
+                ),
                 (
                     now,
                     isinstance(exc, ExtractError),
@@ -291,11 +300,11 @@ def parse_snapshot(
             )
             if has_recipe_cache:
                 tx.execute(
-                    "UPDATE snapshots SET extract_recipe_sha256=? WHERE snapshot_id=?",
+                    "UPDATE snapshots SET extract_recipe_sha256 = %s WHERE snapshot_id = %s",
                     (None if isinstance(exc, ExtractError) else extract_recipe, unit.unit_id),
                 )
             after = tx.execute(
-                "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",
+                "SELECT parse_status, parser_version FROM snapshots WHERE snapshot_id = %s",
                 (unit.unit_id,),
             ).fetchone()
             if tuple(before) != tuple(after):
@@ -324,7 +333,8 @@ def parse_snapshot(
 
                 if not retry_capture(tx, ctx.watch_id, now=clock.now()):
                     tx.execute(
-                        "UPDATE watches SET next_check_at=NULL WHERE watch_id=?", (ctx.watch_id,)
+                        "UPDATE watches SET next_check_at = NULL WHERE watch_id = %s",
+                        (ctx.watch_id,),
                     )
                     replace_findings(
                         tx,
@@ -347,15 +357,17 @@ def parse_snapshot(
                     )
             if ctx.source == "wsdc_registry":
                 failures = tx.execute(
-                    "SELECT COUNT(*) FROM snapshots WHERE watch_id=? AND parse_status='failed'",
+                    "SELECT COUNT(*) AS _value_0 FROM snapshots WHERE watch_id = %s AND parse_status = 'failed'",
                     (ctx.watch_id,),
                 ).fetchone()[0]
                 retry_at = clock.now() + timedelta(
                     seconds=min(86400, 900 * 2 ** min(int(failures) - 1, 7))
                 )
                 tx.execute(
-                    "UPDATE watches SET body_sha256=NULL,fingerprint=NULL,etag=NULL,last_modified=NULL,"
-                    "next_check_at=? WHERE watch_id=?",
+                    (
+                        "UPDATE watches SET body_sha256 = NULL, fingerprint = NULL, etag = NULL, last_modified = "
+                        "NULL, next_check_at = %s WHERE watch_id = %s"
+                    ),
                     (retry_at.isoformat(), ctx.watch_id),
                 )
             if ctx.source == "wsdc_registry":

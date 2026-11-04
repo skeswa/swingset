@@ -11,7 +11,6 @@ the artifacts one partition at a time instead (D-0224).
 
 from __future__ import annotations
 
-import sqlite3
 from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -19,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from swingset.state import release_store
+from swingset.state import engine, release_store
 from swingset.state.release_store import PartitionRow
 
 from . import artifact_store
@@ -49,7 +48,7 @@ def prepare(
     from .builder import BuildError
     from .closure import _revocations
 
-    conn: sqlite3.Connection = database.connection
+    conn: engine.Connection = database.connection
     state_dir: Path = database.state_dir
 
     def damaged() -> list[str]:
@@ -246,7 +245,7 @@ class SupportItems:
     peaked at 3.9 GB when loaded whole (F26).
     """
 
-    def __init__(self, conn: sqlite3.Connection, support: Sequence[Sequence[Any]]) -> None:
+    def __init__(self, conn: engine.Connection, support: Sequence[Sequence[Any]]) -> None:
         self.conn = conn
         self.support = support
         self._sources: dict[str, str | None] = {}
@@ -279,10 +278,12 @@ class SupportItems:
         found = self._scopes.get(key)
         if found is None:
             row = self.conn.execute(
-                "SELECT scope_kind,scope_id FROM observations WHERE watch_id=(SELECT watch_id "
-                "FROM snapshots WHERE snapshot_id=:s) AND snapshot_id=:s "
-                "AND CAST(parser_version AS TEXT)=:p "
-                "ORDER BY scope_kind<>'source_event',observation_id LIMIT 1",
+                (
+                    "SELECT scope_kind, scope_id FROM observations WHERE watch_id = (SELECT watch_id FROM "
+                    "snapshots WHERE snapshot_id = %(s)s) AND snapshot_id = %(s)s AND CAST(parser_version AS "
+                    "TEXT) = %(p)s ORDER BY scope_kind <> 'source_event' NULLS FIRST, observation_id NULLS FIRST "
+                    "LIMIT 1"
+                ),
                 {"s": snapshot, "p": parser},
             ).fetchone()
             found = self._scopes[key] = (
@@ -293,8 +294,9 @@ class SupportItems:
     def _source(self, generation: str) -> str | None:
         if generation not in self._sources:
             row = self.conn.execute(
-                "SELECT json_extract(recipe_json,'$.context.source') FROM source_generations "
-                "WHERE generation_id=?",
+                (
+                    "SELECT JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'context', 'source') AS _value_0 FROM source_generations WHERE generation_id = %s"
+                ),
                 (generation,),
             ).fetchone()
             self._sources[generation] = (
@@ -303,6 +305,6 @@ class SupportItems:
         return self._sources[generation]
 
 
-def source_support(conn: sqlite3.Connection, support: Sequence[Sequence[Any]]) -> SupportItems:
+def source_support(conn: engine.Connection, support: Sequence[Sequence[Any]]) -> SupportItems:
     """The artifacts' support as the closure's `source_support` items coverage reads."""
     return SupportItems(conn, support)

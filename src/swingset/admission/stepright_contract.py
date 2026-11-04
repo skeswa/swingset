@@ -29,7 +29,11 @@ KINDS = frozenset(
     }
 )
 
-VERSIONS = dict.fromkeys(sorted(KINDS), "1")
+VERSIONS = {
+    "steprightsolutions.index": "1",
+    "steprightsolutions.event": "1",
+    "steprightsolutions.round": "1",
+}
 
 KNOWN_BOUNDED_WARNINGS = frozenset(
     {

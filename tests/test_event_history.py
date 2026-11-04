@@ -1,9 +1,9 @@
 """Receipt pages preserve their cutoff and distinguish records from lifetime history."""
 
 import json
-import sqlite3
 
 import pytest
+from postgres_statements import empty_connections as empty_connections
 
 from swingset.schedule.event_history import report
 from swingset.state.db import open_database
@@ -11,9 +11,13 @@ from swingset.state.db import open_database
 
 def append(conn, *, source_ref="eepro:test", transition="assessment_changed", prior=None):
     return conn.execute(
-        "INSERT INTO event_accounting_receipts(source,source_ref,previous_receipt_id,assessment,transition,observed_at,token_json,summary_json) VALUES('eepro',?,?,'unassessed',?,'2026-09-17T00:00:00+00:00','{}','{}')",
+        (
+            "INSERT INTO event_accounting_receipts (source, source_ref, previous_receipt_id, assessment, "
+            "transition, observed_at, token_json, summary_json) VALUES ('eepro', %s, %s, 'unassessed', "
+            "%s, '2026-09-17T00:00:00+00:00', '{}', '{}') RETURNING receipt_id"
+        ),
         (source_ref, prior, transition),
-    ).lastrowid
+    ).fetchone()[0]
 
 
 def test_keyset_pages_pin_highwater_and_do_not_count_later_or_other_events(tmp_path):
@@ -43,8 +47,8 @@ def test_keyset_pages_pin_highwater_and_do_not_count_later_or_other_events(tmp_p
         assert not page2["recorded_prefix_included"]
 
 
-def test_missing_legacy_streams_and_empty_new_streams_are_explicit(tmp_path):
-    with sqlite3.connect(":memory:") as conn:
+def test_missing_legacy_streams_and_empty_new_streams_are_explicit(tmp_path, empty_connections):
+    with empty_connections() as conn:
         assert not report(conn, source="s", source_ref="r")["supported"]
     with open_database(tmp_path) as db:
         value = report(db.connection, source="s", source_ref="r", stream="source_event_retirement")

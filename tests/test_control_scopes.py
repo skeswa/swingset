@@ -17,7 +17,12 @@ NOW = datetime(2026, 9, 13, tzinfo=UTC)
 
 def event(conn, identifier, sources):
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,2026,'2026-01-01','2026-01-03','active',?,?,'snapshot','1',?,?,'run')",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+            "(%s, %s, %s, 2026, '2026-01-01', '2026-01-03', 'active', %s, %s, 'snapshot', '1', %s, %s, "
+            "'run')"
+        ),
         (
             identifier,
             identifier,
@@ -43,15 +48,23 @@ def observation(db, source, scope, identifier, *, body="a" * 64):
     upsert_watch(db.connection, watch, NOW)
     snapshot = f"snapshot-{source}-{identifier}"
     db.connection.execute(
-        "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES ('run',?,1)",
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', %s, 1) ON CONFLICT DO NOTHING",
         (NOW.isoformat(),),
     )
     db.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,run_id,body_sha256,http_status,body_bytes,content_changed,classification) VALUES (?,?,'GET',?,?,'run',?,200,0,1,'Found')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, run_id, body_sha256, "
+            "http_status, body_bytes, content_changed, classification) VALUES (%s, %s, 'GET', %s, %s, "
+            "'run', %s, 200, 0, 1, 'Found')"
+        ),
         (snapshot, watch.watch_id, watch.url, NOW.isoformat(), body),
     )
     db.connection.execute(
-        "INSERT INTO observations VALUES (?,?,?,'fixture',?,?,0,'1','1','{}')",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, "
+            "'fixture', %s, %s, 0, '1', '1', '{}')"
+        ),
         (snapshot, watch.watch_id, snapshot, scope, identifier),
     )
     return watch, snapshot
@@ -73,7 +86,8 @@ def test_mapped_source_event_cannot_rebuild_another_paused_source(tmp_path):
         observation(db, "eepro", "source_event", "shared")
         event(db.connection, "canonical", ["eepro", "wdr"])
         db.connection.execute(
-            "INSERT INTO source_event_map VALUES ('eepro','shared','canonical','fixture',1)"
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'shared', 'canonical', 'fixture', 1)"
         )
         unit = WorkUnit("project", "source_event", "shared")
         assert for_unit(db.connection, unit).sources == frozenset({"eepro", "wdr"})
@@ -89,7 +103,8 @@ def test_unmapped_source_event_inherits_global_map_fallback(tmp_path, other_mapp
         if other_mapping:
             # A different origin's same reference does not satisfy the eepro lookup.
             db.connection.execute(
-                "INSERT INTO source_event_map VALUES ('wdr','needs-map','other','fixture',1)"
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', 'needs-map', 'other', 'fixture', 1)"
             )
         unit = WorkUnit("project", "source_event", "needs-map")
         scope = for_unit(db.connection, unit)
@@ -197,16 +212,34 @@ def test_unknown_origin_fails_closed_and_host_pause_is_request_only(tmp_path):
 
 
 def test_finding_dependency_lookup_uses_bounded_indexes(tmp_path):
+    from swingset.dev.services import ensure_service
+
     with open_database(tmp_path) as db:
-        plan = [
-            str(row[3])
-            for row in db.connection.execute(
-                "EXPLAIN QUERY PLAN SELECT DISTINCT kind FROM findings WHERE closed_at IS NULL AND (watch_id=? OR snapshot_id=? OR subject_id=?)",
-                ("scope", "scope", "scope"),
+        # A populated planner fixture makes the three selective paths cheaper
+        # than scanning the unrelated owner index of an empty table.
+        with ensure_service().connect(db.connection.info.dbname) as fixture:
+            fixture.execute("SET session_replication_role=replica")
+            fixture.execute(
+                "INSERT INTO evidence.findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,watch_id,snapshot_id,severity,summary,evidence_json,opened_at,run_id) "
+                "SELECT 'finding-'||n,'source','owner-'||n,'fixture','source','subject-'||n,'watch-'||n,'snapshot-'||n,'warning','fixture','{}','2026-09-13T00:00:00+00:00','fixture' FROM generate_series(1,4000) AS n"
             )
-        ]
-        assert not any("SCAN findings" in line for line in plan), plan
-        assert sum("SEARCH findings USING INDEX" in line for line in plan) == 3, plan
+            fixture.execute("ANALYZE evidence.findings")
+        db.connection.execute("SET enable_seqscan=off")
+        plan = db.connection.execute(
+            "EXPLAIN (FORMAT JSON) SELECT DISTINCT kind FROM findings WHERE closed_at IS NULL AND (watch_id=%s OR snapshot_id=%s OR subject_id=%s)",
+            ("scope", "scope", "scope"),
+        ).fetchone()[0][0]["Plan"]
+
+        def indexes(node):
+            return ({node["Index Name"]} if "Index Name" in node else set()).union(
+                *(indexes(child) for child in node.get("Plans", []))
+            )
+
+        assert indexes(plan) == {
+            "findings_watch_id_fk_idx",
+            "findings_snapshot_id_fk_idx",
+            "findings_subject_id_control_idx",
+        }, plan
 
 
 def test_doctor_distinguishes_intentional_pause_unpaused_stall_and_stuck_drain(tmp_path):

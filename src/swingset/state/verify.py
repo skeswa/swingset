@@ -32,7 +32,6 @@ from __future__ import annotations
 import hashlib
 import math
 import resource
-import sqlite3
 import sys
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -42,6 +41,7 @@ from typing import TYPE_CHECKING, Any
 
 from swingset.clock import Clock
 from swingset.log import log
+from swingset.state import engine
 
 from .db import Database
 from .work import WorkUnit
@@ -74,13 +74,15 @@ def week(now: datetime) -> str:
     return f"{year}-W{number:02d}"
 
 
-def ranked(conn: sqlite3.Connection, stage: str, kind: str, *, seed: str) -> list[WorkUnit]:
+def ranked(conn: engine.Connection, stage: str, kind: str, *, seed: str) -> list[WorkUnit]:
     """Every scope of one kind with a pointer, in the week's sample order."""
     units = [
         WorkUnit(stage, kind, str(unit_id))
         for (unit_id,) in conn.execute(
-            "SELECT unit_id FROM derivation_scopes WHERE stage=? AND unit_kind=? "
-            "AND materialized_generation_id IS NOT NULL",
+            (
+                "SELECT unit_id FROM derivation_scopes WHERE stage = %s AND unit_kind = %s AND NOT "
+                "materialized_generation_id IS NULL"
+            ),
             (stage, kind),
         )
     ]
@@ -100,7 +102,7 @@ def target(count: int, fraction: float) -> int:
     return min(count, max(1, math.ceil(count * fraction)))
 
 
-def due(conn: sqlite3.Connection, *, now: datetime) -> bool:
+def due(conn: engine.Connection, *, now: datetime) -> bool:
     """Whether no maintain tick recorded a complete verify within `INTERVAL`.
 
     A sample cut short or short of a kind's target does not count: the next
@@ -108,25 +110,27 @@ def due(conn: sqlite3.Connection, *, now: datetime) -> bool:
     """
     since = (now - INTERVAL).astimezone(UTC).isoformat()
     row = conn.execute(
-        "SELECT 1 FROM runs WHERE loop='maintain' AND finished_at > ? "
-        "AND json_valid(summary_json) AND json_extract(summary_json,'$.verify.week') IS NOT NULL "
-        "AND json_extract(summary_json,'$.verify.complete') = 1 LIMIT 1",
+        (
+            "SELECT 1 AS _value_0 FROM runs WHERE loop = 'maintain' AND finished_at > %s AND PG_INPUT_IS_VALID(summary_json, 'json') AND NOT JSON_EXTRACT_PATH_TEXT(CAST(CASE WHEN summary_json IS JSON THEN summary_json END AS JSON), 'verify', 'week') IS NULL AND JSON_EXTRACT_PATH_TEXT(CAST(CASE WHEN summary_json IS JSON THEN summary_json END AS JSON), 'verify', 'complete') = 'true' LIMIT 1"
+        ),
         (since,),
     ).fetchone()
     return row is None
 
 
-def _pointer_label(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[str, int] | None:
+def _pointer_label(conn: engine.Connection, unit: WorkUnit) -> tuple[str, int] | None:
     row = conn.execute(
-        "SELECT g.output_digest,g.row_count FROM derivation_scopes s "
-        "JOIN derivation_generations g ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+        (
+            "SELECT g.output_digest, g.row_count FROM derivation_scopes AS s JOIN derivation_generations "
+            "AS g ON g.generation_id = s.materialized_generation_id WHERE s.stage = %s AND s.unit_kind = "
+            "%s AND s.unit_id = %s"
+        ),
         (unit.stage, unit.unit_kind, unit.unit_id),
     ).fetchone()
     return None if row is None else (str(row[0]), int(row[1]))
 
 
-def _live_label(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[str, int]:
+def _live_label(conn: engine.Connection, unit: WorkUnit) -> tuple[str, int]:
     """The live output's label, computed as completion computes a generation's."""
     from swingset.project.materialization import output_rows
 
@@ -174,7 +178,7 @@ def verify_unit(
             labels["live"] = _live_label(conn, unit)
             # A generation names its run; this one is rolled back with it.
             conn.execute(
-                "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES (?,?,1)",
+                "INSERT INTO runs (run_id, started_at, dry_run) VALUES (%s, %s, 1) ON CONFLICT DO NOTHING",
                 (run_id, clock.now().isoformat()),
             )
             if unit.stage == "link":
@@ -184,7 +188,20 @@ def verify_unit(
                 )
                 link_event(database, unit.unit_id, bundle, clock, run_id, selection=selection)
             else:
-                process_unit(database, unit, bundle, clock, run_id)
+                # Calendar's ordinary dispatch skips an already-current base
+                # because inventory may have enriched it. A proof must execute
+                # the base transform and label it inside this rollback.
+                project_selection = (
+                    derivations.capture(
+                        conn,
+                        unit,
+                        now=clock.now(),
+                        recipe=helper_recipe(conn, bundle.files, "project"),
+                    )
+                    if unit.unit_kind == "calendar"
+                    else None
+                )
+                process_unit(database, unit, bundle, clock, run_id, selection=project_selection)
             labels["found"] = _live_label(conn, unit)
             raise _RollBack
     except _RollBack:

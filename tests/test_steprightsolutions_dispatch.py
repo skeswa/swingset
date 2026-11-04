@@ -35,14 +35,18 @@ def store(
     run_id: str,
 ) -> ParseResult:
     database.connection.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) "
-        "VALUES (?,'steprightsolutions',?,'GET',?,?,?,'live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+            "(%s, 'steprightsolutions', %s, 'GET', %s, %s, %s, 'live')"
+        ),
         (watch_id, page.kind.rsplit(".", 1)[-1], EVENT_URL, page.kind, source_ref),
     )
     database.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-        "body_bytes,content_changed,run_id,classification) "
-        "VALUES (?,?,'GET',?,?,200,1,1,?,'Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 1, "
+            "1, %s, 'Ok')"
+        ),
         (snapshot_id, watch_id, EVENT_URL, fetched_at, run_id),
     )
     context = ParseContext(
@@ -109,8 +113,10 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
         )
         drain_projects(database, clock, run_id)
         indexed = database.connection.execute(
-            "SELECT name_raw,start_date,end_date,location_raw FROM source_events "
-            "WHERE source='steprightsolutions' AND source_ref=?",
+            (
+                "SELECT name_raw, start_date, end_date, location_raw FROM source_events WHERE source = "
+                "'steprightsolutions' AND source_ref = %s"
+            ),
             (SOURCE_REF,),
         ).fetchone()
         assert tuple(indexed) == (
@@ -120,7 +126,7 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
             "Vancouver, BC, Canada",
         )
         map_revision_before = database.connection.execute(
-            "SELECT value FROM revisions WHERE name='source_event_map'"
+            "SELECT value FROM revisions WHERE name = 'source_event_map'"
         ).fetchone()[0]
 
         event = EventPage()
@@ -150,8 +156,8 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
         )
 
         detail_observations = database.connection.execute(
-            "SELECT kind,scope_kind,scope_id,payload_json FROM observations "
-            "WHERE snapshot_id='step-right-event-snapshot' ORDER BY seq"
+            "SELECT kind, scope_kind, scope_id, payload_json FROM observations WHERE snapshot_id = "
+            "'step-right-event-snapshot' ORDER BY seq NULLS FIRST"
         ).fetchall()
         assert [(row[0], row[1], row[2]) for row in detail_observations] == [
             ("step_right_event_sheet", "source_event", SOURCE_REF),
@@ -162,7 +168,7 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
         pending = {
             WorkUnit(str(row[0]), str(row[1]), str(row[2]))
             for row in database.connection.execute(
-                "SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage='project'"
+                "SELECT stage, unit_kind, unit_id FROM pending_work WHERE stage = 'project'"
             )
         }
         assert {
@@ -174,8 +180,10 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
 
         drain_projects(database, clock, run_id)
         merged = database.connection.execute(
-            "SELECT name_raw,start_date,end_date,location_raw,url,snapshot_id,parser_version "
-            "FROM source_events WHERE source='steprightsolutions' AND source_ref=?",
+            (
+                "SELECT name_raw, start_date, end_date, location_raw, url, snapshot_id, parser_version FROM "
+                "source_events WHERE source = 'steprightsolutions' AND source_ref = %s"
+            ),
             (SOURCE_REF,),
         ).fetchone()
         assert tuple(merged) == (
@@ -188,14 +196,16 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
             str(event.PARSER_VERSION),
         )
         mapping = database.connection.execute(
-            "SELECT event_id,match_method,match_confidence FROM source_event_map "
-            "WHERE source='steprightsolutions' AND source_ref=?",
+            (
+                "SELECT event_id, match_method, match_confidence FROM source_event_map WHERE source = "
+                "'steprightsolutions' AND source_ref = %s"
+            ),
             (SOURCE_REF,),
         ).fetchone()
         assert tuple(mapping)[1:] == ("name_date", 0.5)
         assert (
             database.connection.execute(
-                "SELECT value FROM revisions WHERE name='source_event_map'"
+                "SELECT value FROM revisions WHERE name = 'source_event_map'"
             ).fetchone()[0]
             > map_revision_before
         )

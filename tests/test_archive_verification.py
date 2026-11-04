@@ -6,6 +6,7 @@ import zlib
 from pathlib import Path
 
 import pytest
+from postgres_statements import contents
 from test_event_enumerations import admit_parent, child, finish_bootstrap, view
 from test_event_enumerations import event as event
 
@@ -62,14 +63,18 @@ def test_large_body_uses_bounded_compressed_and_decompressed_reads(tmp_path, mon
 @pytest.mark.parametrize(
     "encoded,body",
     [
-        (gzip.compress(b"first") + gzip.compress(b"second"), b"firstsecond"),
+        (gzip.compress(b"first", mtime=0) + gzip.compress(b"second", mtime=0), b"firstsecond"),
         (
-            gzip.compress(b"first") + b"\0" * 17 + gzip.compress(b"second") + b"\0" * 9,
+            gzip.compress(b"first", mtime=0)
+            + b"\0" * 17
+            + gzip.compress(b"second", mtime=0)
+            + b"\0" * 9,
             b"firstsecond",
         ),
-        (gzip.compress(b""), b""),
+        (gzip.compress(b"", mtime=0), b""),
         (b"", b""),
     ],
+    ids=["concatenated", "padded_members", "empty_member", "empty_file"],
 )
 def test_valid_gzip_forms_match_read_body(tmp_path, encoded, body):
     archive = Archive(tmp_path)
@@ -168,21 +173,21 @@ def test_inventory_streams_body_checks_but_keeps_extract_validation_and_no_recov
     admit_parent(f, ["one.htm"])
     child(f, "one.htm")
     finish_bootstrap(f)
-    before = list(f.conn.iterdump())
+    before = contents(f.conn)
 
     def forbidden_read(*args):
         raise AssertionError("body verification must not return full contents")
 
     monkeypatch.setattr(f.archive, "read_body", forbidden_read)
     assert view(f)["interpreted_pages"] == 1
-    # Damaged body reopens the stage, without repairing files or changing SQLite.
+    # Damaged body reopens the stage, without repairing files or changing the database.
     body_sha = f.conn.execute(
-        "SELECT body_sha256 FROM snapshots WHERE snapshot_id='child-one.htm'"
+        "SELECT body_sha256 FROM snapshots WHERE snapshot_id = 'child-one.htm'"
     ).fetchone()[0]
     f.archive.blob_path(body_sha).unlink()
     actual = view(f)
     assert actual["interpreted_pages"] == actual["acquired_pages"] == 0
-    assert list(f.conn.iterdump()) == before
+    assert contents(f.conn) == before
 
     class Recovery:
         def recover(self, *args):

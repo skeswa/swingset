@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections import Counter
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -12,6 +11,7 @@ from swingset.admission.kinds import contract_version
 from swingset.project.history import phase_two_allowed
 from swingset.sources import get_page_kind
 from swingset.sources.phase_one import PHASE1_KINDS
+from swingset.state import engine
 
 _REFUSALS: ContextVar[Counter[str] | None] = ContextVar("phase_two_refusals", default=None)
 
@@ -37,7 +37,7 @@ def is_phase_one_index(source: str, page_kind: str, watch_kind: str) -> bool:
 
 
 def archive_watch_gate(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source: str,
     source_ref: str | None,
@@ -54,7 +54,7 @@ def archive_watch_gate(
 
 
 def phase_two_gate(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source: str,
     source_ref: str | None,
@@ -76,7 +76,7 @@ def phase_two_gate(
 
 
 def _phase_two_gate(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source: str,
     source_ref: str | None,
@@ -86,7 +86,10 @@ def _phase_two_gate(
     if page_kind.split(".")[0] != source:
         return "history_page_kind_source_mismatch"
     event = conn.execute(
-        "SELECT e.year FROM source_event_map m JOIN events e USING(event_id) WHERE m.source=? AND m.source_ref=?",
+        (
+            "SELECT e.year FROM source_event_map AS m JOIN events AS e USING (event_id) WHERE m.source = "
+            "%s AND m.source_ref = %s"
+        ),
         (source, source_ref),
     ).fetchone()
     if event is None:
@@ -106,7 +109,11 @@ def _phase_two_gate(
     if version == "unassessed":
         return "history_contract_unassessed"
     policy = conn.execute(
-        "SELECT p.mode,p.contract_version,p.reviewed_report_digest,r.contract_version,r.page_kind FROM admission_policies p LEFT JOIN admission_reviews r ON r.report_digest=p.reviewed_report_digest WHERE p.page_kind=?",
+        (
+            "SELECT p.mode, p.contract_version, p.reviewed_report_digest, r.contract_version AS reviewed_contract_version, "
+            "r.page_kind FROM admission_policies AS p LEFT JOIN admission_reviews AS r ON "
+            "r.report_digest = p.reviewed_report_digest WHERE p.page_kind = %s"
+        ),
         (page_kind,),
     ).fetchone()
     if policy is None or policy[0] != "enforce":

@@ -1,0 +1,58 @@
+{
+  "files": {
+    "src/swingset/dev/pytest_paths.py": {
+      "ast_sha256": "600ced38b509bc9b20f104239356487142317959279169bc30fc46664561a38f",
+      "sha256": "e4fd524b8a8f50639b021d78e3785b29bc693927b07ef6d5b83005f09374fbce"
+    },
+    "tests/conftest.py": {
+      "ast_sha256": "4a75a46a660f413eb6b6a0fed09a4b88ccab21269178a125bf3a53ab400438d7",
+      "sha256": "c7b70e03f8c177865860cc60b6a4a7912d7a9947006c0acc76cf5893ce87cc54"
+    },
+    "tests/suite.toml": {
+      "sha256": "e07637d2b0dc67c5c741c7c0864a841a415da7da86bee9b4ca90b68ec4629622"
+    },
+    "tests/test_pytest_paths.py": {
+      "ast_sha256": "701be1f37ea3bc2704ca0c6b8151566c1724324fdca449f6da95b5c23fb85a80",
+      "sha256": "45d87ea443d3d8c15bcc4200163535d885afa023fab5c8f8a6de87790e0c8e01"
+    }
+  },
+  "format": 1,
+  "measured_at": "2026-11-05T04:05:40.999455+00:00",
+  "performance": "Correctness only. Complete default-core timing remains pending.",
+  "review": "Existing independent cleanup review extended by pg_engine; root finding about nonblocking bounded nonce reads was applied before the actual Linux validation.",
+  "scope": "Recognized RAM harness routes only explicit capacity_disk selectors to a private persistent parent, returning a clean case child; no production headroom or durability changes.",
+  "verification": {
+    "actual_linux": {
+      "cases": [
+        "tests/publish/test_recovery.py::test_lost_response_is_reconciled_without_duplicate_commit",
+        "tests/test_body_packs.py::test_storage_plan_and_apply_pack_both_stages_and_resume",
+        "tests/test_loops.py::test_maintain_runs_the_storage_tasks_and_the_weekly_drill"
+      ],
+      "client_memory_bytes": 2147483648,
+      "client_memory_plus_swap_bytes": 2147483648,
+      "command": "mise exec -- uv run python /tmp/swingset-stage1-capacity-native-linux.py",
+      "default_payload_tmpfs_bytes": 805306368,
+      "exit_code": 0,
+      "log_sha256": "2720b9e327fd78446cc971bc3a94e07ae052b8b644767f7c30a9d745bf31cf3a",
+      "passed": 3,
+      "postgres_cpus": 4,
+      "seconds": 11.5,
+      "source_freeze": "fmt15; parent confirmed no source edits"
+    },
+    "focused": {
+      "command": "mise exec -- uv run pytest -q tests/test_pytest_paths.py",
+      "includes": [
+        "real persistent free capacity >=20GB",
+        "all setup/call/teardown phases must pass before cleanup",
+        "dependent-finalizer/setup failures retained",
+        "actual SIGINT retains payload",
+        "FIFO/oversize/changed nonce refuses without hanging",
+        "source symlink target untouched",
+        "native/ordinary paths and node selection unchanged",
+        "owner nonce absent from returned domain payload"
+      ],
+      "passed": 7,
+      "seconds": 1.37
+    }
+  }
+}

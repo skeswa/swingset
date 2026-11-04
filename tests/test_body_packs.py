@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,7 +13,7 @@ from test_h15_acceptance import drain_project
 from test_h15_acceptance import source_fixture as source_fixture
 
 from swingset.cli import main
-from swingset.state import body_packs, objects, retention, storage
+from swingset.state import body_packs, engine, objects, retention, storage
 from swingset.state.body_packs import STUB
 from swingset.state.db import Database, open_database
 from swingset.state.work import WorkUnit, enqueue
@@ -39,19 +38,22 @@ def accepted(c: Corpus, name: str, index: int) -> str:
     return generation
 
 
-def decide(conn: sqlite3.Connection, generation: str, state: str) -> None:
-    conn.execute("UPDATE source_generations SET state=? WHERE generation_id=?", (state, generation))
+def decide(conn: engine.Connection, generation: str, state: str) -> None:
     conn.execute(
-        "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) "
-        "VALUES (?,?,'test','2026-01-01T00:00:00+00:00','test')",
+        "UPDATE source_generations SET state = %s WHERE generation_id = %s", (state, generation)
+    )
+    conn.execute(
+        (
+            "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+            "VALUES (%s, %s, 'test', '2026-01-01T00:00:00+00:00', 'test')"
+        ),
         (generation, state),
     )
 
 
-def columns(conn: sqlite3.Connection, generation: str) -> tuple[str, str, str]:
+def columns(conn: engine.Connection, generation: str) -> tuple[str, str, str]:
     row = conn.execute(
-        "SELECT manifest_json,report_json,result_json FROM source_generations "
-        "WHERE generation_id=?",
+        "SELECT manifest_json, report_json, result_json FROM source_generations WHERE generation_id = %s",
         (generation,),
     ).fetchone()
     return str(row[0]), str(row[1]), str(row[2])
@@ -85,7 +87,7 @@ class Units:
         self.old = accepted(c, "s2", 2)
         self.shadow = staged(c, "s3", 3)
         self.conn.execute(
-            "UPDATE source_generations SET state='superseded' WHERE generation_id=?",
+            "UPDATE source_generations SET state = 'superseded' WHERE generation_id = %s",
             (self.shadow,),
         )
         self.equivalence = accepted(c, "s4", 4)
@@ -99,22 +101,27 @@ class Units:
         self.newest = staged(c, "s11", 11)
         decide(self.conn, self.newest, "superseded")
         unit, fingerprint = self.conn.execute(
-            "SELECT unit_key,input_fingerprint FROM source_generations WHERE generation_id=?",
+            "SELECT unit_key, input_fingerprint FROM source_generations WHERE generation_id = %s",
             (self.equivalence,),
         ).fetchone()
         self.conn.execute(
-            "INSERT INTO source_equivalences(unit_key,input_fingerprint,generation_id,recipe_json,"
-            "work_token,created_at,run_id) VALUES (?,?,?,'{}',NULL,?,?)",
+            (
+                "INSERT INTO source_equivalences (unit_key, input_fingerprint, generation_id, recipe_json, "
+                "work_token, created_at, run_id) VALUES (%s, %s, %s, '{}', NULL, %s, %s)"
+            ),
             (unit, "other-" + fingerprint, self.equivalence, "2026-01-01", c.run),
         )
         self.conn.execute(
-            "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,"
-            "severity,summary,evidence_json,opened_at,run_id) VALUES "
-            "('f1','test','test','test','watch','w','warning','test','{}','2026-01-01',?)",
+            (
+                "INSERT INTO findings (finding_id, owner_kind, owner_id, kind, subject_kind, subject_id, "
+                "severity, summary, evidence_json, opened_at, run_id) VALUES ('f1', 'test', 'test', 'test', "
+                "'watch', 'w', 'warning', 'test', '{}', '2026-01-01', %s)"
+            ),
             (c.run,),
         )
         self.conn.execute(
-            "INSERT INTO finding_support_references VALUES ('f1','generation',?)", (self.finding,)
+            "INSERT INTO finding_support_references (finding_id, kind, sha256) VALUES ('f1', 'generation', %s)",
+            (self.finding,),
         )
 
     @property
@@ -146,7 +153,7 @@ def units(tmp_path):
 def test_each_rule_protects_its_generation_and_only_old_unprotected_rows_are_targets(units):
     conn = units.conn
     body_packs.protect_sources(conn, before=BEFORE, candidates=[units.candidate, "gen_absent"])
-    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM temp.body_protected")}
+    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM pg_temp.body_protected")}
     assert protected == units.rules
     assert list(body_packs.source_targets(conn)) == sorted(
         [(units.old, False), (units.target, False)]
@@ -171,21 +178,25 @@ def test_each_rule_protects_its_generation_and_only_old_unprotected_rows_are_tar
     body_packs.drop_temporary(conn)
 
 
-def _enumerate(conn: sqlite3.Connection, own: str, parent: str, claim: str) -> None:
+def _enumerate(conn: engine.Connection, own: str, parent: str, claim: str) -> None:
     """An event enumeration (migration 16) naming three generations three ways."""
     decision = conn.execute(
-        "SELECT decision_id FROM admission_decisions WHERE generation_id=? LIMIT 1", (own,)
+        "SELECT decision_id FROM admission_decisions WHERE generation_id = %s LIMIT 1", (own,)
     ).fetchone()[0]
     conn.execute(
-        "INSERT INTO source_event_enumerations(enumeration_id,source,source_ref,predecessor_id,"
-        "generation_id,decision_id,parent_support_json,membership_digest,pagination,"
-        "pagination_reason,added_json,removed_json,recorded_at) VALUES "
-        "('en1','eepro','e1',NULL,?,?,?,'m','complete','test','[]','[]','2026-01-01')",
+        (
+            "INSERT INTO source_event_enumerations (enumeration_id, source, source_ref, predecessor_id, "
+            "generation_id, decision_id, parent_support_json, membership_digest, pagination, "
+            "pagination_reason, added_json, removed_json, recorded_at) VALUES ('en1', 'eepro', 'e1', "
+            "NULL, %s, %s, %s, 'm', 'complete', 'test', '[]', '[]', '2026-01-01')"
+        ),
         (own, decision, json.dumps({parent: {"generation_id": parent, "snapshots": []}})),
     )
     conn.execute(
-        "INSERT INTO source_event_enumeration_members(enumeration_id,request_id,request_json,"
-        "support_json,first_known_at) VALUES ('en1','r1','{}',?,NULL)",
+        (
+            "INSERT INTO source_event_enumeration_members (enumeration_id, request_id, request_json, "
+            "support_json, first_known_at) VALUES ('en1', 'r1', '{}', %s, NULL)"
+        ),
         (json.dumps([{"generation_id": claim, "roles": ["direct_result"], "snapshots": []}]),),
     )
 
@@ -196,7 +207,7 @@ def test_generations_the_event_subsystem_reads_are_protected(units):
     conn = units.conn
     _enumerate(conn, units.old, units.target, units.candidate)
     body_packs.protect_sources(conn, before=BEFORE, candidates=[])
-    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM temp.body_protected")}
+    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM pg_temp.body_protected")}
     assert {protected[g] for g in (units.old, units.target, units.candidate)} == {"event"}
     assert list(body_packs.source_targets(conn)) == []
     events = body_packs.event_reads(conn)
@@ -229,6 +240,53 @@ def test_an_enumeration_written_after_the_snapshot_still_protects(units):
         )
 
 
+@pytest.mark.parametrize(
+    "parents,support", [("not json", "not json"), ("[]", "42"), ("null", "null")]
+)
+def test_legacy_invalid_or_noncontainer_event_json_does_not_break_protection(
+    units, parents, support
+):
+    from swingset.dev.services import ensure_service
+
+    conn = units.conn
+    _enumerate(conn, units.old, units.target, units.candidate)
+    with ensure_service().connect(conn.info.dbname) as admin:
+        admin.execute("SET session_replication_role='replica'")
+        admin.execute(
+            "UPDATE plan.source_event_enumerations SET parent_support_json=%s", (parents,)
+        )
+        admin.execute(
+            "UPDATE plan.source_event_enumeration_members SET support_json=%s", (support,)
+        )
+    assert body_packs.event_reads(conn).generations == {units.old}
+    body_packs.protect_sources(conn, before=BEFORE)
+    assert units.target in {generation for generation, _ in body_packs.source_targets(conn)}
+    assert not body_packs.event_protected(conn, units.target, body_packs.event_reads(conn))
+
+
+def test_recursive_event_generation_references_are_strings_and_deduplicated(units):
+    from swingset.dev.services import ensure_service
+
+    conn = units.conn
+    _enumerate(conn, units.old, units.target, units.candidate)
+    support = {
+        "nested": [
+            [
+                {"generation_id": units.candidate},
+                {"generation_id": units.candidate},
+                {"generation_id": 7},
+            ]
+        ]
+    }
+    with ensure_service().connect(conn.info.dbname) as admin:
+        admin.execute("SET session_replication_role='replica'")
+        admin.execute(
+            "UPDATE plan.source_event_enumeration_members SET support_json=%s",
+            (json.dumps(support),),
+        )
+    assert body_packs.event_reads(conn).generations == {units.old, units.target, units.candidate}
+
+
 def test_a_closure_proof_protects_every_generation_it_names_anywhere(units, monkeypatch):
     """`storage.retained` reads the whole proof, `event_coverage` included."""
     from swingset.build.closure_manifest import canonical
@@ -242,7 +300,7 @@ def test_a_closure_proof_protects_every_generation_it_names_anywhere(units, monk
     body = canonical(proof)
     digest = hashlib.sha256(body.encode()).hexdigest()
     conn.execute(
-        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
         (digest, body),
     )
     candidate = units.db.state_dir / "candidates" / "cand_closure"
@@ -260,15 +318,15 @@ def test_the_chain_reaches_back_through_unaccepted_rows_to_the_previous_accepted
     # Revoking the generation before the current one leaves a revoked link in
     # the chain; the walk passes it and protects the accepted one behind it.
     previous = conn.execute(
-        "SELECT previous_generation_id FROM source_generations WHERE generation_id=?",
+        "SELECT previous_generation_id FROM source_generations WHERE generation_id = %s",
         (units.current,),
     ).fetchone()[0]
     assert previous == units.chain
     conn.execute(
-        "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (units.chain,)
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (units.chain,)
     )
     body_packs.protect_sources(conn, before=BEFORE, candidates=[units.candidate])
-    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM temp.body_protected")}
+    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM pg_temp.body_protected")}
     assert protected[units.chain] == "state"
     assert protected[units.target] == "chain"
     assert body_packs.source_protection(
@@ -298,13 +356,15 @@ def test_pack_and_restore_are_byte_exact_and_the_triggers_hold(units):
     again, new = body_packs.write_source(conn, objects.store_for(conn), units.target, now=NOW)
     assert not new or again != digest
     # Without the authority nothing moves; the pack row stays while the row is a stub.
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         conn.execute(
-            "UPDATE source_generations SET manifest_json=?,report_json=?,result_json=? "
-            "WHERE generation_id=?",
+            (
+                "UPDATE source_generations SET manifest_json = %s, report_json = %s, result_json = %s WHERE "
+                "generation_id = %s"
+            ),
             (*before, units.old),
         )
-    with pytest.raises(sqlite3.IntegrityError, match="restored row"):
+    with pytest.raises(engine.IntegrityError, match="restored row"):
         conn.execute("DELETE FROM source_generation_packs")
     assert restore(database, units.old) == "source"
     assert columns(conn, units.old) == before
@@ -335,17 +395,26 @@ def build_label(
     empty = hashlib.sha256(b"[]").hexdigest()
     with database.transaction():
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-            "VALUES (?,'[]')",
+            (
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, '[]') "
+                "ON CONFLICT DO NOTHING"
+            ),
             (empty,),
         )
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-            "VALUES ('build','release','all',?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('build', "
+                "'release', 'all', %s) ON CONFLICT DO NOTHING"
+            ),
             (created,),
         )
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,'build','release','all','fp',?,?,NULL,?,0,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, 'build', 'release', 'all', 'fp', %s, %s, NULL, "
+                "%s, 0, %s, %s)"
+            ),
             (generation, recipe, empty, hashlib.sha256(b"").hexdigest(), created, run),
         )
     return recipe
@@ -363,11 +432,11 @@ def test_large_build_recipes_pack_unless_protected_and_restore_byte_exact(units)
     young = "dg_" + "5" * 64
     build_label(database, young, 1_100_000, created="2026-09-30T00:00:00+00:00")
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=? WHERE stage='build'",
+        "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = 'build'",
         (pointed,),
     )
     body_packs.protect_labels(conn, before=BEFORE, candidates=[held])
-    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM temp.label_protected")}
+    protected = {str(g): str(w) for g, w in conn.execute("SELECT * FROM pg_temp.label_protected")}
     assert protected == {pointed: "pointer", held: "candidate", young: "young"}
     assert list(body_packs.label_targets(conn)) == [(big, False)]
     body_packs.drop_temporary(conn)
@@ -377,7 +446,7 @@ def test_large_build_recipes_pack_unless_protected_and_restore_byte_exact(units)
         assert body_packs.stub_label(txn, big, digest, now=NOW)
     assert (
         conn.execute(
-            "SELECT recipe_json FROM derivation_generations WHERE generation_id=?", (big,)
+            "SELECT recipe_json FROM derivation_generations WHERE generation_id = %s", (big,)
         ).fetchone()[0]
         == STUB
     )
@@ -398,7 +467,7 @@ def test_the_proof_collector_still_reads_a_packed_build_recipe(units, tmp_path):
     proof = '{"baseline":{},"selected":[]}'
     proof_id = hashlib.sha256(proof.encode()).hexdigest()
     conn.execute(
-        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
         (proof_id, proof),
     )
     big = "dg_" + proof_id
@@ -436,8 +505,8 @@ def test_admission_generations_cutoff_declines_a_packed_generation(tmp_path):
         assert not attempt.failed
         # Unpacked, the same reparse cuts off to `first` and stages nothing
         # (test_admission); packed, it stages a new generation instead.
-        assert c.conn.execute("SELECT count(*) FROM source_generations").fetchone()[0] == 2
-        assert c.conn.execute("SELECT count(*) FROM source_equivalences").fetchone()[0] == 0
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 2
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 0
 
 
 def revocation_case(database: Database) -> tuple[Corpus, str, str]:
@@ -458,7 +527,12 @@ def test_a_revocation_that_reads_a_packed_body_fails_with_the_hint_until_restore
         c, first, second = revocation_case(database)
         pack(database, first)
         conn = database.connection
-        observations = conn.execute("SELECT * FROM observations ORDER BY 1").fetchall()
+        observations = conn.execute(
+            "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+            "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+            "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+            "observations ORDER BY 1 NULLS FIRST"
+        ).fetchall()
         with pytest.raises(KeyError):
             revoke_generation(
                 database, second, reason="Synthetic revocation", now="x", run_id=c.run
@@ -469,11 +543,19 @@ def test_a_revocation_that_reads_a_packed_body_fails_with_the_hint_until_restore
         )
         assert (
             conn.execute(
-                "SELECT state FROM source_generations WHERE generation_id=?", (second,)
+                "SELECT state FROM source_generations WHERE generation_id = %s", (second,)
             ).fetchone()[0]
             == "accepted"
         )
-        assert conn.execute("SELECT * FROM observations ORDER BY 1").fetchall() == observations
+        assert (
+            conn.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations ORDER BY 1 NULLS FIRST"
+            ).fetchall()
+            == observations
+        )
         assert body_packs.revocation_blockers(conn, second) == [first]
         with pytest.raises(body_packs.BodyPacked, match=f"storage restore-body {first}"):
             body_packs.check_revocation(conn, second)
@@ -519,7 +601,7 @@ def test_admission_policy_refuses_a_packed_cohort(tmp_path):
             )
         pack(database, generation)
         kind = conn.execute(
-            "SELECT page_kind FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT page_kind FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
         with pytest.raises(ValueError, match="Reviewed corpus changed"):
             activate_contract(conn, kind, receipt)
@@ -541,7 +623,17 @@ def test_page_evidence_rejects_a_packed_generation(units):
 
     def row() -> dict[str, object]:
         found = units.conn.execute(
-            "SELECT * FROM source_generations WHERE generation_id=?", (units.old,)
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (units.old,),
         ).fetchone()
         return {name: found[name] for name in GENERATION}
 
@@ -568,16 +660,20 @@ def test_the_current_accepted_rows_history_reads_are_never_targets(units):
     conn = units.conn
     assert (
         conn.execute(
-            "SELECT count(*) FROM source_units u JOIN source_generations g "
-            "ON g.generation_id=u.accepted_generation_id WHERE g.result_json=?",
+            (
+                "SELECT COUNT(*) FROM source_units AS u JOIN source_generations AS g ON g.generation_id = "
+                "u.accepted_generation_id WHERE g.result_json = %s"
+            ),
             (STUB,),
         ).fetchone()[0]
         == 0
     )
     assert (
         conn.execute(
-            "SELECT count(*) FROM source_generations WHERE result_json=? "
-            "AND state NOT IN ('accepted','superseded')",
+            (
+                "SELECT COUNT(*) FROM source_generations WHERE result_json = %s AND NOT state IN "
+                "('accepted', 'superseded')"
+            ),
             (STUB,),
         ).fetchone()[0]
         == 0
@@ -585,7 +681,7 @@ def test_the_current_accepted_rows_history_reads_are_never_targets(units):
     assert {
         str(row[0])
         for row in conn.execute(
-            "SELECT generation_id FROM source_generations WHERE result_json=?", (STUB,)
+            "SELECT generation_id FROM source_generations WHERE result_json = %s", (STUB,)
         )
     } == {units.old, units.target, units.candidate}
 
@@ -597,7 +693,7 @@ def test_partition_support_is_the_same_before_and_after_packing(units):
     parser = str(
         json.loads(
             conn.execute(
-                "SELECT recipe_json FROM source_generations WHERE generation_id=?", (units.old,)
+                "SELECT recipe_json FROM source_generations WHERE generation_id = %s", (units.old,)
             ).fetchone()[0]
         )["parser_version"]
     )
@@ -783,7 +879,7 @@ def test_a_refused_body_pass_is_a_task_failure_with_a_guard(units, monkeypatch):
         "StorageError: closure proof p of candidate c is not in the database"
     )
     unpacked = conn.execute(
-        "SELECT count(*) FROM source_generations WHERE result_json<>?", (STUB,)
+        "SELECT COUNT(*) FROM source_generations WHERE result_json <> %s", (STUB,)
     ).fetchone()[0]
     assert result["backlog"] == unpacked > 0 and result["parse_body"] == 0
     guard = guards.get(conn, storage.GUARD_SUBJECT, storage.PACK_FAILED)
@@ -822,7 +918,7 @@ def test_an_old_enumeration_parent_is_never_packed_and_its_witness_validates(tmp
         future = "2100-01-01T00:00:00+00:00"
         body_packs.protect_sources(conn, before=future, candidates=[])
         why = conn.execute(
-            "SELECT why FROM temp.body_protected WHERE generation_id=?", (first,)
+            "SELECT why FROM pg_temp.body_protected WHERE generation_id = %s", (first,)
         ).fetchone()
         assert why is not None and why[0] == "event"
         targets = [generation for generation, _ in body_packs.source_targets(conn)]

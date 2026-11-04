@@ -38,12 +38,12 @@ def test_acknowledged_release_is_quiet_without_a_second_remote_commit(empty_rele
     db, bundle, clock, run = empty_release
     hub = FakeHub()
     first = service.build_release(db, bundle, clock, run, hub)
-    assert publish(db.state_dir, first.path, hub).state == "published"
+    assert publish(db.state_dir, first.path, hub, connection=db.connection).state == "published"
     receipt = (first.path / "PUBLISHED").read_bytes()
     clock.sleep(60)
     again = service.build_release(db, bundle, clock, run, hub)
     assert again.reused and again.path == first.path
-    assert publish(db.state_dir, again.path, hub).state == "unchanged"
+    assert publish(db.state_dir, again.path, hub, connection=db.connection).state == "unchanged"
     assert hub.calls == 1 and (first.path / "PUBLISHED").read_bytes() == receipt
 
 
@@ -64,10 +64,10 @@ def test_interrupted_build_cannot_publish_until_its_durable_completion(empty_rel
         service.build_release(db, bundle, clock, run, hub)
     path = next((db.state_dir / "candidates").glob("*/BUILT")).parent
     with pytest.raises(PublishError, match="durable build completion"):
-        publish(db.state_dir, path, hub)
+        publish(db.state_dir, path, hub, connection=db.connection)
     assert hub.calls == 0 and not (path / "REJECTED").exists()
     monkeypatch.setattr(derivations, "complete", complete)
     rebuilt = service.build_release(db, bundle, clock, run, hub)
     assert rebuilt.path == path and rebuilt.reused
-    assert publish(db.state_dir, path, hub).state == "published"
+    assert publish(db.state_dir, path, hub, connection=db.connection).state == "published"
     assert hub.calls == 1

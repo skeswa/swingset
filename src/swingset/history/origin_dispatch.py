@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from urllib.parse import urlsplit
@@ -19,40 +18,43 @@ from swingset.history.origin import ArchiveSearch, OriginProposal, _same_resourc
 from swingset.history.platform import KnownEvent, Page, PlannedPage, PlatformPlan
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
+from swingset.state import engine
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import matching_pauses
 from swingset.state.db import Database
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='history_origin_intents'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'history_origin_intents' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
 
 
-def managed(conn: sqlite3.Connection, watch_id: str) -> bool:
+def managed(conn: engine.Connection, watch_id: str) -> bool:
     return (
         available(conn)
         and conn.execute(
-            "SELECT 1 FROM history_origin_intents WHERE watch_id=?", (watch_id,)
+            "SELECT 1 AS _value_0 FROM history_origin_intents WHERE watch_id = %s", (watch_id,)
         ).fetchone()
         is not None
     )
 
 
 def cadence_reason(
-    conn: sqlite3.Connection, *, source: str, event_id: str, run_id: str, now: datetime
+    conn: engine.Connection, *, source: str, event_id: str, run_id: str, now: datetime
 ) -> str | None:
     if conn.execute(
-        "SELECT 1 FROM history_origin_requests WHERE run_id=? AND source=? AND event_id!=? LIMIT 1",
+        "SELECT 1 AS _value_0 FROM history_origin_requests WHERE run_id = %s AND source = %s AND event_id <> %s LIMIT 1",
         (run_id, source, event_id),
     ).fetchone():
         return "origin_event_cycle_limit"
     if (
         source == "dcn"
         and conn.execute(
-            "SELECT 1 FROM history_origin_requests WHERE source='dcn' AND day=? AND event_id!=? LIMIT 1",
+            "SELECT 1 AS _value_0 FROM history_origin_requests WHERE source = 'dcn' AND day = %s AND event_id <> %s LIMIT 1",
             (now.astimezone(UTC).date().isoformat(), event_id),
         ).fetchone()
     ):
@@ -61,14 +63,14 @@ def cadence_reason(
 
 
 def retained_proposal(
-    conn: sqlite3.Connection, item: PlannedPage, *, now: datetime, history_start: date
+    conn: engine.Connection, item: PlannedPage, *, now: datetime, history_start: date
 ) -> OriginProposal:
     # Read all retained captures, not only the planner's preferred three: a usable
     # older interpretation still prevents an origin request.
     held = tuple(
         Capture(str(row[0]), str(row[1]), str(row[2]), str(row[3]), int(row[4]), int(row[5]))
         for row in conn.execute(
-            "SELECT url,timestamp,digest,mimetype,length,status FROM archive_captures WHERE source=?",
+            "SELECT url, timestamp, digest, mimetype, length, status FROM archive_captures WHERE source = %s",
             (item.page.source,),
         )
         if _same_resource(str(row[0]), item.page.url)
@@ -82,7 +84,10 @@ def retained_proposal(
     queries = tuple(
         ArchiveSearch(*tuple(row))
         for row in conn.execute(
-            "SELECT query_id,source,prefix,year,next_page,total_pages,completed_at FROM archive_queries WHERE source=?",
+            (
+                "SELECT query_id, source, prefix, year, next_page, total_pages, completed_at FROM "
+                "archive_queries WHERE source = %s"
+            ),
             (item.page.source,),
         )
     )
@@ -90,7 +95,7 @@ def retained_proposal(
         frozenset(
             str(row[0])
             for row in conn.execute(
-                "SELECT source_ref FROM history_origin_operator_refs WHERE length(trim(evidence_reference))>0"
+                "SELECT source_ref FROM history_origin_operator_refs WHERE LENGTH(TRIM(evidence_reference)) > 0"
             )
         )
         if available(conn)
@@ -114,11 +119,12 @@ def retained_proposal(
     )
 
 
-def _known(
-    conn: sqlite3.Connection, source: str, source_ref: str, page: Page
-) -> PlannedPage | None:
+def _known(conn: engine.Connection, source: str, source_ref: str, page: Page) -> PlannedPage | None:
     row = conn.execute(
-        "SELECT e.event_id,e.year,e.event_month,e.end_date FROM source_event_map m JOIN events e USING(event_id) WHERE m.source=? AND m.source_ref=?",
+        (
+            "SELECT e.event_id, e.year, e.event_month, e.end_date FROM source_event_map AS m JOIN events "
+            "AS e USING (event_id) WHERE m.source = %s AND m.source_ref = %s"
+        ),
         (source, source_ref),
     ).fetchone()
     if row is None:
@@ -137,7 +143,7 @@ def _known(
     )
 
 
-def _parent_admitted(conn: sqlite3.Connection, page: Page) -> bool:
+def _parent_admitted(conn: engine.Connection, page: Page) -> bool:
     """A round debit needs a current, admitted exact parent declaration.
 
     Partial parents may declare useful children. Their other missing rounds do
@@ -146,12 +152,9 @@ def _parent_admitted(conn: sqlite3.Connection, page: Page) -> bool:
     if page.kind != "round":
         return True
     parents = conn.execute(
-        "SELECT g.result_json,g.recipe_json,g.page_kind,w.url AS parent_url "
-        "FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id "
-        "JOIN watches w ON w.watch_id=u.watch_id "
-        "WHERE w.source=? AND w.source_ref=? AND w.kind!='round' AND g.state='accepted' "
-        "AND w.parser=g.page_kind "
-        "AND (? IS NULL OR w.url=?)",
+        (
+            "SELECT g.result_json, g.recipe_json, g.page_kind, w.url AS parent_url FROM source_units AS u JOIN source_generations AS g ON g.generation_id = u.accepted_generation_id JOIN watches AS w ON w.watch_id = u.watch_id WHERE w.source = %s AND w.source_ref = %s AND w.kind <> 'round' AND g.state = 'accepted' AND w.parser = g.page_kind AND (CAST(%s AS TEXT) IS NULL OR w.url = %s)"
+        ),
         (page.source, page.source_ref, page.parent_url, page.parent_url),
     )
     for parent in parents:
@@ -230,7 +233,19 @@ def candidate(
         now=clock.now(),
     ):
         return None, None, "operator_pause"
-    existing = conn.execute("SELECT * FROM watches WHERE watch_id=?", (spec.watch_id,)).fetchone()
+    existing = conn.execute(
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s"
+        ),
+        (spec.watch_id,),
+    ).fetchone()
     ours = managed(conn, spec.watch_id)
     if existing:
         if not existing["archive_url"] and not ours:
@@ -243,7 +258,19 @@ def candidate(
             return None, None, "watch_cooldown"
         if ours:
             snapshot = conn.execute(
-                "SELECT * FROM snapshots WHERE watch_id=? AND via='origin' AND http_status=200 AND classification='Ok' ORDER BY fetched_at DESC,snapshot_id DESC LIMIT 1",
+                (
+                    "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                    "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                    "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                    "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                    "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                    "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                    "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                    "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                    "snapshots.extract_recipe_sha256 FROM snapshots WHERE watch_id = %s AND via = 'origin' AND "
+                    "http_status = 200 AND classification = 'Ok' ORDER BY fetched_at DESC NULLS LAST, "
+                    "snapshot_id DESC NULLS LAST LIMIT 1"
+                ),
                 (spec.watch_id,),
             ).fetchone()
             if snapshot and snapshot_state(conn, item, snapshot, now=clock.now()).state in {
@@ -265,7 +292,7 @@ def candidate(
 
 
 def schedule(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     spec: WatchSpec,
     proposal: OriginProposal,
     *,
@@ -291,7 +318,9 @@ def schedule(
         sort_keys=True,
     )
     conn.execute(
-        "INSERT INTO history_origin_intents VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(watch_id) DO UPDATE SET source=excluded.source,source_ref=excluded.source_ref,event_id=excluded.event_id,page_kind=excluded.page_kind,url=excluded.url,parent_url=excluded.parent_url,evidence_json=excluded.evidence_json,dispatch_run_id=excluded.dispatch_run_id",
+        (
+            "INSERT INTO history_origin_intents (watch_id, source, source_ref, event_id, page_kind, url, parent_url, evidence_json, created_at, dispatch_run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(watch_id) DO UPDATE SET source = excluded.source, source_ref = excluded.source_ref, event_id = excluded.event_id, page_kind = excluded.page_kind, url = excluded.url, parent_url = excluded.parent_url, evidence_json = excluded.evidence_json, dispatch_run_id = excluded.dispatch_run_id"
+        ),
         (
             spec.watch_id,
             spec.source,
@@ -306,13 +335,16 @@ def schedule(
         ),
     )
     conn.execute(
-        "UPDATE watches SET archive_url=NULL,state='backfill',priority=6,next_check_at=? WHERE watch_id=?",
+        (
+            "UPDATE watches SET archive_url = NULL, state = 'backfill', priority = 6, next_check_at = %s "
+            "WHERE watch_id = %s"
+        ),
         (now.isoformat(), spec.watch_id),
     )
 
 
 def request_gate(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     watch: object,
     *,
     now: datetime,
@@ -324,7 +356,15 @@ def request_gate(
     if not managed(conn, identifier):
         return None
     intent = conn.execute(
-        "SELECT * FROM history_origin_intents WHERE watch_id=?", (identifier,)
+        (
+            "SELECT history_origin_intents.watch_id, history_origin_intents.source, "
+            "history_origin_intents.source_ref, history_origin_intents.event_id, "
+            "history_origin_intents.page_kind, history_origin_intents.url, "
+            "history_origin_intents.parent_url, history_origin_intents.evidence_json, "
+            "history_origin_intents.created_at, history_origin_intents.dispatch_run_id FROM "
+            "history_origin_intents WHERE watch_id = %s"
+        ),
+        (identifier,),
     ).fetchone()
     run_id = getattr(watch, "_origin_run_id", None)
     if not run_id or intent["dispatch_run_id"] != run_id:
@@ -382,7 +422,7 @@ def request_gate(
 
 
 def record_request(
-    conn: sqlite3.Connection, watch: object, *, action_id: str, now: datetime
+    conn: engine.Connection, watch: object, *, action_id: str, now: datetime
 ) -> None:
     identifier = str(getattr(watch, "watch_id", ""))
     if not managed(conn, identifier):
@@ -390,10 +430,21 @@ def record_request(
     if not conn.in_transaction:
         raise ValueError("origin cadence must share the actual HTTP debit transaction")
     intent = conn.execute(
-        "SELECT * FROM history_origin_intents WHERE watch_id=?", (identifier,)
+        (
+            "SELECT history_origin_intents.watch_id, history_origin_intents.source, "
+            "history_origin_intents.source_ref, history_origin_intents.event_id, "
+            "history_origin_intents.page_kind, history_origin_intents.url, "
+            "history_origin_intents.parent_url, history_origin_intents.evidence_json, "
+            "history_origin_intents.created_at, history_origin_intents.dispatch_run_id FROM "
+            "history_origin_intents WHERE watch_id = %s"
+        ),
+        (identifier,),
     ).fetchone()
     conn.execute(
-        "INSERT INTO history_origin_requests VALUES (?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO history_origin_requests (action_id, watch_id, source, event_id, run_id, day, "
+            "issued_at) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             action_id,
             identifier,
@@ -407,7 +458,7 @@ def record_request(
 
 
 def record_operator_reference(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source_ref: str,
     evidence_reference: str,
@@ -425,13 +476,14 @@ def record_operator_reference(
     if (
         not source_ref.startswith("eepro:")
         or not conn.execute(
-            "SELECT 1 FROM source_event_map WHERE source='eepro' AND source_ref=?",
+            "SELECT 1 AS _value_0 FROM source_event_map WHERE source = 'eepro' AND source_ref = %s",
             (source_ref,),
         ).fetchone()
     ):
         raise ValueError("operator slug requires a known event mapping")
     conn.execute(
-        "INSERT INTO history_origin_operator_refs VALUES (?,?,?) "
-        "ON CONFLICT(source_ref) DO UPDATE SET evidence_reference=excluded.evidence_reference,recorded_at=excluded.recorded_at",
+        (
+            "INSERT INTO history_origin_operator_refs (source_ref, evidence_reference, recorded_at) VALUES (%s, %s, %s) ON CONFLICT(source_ref) DO UPDATE SET evidence_reference = excluded.evidence_reference, recorded_at = excluded.recorded_at"
+        ),
         (source_ref, evidence_reference.strip(), recorded_at.isoformat()),
     )

@@ -202,7 +202,10 @@ def remint(
     current = derivations.selected_generation(conn, unit)
     output = []
     for table, key, raw in conn.execute(
-        "SELECT table_name,record_key,payload_json FROM derivation_rows WHERE generation_id=? ORDER BY ordinal",
+        (
+            "SELECT table_name, record_key, payload_json FROM derivation_rows WHERE generation_id = %s "
+            "ORDER BY ordinal NULLS FIRST"
+        ),
         (current,),
     ):
         payload = change(table, key, json.loads(raw))
@@ -212,7 +215,10 @@ def remint(
     f.corpus.clock.sleep(1)
     now = f.corpus.clock.now().isoformat()
     label = conn.execute(
-        "SELECT input_fingerprint,recipe_json,dependency_set_id FROM derivation_generations WHERE generation_id=?",
+        (
+            "SELECT input_fingerprint, recipe_json, dependency_set_id FROM derivation_generations WHERE "
+            "generation_id = %s"
+        ),
         (current,),
     ).fetchone()
     digest = hashlib.sha256()
@@ -221,14 +227,24 @@ def remint(
         for ordinal, (table, key, payload) in enumerate(output):
             stored = canonical(payload)
             sha = hashlib.sha256(stored.encode()).hexdigest()
-            conn.execute("INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (sha, stored))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (sha, stored),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (created, ordinal, table, key, sha),
             )
             digest.update(canonical((table, key, stored)).encode() + b"\n")
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ),
             (
                 created,
                 unit.stage,
@@ -245,8 +261,10 @@ def remint(
             ),
         )
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=? "
-            "WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = %s AND unit_kind "
+                "= %s AND unit_id = %s"
+            ),
             (created, unit.stage, unit.unit_kind, unit.unit_id),
         )
     if relink and (unit.stage, unit.unit_kind) == ("project", "event"):
@@ -318,7 +336,7 @@ def test_a_stale_link_over_a_reminted_event_keeps_the_last_consistent_artifact(
     assert {row["name_raw"] for row in entries} == {"Totally Different Person"}
     # A partition that never built and whose units are not current is withheld.
     with f.db.transaction():
-        f.conn.execute("DELETE FROM release_partitions WHERE partition='event/event-a'")
+        f.conn.execute("DELETE FROM release_partitions WHERE partition = 'event/event-a'")
     remint(f, WorkUnit("project", "event", "event-a"), relink=False)
     build(f, baseline)
     withheld = rows(f.conn)["event/event-a"]
@@ -472,12 +490,17 @@ def test_a_change_of_support_alone_rebuilds_the_partition(source_fixture, tmp_pa
     decisions = [
         dict(row)
         for row in f.conn.execute(
-            "SELECT * FROM admission_decisions WHERE generation_id=?", (f.generation,)
+            (
+                "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                "admission_decisions.policy_revision FROM admission_decisions WHERE generation_id = %s"
+            ),
+            (f.generation,),
         )
     ]
     assert decisions
     with f.db.transaction():
-        f.conn.execute("DELETE FROM admission_decisions WHERE generation_id=?", (f.generation,))
+        f.conn.execute("DELETE FROM admission_decisions WHERE generation_id = %s", (f.generation,))
     report = build(f, baseline)
     withheld = rows(f.conn)["event/event-a"]
     assert withheld.inputs_digest != before.inputs_digest
@@ -486,9 +509,9 @@ def test_a_change_of_support_alone_rebuilds_the_partition(source_fixture, tmp_pa
     with f.db.transaction():
         for decision in decisions:
             names = ",".join(decision)
-            marks = ",".join("?" for _ in decision)
+            marks = ",".join("%s" for _ in decision)
             f.conn.execute(
-                f"INSERT INTO admission_decisions({names}) VALUES ({marks})",
+                f"INSERT INTO admission_decisions ({names}) VALUES ({marks})",
                 tuple(decision.values()),
             )
     build(f, baseline)
@@ -506,16 +529,31 @@ def test_a_dancer_generation_joins_the_batch_of_the_ids_its_rows_carry(source_fi
     unit = WorkUnit("project", "dancer", "999")
     generation = derivations.selected_generation(f.conn, unit)
     label = f.conn.execute(
-        "SELECT * FROM derivation_generations WHERE generation_id=?", (generation,)
+        (
+            "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+            "derivation_generations.unit_kind, derivation_generations.unit_id, "
+            "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+            "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+            "derivation_generations.output_digest, derivation_generations.row_count, "
+            "derivation_generations.created_at, derivation_generations.run_id FROM "
+            "derivation_generations WHERE generation_id = %s"
+        ),
+        (generation,),
     ).fetchone()
     with f.db.transaction():
         f.conn.execute(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at,"
-            "materialized_generation_id) VALUES ('project','dancer','lookup-redirect',?,NULL)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at, "
+                "materialized_generation_id) VALUES ('project', 'dancer', 'lookup-redirect', %s, NULL)"
+            ),
             (label["created_at"],),
         )
         f.conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ),
             (
                 "dg_redirect",
                 "project",
@@ -532,17 +570,20 @@ def test_a_dancer_generation_joins_the_batch_of_the_ids_its_rows_carry(source_fi
             ),
         )
         f.conn.execute(
-            "INSERT INTO derivation_row_refs SELECT 'dg_redirect',ordinal,table_name,record_key,"
-            "payload_sha256 FROM derivation_row_refs WHERE generation_id=?",
+            (
+                "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                "payload_sha256) SELECT 'dg_redirect', ordinal, table_name, record_key, payload_sha256 FROM "
+                "derivation_row_refs WHERE generation_id = %s"
+            ),
             (generation,),
         )
         f.conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id='dg_redirect' "
-            "WHERE unit_kind='dancer' AND unit_id='lookup-redirect'"
+            "UPDATE derivation_scopes SET materialized_generation_id = 'dg_redirect' WHERE unit_kind = "
+            "'dancer' AND unit_id = 'lookup-redirect'"
         )
         f.conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=NULL "
-            "WHERE unit_kind='dancer' AND unit_id='999'"
+            "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE unit_kind = 'dancer' "
+            "AND unit_id = '999'"
         )
     report = build(f, baseline)
     built = rows(f.conn)
@@ -562,12 +603,12 @@ def _observation_changed(f, generation, **changes):
 
     conn = f.conn
     set_id = conn.execute(
-        "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+        "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
         (generation,),
     ).fetchone()[0]
     manifest = json.loads(
         conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (set_id,),
         ).fetchone()[0]
     )
@@ -576,7 +617,7 @@ def _observation_changed(f, generation, **changes):
         if item.get("kind") == "dependency_set" and item.get("key") == "source_observations":
             members = json.loads(
                 conn.execute(
-                    "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                    "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                     (item["fingerprint"],),
                 ).fetchone()[0]
             )
@@ -587,7 +628,10 @@ def _observation_changed(f, generation, **changes):
             body = canonical(members)
             fingerprint = hashlib.sha256(body.encode()).hexdigest()
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+                (
+                    "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s) "
+                    "ON CONFLICT DO NOTHING"
+                ),
                 (fingerprint, body),
             )
             item = {**item, "fingerprint": fingerprint}
@@ -595,7 +639,10 @@ def _observation_changed(f, generation, **changes):
     body = canonical(changed)
     identifier = hashlib.sha256(body.encode()).hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        (
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s) "
+            "ON CONFLICT DO NOTHING"
+        ),
         (identifier, body),
     )
     return identifier
@@ -639,7 +686,7 @@ def test_support_reads_the_newest_equivalence_of_a_kept_generation(source_fixtur
     event = WorkUnit("project", "event", "event-a")
     current = derivations.selected_generation(f.conn, event)
     label = f.conn.execute(
-        "SELECT recipe_json,dependency_set_id FROM derivation_generations WHERE generation_id=?",
+        "SELECT recipe_json, dependency_set_id FROM derivation_generations WHERE generation_id = %s",
         (current,),
     ).fetchone()
     # The generation was made when its observations carried another label.
@@ -653,10 +700,15 @@ def test_support_reads_the_newest_equivalence_of_a_kept_generation(source_fixtur
     recipe = hashlib.sha256(label["recipe_json"].encode()).hexdigest()
     with f.db.transaction():
         f.conn.execute(
-            "INSERT OR IGNORE INTO derivation_recipes VALUES (?,?)", (recipe, label["recipe_json"])
+            "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (recipe, label["recipe_json"]),
         )
         f.conn.execute(
-            "INSERT INTO derivation_equivalences VALUES (?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES (%s, %s, %s, "
+                "%s, %s, %s, %s, %s, %s)"
+            ),
             (
                 "project",
                 "event",
@@ -776,22 +828,23 @@ def _registry_occurrence(f, listing=None, *, held="held", name="Event A 2026"):
     now = f.corpus.clock.now().isoformat()
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE events SET series_id='wsdc-7',held=?,wsdc_status='registry' "
-            "WHERE event_id='event-a'",
+            "UPDATE events SET series_id = 'wsdc-7', held = %s, wsdc_status = 'registry' WHERE event_id = 'event-a'",
             (held,),
         )
         units = [WorkUnit("project", "resolution", "event-a")]
         if listing is not None:
             conn.execute(
-                "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,"
-                "location_raw,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-                "VALUES ('eepro','eepro:test',?,'2026-01-02','2026-01-03',"
-                "'Somewhere','https://eepro.com/results/test/',?,?,?,?,?)",
+                (
+                    "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, "
+                    "location_raw, url, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+                    "('eepro', 'eepro:test', %s, '2026-01-02', '2026-01-03', 'Somewhere', "
+                    "'https://eepro.com/results/test/', %s, %s, %s, %s, %s)"
+                ),
                 (name, *listing, now, now, f.corpus.run),
             )
             conn.execute(
-                "INSERT INTO source_event_scope_rows(scope_id,source,source_ref) "
-                "VALUES ('eepro:index','eepro','eepro:test')"
+                "INSERT INTO source_event_scope_rows (scope_id, source, source_ref) VALUES ('eepro:index', "
+                "'eepro', 'eepro:test')"
             )
             units.append(WorkUnit("project", "source_index", "eepro:index"))
         enqueue(conn, units, enqueued_at=now)
@@ -948,7 +1001,7 @@ def test_a_moved_legacy_row_the_baseline_published_under_its_placeholder_is_kept
     # The round no longer has an accepted generation under the current contract.
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE admission_policies SET contract_version='next' WHERE page_kind=?",
+            "UPDATE admission_policies SET contract_version = 'next' WHERE page_kind = %s",
             (f.corpus.page.kind,),
         )
     from materialized_fixture import materialize_seeded_outputs
@@ -999,10 +1052,10 @@ def test_an_event_state_no_longer_holds_gets_no_partition(source_fixture, tmp_pa
     baseline = settled(f, tmp_path)
     build(f, baseline)
     assert rows(f.conn)["event/event-b"].state == "built"
-    assert f.conn.execute("SELECT 1 FROM contests WHERE event_id='event-b'").fetchone() is None
+    assert f.conn.execute("SELECT 1 FROM contests WHERE event_id = 'event-b'").fetchone() is None
     # Deleted behind the current generations, as a resolution does.
     with f.db.transaction():
-        f.conn.execute("DELETE FROM events WHERE event_id='event-b'")
+        f.conn.execute("DELETE FROM events WHERE event_id = 'event-b'")
     selected, _ = partitions.select(f.conn)
     assert "event/event-b" not in {item.name for item in selected}
     report = build(f, baseline)
@@ -1012,8 +1065,8 @@ def test_an_event_state_no_longer_holds_gets_no_partition(source_fixture, tmp_pa
     assert after["event/event-a"].state == "built"
     # A header gone while its results remain is inconsistent: withheld.
     with f.db.transaction():
-        f.conn.execute("PRAGMA defer_foreign_keys=ON")
-        f.conn.execute("DELETE FROM events WHERE event_id='event-a'")
+        f.conn.execute("SET CONSTRAINTS ALL DEFERRED")
+        f.conn.execute("DELETE FROM events WHERE event_id = 'event-a'")
     build(f, baseline)
     row = rows(f.conn)["event/event-a"]
     assert (row.state, row.reason) == ("withheld", "partition_error")
@@ -1035,7 +1088,7 @@ def test_a_row_naming_two_events_joins_them(source_fixture, tmp_path):
     contest = next(
         json.loads(raw)
         for (raw,) in f.conn.execute(
-            "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name='contests'",
+            "SELECT payload_json FROM derivation_rows WHERE generation_id = %s AND table_name = 'contests'",
             (derivations.selected_generation(f.conn, WorkUnit("project", "event", "event-a")),),
         )
     )
@@ -1227,25 +1280,35 @@ def test_the_collector_removes_old_unretained_manifests_and_build_scratch(source
     (state_dir / "candidates" / "cand_retained" / "BUILT").write_text("{}")
     with f.db.transaction() as conn:
         conn.execute(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-            "VALUES ('build','release','all',?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('build', "
+                "'release', 'all', %s)"
+            ),
             (now.isoformat(),),
         )
         conn.execute(
-            "INSERT INTO derivation_payloads VALUES ('p',?)",
+            "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES ('p', %s)",
             (json.dumps({"path": str(state_dir / "candidates" / "cand_pointer")}),),
         )
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('empty', "
+            "'[]') ON CONFLICT DO NOTHING"
         )
         conn.execute(
-            "INSERT INTO derivation_generations VALUES "
-            "('g-build','build','release','all','f','{}','empty',NULL,'d',1,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES ('g-build', 'build', 'release', 'all', 'f', '{}', "
+                "'empty', NULL, 'd', 1, %s, %s)"
+            ),
             (now.isoformat(), f.corpus.run),
         )
-        conn.execute("INSERT INTO derivation_row_refs VALUES ('g-build',0,'artifact','[]','p')")
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id='g-build' WHERE stage='build'"
+            "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+            "payload_sha256) VALUES ('g-build', 0, 'artifact', '[]', 'p')"
+        )
+        conn.execute(
+            "UPDATE derivation_scopes SET materialized_generation_id = 'g-build' WHERE stage = 'build'"
         )
     scratch = state_dir / "tmp"
     for name in ("partitions-a", "closure-b", "assembly-c", "partitions-young", "keep-me"):
@@ -1303,7 +1366,7 @@ def test_the_evidence_cutoff_counts_accepted_source_generations(source_fixture, 
     f = source_fixture
     baseline = settled(f, tmp_path)
     source = f.conn.execute(
-        "SELECT created_at FROM source_generations WHERE generation_id=?", (f.generation,)
+        "SELECT created_at FROM source_generations WHERE generation_id = %s", (f.generation,)
     ).fetchone()[0]
     assert (
         evidence_cutoff(f.conn, [], [f.generation])
@@ -1358,7 +1421,7 @@ def test_the_selection_reads_one_snapshot_while_a_generation_is_evicted(source_f
     """A pointer read by `pointers` whose references another connection then
     moves out (a flip and an eviction by maintain beside the build) still
     gives its whole reference list: the selection reads one snapshot."""
-    import sqlite3
+    from swingset.state import engine
 
     f = source_fixture
     settled(f, tmp_path)
@@ -1375,16 +1438,20 @@ def test_the_selection_reads_one_snapshot_while_a_generation_is_evicted(source_f
 
     def then_evicted(conn_):
         found = real(conn_)
-        other = sqlite3.connect(f.db.state_dir / "state.sqlite", isolation_level=None)
+        other = engine.connect(engine.resolve_dsn(f.db.state_dir))
         try:
-            other.execute("BEGIN IMMEDIATE")
+            other.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+            from swingset.state.engine.locks import acquire_writer
+
+            acquire_writer(other)
             other.execute(
-                "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
-                "VALUES (1,'test','2026-10-01T00:00:00Z')"
+                "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, 'test', "
+                "'2026-10-01T00:00:00Z')"
             )
-            other.execute("DELETE FROM derivation_row_refs WHERE generation_id=?", (target,))
+            other.execute("DELETE FROM derivation_row_refs WHERE generation_id = %s", (target,))
             other.execute(
-                "INSERT INTO derivation_evicted VALUES (?,'2026-10-01T00:00:00Z')", (target,)
+                "INSERT INTO derivation_evicted (generation_id, evicted_at) VALUES (%s, '2026-10-01T00:00:00Z')",
+                (target,),
             )
             other.execute("DELETE FROM storage_eviction_authority")
             other.execute("COMMIT")

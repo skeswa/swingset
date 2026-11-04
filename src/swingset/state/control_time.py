@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
+
+from swingset.state import engine
 
 from .controls import ActionScope
 
@@ -39,7 +40,7 @@ class ControlTime:
     produce an unavailable duration rather than a fabricated zero.
     """
 
-    def __init__(self, conn: sqlite3.Connection, now: datetime):
+    def __init__(self, conn: engine.Connection, now: datetime):
         if now.utcoffset() is None:
             raise ValueError("control report time requires an explicit timezone")
         self.now = now
@@ -52,7 +53,7 @@ class ControlTime:
         active: dict[str, tuple[tuple[str, str], datetime | None, datetime | None]] = {}
         observed = set()
         has_events = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='control_events'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'control_events' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
 
         def close(identifier: str, at: datetime) -> None:
@@ -64,7 +65,12 @@ class ControlTime:
                     self.intervals[selector].append((start, end))
 
         if has_events:
-            for row in conn.execute("SELECT * FROM control_events ORDER BY event_id"):
+            for row in conn.execute(
+                "SELECT control_events.event_id, control_events.control_revision, control_events.pause_id, "
+                "control_events.scope_kind, control_events.scope_id, control_events.action, "
+                "control_events.actor, control_events.reason, control_events.until_at, "
+                "control_events.occurred_at FROM control_events ORDER BY event_id NULLS FIRST"
+            ):
                 selector = (row["scope_kind"], row["scope_id"])
                 at = _aware(row["occurred_at"])
                 expiry = _aware(row["until_at"])
@@ -86,7 +92,11 @@ class ControlTime:
                         at,
                         expiry,
                     )
-        for row in conn.execute("SELECT * FROM operator_pauses"):
+        for row in conn.execute(
+            "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+            "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+            "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses"
+        ):
             value = dict(row)
             selector = (row["scope_kind"], row["scope_id"])
             beginning = _aware(value.get("created_at"))

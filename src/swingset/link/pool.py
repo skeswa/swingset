@@ -25,13 +25,12 @@ from __future__ import annotations
 import csv
 import io
 import json
-import sqlite3
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
 from swingset.log import log
 from swingset.normalize.names import normalize_name
-from swingset.state import read_sets
+from swingset.state import engine, read_sets
 
 from .candidates import DancerRecord, Subject, generate_candidates
 
@@ -60,10 +59,12 @@ class Signature:
         return self.merged_into is None and bool(self.initial)
 
 
-def signature(conn: sqlite3.Connection, wsdc_id: int) -> Signature | None:
+def signature(conn: engine.Connection, wsdc_id: int) -> Signature | None:
     row = conn.execute(
-        "SELECT first_name,last_name,merged_into_wsdc_id,is_pro,leader_highest_level,"
-        "follower_highest_level FROM dancers WHERE wsdc_id=?",
+        (
+            "SELECT first_name, last_name, merged_into_wsdc_id, is_pro, leader_highest_level, "
+            "follower_highest_level FROM dancers WHERE wsdc_id = %s"
+        ),
         (wsdc_id,),
     ).fetchone()
     if row is None:
@@ -93,7 +94,7 @@ def nicknames(files: Mapping[str, bytes]) -> dict[str, str]:
 
 
 def probe(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     wsdc_id: int,
     before: Signature | None,
     after: Signature | None,
@@ -108,46 +109,59 @@ def probe(
     """
     if before == after or not _links_ran(conn):
         return frozenset()
+    savepoint = conn.in_transaction
+    if savepoint:
+        conn.execute("SAVEPOINT pool_probe")
     try:
         events = _reached(conn, wsdc_id, before, after, dict(nicknames))
     except Exception as exc:
+        if conn.closed or isinstance(exc, engine.ConnectionLost):
+            raise
+        if savepoint:
+            conn.execute("ROLLBACK TO SAVEPOINT pool_probe")
+            conn.execute("RELEASE SAVEPOINT pool_probe")
         initials = {item.initial for item in (before, after) if item is not None}
         log("pool_probe_widened", wsdc_id=wsdc_id, error=f"{type(exc).__name__}: {exc}"[:200])
         read_sets.signal("pool_probe_widened")
         events = _sharing_initial(conn, initials)
+    else:
+        if savepoint:
+            conn.execute("RELEASE SAVEPOINT pool_probe")
     bump(conn, events, now=now)
     return frozenset(events)
 
 
-def bump(conn: sqlite3.Connection, events: Iterable[str], *, now: str) -> None:
+def bump(conn: engine.Connection, events: Iterable[str], *, now: str) -> None:
     """Move each event's pool version and queue its link (a hint; currency decides)."""
     from swingset.state.derivation_dependencies import POOL_NAMESPACE
 
     for event in sorted(set(events)):
         conn.execute(
-            "INSERT INTO derivation_input_versions VALUES (?,?,1) "
-            "ON CONFLICT(namespace,input_key) DO UPDATE SET version=version+1",
+            (
+                "INSERT INTO derivation_input_versions (namespace, input_key, version) VALUES (%s, %s, 1) ON CONFLICT(namespace, input_key) DO UPDATE SET version = derivation_input_versions.version + 1"
+            ),
             (POOL_NAMESPACE, event),
         )
         conn.execute(
-            "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
-            "VALUES ('link','event',?,?)",
+            (
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+                "%s, %s) ON CONFLICT DO NOTHING"
+            ),
             (event, now),
         )
 
 
-def _links_ran(conn: sqlite3.Connection) -> bool:
+def _links_ran(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM derivation_scopes WHERE stage='link' "
-            "AND materialized_generation_id IS NOT NULL LIMIT 1"
+            "SELECT 1 AS _value_0 FROM derivation_scopes WHERE stage = 'link' AND NOT materialized_generation_id IS NULL LIMIT 1"
         ).fetchone()
         is not None
     )
 
 
 def _reached(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     wsdc_id: int,
     before: Signature | None,
     after: Signature | None,
@@ -183,18 +197,16 @@ Subjects = dict[str, dict[tuple[str, str, str], set[str]]]
 _cache: dict[tuple[object, ...], Subjects] = {}
 
 
-def _subjects(conn: sqlite3.Connection) -> Subjects:
+def _subjects(conn: engine.Connection) -> Subjects:
     """Every entry and judge name by surname initial, with the events it appears in.
 
     Names repeat across events, so each distinct name is tested once. The
     index is kept until an event projection changes the canonical revision.
     """
-    path = next(
-        (str(row[2]) for row in conn.execute("PRAGMA database_list") if row[1] == "main"), ""
-    )
-    revision = conn.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()
+    path = (conn.info.host, conn.info.port, conn.info.dbname)
+    revision = conn.execute("SELECT value FROM revisions WHERE name = 'canonical'").fetchone()
     counts = conn.execute(
-        "SELECT (SELECT count(*) FROM entries),(SELECT count(*) FROM judges)"
+        "SELECT (SELECT COUNT(*) AS _value_0 FROM entries) AS _value_0, (SELECT COUNT(*) AS _value_0 FROM judges) AS _value_1"
     ).fetchone()
     key = (path, None if revision is None else int(revision[0]), *counts)
     if path and key in _cache:
@@ -203,11 +215,11 @@ def _subjects(conn: sqlite3.Connection) -> Subjects:
     rows = [
         *(
             ("entry", str(row[1] or ""), str(row[2]), str(row[0]))
-            for row in conn.execute("SELECT event_id,name_raw,role FROM entries")
+            for row in conn.execute("SELECT event_id, name_raw, role FROM entries")
         ),
         *(
             ("judge", str(row[1] or ""), "unknown", str(row[0]))
-            for row in conn.execute("SELECT event_id,name_raw FROM judges")
+            for row in conn.execute("SELECT event_id, name_raw FROM judges")
         ),
     ]
     for kind, name, role, event in rows:
@@ -220,11 +232,11 @@ def _subjects(conn: sqlite3.Connection) -> Subjects:
     return index
 
 
-def _candidate_word(conn: sqlite3.Connection, word: str) -> set[str]:
+def _candidate_word(conn: engine.Connection, word: str) -> set[str]:
     """Events whose live candidates name a dancer with this surname word (rarity)."""
     ids = [
         int(row[0])
-        for row in conn.execute("SELECT wsdc_id,first_name,last_name FROM dancers")
+        for row in conn.execute("SELECT wsdc_id, first_name, last_name FROM dancers")
         if (words := f"{row[1]} {row[2]}".casefold().split()) and words[-1] == word
     ]
     if not ids:
@@ -232,18 +244,19 @@ def _candidate_word(conn: sqlite3.Connection, word: str) -> set[str]:
     return {
         str(row[0])
         for row in conn.execute(
-            "SELECT e.event_id FROM link_candidates c JOIN entries e "
-            "ON c.subject_kind='entry' AND e.entry_id=c.subject_id "
-            "WHERE c.wsdc_id IN (SELECT value FROM json_each(:ids)) "
-            "UNION SELECT j.event_id FROM link_candidates c JOIN judges j "
-            "ON c.subject_kind='judge' AND j.judge_id=c.subject_id "
-            "WHERE c.wsdc_id IN (SELECT value FROM json_each(:ids))",
+            (
+                "SELECT e.event_id FROM link_candidates AS c JOIN entries AS e ON c.subject_kind = 'entry' "
+                "AND e.entry_id = c.subject_id WHERE c.wsdc_id IN (SELECT value::bigint FROM jsonb_array_elements_text(%(ids)s::jsonb)) "
+                "UNION SELECT j.event_id FROM link_candidates AS c JOIN judges AS j ON c.subject_kind = "
+                "'judge' AND j.judge_id = c.subject_id WHERE c.wsdc_id IN (SELECT value::bigint FROM "
+                "jsonb_array_elements_text(%(ids)s::jsonb))"
+            ),
             {"ids": json.dumps(ids)},
         )
     }
 
 
-def _sharing_initial(conn: sqlite3.Connection, initials: set[str]) -> set[str]:
+def _sharing_initial(conn: engine.Connection, initials: set[str]) -> set[str]:
     """Every event with a subject of one of these surname initials (the widening)."""
     events: set[str] = set()
     for table in ("entries", "judges"):

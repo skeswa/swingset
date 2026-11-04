@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import math
-import sqlite3
 import time
 from dataclasses import asdict
 from datetime import datetime
@@ -19,6 +18,7 @@ from typing import Any
 from swingset.admission.generations import begin_attempt, selected_snapshot
 from swingset.sources import get_page_kind
 from swingset.sources.base import ParseContext
+from swingset.state import engine
 
 from .db import Database
 from .work import WorkUnit
@@ -57,7 +57,7 @@ class MetadataBudget:
 
 
 def _rows(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     budget: MetadataBudget,
     sql: str,
     parameters: tuple[Any, ...],
@@ -65,14 +65,14 @@ def _rows(
     *,
     limit: int,
 ) -> list[dict[str, Any]]:
-    """Bound returned metadata, not SQLite's internal indexed query duration."""
+    """Bound returned metadata, not the server's internal indexed query duration."""
     budget.check()
-    size = "+".join(f"coalesce(length(CAST({name} AS BLOB)),0)" for name in columns)
+    size = "+".join(f"coalesce(octet_length({name}::text),0)" for name in columns)
     bound = min(METADATA_BYTES, budget.remaining)
     values = ",".join(f"CASE WHEN ({size})<={bound} THEN {name} END AS {name}" for name in columns)
     result = []
     cursor = conn.execute(
-        f"SELECT {values},({size}) AS metadata_bytes FROM ({sql}) LIMIT ?", (*parameters, limit)
+        f"SELECT {values},({size}) AS metadata_bytes FROM ({sql}) LIMIT %s", (*parameters, limit)
     )
     for row in cursor:
         if row["metadata_bytes"] > METADATA_BYTES:
@@ -84,15 +84,17 @@ def _rows(
 
 
 def _attempt(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     budget: MetadataBudget,
     unit: WorkUnit,
 ) -> tuple[str | None, str | None]:
     rows = _rows(
         conn,
         budget,
-        "SELECT outcome,work_token,input_fingerprint,retry_generation FROM work_attempts "
-        "WHERE stage=? AND unit_kind=? AND unit_id=? ORDER BY attempt_id DESC",
+        (
+            "SELECT outcome, work_token, input_fingerprint, retry_generation FROM work_attempts WHERE "
+            "stage = %s AND unit_kind = %s AND unit_id = %s ORDER BY attempt_id DESC NULLS LAST"
+        ),
         (unit.stage, unit.unit_kind, unit.unit_id),
         ("outcome", "work_token", "input_fingerprint", "retry_generation"),
         limit=1,
@@ -105,7 +107,7 @@ def _attempt(
     generations = _rows(
         conn,
         budget,
-        "SELECT retry_generation FROM work_generations WHERE stage=? AND unit_kind=? AND unit_id=?",
+        "SELECT retry_generation FROM work_generations WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
         (unit.stage, unit.unit_kind, unit.unit_id),
         ("retry_generation",),
         limit=1,
@@ -122,7 +124,7 @@ def _attempt(
 
 
 def _admission(
-    conn: sqlite3.Connection, budget: MetadataBudget, snapshot: dict[str, Any]
+    conn: engine.Connection, budget: MetadataBudget, snapshot: dict[str, Any]
 ) -> tuple[str, str | None]:
     page = get_page_kind(snapshot["parser"])
     context = ParseContext(
@@ -137,7 +139,7 @@ def _admission(
     _rows(
         conn,
         budget,
-        "SELECT accepted_generation_id FROM source_units WHERE unit_key IN (?,?)",
+        "SELECT accepted_generation_id FROM source_units WHERE unit_key IN (%s, %s)",
         (context.watch_id, f"{context.watch_id}/{context.snapshot_id}"),
         ("accepted_generation_id",),
         limit=2,
@@ -148,13 +150,17 @@ def _admission(
     rows = _rows(
         conn,
         budget,
-        "SELECT g.generation_id,g.state,g.recipe_json,g.manifest_json,g.work_token,g.previous_generation_id,"
-        "(SELECT d.state FROM admission_decisions d WHERE d.generation_id=g.generation_id ORDER BY d.decision_id DESC LIMIT 1) AS decision_state,"
-        "(SELECT d.policy_revision FROM admission_decisions d WHERE d.generation_id=g.generation_id ORDER BY d.decision_id DESC LIMIT 1) AS policy_revision "
-        "FROM source_generations g WHERE g.unit_key=? AND "
-        "CASE WHEN length(CAST(g.recipe_json AS BLOB))<=? AND json_valid(g.recipe_json) "
-        "THEN json_extract(g.recipe_json,'$.context.snapshot_id')=? ELSE 1 END "
-        "ORDER BY g.created_at DESC,g.generation_id DESC",
+        (
+            "SELECT g.generation_id, g.state, g.recipe_json, g.manifest_json, g.work_token, "
+            "g.previous_generation_id, (SELECT d.state FROM admission_decisions AS d WHERE "
+            "d.generation_id = g.generation_id ORDER BY d.decision_id DESC NULLS LAST LIMIT 1) AS "
+            "decision_state, (SELECT d.policy_revision FROM admission_decisions AS d WHERE "
+            "d.generation_id = g.generation_id ORDER BY d.decision_id DESC NULLS LAST LIMIT 1) AS "
+            "policy_revision FROM source_generations AS g WHERE g.unit_key = %s AND CASE WHEN "
+            "octet_length(g.recipe_json::text) <= %s AND PG_INPUT_IS_VALID(g.recipe_json, 'json') "
+            "THEN JSON_EXTRACT_PATH_TEXT(CAST(g.recipe_json AS JSON), 'context', 'snapshot_id') = %s "
+            "ELSE TRUE END ORDER BY g.created_at DESC NULLS LAST, g.generation_id DESC NULLS LAST"
+        ),
         (inputs.unit_key, METADATA_BYTES, context.snapshot_id),
         (
             "generation_id",
@@ -169,7 +175,7 @@ def _admission(
         limit=GENERATION_LIMIT + 1,
     )
     policy = conn.execute(
-        "SELECT policy_revision FROM admission_policies WHERE page_kind=?", (context.kind,)
+        "SELECT policy_revision FROM admission_policies WHERE page_kind = %s", (context.kind,)
     ).fetchone()
     original_token = None
     for row in rows[:GENERATION_LIMIT]:
@@ -205,7 +211,7 @@ def _admission(
     return "recover", original_token
 
 
-def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> str:
+def _recover(conn: engine.Connection, budget: MetadataBudget, rowid: int) -> str:
     columns = (
         "snapshot_id",
         "watch_id",
@@ -229,7 +235,15 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
     rows = _rows(
         conn,
         budget,
-        "SELECT s.*,w.source,w.parser,w.source_ref,w.kind AS watch_kind,w.url AS watch_url,w.archive_url AS watch_archive_url FROM snapshots s JOIN watches w USING(watch_id) WHERE s.rowid=?",
+        (
+            "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+            "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+            "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+            "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+            "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, w.source, "
+            "w.parser, w.source_ref, w.kind AS watch_kind, w.url AS watch_url, w.archive_url AS "
+            "watch_archive_url FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE s.rowid = %s"
+        ),
         (rowid,),
         columns,
         limit=1,
@@ -243,8 +257,9 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
         request(snapshot["source"], snapshot["method"], snapshot["url"], snapshot["form"])
     )
     if not conn.execute(
-        "SELECT 1 FROM source_event_member_watches m JOIN source_event_inventory i USING(enumeration_id) "
-        "WHERE m.watch_id=? AND m.request_id=? AND i.source=? LIMIT 1",
+        (
+            "SELECT 1 AS _value_0 FROM source_event_member_watches AS m JOIN source_event_inventory AS i USING (enumeration_id) WHERE m.watch_id = %s AND m.request_id = %s AND i.source = %s LIMIT 1"
+        ),
         (snapshot["watch_id"], identity, snapshot["source"]),
     ).fetchone():
         return "request_not_currently_declared"
@@ -252,9 +267,9 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
     selection_parameters: tuple[Any, ...]
     if snapshot["watch_archive_url"]:
         selection_sql = (
-            "SELECT snapshot_id FROM snapshots WHERE watch_id=? AND via='wayback' "
-            "AND body_sha256 IS NOT NULL AND (requested_archive_url=? OR archive_url=?) "
-            "ORDER BY fetched_at DESC,snapshot_id DESC"
+            "SELECT snapshot_id FROM snapshots WHERE watch_id = %s AND via = 'wayback' AND NOT "
+            "body_sha256 IS NULL AND (requested_archive_url = %s OR archive_url = %s) ORDER BY "
+            "fetched_at DESC NULLS LAST, snapshot_id DESC NULLS LAST"
         )
         selection_parameters = (
             snapshot["watch_id"],
@@ -263,8 +278,8 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
         )
     else:
         selection_sql = (
-            "SELECT snapshot_id FROM snapshots WHERE watch_id=? AND body_sha256 IS NOT NULL "
-            "ORDER BY COALESCE(observed_at,fetched_at) DESC,snapshot_id DESC"
+            "SELECT snapshot_id FROM snapshots WHERE watch_id = %s AND NOT body_sha256 IS NULL ORDER BY "
+            "COALESCE(observed_at, fetched_at) DESC NULLS LAST, snapshot_id DESC NULLS LAST"
         )
         selection_parameters = (snapshot["watch_id"],)
     _rows(conn, budget, selection_sql, selection_parameters, ("snapshot_id",), limit=1)
@@ -275,7 +290,7 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
     accepted = _rows(
         conn,
         budget,
-        "SELECT consumer,input_name,digest FROM accepted_inputs",
+        "SELECT consumer, input_name, digest FROM accepted_inputs",
         (),
         ("consumer", "input_name", "digest"),
         limit=257,
@@ -285,7 +300,12 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
     _rows(
         conn,
         budget,
-        "SELECT * FROM admission_policies WHERE page_kind=?",
+        (
+            "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+            "admission_policies.mode, admission_policies.policy_revision, "
+            "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+            "admission_policies.reviewed_at FROM admission_policies WHERE page_kind = %s"
+        ),
         (snapshot["parser"],),
         (
             "page_kind",
@@ -304,13 +324,17 @@ def _recover(conn: sqlite3.Connection, budget: MetadataBudget, rowid: int) -> st
         outcome, original_token = _admission(conn, budget, snapshot)
     if outcome != "recover":
         return str(outcome)
+    # This token participates in immutable source-generation identity. Retain
+    # a witnessed own-attempt/admission token, or the original fetch anchor;
+    # the current servicing/restore clock must never mint a replacement.
     enqueued_at = original_token or snapshot["fetched_at"]
     if not isinstance(enqueued_at, str) or datetime.fromisoformat(enqueued_at).tzinfo is None:
         raise Unassessed("queue_token_time_unknown")
     budget.check()
     inserted = conn.execute(
-        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES('parse','snapshot',?,?) "
-        "ON CONFLICT(stage,unit_kind,unit_id) DO NOTHING",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', 'snapshot', %s, %s) ON CONFLICT(stage, unit_kind, unit_id) DO NOTHING"
+        ),
         (snapshot["snapshot_id"], enqueued_at),
     ).rowcount
     return "enqueued" if inserted else "already_pending"
@@ -328,7 +352,7 @@ def reconcile(
     reopened. A failed snapshot requires an explicit retry newer than its
     latest own attempt; an ordinary failed snapshot remains excluded. Returned metadata shares a
     2 MiB budget (including reserved helper copies) and a cooperative deadline;
-    SQLite query execution itself is not preempted. Individual rows are limited
+    Server statements inherit the transaction write deadline. Individual rows are limited
     to 64 KiB, and accepted input inventory is limited to 256 rows / 64 KiB.
     """
     if type(limit) is not int or not 1 <= limit <= 100:
@@ -347,13 +371,13 @@ def reconcile(
         "pass_complete": False,
     }
     if not database.connection.execute(
-        "SELECT 1 FROM sqlite_master WHERE name='source_event_member_watches'"
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'source_event_member_watches' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
     ).fetchone():
         return summary
     summary["supported"] = True
     with database.transaction() as conn:
         row = conn.execute(
-            "SELECT CASE WHEN length(CAST(value AS BLOB))<=1024 THEN value END FROM meta WHERE key=?",
+            "SELECT CASE WHEN octet_length(value::text) <= 1024 THEN value END AS _value_0 FROM meta WHERE key = %s",
             (CURSOR,),
         ).fetchone()
         try:
@@ -373,19 +397,14 @@ def reconcile(
         if cursor["last"] >= cursor["high"]:
             cursor = {
                 "last": 0,
-                "high": conn.execute("SELECT coalesce(max(rowid),0) FROM snapshots").fetchone()[0],
+                "high": conn.execute(
+                    "SELECT COALESCE(MAX(rowid), 0) AS _value_0 FROM snapshots"
+                ).fetchone()[0],
             }
         rows = conn.execute(
-            "SELECT s.rowid FROM snapshots s WHERE s.rowid>? AND s.rowid<=? "
-            "AND (s.parse_status IS NULL OR s.parse_status='pending' OR (s.parse_status='failed' "
-            "AND EXISTS(SELECT 1 FROM work_generations g WHERE g.stage='parse' "
-            "AND g.unit_kind='snapshot' AND g.unit_id=s.snapshot_id AND g.retry_generation>"
-            "(SELECT a.retry_generation FROM work_attempts a WHERE a.stage='parse' "
-            "AND a.unit_kind='snapshot' AND a.unit_id=s.snapshot_id ORDER BY a.attempt_id DESC LIMIT 1)))) "
-            "AND s.classification IN ('Ok','NotModified') AND s.body_sha256 IS NOT NULL "
-            "AND EXISTS(SELECT 1 FROM source_event_member_watches m JOIN source_event_inventory i USING(enumeration_id) WHERE m.watch_id=s.watch_id) "
-            "AND NOT EXISTS(SELECT 1 FROM pending_work p WHERE p.stage='parse' AND p.unit_kind='snapshot' AND p.unit_id=s.snapshot_id) "
-            "ORDER BY s.rowid LIMIT ?",
+            (
+                "SELECT s.rowid FROM snapshots AS s WHERE s.rowid > %s AND s.rowid <= %s AND (s.parse_status IS NULL OR s.parse_status = 'pending' OR (s.parse_status = 'failed' AND EXISTS(SELECT 1 AS _value_0 FROM work_generations AS g WHERE g.stage = 'parse' AND g.unit_kind = 'snapshot' AND g.unit_id = s.snapshot_id AND g.retry_generation > (SELECT a.retry_generation FROM work_attempts AS a WHERE a.stage = 'parse' AND a.unit_kind = 'snapshot' AND a.unit_id = s.snapshot_id ORDER BY a.attempt_id DESC NULLS LAST LIMIT 1)))) AND s.classification IN ('Ok', 'NotModified') AND NOT s.body_sha256 IS NULL AND EXISTS(SELECT 1 AS _value_0 FROM source_event_member_watches AS m JOIN source_event_inventory AS i USING (enumeration_id) WHERE m.watch_id = s.watch_id) AND NOT EXISTS(SELECT 1 AS _value_0 FROM pending_work AS p WHERE p.stage = 'parse' AND p.unit_kind = 'snapshot' AND p.unit_id = s.snapshot_id) ORDER BY s.rowid NULLS FIRST LIMIT %s"
+            ),
             (cursor["last"], cursor["high"], limit + 1),
         ).fetchall()
         exhausted = False
@@ -422,7 +441,9 @@ def reconcile(
         if summary["pass_complete"]:
             cursor["last"] = cursor["high"]
         conn.execute(
-            "INSERT INTO meta VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (
+                "INSERT INTO meta (key, value) VALUES (%s, %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+            ),
             (CURSOR, json.dumps(cursor, sort_keys=True)),
         )
     return summary

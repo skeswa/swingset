@@ -1,13 +1,14 @@
 """The event-site link tool reads an event's site politely and drafts WDR rows (D-0256)."""
 
 import json
-import sqlite3
 from datetime import date
 
 import httpx
+from helpers.state_digest import state_digest
 
 from journal.tools.collection import event_site_links as tool
 from swingset.fetch.client import USER_AGENT
+from swingset.state import engine
 from swingset.state.db import open_database
 
 UUID = "20774cdb-8354-11f0-9a29-0aa72bbce9ea"
@@ -16,10 +17,13 @@ NOW = "2026-10-15T00:00:00+00:00"
 
 def _event(conn, event_id, website, end, *, series="wsdc-273", held="held"):
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,"
-        "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
-        "date_precision,held,coverage_tier,history_source) VALUES (?,?,?,2026,?,?,?,'registry',"
-        "'[\"wsdc_calendar\"]','wsdc_calendar','s','7',?,?,'run',?,'day',?,'index_only','[\"calendar\"]')",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, website, "
+            "wsdc_status, sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+            "run_id, event_month, date_precision, held, coverage_tier, history_source) VALUES (%s, %s, "
+            "%s, 2026, %s, %s, %s, 'registry', '[\"wsdc_calendar\"]', 'wsdc_calendar', 's', '7', %s, %s, "
+            "'run', %s, 'day', %s, 'index_only', '[\"calendar\"]')"
+        ),
         (event_id, series, event_id, end, end, website, NOW, NOW, end[:7], held),
     )
 
@@ -27,21 +31,23 @@ def _event(conn, event_id, website, end, *, series="wsdc-273", held="held"):
 def _state(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run',?,0)", (NOW,))
+        conn.execute("INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', %s, 0)", (NOW,))
         _event(conn, "2026-02-charlotte", "https://www.charlotte.test/", "2026-02-02")
         _event(conn, "2026-03-covered", "https://covered.test/", "2026-03-08")
         _event(conn, "2026-04-listed", "https://listed.test/", "2026-04-12", held="listed")
         _event(conn, "2026-05-other", "https://other.test/", "2026-05-18", series="slug-other")
         _event(conn, "2026-06-results", "https://results.test/", "2026-06-28")
         conn.execute(
-            "INSERT INTO contests(contest_id,event_id,name_raw,division,age_division,contest_type,"
-            "partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,"
-            "source_contest_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-            "VALUES ('c','2026-06-results','Novice','novice','open','jnj','random','wcs',1,'[]',"
-            "'parsed','c','eepro','s','1',?,?,'run')",
+            (
+                "INSERT INTO contests (contest_id, event_id, name_raw, division, age_division, contest_type, "
+                "partner_mode, dance_style, wsdc_points_eligible, combined_from, parse_status, "
+                "source_contest_ref, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                "run_id) VALUES ('c', '2026-06-results', 'Novice', 'novice', 'open', 'jnj', 'random', 'wcs', "
+                "1, '[]', 'parsed', 'c', 'eepro', 's', '1', %s, %s, 'run')"
+            ),
             (NOW, NOW),
         )
-    return tmp_path / "state.sqlite"
+    return tmp_path
 
 
 def test_selection_is_held_wsdc_events_without_results_or_an_override(tmp_path):
@@ -169,7 +175,8 @@ def test_a_blocked_host_stops_and_the_budget_is_kept():
 
 def test_list_mode_fetches_nothing_and_leaves_the_state_unchanged(tmp_path, capsys):
     state = _state(tmp_path)
-    before = state.read_bytes()
+    with engine.connect(engine.resolve_dsn(state), read_only=True) as conn:
+        before = state_digest(conn)
 
     def refuse(request: httpx.Request) -> httpx.Response:
         raise AssertionError("no request in --list mode")
@@ -180,5 +187,21 @@ def test_list_mode_fetches_nothing_and_leaves_the_state_unchanged(tmp_path, caps
         "2026-02-charlotte",
         "2026-03-covered",
     ]
-    assert state.read_bytes() == before
-    assert not sqlite3.connect(state).execute("SELECT 1 FROM runs WHERE run_id!='run'").fetchone()
+    with engine.connect(engine.resolve_dsn(state), read_only=True) as conn:
+        assert state_digest(conn) == before
+        assert not conn.execute("SELECT 1 FROM runs WHERE run_id <> 'run'").fetchone()
+
+
+def test_development_state_refuses_live_site_requests_before_http(tmp_path, monkeypatch):
+    import pytest
+
+    from swingset.state.environment import EnvironmentRefused
+
+    state = _state(tmp_path)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("development state attempted live website I/O")
+
+    monkeypatch.setattr(tool, "Fetcher", forbidden)
+    with pytest.raises(EnvironmentRefused, match="development database"):
+        tool.main(["--state", str(state)])

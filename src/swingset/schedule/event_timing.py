@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import math
-import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -12,6 +11,7 @@ from uuid import uuid4
 
 from swingset.clock import Clock
 from swingset.fetch.eligibility import Assessment
+from swingset.state import engine
 from swingset.state.db import Database
 
 
@@ -46,7 +46,7 @@ def sample(database: Database, clock: Clock, token: str) -> Boundary:
 
     # Controls bypass the ordinary writer lock. Sample their commit boundary
     # under the same short lifecycle lock, never across network or sleep.
-    with control_lock(database.state_dir):
+    with control_lock(database.state_dir, connection=database.connection):
         wall, elapsed = clock.now(), clock.monotonic()
         parent = database.state_dir.stat()
         marker = database.state_dir / "operator-hold"
@@ -79,7 +79,22 @@ class Recorder:
         self.assessment: Assessment | None = None
         self.suspended_at: Boundary | None = None
         previous = database.connection.execute(
-            "SELECT * FROM event_timing WHERE source=? AND source_ref=?", (source, source_ref)
+            (
+                "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+                "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+                "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+                "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+                "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+                "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+                "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+                "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+                "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+                "event_timing.operation_origin, event_timing.last_progress_at, "
+                "event_timing.last_service_action, event_timing.last_service_at, "
+                "event_timing.unresolved_success, event_timing.control_revision, "
+                "event_timing.marker_mtime_ns FROM event_timing WHERE source = %s AND source_ref = %s"
+            ),
+            (source, source_ref),
         ).fetchone()
         if (
             previous is not None
@@ -122,7 +137,7 @@ class Recorder:
                 last_service_at=None,
                 unresolved_success=0,
                 operation_origin=database.connection.execute(
-                    "SELECT coalesce(max(operation_id),0) FROM event_stage_operations"
+                    "SELECT COALESCE(MAX(operation_id), 0) AS _value_0 FROM event_stage_operations"
                 ).fetchone()[0],
             )
             if previous is not None:
@@ -161,9 +176,8 @@ class Recorder:
                 "INSERT INTO event_timing("
                 + ",".join(columns)
                 + ") VALUES("
-                + ",".join("?" for _ in columns)
-                + ") "
-                "ON CONFLICT(source,source_ref) DO UPDATE SET "
+                + ",".join("%s" for _ in columns)
+                + " ) ON CONFLICT(source,source_ref) DO UPDATE SET "
                 + ",".join(
                     key + "=excluded." + key
                     for key in columns
@@ -172,8 +186,9 @@ class Recorder:
                 tuple(row[key] for key in columns),
             )
             conn.execute(
-                "INSERT INTO event_timing_history VALUES(?,?,?,?,?) ON CONFLICT(episode_id,run_id) "
-                "DO UPDATE SET summary_json=excluded.summary_json",
+                (
+                    "INSERT INTO event_timing_history (episode_id, run_id, source, source_ref, summary_json) VALUES (%s, %s, %s, %s, %s) ON CONFLICT(episode_id, run_id) DO UPDATE SET summary_json = excluded.summary_json"
+                ),
                 (row["episode_id"], row["run_id"], row["source"], row["source_ref"], encoded(row)),
             )
 
@@ -334,14 +349,32 @@ def alarms(row: dict[str, Any], *, now: datetime, operator_hold: bool) -> dict[s
 
 
 def report(
-    conn: sqlite3.Connection, *, source: str, source_ref: str, now: datetime, operator_hold: bool
+    conn: engine.Connection, *, source: str, source_ref: str, now: datetime, operator_hold: bool
 ) -> dict[str, Any]:
     supported = (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='event_timing'").fetchone() is not None
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'event_timing' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
+        is not None
     )
     row = (
         conn.execute(
-            "SELECT * FROM event_timing WHERE source=? AND source_ref=?", (source, source_ref)
+            (
+                "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+                "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+                "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+                "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+                "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+                "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+                "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+                "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+                "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+                "event_timing.operation_origin, event_timing.last_progress_at, "
+                "event_timing.last_service_action, event_timing.last_service_at, "
+                "event_timing.unresolved_success, event_timing.control_revision, "
+                "event_timing.marker_mtime_ns FROM event_timing WHERE source = %s AND source_ref = %s"
+            ),
+            (source, source_ref),
         ).fetchone()
         if supported
         else None

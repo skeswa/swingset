@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -11,32 +10,35 @@ from typing import Any
 from swingset.clock import Clock
 from swingset.config import Config
 from swingset.sources.base import WatchSpec
+from swingset.state import engine
 
 MAX_WATCHES = 256
 MAX_PENDING_PARSE = 64
 FORMAT = "archive-offer-timing-v1"
 
 
-def epoch(conn: sqlite3.Connection) -> int | None:
+def epoch(conn: engine.Connection) -> int | None:
     if (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='history_dispatch_fence'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'history_dispatch_fence' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is None
     ):
         return None
-    row = conn.execute("SELECT revision FROM history_dispatch_fence WHERE singleton=1").fetchone()
+    row = conn.execute("SELECT revision FROM history_dispatch_fence WHERE singleton = 1").fetchone()
     return int(row[0]) if row else None
 
 
-def retry_boundary(conn: sqlite3.Connection, now: datetime, deadline: datetime) -> datetime | None:
+def retry_boundary(conn: engine.Connection, now: datetime, deadline: datetime) -> datetime | None:
     """Inspect at most 64 pending parse units, never their bodies or attempts' JSON.
 
     Any latest retry can conservatively end an offer proof. This includes unrelated
     units so a newly relevant parent cannot hide behind a narrower guessed domain.
     """
     rows = conn.execute(
-        "SELECT CASE WHEN length(unit_kind)<=64 THEN unit_kind END,"
-        "CASE WHEN length(unit_id)<=512 THEN unit_id END FROM pending_work "
-        "WHERE stage='parse' ORDER BY unit_kind,unit_id LIMIT ?",
+        (
+            "SELECT CASE WHEN LENGTH(unit_kind) <= 64 THEN unit_kind END AS _value_0, CASE WHEN LENGTH(unit_id) <= 512 THEN unit_id END AS _value_1 FROM pending_work WHERE stage = 'parse' ORDER BY unit_kind NULLS FIRST, unit_id NULLS FIRST LIMIT %s"
+        ),
         (MAX_PENDING_PARSE + 1,),
     ).fetchall()
     if len(rows) > MAX_PENDING_PARSE:
@@ -46,9 +48,9 @@ def retry_boundary(conn: sqlite3.Connection, now: datetime, deadline: datetime) 
         if kind is None or identifier is None:
             return None
         attempt = conn.execute(
-            "SELECT outcome,CASE WHEN length(retry_at)<=64 THEN retry_at END,retry_at IS NOT NULL "
-            "FROM work_attempts WHERE stage='parse' AND unit_kind=? AND unit_id=? "
-            "ORDER BY attempt_id DESC LIMIT 1",
+            (
+                "SELECT outcome, CASE WHEN LENGTH(retry_at) <= 64 THEN retry_at END AS _value_1, CAST(NOT retry_at IS NULL AS INT) AS _value_2 FROM work_attempts WHERE stage = 'parse' AND unit_kind = %s AND unit_id = %s ORDER BY attempt_id DESC NULLS LAST LIMIT 1"
+            ),
             (kind, identifier),
         ).fetchone()
         if attempt is None or attempt[0] not in {"transient", "interrupted"}:
@@ -68,7 +70,7 @@ def retry_boundary(conn: sqlite3.Connection, now: datetime, deadline: datetime) 
 
 @dataclass(frozen=True)
 class ArchiveOfferProof:
-    connection: sqlite3.Connection = field(repr=False, compare=False)
+    connection: engine.Connection = field(repr=False, compare=False)
     spec: WatchSpec
     run_id: str
     epoch: int
@@ -78,7 +80,7 @@ class ArchiveOfferProof:
     history_start: str
 
     def current(
-        self, conn: sqlite3.Connection, config: Config, now: datetime, run_id: str | None
+        self, conn: engine.Connection, config: Config, now: datetime, run_id: str | None
     ) -> bool:
         return (
             conn is self.connection
@@ -110,7 +112,7 @@ class OfferTiming:
 
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         config: Config,
         clock: Clock,
         *,
@@ -124,7 +126,7 @@ class OfferTiming:
         self.started: tuple[int, int, datetime, datetime, str] | None = None
 
     def begin(
-        self, *, connection: sqlite3.Connection, config: Config, clock: Clock, run_id: str | None
+        self, *, connection: engine.Connection, config: Config, clock: Clock, run_id: str | None
     ) -> None:
         self.started = None
         if (

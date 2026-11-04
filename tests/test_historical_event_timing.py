@@ -6,6 +6,7 @@ from datetime import timedelta
 import httpx
 import pytest
 from materialized_fixture import materialize_seeded_outputs
+from postgres_statements import contents
 from test_event_enumerations import event as event
 from test_event_timing import prepared
 from test_platform_backfill import review_contract
@@ -61,19 +62,26 @@ def historical(event):
         projected_at=f.clock.now().isoformat(),
     )
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:test','2019-01-test','explicit',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:test', '2019-01-test', 'explicit', 1)"
     )
     f.conn.executemany(
-        "INSERT OR REPLACE INTO meta VALUES (?,'true')", [("h7_deployed",), ("h10_deployed",)]
+        "INSERT INTO meta (key,value) VALUES(%s,'true') ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [("h7_deployed",), ("h10_deployed",)],
     )
     review_contract(f, "eepro.round")
     materialize_seeded_outputs(f.db, now=f.clock.now(), run_id=f.run)
     accept_year(f.conn, 2019, accepted_by="offline-owner", accepted_at=f.clock.now().isoformat())
     materialize_seeded_outputs(f.db, now=f.clock.now(), run_id=f.run)
-    f.watch = f.conn.execute("SELECT watch_id FROM watches WHERE url LIKE '%one.htm'").fetchone()[0]
+    f.watch = f.conn.execute("SELECT watch_id FROM watches WHERE url ILIKE '%one.htm'").fetchone()[
+        0
+    ]
     f.capture = Capture(f.parent.url + "one.htm", "20190501000000", "retained", "text/html", 100)
     f.conn.execute(
-        "INSERT INTO archive_captures VALUES ('eepro',?,?,?,200,?,?,?,'offline')",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES ('eepro', %s, %s, %s, 200, %s, %s, %s, 'offline')"
+        ),
         (
             f.capture.url,
             f.capture.timestamp,
@@ -85,7 +93,10 @@ def historical(event):
     )
     body = f.archive.store_body(b"User-agent: *\nAllow: /\n")
     f.conn.execute(
-        "INSERT INTO hosts(host,robots_sha256,robots_fetched_at,robots_status) VALUES ('web.archive.org',?,?,200)",
+        (
+            "INSERT INTO hosts (host, robots_sha256, robots_fetched_at, robots_status) VALUES "
+            "('web.archive.org', %s, %s, 200)"
+        ),
         (body, f.clock.now().isoformat()),
     )
     f.conn.execute("DELETE FROM pending_work")
@@ -130,14 +141,16 @@ def assessment(f, value=None, *, run_id=None):
 
 def test_real_offer_produces_immutable_read_only_proof_without_scheduling(historical):
     f = historical
-    before = f.conn.total_changes
+    before = contents(f.conn)
     offered, proofs = proof(f)
     assert len(proofs) == 1 and proofs[0].spec in offered
     assert proofs[0].spec.archive_url == f.capture.archive_url
     assert assessment(f, proofs[0]).state == "eligible"
-    assert f.conn.total_changes == before
+    assert contents(f.conn) == before
     assert (
-        f.conn.execute("SELECT archive_url FROM watches WHERE watch_id=?", (f.watch,)).fetchone()[0]
+        f.conn.execute(
+            "SELECT archive_url FROM watches WHERE watch_id = %s", (f.watch,)
+        ).fetchone()[0]
         is None
     )
     assert not f.conn.execute("SELECT 1 FROM host_budget").fetchone()
@@ -164,7 +177,21 @@ def test_real_observer_consumes_dispatch_handoff_and_retains_unknown_on_change(h
         checkpoint()
         resume()
         assert observer.subjects[0]["recorder"].row["state"] == "unknown"
-    row = f.conn.execute("SELECT * FROM event_timing").fetchone()
+    row = f.conn.execute(
+        "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+        "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+        "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+        "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+        "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+        "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+        "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+        "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+        "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+        "event_timing.operation_origin, event_timing.last_progress_at, "
+        "event_timing.last_service_action, event_timing.last_service_at, "
+        "event_timing.unresolved_success, event_timing.control_revision, "
+        "event_timing.marker_mtime_ns FROM event_timing"
+    ).fetchone()
     assert row["eligible_seconds"] == 7
     assert row["unknown_seconds"] == 6
 
@@ -177,13 +204,15 @@ def test_dispatcher_withholds_proof_when_real_offer_gate_closes(historical, chan
     if change == "year":
         f.conn.execute("DELETE FROM history_acceptance")
     elif change == "kind":
-        f.conn.execute("UPDATE admission_policies SET mode='shadow' WHERE page_kind='eepro.round'")
+        f.conn.execute(
+            "UPDATE admission_policies SET mode = 'shadow' WHERE page_kind = 'eepro.round'"
+        )
     elif change == "source":
         f.config = replace(f.config, sources={"eepro": SourceConfig(False)})
         f.client.config = f.client.gate.config = f.config
     elif change == "retry":
         f.conn.execute(
-            "UPDATE watches SET paused_until=? WHERE watch_id=?",
+            "UPDATE watches SET paused_until = %s WHERE watch_id = %s",
             ((f.clock.now() + timedelta(seconds=30)).isoformat(), f.watch),
         )
     else:
@@ -197,20 +226,25 @@ def test_dispatcher_withholds_proof_when_real_offer_gate_closes(historical, chan
     "sql",
     [
         "DELETE FROM archive_captures",
-        "UPDATE archive_captures SET digest='changed'",
-        "UPDATE source_units SET accepted_generation_id=NULL",
-        "UPDATE source_generations SET state='revoked'",
-        "UPDATE snapshots SET parse_status='failed'",
+        "UPDATE archive_captures SET digest = 'changed'",
+        "UPDATE source_units SET accepted_generation_id = NULL",
+        "UPDATE source_generations SET state = 'revoked'",
+        "UPDATE snapshots SET parse_status = 'failed'",
         "DELETE FROM admission_reviews",
-        "UPDATE events SET end_date='2019-01-04'",
-        "INSERT INTO findings(finding_id,kind,owner_kind,owner_id,subject_kind,subject_id,severity,summary,evidence_json,opened_at,run_id) VALUES ('new-year','history','history_year','2019','year','2019','warning','new finding','{}','2026-01-01','fixture')",
+        "UPDATE events SET end_date = '2019-01-04'",
+        (
+            "INSERT INTO findings (finding_id, kind, owner_kind, owner_id, subject_kind, subject_id, "
+            "severity, summary, evidence_json, opened_at, run_id) VALUES ('new-year', 'history', "
+            "'history_year', '2019', 'year', '2019', 'warning', 'new finding', '{}', '2026-01-01', "
+            "'fixture')"
+        ),
     ],
 )
 def test_semantic_dependency_changes_cannot_reuse_positive_proof(historical, sql):
     f = historical
     _, values = proof(f)
     before = epoch(f.conn)
-    if "INSERT INTO findings" in sql:
+    if sql.lstrip().startswith("INSERT INTO findings"):
         sql = sql.replace("'fixture'", "'" + f.run + "'")
     f.conn.execute(sql)
     assert epoch(f.conn) != before
@@ -221,14 +255,14 @@ def test_paid_budget_is_reassessed_without_refunding_or_reissuing(historical):
     f = historical
     _, values = proof(f)
     f.conn.execute(
-        "INSERT INTO host_budget VALUES ('web.archive.org',?,200,99)",
+        "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('web.archive.org', %s, 200, 99)",
         (f.clock.now().date().isoformat(),),
     )
-    before = f.conn.total_changes
+    before = contents(f.conn)
     result = assessment(f, values[0])
     assert result.state == "blocked" and result.reason == "request budget"
-    assert f.conn.total_changes == before
-    assert tuple(f.conn.execute("SELECT requests,bytes FROM host_budget").fetchone()) == (200, 99)
+    assert contents(f.conn) == before
+    assert tuple(f.conn.execute("SELECT requests, bytes FROM host_budget").fetchone()) == (200, 99)
 
 
 def test_operator_hold_stops_observed_archive_waiting(historical):
@@ -244,7 +278,21 @@ def test_operator_hold_stops_observed_archive_waiting(historical):
         (f.db.state_dir / "operator-hold").write_text("offline hold")
         resume()
         f.clock.sleep(9)
-    row = f.conn.execute("SELECT * FROM event_timing").fetchone()
+    row = f.conn.execute(
+        "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+        "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+        "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+        "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+        "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+        "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+        "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+        "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+        "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+        "event_timing.operation_origin, event_timing.last_progress_at, "
+        "event_timing.last_service_action, event_timing.last_service_at, "
+        "event_timing.unresolved_success, event_timing.control_revision, "
+        "event_timing.marker_mtime_ns FROM event_timing"
+    ).fetchone()
     assert row["eligible_seconds"] == 4 and row["blocked_seconds"] == 9
     assert not f.conn.execute("SELECT 1 FROM host_budget").fetchone()
 
@@ -252,7 +300,10 @@ def test_operator_hold_stops_observed_archive_waiting(historical):
 def parent_retry(f, seconds=5):
     capture = Capture(f.parent.url, "20190401000000", "failed-parent", "text/html", 10)
     f.conn.execute(
-        "INSERT INTO archive_captures VALUES ('eepro',?,?,?,200,?,?,?,'offline')",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES ('eepro', %s, %s, %s, 200, %s, %s, %s, 'offline')"
+        ),
         (
             capture.url,
             capture.timestamp,
@@ -264,7 +315,10 @@ def parent_retry(f, seconds=5):
     )
     ctx = f.corpus.snapshot("retry-parent", b"unparseable", spec=f.parent, via="wayback")
     f.conn.execute(
-        "UPDATE snapshots SET archive_url=?,requested_archive_url=?,parse_status='failed' WHERE snapshot_id=?",
+        (
+            "UPDATE snapshots SET archive_url = %s, requested_archive_url = %s, parse_status = 'failed' "
+            "WHERE snapshot_id = %s"
+        ),
         (capture.archive_url, capture.archive_url, ctx.snapshot_id),
     )
     attempt = begin_attempt(
@@ -288,9 +342,9 @@ def test_real_parent_retry_expires_offer_without_database_write(historical):
     assert len(values) == 1
     assert values[0].until == f.clock.now() + timedelta(seconds=5)
     assert assessment(f, values[0]).state == "eligible"
-    before_epoch, changes = epoch(f.conn), f.conn.total_changes
+    before_epoch, changes = epoch(f.conn), contents(f.conn)
     f.clock.sleep(5)
-    assert epoch(f.conn) == before_epoch and f.conn.total_changes == changes
+    assert epoch(f.conn) == before_epoch and contents(f.conn) == changes
     assert assessment(f, values[0]).reason == "historical_dispatch_proof_stale"
     assert not proof(f)[1]  # Earlier parent capture now waits for interpretation.
 
@@ -300,7 +354,8 @@ def test_pending_population_and_invalid_retry_times_leave_proof_unknown(historic
     attempt = parent_retry(f)
     offered, _ = proof(f)
     f.conn.execute(
-        "UPDATE work_attempts SET retry_at='not-a-time' WHERE attempt_id=?", (attempt.attempt_id,)
+        "UPDATE work_attempts SET retry_at = 'not-a-time' WHERE attempt_id = %s",
+        (attempt.attempt_id,),
     )
     collected = []
     timing = OfferTiming(
@@ -370,11 +425,27 @@ def test_closed_archive_lower_bound_survives_real_failed_dispatch_and_reverifica
             target_watch_id=f.watch,
         )
         assert result.result is not None and result.result.classification.outcome == "ServerError"
-    before = dict(f.conn.execute("SELECT * FROM event_timing").fetchone())
+    before = dict(
+        f.conn.execute(
+            "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+            "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+            "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+            "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+            "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+            "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+            "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+            "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+            "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+            "event_timing.operation_origin, event_timing.last_progress_at, "
+            "event_timing.last_service_action, event_timing.last_service_at, "
+            "event_timing.unresolved_success, event_timing.control_revision, "
+            "event_timing.marker_mtime_ns FROM event_timing"
+        ).fetchone()
+    )
     assert before["since_progress_seconds"] == 12 and before["last_progress_at"] is None
     f.clock.sleep(1000)
     f.conn.execute(
-        "UPDATE watches SET next_check_at=?,paused_until=NULL WHERE watch_id=?",
+        "UPDATE watches SET next_check_at = %s, paused_until = NULL WHERE watch_id = %s",
         (f.clock.now().isoformat(), f.watch),
     )
     observer = Observer(
@@ -387,7 +458,21 @@ def test_closed_archive_lower_bound_survives_real_failed_dispatch_and_reverifica
         assert rec.row["since_progress_seconds"] == 12
         assert rec.row["state"] == "eligible"
         f.clock.sleep(4)
-    after = f.conn.execute("SELECT * FROM event_timing").fetchone()
+    after = f.conn.execute(
+        "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+        "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+        "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+        "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+        "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+        "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+        "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+        "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+        "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+        "event_timing.operation_origin, event_timing.last_progress_at, "
+        "event_timing.last_service_action, event_timing.last_service_at, "
+        "event_timing.unresolved_success, event_timing.control_revision, "
+        "event_timing.marker_mtime_ns FROM event_timing"
+    ).fetchone()
     assert after["since_progress_seconds"] == 16 and after["last_progress_at"] is None
 
 
@@ -401,7 +486,21 @@ def test_observer_caps_real_archive_interval_at_parse_retry_boundary(historical)
     ):
         offers(f.db, f.config, f.clock, run_id=f.run, timing=archive_offers())
         f.clock.sleep(8)
-    row = f.conn.execute("SELECT * FROM event_timing").fetchone()
+    row = f.conn.execute(
+        "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+        "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+        "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+        "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+        "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+        "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+        "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+        "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+        "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+        "event_timing.operation_origin, event_timing.last_progress_at, "
+        "event_timing.last_service_action, event_timing.last_service_at, "
+        "event_timing.unresolved_success, event_timing.control_revision, "
+        "event_timing.marker_mtime_ns FROM event_timing"
+    ).fetchone()
     assert row["eligible_seconds"] == 5 and row["unknown_seconds"] == 3
 
 
@@ -448,7 +547,6 @@ def test_changed_fence_between_assessment_and_open_cannot_credit_archive_time(
 
 
 def test_samples_do_not_repeat_archive_plan_parent_or_year_inventory_reads(historical):
-    import sqlite3
 
     f = historical
     observer = Observer(
@@ -466,33 +564,27 @@ def test_samples_do_not_repeat_archive_plan_parent_or_year_inventory_reads(histo
             "source_units",
         }
 
-        def authorize(action, table, column, database, origin):
-            return (
-                sqlite3.SQLITE_DENY
-                if action == sqlite3.SQLITE_READ and table in forbidden
-                else sqlite3.SQLITE_OK
-            )
+        def observe_statement(statement, parameters):
+            text = statement if isinstance(statement, str) else statement.as_string(f.conn)
+            if text.lstrip().upper().startswith(("SELECT", "WITH")):
+                assert f.conn.planned_relations(statement, parameters).isdisjoint(forbidden)
 
-        f.conn.set_authorizer(authorize)
-        try:
+        with f.conn.observing(observe_statement):
             checkpoint()
             resume()
             assert observer.subjects[0]["recorder"].row["state"] == "eligible"
             f.clock.sleep(3)
             checkpoint()
-        finally:
-            f.conn.set_authorizer(None)
+
     assert f.conn.execute("SELECT eligible_seconds FROM event_timing").fetchone()[0] == 3
 
 
 def test_proof_is_process_local_and_population_limits_fail_closed(historical):
-    import sqlite3
+    from swingset.state import engine
 
     f = historical
     offered, values = proof(f)
-    with sqlite3.connect(
-        (f.db.state_dir / "state.sqlite").as_uri() + "?mode=ro", uri=True
-    ) as reader:
+    with engine.connect(engine.resolve_dsn(f.db.state_dir), read_only=True) as reader:
         assert not values[0].current(reader, f.config, f.clock.now(), f.run)
     collected = []
     timing = OfferTiming(

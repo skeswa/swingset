@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -33,6 +32,7 @@ from swingset.history.event_site_intake import (
 )
 from swingset.history.event_sites import MAX_RECEIPTS, Site, query_url, validate_query
 from swingset.schedule.fairness import WatchChoice, servicing
+from swingset.state import engine
 from swingset.state.controls import ActionScope, ControlPaused, operation
 
 
@@ -94,7 +94,7 @@ def _intent(client: FetchClient, recipe: Recipe) -> tuple[str | None, bool]:
         return None, False
     identifier = max(intents)[1]
     row = client.connection.execute(
-        "SELECT completed_at FROM archive_queries WHERE query_id=? AND source='event_sites'",
+        "SELECT completed_at FROM archive_queries WHERE query_id = %s AND source = 'event_sites'",
         (identifier,),
     ).fetchone()
     complete = row is not None and row[0] is not None
@@ -159,7 +159,7 @@ def execute(
     )
     active_page: str = "probe"
 
-    def gate(conn: sqlite3.Connection, url: str) -> str | None:
+    def gate(conn: engine.Connection, url: str) -> str | None:
         try:
             if not client.config.enabled("event_sites"):
                 return "event_sites disabled"
@@ -221,7 +221,12 @@ def execute(
         raise ValueError(
             "event-site queries require the Archive ten-second floor and <=200 daily requests"
         )
-    if client.connection.execute("SELECT 1 FROM runs WHERE run_id=?", (run_id,)).fetchone() is None:
+    if (
+        client.connection.execute(
+            "SELECT 1 AS _value_0 FROM runs WHERE run_id = %s", (run_id,)
+        ).fetchone()
+        is None
+    ):
         raise ValueError("query execution needs an existing coordinator run")
     if reason := context.check(
         client.connection, query_url(site, year, mime, page=None), client.clock.now()

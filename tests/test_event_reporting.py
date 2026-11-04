@@ -18,14 +18,15 @@ def test_doctor_event_drilldown_keeps_unknowns_and_does_not_mutate(tmp_path, mon
     with open_database(tmp_path) as database:
         conn = database.connection
         conn.executemany(
-            "INSERT INTO source_event_inventory "
-            "(source,source_ref,enumeration_id,first_known_at,bootstrap_basis) "
-            "VALUES (?,?,NULL,NULL,'legacy_watch')",
+            (
+                "INSERT INTO source_event_inventory (source, source_ref, enumeration_id, first_known_at, "
+                "bootstrap_basis) VALUES (%s, %s, NULL, NULL, 'legacy_watch')"
+            ),
             [("scoringdance", "event:1"), ("scoringdance", "event:2")],
         )
-        before = list(conn.iterdump())
+        before = conn.total_changes
         # A reporting connection must not wait for or mutate this writer.
-        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
         result = cli.doctor(
             argparse.Namespace(
                 state=tmp_path,
@@ -34,7 +35,7 @@ def test_doctor_event_drilldown_keeps_unknowns_and_does_not_mutate(tmp_path, mon
                 source_event="event:1",
             )
         )
-        assert list(conn.iterdump()) == before
+        assert conn.total_changes == before
         conn.rollback()
     inventory = result["event_inventory"]
     assert inventory["supported"]
@@ -65,7 +66,8 @@ def test_catalog_does_not_scan_artifacts_or_claim_local_stage_totals(tmp_path, m
     monkeypatch.setattr(Archive, "read_extract", forbidden)
     with open_database(tmp_path) as database:
         database.connection.execute(
-            "INSERT INTO source_event_inventory VALUES ('example','event',NULL,NULL,'legacy_watch')"
+            "INSERT INTO source_event_inventory (source, source_ref, enumeration_id, first_known_at, "
+            "bootstrap_basis) VALUES ('example', 'event', NULL, NULL, 'legacy_watch')"
         )
         result = cli.doctor(argparse.Namespace(state=tmp_path, config=Path("config")))
     inventory = result["event_inventory"]
@@ -75,14 +77,19 @@ def test_catalog_does_not_scan_artifacts_or_claim_local_stage_totals(tmp_path, m
 
 
 def test_old_schema_reporting_is_explicitly_unavailable(tmp_path):
-    import sqlite3
-
-    with sqlite3.connect(":memory:") as conn:
-        conn.execute("BEGIN")
+    with open_database(tmp_path, lock=False, read_only=True) as db:
+        conn = db.connection
+        conn.execute("SET search_path=pg_catalog,pg_temp")
+        conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
         result = report(conn, Archive(tmp_path), now=NOW)
         assert not result["supported"]
         assert result["reason"] == "event_inventory_schema_unavailable"
-        assert conn.execute("SELECT name FROM sqlite_master").fetchall() == []
+        assert (
+            conn.execute(
+                "SELECT relname AS name FROM pg_catalog.pg_class WHERE (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+            ).fetchall()
+            == []
+        )
 
 
 def test_source_event_filter_requires_source_before_creating_state(tmp_path, capsys):

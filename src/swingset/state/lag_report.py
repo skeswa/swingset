@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections import Counter
 from datetime import datetime
 from typing import Any
 from urllib.parse import urlsplit
+
+from swingset.state import engine
 
 from .control_scopes import for_unit, for_watch
 from .control_time import ControlTime
@@ -15,7 +16,7 @@ from .work import WorkUnit, unfinished_units
 
 
 def pipeline_lag(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     now: datetime,
     *,
     source: str | None,
@@ -35,19 +36,22 @@ def pipeline_lag(
 
     control_time = control_time or ControlTime(conn, now)
     pause_cache: dict[ActionScope, list[dict[str, Any]]] = {}
-    has_pauses = conn.execute("SELECT 1 FROM operator_pauses LIMIT 1").fetchone() is not None
+    has_pauses = (
+        conn.execute("SELECT 1 AS _value_0 FROM operator_pauses LIMIT 1").fetchone() is not None
+    )
 
     def holds(scope: ActionScope) -> list[dict[str, Any]]:
         if scope not in pause_cache:
             pause_cache[scope] = matching_pauses(conn, scope, now=now)
         return pause_cache[scope]
 
-    cooldowns = {row[0]: row[1] for row in conn.execute("SELECT host,next_allowed_at FROM hosts")}
+    cooldowns = {row[0]: row[1] for row in conn.execute("SELECT host, next_allowed_at FROM hosts")}
     acquisition = []
     unknown_schedule = 0
     for row in conn.execute(
-        "SELECT watch_id,source,url,archive_url,next_check_at,paused_until FROM watches "
-        "WHERE state NOT IN ('gone','sealed','retired') AND (? IS NULL OR source=?)",
+        (
+            "SELECT watch_id, source, url, archive_url, next_check_at, paused_until FROM watches WHERE NOT state IN ('gone', 'sealed', 'retired') AND (CAST(%s AS TEXT) IS NULL OR source = %s)"
+        ),
         (source, source),
     ):
         overdue = age(row["next_check_at"])
@@ -85,11 +89,15 @@ def pipeline_lag(
     pending = [
         dict(row)
         for row in conn.execute(
-            "SELECT * FROM pending_work ORDER BY enqueued_at,stage,unit_kind,unit_id"
+            "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+            "pending_work.enqueued_at FROM pending_work ORDER BY enqueued_at NULLS FIRST, stage NULLS "
+            "FIRST, unit_kind NULLS FIRST, unit_id NULLS FIRST"
         )
     ]
     derived = (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='derivation_scopes'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'derivation_scopes' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
     if derived:

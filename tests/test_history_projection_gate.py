@@ -28,11 +28,19 @@ def retain_listing(state, *, scope_kind="event", scope_id="held"):
     )
     upsert_watch(state.conn, spec, state.clock.now())
     state.conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('index',?,'GET',?,?,200,0,1,?,'Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES ('index', %s, 'GET', %s, %s, "
+            "200, 0, 1, %s, 'Ok')"
+        ),
         (spec.watch_id, spec.url, state.clock.now().isoformat(), state.run),
     )
     state.conn.execute(
-        "INSERT INTO observations VALUES ('listing',?,'index','event_sheet',?,?,0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('listing', %s, "
+            "'index', 'event_sheet', %s, %s, 0, '1', '1', %s)"
+        ),
         (
             spec.watch_id,
             scope_kind,
@@ -92,7 +100,8 @@ def state(tmp_path):
         assert list(derivations.pending_units(db.connection, "project")) == []
         db.connection.execute("DELETE FROM pending_work")
         db.connection.executemany(
-            "INSERT INTO meta VALUES (?,'true')", [("h7_deployed",), ("h10_deployed",)]
+            "INSERT INTO meta (key, value) VALUES (%s, 'true')",
+            [("h7_deployed",), ("h10_deployed",)],
         )
         accept_year(
             db.connection, 2019, accepted_by="offline owner", accepted_at=clock.now().isoformat()
@@ -111,9 +120,30 @@ def test_real_result_dispatch_and_its_followup_year_are_inventory_neutral(state)
     accept_year(
         state.conn, 2019, accepted_by="offline owner", accepted_at=state.clock.now().isoformat()
     )
-    before = tuple(state.conn.execute("SELECT * FROM events").fetchone())
+    before = tuple(
+        state.conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events"
+        ).fetchone()
+    )
     process_unit(state.db, unit, SimpleNamespace(files={}), state.clock, state.run)
-    assert tuple(state.conn.execute("SELECT * FROM events").fetchone()) == before
+    assert (
+        tuple(
+            state.conn.execute(
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events"
+            ).fetchone()
+        )
+        == before
+    )
     # The event's output is unchanged, so it keeps its generation and its
     # year stays current: output alone decides a cutoff (D-0224; before, the
     # new listing's support re-minted the event and re-queued the year). A
@@ -149,7 +179,10 @@ def test_unknown_or_inventory_capable_dispatch_blocks_both_entrypoints(state, ki
         enqueued_at=state.clock.now().isoformat(),
     )
     state.conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind=? AND unit_id=?",
+        (
+            "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = 'project' AND "
+            "unit_kind = %s AND unit_id = %s"
+        ),
         (kind, identifier),
     )
     assert pending_inventory_projection(state.conn)
@@ -163,7 +196,8 @@ def test_unknown_or_inventory_capable_dispatch_blocks_both_entrypoints(state, ki
 def test_prior_event_scope_inventory_ownership_cannot_be_deleted_under_year_gate(state):
     retain_listing(state)
     state.conn.execute(
-        "INSERT INTO canonical_scope_rows VALUES ('event','held','events','[\"held\"]')"
+        "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+        "('event', 'held', 'events', '[\"held\"]')"
     )
     enqueue(
         state.conn,
@@ -180,7 +214,7 @@ def test_inventory_digest_change_remains_blocked_despite_safe_pending_scope(stat
         (WorkUnit("project", "event", "held"),),
         enqueued_at=state.clock.now().isoformat(),
     )
-    state.conn.execute("UPDATE events SET held='cancelled'")
+    state.conn.execute("UPDATE events SET held = 'cancelled'")
     assert not pending_inventory_projection(state.conn)
     assert not phase_two_allowed(state.conn, 2019)
 
@@ -209,13 +243,14 @@ def test_source_event_requires_retained_unambiguous_mapping_before_neutral_dispa
     drain(state)
     assert tuple(
         state.conn.execute(
-            "SELECT event_id,match_method FROM source_event_map WHERE source_ref='eepro:held'"
+            "SELECT event_id, match_method FROM source_event_map WHERE source_ref = 'eepro:held'"
         ).fetchone()
     ) == ("held", "override")
     # A subsequent source-only revision is inventory neutral.
     assert not pending_inventory_projection(state.conn)
     state.conn.execute(
-        "UPDATE observations SET payload_json=replace(payload_json,'null','\"revised evidence\"') WHERE observation_id='listing'"
+        "UPDATE observations SET payload_json = REPLACE(payload_json, 'null', '\"revised evidence\"') "
+        "WHERE observation_id = 'listing'"
     )
     assert not pending_inventory_projection(state.conn)
     assert phase_two_allowed(state.conn, 2019)

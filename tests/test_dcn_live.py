@@ -293,48 +293,51 @@ def test_archived_dcn_results_run_end_to_end(tmp_path: Path) -> None:
                 clock=clock,
                 transport=httpx.MockTransport(handler),
             )
-            if conn.execute("SELECT count(*) FROM placements").fetchone()[0]:
+            if conn.execute("SELECT COUNT(*) FROM placements").fetchone()[0]:
                 break
         assert (
-            conn.execute("SELECT count(*) FROM source_events WHERE source='dcn'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM source_events WHERE source = 'dcn'").fetchone()[0]
             == 14
         )
         assert (
-            conn.execute("SELECT count(*) FROM watches WHERE parser='dcn.event'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM watches WHERE parser = 'dcn.event'").fetchone()[0]
             == 14
         )
         events = {
             row[0]
             for row in conn.execute(
-                "SELECT event_id FROM source_event_map WHERE source='dcn' AND source_ref=?",
+                "SELECT event_id FROM source_event_map WHERE source = 'dcn' AND source_ref = %s",
                 ("dcn:301367300",),
             )
         }
         assert len(events) == 1
         (event,) = events
         assert (
-            conn.execute("SELECT count(*) FROM contests WHERE event_id=?", (event,)).fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM contests WHERE event_id = %s", (event,)).fetchone()[
+                0
+            ]
             == 16
         )
         assert (
             conn.execute(
-                "SELECT count(*) FROM rounds r JOIN contests c USING(contest_id) "
-                "WHERE c.event_id=? AND r.round_type='final'",
+                (
+                    "SELECT COUNT(*) FROM rounds AS r JOIN contests AS c USING (contest_id) WHERE c.event_id = "
+                    "%s AND r.round_type = 'final'"
+                ),
                 (event,),
             ).fetchone()[0]
             == 16
         )
         places = conn.execute(
-            "SELECT p.place,l.name_raw,f.name_raw FROM placements p "
-            "JOIN contests c USING(contest_id) "
-            "LEFT JOIN entries l ON l.entry_id=p.leader_entry_id "
-            "LEFT JOIN entries f ON f.entry_id=p.follower_entry_id "
-            "WHERE c.name_raw='Allstar J&J' ORDER BY p.place"
+            "SELECT p.place, l.name_raw AS leader_name, f.name_raw AS follower_name FROM placements AS p JOIN contests AS c USING "
+            "(contest_id) LEFT JOIN entries AS l ON l.entry_id = p.leader_entry_id LEFT JOIN entries AS "
+            "f ON f.entry_id = p.follower_entry_id WHERE c.name_raw = 'Allstar J&J' ORDER BY p.place "
+            "NULLS FIRST"
         ).fetchall()
         assert len(places) == 11
         assert tuple(places[0]) == (1, "William McGregor", "Taylor Linahan")
         assert not conn.execute(
-            "SELECT 1 FROM entries WHERE event_id=? AND name_raw LIKE '%*%'", (event,)
+            "SELECT 1 FROM entries WHERE event_id = %s AND name_raw ILIKE '%%*%%'", (event,)
         ).fetchone()
 
 

@@ -1,6 +1,6 @@
 """The maintain loop: daily housekeeping of the shared state (D-0215).
 
-It checkpoints the WAL without waiting for readers, prunes guard rows
+It reports server WAL counters, prunes guard rows
 nobody has seen for a week, the run records of idle loop ticks (and stop
 markers) after 14 days and of every loop tick after 30, counts building
 generations nothing is finishing and partial generations nothing names,
@@ -25,14 +25,13 @@ progress, and each checks `tick.stop()` first.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from swingset.loops.runtime import LOOPS, Tick
-from swingset.state import guards, queue
+from swingset.state import engine, guards, queue
 
 #: A guard row not seen for this long is dropped; its reason has gone.
 GUARD_UNSEEN = timedelta(days=7)
@@ -58,14 +57,13 @@ def run(tick: Tick) -> None:
     assert tick.bundle is not None
     conn = database.connection
     now = clock.now()
-    # PASSIVE never waits for a reader or writer; it copies what it can.
-    busy, frames, copied = conn.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchone()
-    wal = database.state_dir / "state.sqlite-wal"
+    # PostgreSQL owns WAL checkpoints; the worker reports native server counters.
+    wal = conn.execute("SELECT wal_bytes,wal_records,wal_fpi FROM pg_stat_wal").fetchone()
     summary["wal"] = {
-        "busy": int(busy),
-        "frames": int(frames),
-        "checkpointed": int(copied),
-        "bytes": wal.stat().st_size if wal.is_file() else 0,
+        "server_managed": True,
+        "bytes_written": int(wal[0]),
+        "records": int(wal[1]),
+        "full_page_images": int(wal[2]),
     }
     tick.progress()
     if tick.stop():
@@ -75,7 +73,7 @@ def run(tick: Tick) -> None:
         # its expiry, so a watch held a week is held a week again (D-0219).
         unseen = queue.at(now - GUARD_UNSEEN)
         pruned = write.execute(
-            "DELETE FROM guard_reasons WHERE last_seen_at < ? AND (reason<>? OR expires_at < ?)",
+            "DELETE FROM guard_reasons WHERE last_seen_at < %s AND (reason <> %s OR expires_at < %s)",
             (unseen, guards.REQUEST_ERROR, unseen),
         ).rowcount
     summary["guards_pruned"] = int(pruned)
@@ -97,12 +95,13 @@ def run(tick: Tick) -> None:
     # no collector yet (maintenance item 15): the count shows the ledger's
     # growth, and the watchdog's `[admissions-growth]` reads it.
     summary["admissions_rows"] = int(
-        conn.execute("SELECT count(*) FROM execution_admissions").fetchone()[0]
+        conn.execute("SELECT COUNT(*) AS _value_0 FROM execution_admissions").fetchone()[0]
     )
     tick.progress()
     stale = queue.at(now - BUILDING_STALE)
     rows, orphans = conn.execute(
-        "SELECT count(*),coalesce(sum(updated_at < ?),0) FROM derivation_building", (stale,)
+        "SELECT COUNT(*) AS _value_0, COUNT(*) FILTER (WHERE updated_at < %s) AS _value_1 FROM derivation_building",
+        (stale,),
     ).fetchone()
     summary["building"] = {"rows": int(rows), "stale": int(orphans)}
     from swingset.state.derivations import holding_generations, incomplete_generations
@@ -225,7 +224,7 @@ def run(tick: Tick) -> None:
 
 
 #: What a storage task's failure is: anything but a stop of the process.
-TASK_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, sqlite3.Error)
+TASK_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, engine.Error)
 
 
 def isolated(database: Any, task: Callable[[], dict[str, Any]]) -> dict[str, Any]:
@@ -244,15 +243,15 @@ def isolated(database: Any, task: Callable[[], dict[str, Any]]) -> dict[str, Any
         return {"failed": True, "error": f"{type(error).__name__}: {error}"[:300]}
 
 
-def collector_due(conn: sqlite3.Connection, *, now: datetime, every_days: int) -> bool:
+def collector_due(conn: engine.Connection, *, now: datetime, every_days: int) -> bool:
     """Whether no maintain tick recorded a complete collector sweep within
     `every_days` (less `DUE_SLACK`). A sweep cut short or failed does not
     count: the next tick sweeps again."""
     since = (now - (timedelta(days=every_days) - DUE_SLACK)).astimezone(UTC).isoformat()
     row = conn.execute(
-        "SELECT 1 FROM runs WHERE loop='maintain' AND finished_at > ? "
-        "AND json_valid(summary_json) "
-        "AND json_extract(summary_json,'$.collector.complete') = 1 LIMIT 1",
+        "SELECT 1 FROM runs WHERE loop='maintain' AND finished_at>%s "
+        "AND CASE WHEN pg_input_is_valid(summary_json,'jsonb') THEN "
+        "summary_json::jsonb #> '{collector,complete}' END IN ('true'::jsonb,'1'::jsonb) LIMIT 1",
         (since,),
     ).fetchone()
     return row is None
@@ -318,7 +317,7 @@ def prune_admissions(database: Any, *, now: datetime, stop: Callable[[], bool]) 
 COMPACT_BATCH = 5000
 
 
-def compact_run_rows(conn: sqlite3.Connection, *, now: datetime) -> int:
+def compact_run_rows(conn: engine.Connection, *, now: datetime) -> int:
     """Shrink the summaries of loop `runs` rows older than 30 days to a stub (I6).
 
     About 600 loop rows a day would otherwise keep a whole summary each
@@ -327,13 +326,16 @@ def compact_run_rows(conn: sqlite3.Connection, *, now: datetime) -> int:
     """
     return int(
         conn.execute(
-            "UPDATE runs SET summary_json=json_object('loop',loop,'failed',"
-            "json_extract(summary_json,'$.failed'),'progress',"
-            "json_extract(summary_json,'$.progress'),'finished_at',finished_at,"
-            "'compacted',json('true')) WHERE rowid IN (SELECT rowid FROM runs "
-            "WHERE loop IS NOT NULL AND finished_at IS NOT NULL AND finished_at < ? "
-            "AND json_valid(summary_json) AND json_extract(summary_json,'$.compacted') IS NULL "
-            "LIMIT ?)",
+            "WITH chosen AS MATERIALIZED (SELECT run_id, CASE WHEN pg_input_is_valid(summary_json,'json') "
+            "THEN summary_json::json ELSE 'null'::json END AS summary FROM runs WHERE loop IS NOT NULL "
+            "AND finished_at IS NOT NULL AND finished_at<%s AND pg_input_is_valid(summary_json,'json') "
+            "AND CASE WHEN pg_input_is_valid(summary_json,'json') THEN summary_json::json->>'compacted' END "
+            "IS NULL ORDER BY run_id LIMIT %s) UPDATE runs r SET summary_json=ops.compact_json(json_build_object("
+            "'loop',r.loop,'failed',CASE WHEN json_typeof(c.summary->'failed')='boolean' THEN "
+            "to_json((c.summary->>'failed')::boolean::integer) ELSE c.summary->'failed' END,"
+            "'progress',CASE WHEN json_typeof(c.summary->'progress')='boolean' THEN "
+            "to_json((c.summary->>'progress')::boolean::integer) ELSE c.summary->'progress' END,"
+            "'finished_at',r.finished_at,'compacted',true)) FROM chosen c WHERE r.run_id=c.run_id",
             ((now - RECORD_AGE).isoformat(), COMPACT_BATCH),
         ).rowcount
     )

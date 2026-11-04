@@ -30,7 +30,7 @@ def test_paused_cycle_observes_blockers_and_doctor_only_reads(event, overrides, 
         reason="maintenance",
         now=f.corpus.clock.now(),
     )
-    snapshots = f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0]
+    snapshots = f.conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
     result = run_round(
         f.db,
         config_dir=config,
@@ -45,8 +45,8 @@ def test_paused_cycle_observes_blockers_and_doctor_only_reads(event, overrides, 
     assert observed["scanned_events"] >= 1
     assert observed["reason_counts"]["operator_pause"] >= 1
     assert any(row["action"] == "event_pressure_refresh" for row in result.held_operations)
-    assert f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0] == snapshots
-    assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests>0").fetchone()
+    assert f.conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == snapshots
+    assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests > 0").fetchone()
     changes = f.conn.total_changes
     with f.db.transaction(immediate=False):
         value = report(

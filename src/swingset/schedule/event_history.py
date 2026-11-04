@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sqlite3
 from pathlib import Path
 from typing import Any
+
+from swingset.state import engine
 
 STREAMS = {
     "accounting": "event_accounting_receipts",
@@ -17,7 +18,7 @@ STREAMS = {
 
 
 def report(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source: str,
     source_ref: str,
@@ -54,16 +55,19 @@ def report(
         legacy_history="unknown before first recorded receipt",
         artifact_checks=False,
     )
-    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name=?", (table,)).fetchone():
+    if not conn.execute(
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = %s AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))",
+        (table,),
+    ).fetchone():
         return {**result, "supported": False, "reason": "history_schema_unavailable"}
     identifier = "rowid" if stream == "enumerations" else "receipt_id"
     time_column = "recorded_at" if stream == "enumerations" else "observed_at"
     first = conn.execute(
-        f"SELECT {identifier},{time_column} FROM {table} WHERE source=? AND source_ref=? ORDER BY {identifier} LIMIT 1",
+        f"SELECT {identifier},{time_column} FROM {table} WHERE source=%s AND source_ref=%s ORDER BY {identifier} LIMIT 1",
         (source, source_ref),
     ).fetchone()
     last = conn.execute(
-        f"SELECT {identifier} FROM {table} WHERE source=? AND source_ref=? ORDER BY {identifier} DESC LIMIT 1",
+        f"SELECT {identifier} FROM {table} WHERE source=%s AND source_ref=%s ORDER BY {identifier} DESC LIMIT 1",
         (source, source_ref),
     ).fetchone()
     recorded_max = last[0] if last else 0
@@ -80,12 +84,10 @@ def report(
     else:
         columns = "receipt_id,enumeration_id,predecessor_id,generation_id,decision_id,observed_at,proof_digest"
     cursor = conn.execute(
-        f"SELECT {columns} FROM {table} WHERE source=? AND source_ref=? "
-        f"AND {identifier}>? AND {identifier}<=? ORDER BY {identifier} LIMIT ?",
+        f"SELECT {columns} FROM {table} WHERE source=%s AND source_ref=%s AND {identifier}>%s AND {identifier}<=%s ORDER BY {identifier} LIMIT %s",
         (source, source_ref, after, through, limit + 1),
     )
-    names = [column[0] for column in cursor.description]
-    rows = [dict(zip(names, row, strict=True)) for row in cursor]
+    rows = [dict(row) for row in cursor]
     selected = rows[:limit]
     counts: dict[str, int] = {}
     for row in selected:

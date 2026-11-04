@@ -1,5 +1,4 @@
 import json
-import sqlite3
 from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +12,7 @@ from swingset.clock import FakeClock
 from swingset.config import Config
 from swingset.project.contests import project_event
 from swingset.project.writer import replace_scope
+from swingset.state import engine
 from swingset.state.db import open_database
 from swingset.state.identity_journal import (
     Decision,
@@ -90,7 +90,7 @@ def test_legacy_conversion_preserves_positive_none_and_unmapped_provenance(tmp_p
         assert convert_legacy(db.connection, converted) == converted
         held = parse_journal(convert_legacy(db.connection, body.replace(b",100,", b",NONE,")))[0]
         assert held.decision == "hold_unlinked"
-        assert db.connection.execute("SELECT count(*) FROM identity_decisions").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM identity_decisions").fetchone()[0] == 0
 
 
 def test_ambiguous_conversion_never_creates_a_positive(tmp_path):
@@ -123,8 +123,8 @@ def test_acceptance_rejects_removed_or_altered_history_and_requires_explicit_sup
         )
         accept(db, bundle(encode_journal((first, replacement))), clock)
         assert active_decisions(db.connection) == (replacement,)
-        assert db.connection.execute("SELECT count(*) FROM identity_decisions").fetchone()[0] == 2
-        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+        assert db.connection.execute("SELECT COUNT(*) FROM identity_decisions").fetchone()[0] == 2
+        with pytest.raises(engine.IntegrityError, match="append-only"):
             db.connection.execute("DELETE FROM identity_decisions")
 
 
@@ -145,24 +145,24 @@ def test_crash_during_acceptance_rolls_back_digest_decisions_and_invalidation(tm
             "pending_work",
             "accepted_inputs",
         ):
-            assert db.connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+            assert db.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
         accept(db, bundle(body), clock)
         accepted = token(db.connection)
         assert (
-            db.connection.execute("SELECT unit_id FROM pending_work WHERE stage='link'").fetchone()[
-                0
-            ]
+            db.connection.execute(
+                "SELECT unit_id FROM pending_work WHERE stage = 'link'"
+            ).fetchone()[0]
             == EVENT
         )
         accept(db, bundle(body), clock)
         assert token(db.connection) == accepted
         assert (
-            db.connection.execute("SELECT count(*) FROM identity_journal_acceptances").fetchone()[0]
+            db.connection.execute("SELECT COUNT(*) FROM identity_journal_acceptances").fetchone()[0]
             == 1
         )
 
 
-def test_sqlite_recovery_retains_journal_provenance_migrations_and_unaccepted_digest(tmp_path):
+def test_native_copy_retains_journal_provenance_migrations_and_unaccepted_digest(tmp_path):
     state = tmp_path / "state"
     with open_database(state) as db:
         _, binding = prepared(db.connection)
@@ -200,19 +200,25 @@ def test_sqlite_recovery_retains_journal_provenance_migrations_and_unaccepted_di
             )
         }
         original_token = token(db.connection)
-        with sqlite3.connect(tmp_path / "restored.sqlite") as destination:
-            db.connection.backup(destination)
-    for _ in range(2):
-        with open_database(tmp_path / "restored.sqlite") as restored:
-            assert token(restored.connection) == original_token
-            for name, rows in expected.items():
-                assert [
-                    tuple(r) for r in restored.connection.execute(f"SELECT * FROM {name}")
-                ] == rows
-            assert [r.decision_id for r in active_decisions(restored.connection)] == ["review-1"]
+        from swingset.state.postgres_copy import Copies
+
+        with Copies(state) as copies:
+            copies.freeze(db.connection, tmp_path / "restored")
+            for _ in range(2):
+                with open_database(tmp_path / "restored") as restored:
+                    assert token(restored.connection) == original_token
+                    for name, rows in expected.items():
+                        assert sorted(
+                            tuple(r) for r in restored.connection.execute(f"SELECT * FROM {name}")
+                        ) == sorted(rows)
+                    assert [r.decision_id for r in active_decisions(restored.connection)] == [
+                        "review-1"
+                    ]
 
 
 def test_checkpoint_restore_preserves_accepted_journal_and_excludes_unaccepted_capture(tmp_path):
+    from hashlib import sha256
+
     from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint
     from swingset.fetch.archive import Archive
     from swingset.state.db import SCHEMA_VERSION
@@ -227,12 +233,23 @@ def test_checkpoint_restore_preserves_accepted_journal_and_excludes_unaccepted_c
         first = decision(binding)
         (overrides / "identity_overrides.csv").write_bytes(encode_journal((first,)))
         captured = capture(Path("config"), overrides, state, {"linker": "9"})
+        db.connection.execute(
+            "INSERT INTO accepted_inputs(consumer,input_name,digest) VALUES('pipeline','recipe/runtime',%s)",
+            (sha256(b"legacy runtime bytes").hexdigest(),),
+        )
         accept(db, captured, clock)
+        retained_pipeline_inputs = [
+            tuple(row)
+            for row in db.connection.execute(
+                "SELECT consumer,input_name,digest FROM accepted_inputs WHERE consumer='pipeline' AND input_name<>'recipe/env' ORDER BY input_name"
+            )
+        ]
+        assert ("pipeline", "recipe/runtime", sha256(b"").hexdigest()) in retained_pipeline_inputs
         archive = Archive(state)
         body_sha = archive.store_body(b"<html>Explicit synthetic retained source evidence</html>")
         extract_sha = archive.store_extract({"fixture": "source extract"})
         db.connection.execute(
-            "UPDATE snapshots SET body_sha256=?,extract_sha256=?", (body_sha, extract_sha)
+            "UPDATE snapshots SET body_sha256 = %s, extract_sha256 = %s", (body_sha, extract_sha)
         )
         target = replace(binding, reference=replace(binding.reference, contest="new-round"))
         with db.transaction() as conn:
@@ -258,8 +275,6 @@ def test_checkpoint_restore_preserves_accepted_journal_and_excludes_unaccepted_c
                 "identity_journal_acceptances",
                 "identity_reference_bindings",
                 "identity_reference_migrations",
-                "accepted_inputs",
-                "pending_work",
             )
         }
         (overrides / "identity_overrides.csv").write_bytes(
@@ -269,6 +284,12 @@ def test_checkpoint_restore_preserves_accepted_journal_and_excludes_unaccepted_c
         )
         unaccepted = capture(Path("config"), overrides, state, {"linker": "9"})
         assert unaccepted.digest != captured.digest
+        retained_parse_hints = [
+            tuple(row)
+            for row in db.connection.execute(
+                "SELECT p.stage,p.unit_kind,p.unit_id,p.enqueued_at FROM pending_work p JOIN snapshots s ON s.snapshot_id=p.unit_id WHERE p.stage='parse' AND p.unit_kind='snapshot' AND s.body_sha256 IS NOT NULL ORDER BY p.unit_id"
+            )
+        ]
         checkpoint = create_checkpoint(
             state,
             db.connection,
@@ -277,8 +298,14 @@ def test_checkpoint_restore_preserves_accepted_journal_and_excludes_unaccepted_c
             versions={"linker": "9"},
             input_bundle_hash=captured.digest,
         )
-        assert f"inputs/{captured.digest}/overrides/identity_overrides.csv" in checkpoint.files
-        assert not any(path.startswith(f"inputs/{unaccepted.digest}/") for path in checkpoint.files)
+        assert (
+            f"database/files/inputs/{captured.digest}/overrides/identity_overrides.csv"
+            in checkpoint.files
+        )
+        assert not any(
+            path.startswith(f"database/files/inputs/{unaccepted.digest}/")
+            for path in checkpoint.files
+        )
     for attempt in range(2):
         restored = tmp_path / f"restored-{attempt}"
         restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
@@ -290,8 +317,28 @@ def test_checkpoint_restore_preserves_accepted_journal_and_excludes_unaccepted_c
         assert Archive(restored).read_extract(extract_sha) == {"fixture": "source extract"}
         with open_database(restored, allow_restore_pending=True) as db:
             assert token(db.connection) == accepted_token
+            assert [
+                tuple(row)
+                for row in db.connection.execute(
+                    "SELECT consumer,input_name,digest FROM accepted_inputs WHERE consumer='pipeline' ORDER BY input_name"
+                )
+            ] == retained_pipeline_inputs
+            assert (
+                db.connection.execute(
+                    "SELECT count(*) FROM accepted_inputs WHERE consumer='audit' OR input_name='recipe/env'"
+                ).fetchone()[0]
+                == 0
+            )
+            assert [
+                tuple(row)
+                for row in db.connection.execute(
+                    "SELECT stage,unit_kind,unit_id,enqueued_at FROM pending_work ORDER BY unit_id"
+                )
+            ] == retained_parse_hints
             for table, rows in expected.items():
-                assert [tuple(r) for r in db.connection.execute(f"SELECT * FROM {table}")] == rows
+                assert sorted(
+                    tuple(r) for r in db.connection.execute(f"SELECT * FROM {table}")
+                ) == sorted(rows)
             accept(db, replace(captured, path=restored / "inputs" / captured.digest), clock)
             assert token(db.connection) == accepted_token
             assert [d.decision_id for d in active_decisions(db.connection)] == ["review-1"]

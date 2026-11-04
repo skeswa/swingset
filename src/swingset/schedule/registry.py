@@ -22,23 +22,23 @@ def seed_sweep(database: Database, start: int) -> None:
         raise ValueError("sweep start must be positive")
     with database.transaction() as conn:
         conn.execute(
-            "INSERT INTO cursors(name,value) VALUES ('registry_sweep_next',?) ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+            (
+                "INSERT INTO cursors (name, value) VALUES ('registry_sweep_next', %s) ON CONFLICT(name) DO UPDATE SET value = excluded.value"
+            ),
             (str(start),),
         )
         conn.execute(
-            "INSERT INTO cursors(name,value) VALUES ('registry_sweep_misses','0') "
-            "ON CONFLICT(name) DO UPDATE SET value='0'"
+            "INSERT INTO cursors (name, value) VALUES ('registry_sweep_misses', '0') ON CONFLICT(name) DO UPDATE SET value = '0'"
         )
-        conn.execute("DELETE FROM cursors WHERE name GLOB 'registry_probe_*'")
+        conn.execute("DELETE FROM cursors WHERE starts_with(name,'registry_probe_')")
         conn.execute(
-            "DELETE FROM meta WHERE key IN "
-            "('registry_crosscheck_due','registry_crosscheck_completed')"
+            "DELETE FROM meta WHERE key IN ('registry_crosscheck_due', 'registry_crosscheck_completed')"
         )
 
 
 def discover_registry(database: Database, now: datetime, *, batch_size: int = 350) -> int:
     conn = database.connection
-    cursor = conn.execute("SELECT value FROM cursors WHERE name='registry_sweep_next'").fetchone()
+    cursor = conn.execute("SELECT value FROM cursors WHERE name = 'registry_sweep_next'").fetchone()
     count = 0
     with database.transaction():
         if cursor:
@@ -47,23 +47,21 @@ def discover_registry(database: Database, now: datetime, *, batch_size: int = 35
                 spec = SOURCE.watch(wsdc_id)
                 count += upsert_watch(conn, spec, now)
                 conn.execute(
-                    "UPDATE watches SET priority=5,notes='sweep' WHERE watch_id=?", (spec.watch_id,)
+                    "UPDATE watches SET priority = 5, notes = 'sweep' WHERE watch_id = %s",
+                    (spec.watch_id,),
                 )
         else:
             count += _discover_probe(database, now, batch_size)
             # Daily trickle: at most 100 stale dancers, with a persistent day cursor.
             day = now.date().isoformat()
             trickle = conn.execute(
-                "SELECT value FROM cursors WHERE name='registry_trickle_day'"
+                "SELECT value FROM cursors WHERE name = 'registry_trickle_day'"
             ).fetchone()
             if trickle is None or trickle[0] != day:
                 for row in conn.execute(
-                    "SELECT d.wsdc_id,MAX(julianday(v.checked_at)) AS verified_at FROM dancers d "
-                    "LEFT JOIN watches w ON w.source='wsdc_registry' AND w.source_ref='wsdc:'||d.wsdc_id "
-                    "LEFT JOIN registry_verifications v ON v.watch_id=w.watch_id AND v.usable=1 "
-                    "AND v.extract_version=? AND v.parser_version=? "
-                    "GROUP BY d.wsdc_id HAVING verified_at IS NULL OR verified_at<julianday(?) "
-                    "ORDER BY verified_at,d.wsdc_id LIMIT 100",
+                    (
+                        "SELECT * FROM (SELECT d.wsdc_id, MAX((CAST(EXTRACT(EPOCH FROM ops.try_timestamp(v.checked_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)) AS verified_at FROM dancers AS d LEFT JOIN watches AS w ON w.source = 'wsdc_registry' AND w.source_ref = 'wsdc:' || d.wsdc_id LEFT JOIN registry_verifications AS v ON v.watch_id = w.watch_id AND v.usable = 1 AND v.extract_version = %s AND v.parser_version = %s GROUP BY d.wsdc_id) AS verified WHERE verified_at IS NULL OR verified_at < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) ORDER BY verified_at NULLS FIRST, wsdc_id NULLS FIRST LIMIT 100"
+                    ),
                     (
                         str(DancerPage.EXTRACT_VERSION),
                         str(DancerPage.PARSER_VERSION),
@@ -73,25 +71,28 @@ def discover_registry(database: Database, now: datetime, *, batch_size: int = 35
                     spec = SOURCE.watch(int(row[0]))
                     count += upsert_watch(conn, spec, now)
                     conn.execute(
-                        "UPDATE watches SET priority=5,notes='trickle',next_check_at=? WHERE watch_id=?",
+                        "UPDATE watches SET priority = 5, notes = 'trickle', next_check_at = %s WHERE watch_id = %s",
                         (now.isoformat(), spec.watch_id),
                     )
                 conn.execute(
-                    "INSERT INTO cursors(name,value) VALUES ('registry_trickle_day',?) ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+                    (
+                        "INSERT INTO cursors (name, value) VALUES ('registry_trickle_day', %s) ON CONFLICT(name) DO UPDATE SET value = excluded.value"
+                    ),
                     (day,),
                 )
     return count
 
 
 def _cursor(conn: Any, name: str) -> str | None:
-    row = conn.execute("SELECT value FROM cursors WHERE name=?", (name,)).fetchone()
+    row = conn.execute("SELECT value FROM cursors WHERE name = %s", (name,)).fetchone()
     return str(row[0]) if row else None
 
 
 def _set_cursor(conn: Any, name: str, value: str) -> None:
     conn.execute(
-        "INSERT INTO cursors(name,value) VALUES (?,?) "
-        "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+        (
+            "INSERT INTO cursors (name, value) VALUES (%s, %s) ON CONFLICT(name) DO UPDATE SET value = excluded.value"
+        ),
         (name, value),
     )
 
@@ -122,23 +123,24 @@ def _discover_probe(database: Database, now: datetime, batch_size: int) -> int:
         spec = SOURCE.watch(wsdc_id)
         count += upsert_watch(conn, spec, now)
         schedule = conn.execute(
-            "SELECT last_checked_at,next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+            "SELECT last_checked_at, next_check_at FROM watches WHERE watch_id = %s",
+            (spec.watch_id,),
         ).fetchone()
         checked = schedule[0]
         if checked is None or datetime.fromisoformat(checked) <= datetime.fromisoformat(started):
             conn.execute(
-                "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+                "UPDATE watches SET next_check_at = %s WHERE watch_id = %s",
                 (now.isoformat(), spec.watch_id),
             )
         elif _lookup_outcome(conn, wsdc_id, not_before=datetime.fromisoformat(started)) is None:
             retry_limit = now + timedelta(minutes=15)
             if schedule[1] is None or datetime.fromisoformat(schedule[1]) > retry_limit:
                 conn.execute(
-                    "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+                    "UPDATE watches SET next_check_at = %s WHERE watch_id = %s",
                     (retry_limit.isoformat(), spec.watch_id),
                 )
         conn.execute(
-            "UPDATE watches SET priority=5,notes='probe' WHERE watch_id=?", (spec.watch_id,)
+            "UPDATE watches SET priority = 5, notes = 'probe' WHERE watch_id = %s", (spec.watch_id,)
         )
     return count
 
@@ -154,12 +156,16 @@ def _lookup_outcome(conn: Any, wsdc_id: int, *, not_before: datetime | None = No
 
 def _comparison_bound(database: Database) -> int | None:
     conn = database.connection
-    blob = conn.execute("SELECT value FROM meta WHERE key='registry_crosscheck_blob'").fetchone()
+    blob = conn.execute("SELECT value FROM meta WHERE key = 'registry_crosscheck_blob'").fetchone()
     if blob is None:
         return None
     sha = str(blob[0])
-    cached = conn.execute("SELECT value FROM meta WHERE key='registry_sweep_bound_blob'").fetchone()
-    bound = conn.execute("SELECT value FROM meta WHERE key='registry_sweep_dump_bound'").fetchone()
+    cached = conn.execute(
+        "SELECT value FROM meta WHERE key = 'registry_sweep_bound_blob'"
+    ).fetchone()
+    bound = conn.execute(
+        "SELECT value FROM meta WHERE key = 'registry_sweep_dump_bound'"
+    ).fetchone()
     if cached is not None and str(cached[0]) == sha and bound is not None:
         if not Archive(database.state_dir).blob_path(sha).exists():
             raise FileNotFoundError(f"archived registry comparison dump is missing: {sha}")
@@ -167,13 +173,15 @@ def _comparison_bound(database: Database) -> int | None:
     rows, _ = _dump_rows(Archive(database.state_dir).read_body(sha), require_comparison_dump=True)
     result = max(int(row["id"]) for row in rows) if rows else 0
     conn.execute(
-        "INSERT INTO meta(key,value) VALUES ('registry_sweep_bound_blob',?) "
-        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (
+            "INSERT INTO meta (key, value) VALUES ('registry_sweep_bound_blob', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+        ),
         (sha,),
     )
     conn.execute(
-        "INSERT INTO meta(key,value) VALUES ('registry_sweep_dump_bound',?) "
-        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (
+            "INSERT INTO meta (key, value) VALUES ('registry_sweep_dump_bound', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+        ),
         (str(result),),
     )
     return result
@@ -184,24 +192,26 @@ def _local_found_bound(conn: Any) -> int:
     from swingset.model.observations import decode_payload
 
     cached = conn.execute(
-        "SELECT value FROM meta WHERE key='registry_sweep_local_bound'"
+        "SELECT value FROM meta WHERE key = 'registry_sweep_local_bound'"
     ).fetchone()
     bound = int(cached[0]) if cached else 0
     for row in conn.execute(
-        "SELECT kind,payload_json,scope_id FROM observations "
-        "WHERE scope_kind='dancer' AND CAST(scope_id AS INTEGER)>? "
-        "ORDER BY CAST(scope_id AS INTEGER) DESC",
+        (
+            "SELECT kind, payload_json, scope_id FROM observations WHERE scope_kind = 'dancer' AND "
+            "CAST(scope_id AS INT) > %s ORDER BY CAST(scope_id AS INT) DESC NULLS LAST"
+        ),
         (bound,),
     ):
         payload = decode_payload(str(row[0]), str(row[1]))
         if getattr(payload, "outcome", None) == "found":
             bound = int(row[2])
             break
-    dancer = conn.execute("SELECT MAX(wsdc_id) FROM dancers").fetchone()[0]
+    dancer = conn.execute("SELECT MAX(wsdc_id) AS _value_0 FROM dancers").fetchone()[0]
     bound = max(bound, int(dancer or 0))
     conn.execute(
-        "INSERT INTO meta(key,value) VALUES ('registry_sweep_local_bound',?) "
-        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (
+            "INSERT INTO meta (key, value) VALUES ('registry_sweep_local_bound', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+        ),
         (str(bound),),
     )
     return bound
@@ -210,13 +220,13 @@ def _local_found_bound(conn: Any) -> int:
 def advance_sweep(database: Database, now: datetime | None = None) -> bool:
     """Advance contiguous verified sweep/probe results; invalid gaps stop progress."""
     conn = database.connection
-    sweep = conn.execute("SELECT value FROM cursors WHERE name='registry_sweep_next'").fetchone()
+    sweep = conn.execute("SELECT value FROM cursors WHERE name = 'registry_sweep_next'").fetchone()
     if sweep is not None:
         current = int(sweep[0])
         dump_bound = _comparison_bound(database)
         known_bound = max(dump_bound or 0, _local_found_bound(conn))
         misses_row = conn.execute(
-            "SELECT value FROM cursors WHERE name='registry_sweep_misses'"
+            "SELECT value FROM cursors WHERE name = 'registry_sweep_misses'"
         ).fetchone()
         misses = int(misses_row[0]) if misses_row else 0
         misses = min(misses, max(0, current - known_bound - 1))
@@ -234,26 +244,32 @@ def advance_sweep(database: Database, now: datetime | None = None) -> bool:
                         "registry sweep completed without an archived comparison dump"
                     )
                 blob = conn.execute(
-                    "SELECT value FROM meta WHERE key='registry_crosscheck_blob'"
+                    "SELECT value FROM meta WHERE key = 'registry_crosscheck_blob'"
                 ).fetchone()
                 assert blob is not None
-                conn.execute("DELETE FROM cursors WHERE name='registry_sweep_next'")
-                conn.execute("DELETE FROM cursors WHERE name='registry_sweep_misses'")
+                conn.execute("DELETE FROM cursors WHERE name = 'registry_sweep_next'")
+                conn.execute("DELETE FROM cursors WHERE name = 'registry_sweep_misses'")
                 conn.execute(
-                    "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_due',?) "
-                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                    (
+                        "INSERT INTO meta (key, value) VALUES ('registry_crosscheck_due', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+                    ),
                     (str(blob[0]),),
                 )
                 return True
-        conn.execute("UPDATE cursors SET value=? WHERE name='registry_sweep_next'", (str(current),))
         conn.execute(
-            "INSERT INTO cursors(name,value) VALUES ('registry_sweep_misses',?) "
-            "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+            "UPDATE cursors SET value = %s WHERE name = 'registry_sweep_next'", (str(current),)
+        )
+        conn.execute(
+            (
+                "INSERT INTO cursors (name, value) VALUES ('registry_sweep_misses', %s) ON CONFLICT(name) DO UPDATE SET value = excluded.value"
+            ),
             (str(misses),),
         )
         return False
 
-    probe = conn.execute("SELECT value FROM cursors WHERE name='registry_probe_cursor'").fetchone()
+    probe = conn.execute(
+        "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
+    ).fetchone()
     if probe is None:
         return False
     started = _cursor(conn, "registry_probe_started_at")
@@ -261,7 +277,7 @@ def advance_sweep(database: Database, now: datetime | None = None) -> bool:
         return False
     current = int(probe[0])
     misses_row = conn.execute(
-        "SELECT value FROM cursors WHERE name='registry_probe_misses'"
+        "SELECT value FROM cursors WHERE name = 'registry_probe_misses'"
     ).fetchone()
     misses = int(misses_row[0]) if misses_row else 0
     while True:
@@ -272,22 +288,26 @@ def advance_sweep(database: Database, now: datetime | None = None) -> bool:
         current += 1
         if misses >= 20:
             conn.execute(
-                "DELETE FROM cursors WHERE name IN "
-                "('registry_probe_cursor','registry_probe_misses','registry_probe_started_at')"
+                "DELETE FROM cursors WHERE name IN ('registry_probe_cursor', 'registry_probe_misses', "
+                "'registry_probe_started_at')"
             )
             completed = now or datetime.now().astimezone()
             _set_cursor(conn, "registry_probe_last_completed_at", completed.isoformat())
             due = completed + timedelta(days=7)
             conn.execute(
-                "INSERT INTO cursors(name,value) VALUES ('registry_probe_next_at',?) "
-                "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+                (
+                    "INSERT INTO cursors (name, value) VALUES ('registry_probe_next_at', %s) ON CONFLICT(name) DO UPDATE SET value = excluded.value"
+                ),
                 (due.isoformat(),),
             )
             return False
-    conn.execute("UPDATE cursors SET value=? WHERE name='registry_probe_cursor'", (str(current),))
     conn.execute(
-        "INSERT INTO cursors(name,value) VALUES ('registry_probe_misses',?) "
-        "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+        "UPDATE cursors SET value = %s WHERE name = 'registry_probe_cursor'", (str(current),)
+    )
+    conn.execute(
+        (
+            "INSERT INTO cursors (name, value) VALUES ('registry_probe_misses', %s) ON CONFLICT(name) DO UPDATE SET value = excluded.value"
+        ),
         (str(misses),),
     )
     return False
@@ -314,17 +334,18 @@ def run_saved_crosscheck_if_due(
     database: Database, archive: Archive, now: datetime, run_id: str
 ) -> int | None:
     row = database.connection.execute(
-        "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+        "SELECT value FROM meta WHERE key = 'registry_crosscheck_due'"
     ).fetchone()
     if row is None:
         return None
     sha = str(row[0])
     result = replay_crosscheck(database, sha, archive, now, run_id)
     with database.transaction() as conn:
-        conn.execute("DELETE FROM meta WHERE key='registry_crosscheck_due'")
+        conn.execute("DELETE FROM meta WHERE key = 'registry_crosscheck_due'")
         conn.execute(
-            "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_completed',?) "
-            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (
+                "INSERT INTO meta (key, value) VALUES ('registry_crosscheck_completed', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+            ),
             (sha,),
         )
     return result
@@ -342,7 +363,20 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
     _record_crosscheck_snapshot(database, body, sha, now, run_id)
     conn = database.connection
     findings = []
-    mirror = {int(row["wsdc_id"]): dict(row) for row in conn.execute("SELECT * FROM dancers")}
+    mirror = {
+        int(row["wsdc_id"]): dict(row)
+        for row in conn.execute(
+            "SELECT dancers.wsdc_id, dancers.first_name, dancers.last_name, dancers.name_norm, "
+            "dancers.is_pro, dancers.primary_role, dancers.leader_required_level, "
+            "dancers.leader_allowed_level, dancers.follower_required_level, "
+            "dancers.follower_allowed_level, dancers.leader_highest_level, "
+            "dancers.leader_highest_points, dancers.follower_highest_level, "
+            "dancers.follower_highest_points, dancers.recent_year, dancers.registry_internal_id, "
+            "dancers.registry_fetched_at, dancers.merged_into_wsdc_id, dancers.source, "
+            "dancers.snapshot_id, dancers.parser_version, dancers.first_seen_at, dancers.last_seen_at, "
+            "dancers.run_id FROM dancers"
+        )
+    }
     seen = set()
     for row in data:
         number = row.get("wscid", row.get("wsdc_id"))
@@ -443,13 +477,20 @@ def _record_crosscheck_snapshot(
     snap_id = make_snapshot_id(now, sha)
     with database.transaction():
         conn.execute(
-            "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,source_ref,state,next_check_at,notes) "
-            "VALUES (?,?,?,?,?,?,?,'archived',NULL,'manual registry dump')",
+            (
+                "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state, "
+                "next_check_at, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, 'archived', NULL, 'manual "
+                "registry dump') ON CONFLICT DO NOTHING"
+            ),
             (watch_id, "crosscheck", "registry_dump", "MANUAL", url, "registry_crosscheck", sha),
         )
         inserted = conn.execute(
-            "INSERT OR IGNORE INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,via,classification,parse_status,parsed_at,parser_version) "
-            "VALUES (?,?,?,?,?,200,?,?,1,?,'manual','OK','parsed',?,'1')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_sha256, body_bytes, content_changed, run_id, via, classification, parse_status, "
+                "parsed_at, parser_version) VALUES (%s, %s, %s, %s, %s, 200, %s, %s, 1, %s, 'manual', 'OK', "
+                "'parsed', %s, '1') ON CONFLICT DO NOTHING"
+            ),
             (
                 snap_id,
                 watch_id,
@@ -465,18 +506,22 @@ def _record_crosscheck_snapshot(
         if inserted.rowcount:
             bump_revision(conn, "snapshots")
         conn.execute(
-            "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_blob',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (
+                "INSERT INTO meta (key, value) VALUES ('registry_crosscheck_blob', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+            ),
             (sha,),
         )
         if comparison_dump:
             bound = max(int(row["id"]) for row in rows) if rows else 0
             conn.execute(
-                "INSERT INTO meta(key,value) VALUES ('registry_sweep_bound_blob',?) "
-                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (
+                    "INSERT INTO meta (key, value) VALUES ('registry_sweep_bound_blob', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+                ),
                 (sha,),
             )
             conn.execute(
-                "INSERT INTO meta(key,value) VALUES ('registry_sweep_dump_bound',?) "
-                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (
+                    "INSERT INTO meta (key, value) VALUES ('registry_sweep_dump_bound', %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+                ),
                 (str(bound),),
             )

@@ -1,0 +1,165 @@
+{
+  "aborted": null,
+  "assigned_counts": [
+    1318,
+    1093
+  ],
+  "clients": [
+    {
+      "assigned_count": 1318,
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "counts": {
+        "error": 0,
+        "failed": 0,
+        "passed": 1318,
+        "skipped": 0
+      },
+      "executed_membership_exact": true,
+      "failed_nodes": [],
+      "failure_artifact_export": {
+        "complete": true,
+        "required": false
+      },
+      "index": 0,
+      "log_sha256": "51223fd1b6681f8013601a02bfd7cfc4b0bf4d53b656bc6d4edf8c7a976958b8",
+      "phases": {
+        "call": 839.5677,
+        "collection": 3.4077,
+        "parallel_phase_totals": true,
+        "setup": 159.2536,
+        "teardown": 15.4605,
+        "wall": 286.3204,
+        "workers": 4
+      },
+      "pytest_exit_code": 0,
+      "resource_peaks": {
+        "cgroup_peak_bytes": 1780072448,
+        "current_bytes": 1733419008,
+        "oom_events": 0,
+        "oom_kill_events": 0,
+        "swap_bytes": 0,
+        "tmpfs_bytes": 198250496,
+        "tmpfs_inodes": 5428,
+        "working_bytes": 1401458688
+      },
+      "seconds_including_cleanup": 286.5497
+    },
+    {
+      "assigned_count": 1093,
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "counts": {
+        "error": 0,
+        "failed": 27,
+        "passed": 1066,
+        "skipped": 0
+      },
+      "executed_membership_exact": true,
+      "failed_nodes": [
+        "tests/backup/test_restore_set.py::test_the_cli_writes_a_local_set_and_restores_it",
+        "tests/test_event_accounting_restore.py::test_activated_restore_cannot_revive_accounting_from_rejected_or_changed_support[revoke_result]",
+        "tests/test_event_completion_restore.py::test_activated_restore_resumes_paid_turn_and_converges_with_uninterrupted_state",
+        "tests/test_event_accounting_restore.py::test_activated_restore_cannot_revive_accounting_from_rejected_or_changed_support[lose_gap_body]",
+        "tests/test_retention_apply.py::test_reclaim_uses_server_managed_temporary_storage",
+        "tests/test_retention_apply.py::test_reclaim_completes",
+        "tests/test_retention_apply.py::test_reclaim_runs_while_doctor_holds_an_idle_read_connection",
+        "tests/test_retention_apply.py::test_reclaim_reports_a_pending_write_and_can_resume",
+        "tests/test_retention_apply.py::test_reclaim_is_killed_partway_through_the_rewrite",
+        "tests/test_retention_apply.py::test_reclaim_interruption_records_completed_tables",
+        "tests/test_retention_apply.py::test_the_gc_command_plans_applies_and_reclaims",
+        "tests/test_storage.py::test_apply_moves_what_the_plan_named_and_is_idempotent",
+        "tests/test_storage.py::test_apply_repairs_a_pack_damaged_after_packing",
+        "tests/test_storage.py::test_a_kill_after_packing_leaves_only_extra_packs",
+        "tests/test_storage.py::test_a_kill_inside_the_move_rolls_back[deleted]",
+        "tests/test_storage.py::test_a_kill_inside_the_move_rolls_back[marked]",
+        "tests/test_storage.py::test_a_kill_inside_the_move_rolls_back[finished]",
+        "tests/test_storage.py::test_after_apply_every_generation_reads_identically",
+        "tests/test_storage.py::test_the_storage_command_plans_and_applies",
+        "tests/test_storage.py::test_apply_removes_exactly_the_payloads_it_counts",
+        "tests/test_storage.py::test_a_change_between_verify_and_the_move_stops_it[pointer]",
+        "tests/test_storage.py::test_a_change_between_verify_and_the_move_stops_it[reference]",
+        "tests/test_storage.py::test_apply_truncates_the_wal_and_refuses_without_room",
+        "tests/test_storage.py::test_a_plan_written_before_midnight_applies_after_it",
+        "tests/test_storage.py::test_storage_lost_commit_ack_preserves_the_committed_receipt_for_reconciliation",
+        "tests/test_uninterned_schema.py::test_plan_apply_and_reclaim_run_on_a_database_without_interning",
+        "tests/test_uninterned_schema.py::test_holds_and_doctor_run_on_a_database_without_interning"
+      ],
+      "failure_artifact_export": {
+        "bytes": 187939936,
+        "complete": true,
+        "files": 6347,
+        "path": "/tmp/failure-artifacts",
+        "persistent_capacity": [],
+        "required": true
+      },
+      "index": 1,
+      "log_sha256": "98d4a5184d590f1495436a0d0c61e0598569608fbe62d8f29b0c16172dbb7559",
+      "phases": {
+        "call": 925.0391,
+        "collection": 3.4089,
+        "parallel_phase_totals": true,
+        "setup": 317.6872,
+        "teardown": 10.3716,
+        "wall": 365.1635,
+        "workers": 4
+      },
+      "pytest_exit_code": 1,
+      "resource_peaks": {
+        "cgroup_peak_bytes": 1964298240,
+        "current_bytes": 1923645440,
+        "oom_events": 0,
+        "oom_kill_events": 0,
+        "swap_bytes": 0,
+        "tmpfs_bytes": 271732736,
+        "tmpfs_inodes": 10395,
+        "working_bytes": 1775804416
+      },
+      "seconds_including_cleanup": 371.7463
+    }
+  ],
+  "complete_execution": true,
+  "conclusion": "Correctness and 180-second gates failed. Do not change the default executor. Extend explicit persistent placement to remaining genuine storage/reclaim/CLI capacity cases; fix native restore/CI fixture and legacy SQLite runtime compatibility failures. Use this complete phase report before choosing another performance remedy.",
+  "counts": {
+    "error": 0,
+    "failed": 27,
+    "passed": 2384,
+    "skipped": 0
+  },
+  "format": 1,
+  "host_free_minimum_bytes": 137409998848,
+  "job": "9bb7aa09d8b7",
+  "kernel_limits": {
+    "cpus_per_client": 4,
+    "memory_per_client": 2147483648,
+    "memory_plus_swap_per_client": 2147483648,
+    "ownership_ledgers": "persistent /tmp",
+    "postgres_cpus": 4,
+    "postgres_memory": 2147483648,
+    "retention": "failed",
+    "test_tmpfs_per_client": 805306368,
+    "workers_per_client": 4
+  },
+  "measured_at": "2026-11-05T04:20:42.615143+00:00",
+  "membership_sha256": "ca26f2cb2dda7a508288c8b56cba46c4309e9a73d52e14afe56a72ce8402bcfd",
+  "partition_disjoint_union_exact": true,
+  "postgres_peaks": {
+    "tmpfs_bytes": 455512064,
+    "working_bytes": 735711232
+  },
+  "raw_sha256": "24ea493d885d2564b74773aebebcbbf9a5ca7257368899bd548956d8ef422bf9",
+  "scope": "First complete current core in native ARM64 Linux with two four-worker clients, RAM payloads and persistent capacity-bearing cases. All source and competing heavy jobs remained fixed.",
+  "selected_count": 2411,
+  "source_binding_before": "2d635310af9a45a193ff0164c5b73ea3416452ea43d177380896c7d127d7dd1a",
+  "source_revision": "source-sha256:490aab8aa62ad278554d3e0f2c0daecbc7e771d0fcd16857c7200200edba087c",
+  "source_stable": true,
+  "wall_seconds_including_startup_report_read_and_cleanup": 372.6353
+}

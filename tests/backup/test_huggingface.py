@@ -1,7 +1,6 @@
 import hashlib
 import io
 import json
-import sqlite3
 import tarfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -138,20 +137,18 @@ def test_packed_transport_reconstructs_a_verifiable_checkpoint(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     state = tmp_path / "state"
-    state.mkdir()
-    connection = sqlite3.connect(state / "state.sqlite")
-    connection.execute("CREATE TABLE durable(value TEXT)")
-    connection.execute("INSERT INTO durable VALUES ('kept')")
-    connection.commit()
-    checkpoint = create_checkpoint(
-        state,
-        connection,
-        tmp_path / "checkpoint",
-        schema_version=1,
-        versions={"projector": "8"},
-        input_bundle_hash=None,
-    )
-    connection.close()
+    from swingset.state.db import open_database
+
+    with open_database(state, lock=False) as database:
+        database.connection.execute("INSERT INTO ops.meta(key,value) VALUES('durable','kept')")
+        checkpoint = create_checkpoint(
+            state,
+            database.connection,
+            tmp_path / "checkpoint",
+            schema_version=37,
+            versions={"projector": "8"},
+            input_bundle_hash=None,
+        )
     api = CapturingArchiveApi()
     archive = HuggingFaceArchive("owner/archive", token="secret", api=cast("Any", api))
     files = {
@@ -172,11 +169,19 @@ def test_packed_transport_reconstructs_a_verifiable_checkpoint(
     )
     restored = tmp_path / "restored"
     archive.download("packed", restored)
-    manifest = verify_checkpoint(restored, maximum_schema_version=1)
+    manifest = verify_checkpoint(restored, maximum_schema_version=37)
     assert manifest["versions"] == {"projector": "8"}
-    restored_database = sqlite3.connect(restored / "state.sqlite")
-    assert restored_database.execute("SELECT value FROM durable").fetchone() == ("kept",)
-    restored_database.close()
+    from swingset.backup.checkpoint import restore_checkpoint
+
+    active = tmp_path / "active"
+    restore_checkpoint(restored, active, maximum_schema_version=37)
+    with open_database(active, allow_restore_pending=True) as database:
+        assert (
+            database.connection.execute(
+                "SELECT value FROM ops.meta WHERE key='durable'"
+            ).fetchone()[0]
+            == "kept"
+        )
 
 
 @pytest.mark.parametrize(

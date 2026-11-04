@@ -63,7 +63,6 @@ from __future__ import annotations
 import hashlib
 import json
 import resource
-import sqlite3
 import sys
 import tempfile
 import time
@@ -74,10 +73,12 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import duckdb
 import pyarrow as pa
 
+from swingset import scratch_db
 from swingset.log import log
-from swingset.state import output_packs, release_store
+from swingset.state import engine, output_packs, release_store
 from swingset.state.output_packs import GenerationUnavailable
 from swingset.state.release_store import ArtifactRow, PartitionRow
 
@@ -268,16 +269,16 @@ class Partition:
 # ---------------------------------------------------------------------------
 
 
-def pointers(conn: sqlite3.Connection) -> list[Generation]:
+def pointers(conn: engine.Connection) -> list[Generation]:
     """Every current project and link generation, retired and unfinished ones left out."""
     from swingset.state.derivation_dependencies import RETIRED_KINDS
     from swingset.state.derivations import unfinished_excluded
 
     result = []
     for row in conn.execute(
-        "SELECT s.stage,s.unit_kind,s.unit_id,g.generation_id,g.output_digest,g.row_count,"
-        "g.created_at,g.run_id FROM derivation_scopes s JOIN derivation_generations g "
-        "ON g.generation_id=s.materialized_generation_id WHERE s.stage IN ('project','link')"
+        (
+            "SELECT s.stage,s.unit_kind,s.unit_id,g.generation_id,g.output_digest,g.row_count,g.created_at,g.run_id FROM derivation_scopes s JOIN derivation_generations g ON g.generation_id=s.materialized_generation_id WHERE s.stage IN ('project','link')"
+        )
         + unfinished_excluded(conn, "g")
         + " ORDER BY s.stage,s.unit_kind,s.unit_id"
     ):
@@ -297,7 +298,7 @@ def pointers(conn: sqlite3.Connection) -> list[Generation]:
 
 
 def _refs(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation: Generation,
     tables: Iterable[str],
     evicted: frozenset[str] = frozenset(),
@@ -326,8 +327,10 @@ def _refs(
         return
     for table in tables:
         for key, sha in conn.execute(
-            "SELECT record_key,payload_sha256 FROM derivation_row_refs "
-            "WHERE generation_id=? AND table_name=? ORDER BY record_key",
+            (
+                "SELECT record_key, payload_sha256 FROM derivation_row_refs WHERE generation_id = %s AND "
+                "table_name = %s ORDER BY record_key NULLS FIRST"
+            ),
             (generation.generation_id, table),
         ):
             yield SharedRow(generation, table, str(key), str(sha))
@@ -346,7 +349,7 @@ def dancer_batch(wsdc_id: Any) -> str:
 
 
 def _dancer_rows(
-    conn: sqlite3.Connection, evicted: frozenset[str] = frozenset()
+    conn: engine.Connection, evicted: frozenset[str] = frozenset()
 ) -> dict[str, list[int]]:
     """The WSDC ids each current dancer generation's `dancers` rows carry.
 
@@ -355,16 +358,16 @@ def _dancer_rows(
     """
     result: dict[str, list[int]] = {}
     for generation_id, key in conn.execute(
-        "SELECT r.generation_id,r.record_key FROM derivation_scopes s "
-        "JOIN derivation_row_refs r ON r.generation_id=s.materialized_generation_id "
-        "AND r.table_name='dancers' WHERE s.stage='project' AND s.unit_kind='dancer'"
+        "SELECT r.generation_id, r.record_key FROM derivation_scopes AS s JOIN derivation_row_refs "
+        "AS r ON r.generation_id = s.materialized_generation_id AND r.table_name = 'dancers' WHERE "
+        "s.stage = 'project' AND s.unit_kind = 'dancer'"
     ):
         value = _first(str(key))
         if isinstance(value, int):
             result.setdefault(str(generation_id), []).append(value)
     for (generation_id,) in conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes "
-        "WHERE stage='project' AND unit_kind='dancer' AND materialized_generation_id IS NOT NULL"
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = 'project' AND "
+        "unit_kind = 'dancer' AND NOT materialized_generation_id IS NULL"
     ).fetchall():
         if str(generation_id) not in evicted:
             continue
@@ -383,20 +386,20 @@ def _dancer_rows(
     return result
 
 
-def _evicted_pointers(conn: sqlite3.Connection) -> frozenset[str]:
+def _evicted_pointers(conn: engine.Connection) -> frozenset[str]:
     """Current pointers found evicted: none while F34 holds."""
     if not output_packs.available(conn):
         return frozenset()
     return frozenset(
         str(row[0])
         for row in conn.execute(
-            "SELECT s.materialized_generation_id FROM derivation_scopes s "
-            "JOIN derivation_evicted e ON e.generation_id=s.materialized_generation_id"
+            "SELECT s.materialized_generation_id FROM derivation_scopes AS s JOIN derivation_evicted AS "
+            "e ON e.generation_id = s.materialized_generation_id"
         )
     )
 
 
-def _read_set(conn: sqlite3.Connection, generation: Generation) -> str | None:
+def _read_set(conn: engine.Connection, generation: Generation) -> str | None:
     """The dependency set a generation last recorded reading.
 
     A re-run whose output is unchanged keeps the generation and records what
@@ -404,22 +407,24 @@ def _read_set(conn: sqlite3.Connection, generation: Generation) -> str | None:
     now. Without one, the set saved with the generation.
     """
     row = conn.execute(
-        "SELECT dependency_set_id FROM derivation_equivalences WHERE stage=? AND unit_kind=? "
-        "AND unit_id=? AND generation_id=? ORDER BY created_at DESC LIMIT 1",
+        (
+            "SELECT dependency_set_id FROM derivation_equivalences WHERE stage = %s AND unit_kind = %s "
+            "AND unit_id = %s AND generation_id = %s ORDER BY created_at DESC NULLS LAST LIMIT 1"
+        ),
         (generation.stage, generation.unit_kind, generation.unit_id, generation.generation_id),
     ).fetchone()
     if row is None:
         row = conn.execute(
-            "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+            "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
             (generation.generation_id,),
         ).fetchone()
     return None if row is None else str(row[0])
 
 
-def _manifest(conn: sqlite3.Connection, set_id: str | None) -> list[Any]:
+def _manifest(conn: engine.Connection, set_id: str | None) -> list[Any]:
     row = (
         conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (set_id,),
         ).fetchone()
         if set_id is not None
@@ -428,7 +433,7 @@ def _manifest(conn: sqlite3.Connection, set_id: str | None) -> list[Any]:
     return list(json.loads(row[0])) if row is not None else []
 
 
-def _link_event_reads(conn: sqlite3.Connection, links: Iterable[Generation]) -> dict[str, str]:
+def _link_event_reads(conn: engine.Connection, links: Iterable[Generation]) -> dict[str, str]:
     """Each link generation's recorded event generation, from its newest record.
 
     The newest equivalence to the generation (a cutoff re-run) or else the
@@ -447,7 +452,7 @@ def _link_event_reads(conn: sqlite3.Connection, links: Iterable[Generation]) -> 
     return result
 
 
-def events_of(conn: sqlite3.Connection, generation: Generation) -> list[str]:
+def events_of(conn: engine.Connection, generation: Generation) -> list[str]:
     """Every event an event generation's rows name, its own included."""
     tables: dict[str, list[Mapping[str, Any]]] = {}
     for table, _, payload in output_packs.rows(
@@ -465,7 +470,7 @@ def events_of(conn: sqlite3.Connection, generation: Generation) -> list[str]:
 
 
 def select(
-    conn: sqlite3.Connection, *, known: Mapping[str, list[str]] | None = None
+    conn: engine.Connection, *, known: Mapping[str, list[str]] | None = None
 ) -> tuple[list[Partition], dict[str, list[str]]]:
     """Every partition of the current pointers, and each event generation's events.
 
@@ -474,17 +479,12 @@ def select(
     in one snapshot: a pointer that moves, and an old generation maintain
     evicts, after the pointers were read cannot leave a short reference list.
     """
-    if conn.in_transaction:
+    with conn.read_snapshot():
         return _select(conn, known=known)
-    conn.execute("BEGIN")
-    try:
-        return _select(conn, known=known)
-    finally:
-        conn.execute("ROLLBACK")
 
 
 def _select(
-    conn: sqlite3.Connection, *, known: Mapping[str, list[str]] | None = None
+    conn: engine.Connection, *, known: Mapping[str, list[str]] | None = None
 ) -> tuple[list[Partition], dict[str, list[str]]]:
     known = dict(known or {})
     shared_events: dict[str, list[SharedRow]] = {}
@@ -618,7 +618,7 @@ def _select(
     return result, {key: value for key, value in known.items() if key in current}
 
 
-def _vanished(conn: sqlite3.Connection, events: Iterable[str]) -> tuple[set[str], set[str]]:
+def _vanished(conn: engine.Connection, events: Iterable[str]) -> tuple[set[str], set[str]]:
     """The events among ``events`` with no `events` row in state (D-0262).
 
     The first set holds nothing else in state either: no row its event or
@@ -634,9 +634,7 @@ def _vanished(conn: sqlite3.Connection, events: Iterable[str]) -> tuple[set[str]
     orphaned: set[str] = set()
     for event in sorted(set(events) - present):
         if conn.execute(
-            "SELECT 1 FROM canonical_scope_rows WHERE scope_kind IN ('event','resolution') "
-            "AND scope_id=?1 UNION ALL SELECT 1 FROM contests WHERE event_id=?1 "
-            "UNION ALL SELECT 1 FROM judges WHERE event_id=?1 LIMIT 1",
+            "SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE scope_kind IN ('event', 'resolution') AND scope_id = %s",
             (event,),
         ).fetchone():
             orphaned.add(event)
@@ -657,7 +655,7 @@ class _Verifier:
     generation); `GenerationUnavailable` withholds the generation's partitions.
     """
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: engine.Connection) -> None:
         self.conn = conn
         self.checked: dict[str, bool] = {}
         self.evicted: dict[str, bool] = {}
@@ -707,11 +705,11 @@ class _Legacy:
     def __init__(self, baseline: Path | None, scratch: Path) -> None:
         self.baseline = baseline
         self.scratch = scratch
-        self.spool: sqlite3.Connection | None = None
+        self.spool: duckdb.DuckDBPyConnection | None = None
         self.available = baseline is not None
         self._directory: tempfile.TemporaryDirectory[str] | None = None
 
-    def _load(self) -> sqlite3.Connection | None:
+    def _load(self) -> duckdb.DuckDBPyConnection | None:
         if not self.available:
             return None
         if self.spool is None:
@@ -720,10 +718,10 @@ class _Legacy:
 
             self.scratch.mkdir(parents=True, exist_ok=True)
             self._directory = tempfile.TemporaryDirectory(prefix="partitions-", dir=self.scratch)
-            self.spool = sqlite3.connect(Path(self._directory.name) / "baseline.sqlite")
+            self.spool = scratch_db.connect(Path(self._directory.name) / "baseline.duckdb")
             self.spool.execute(
-                "CREATE TABLE baseline(table_name TEXT,record_key TEXT,payload TEXT,"
-                "PRIMARY KEY(table_name,record_key))"
+                "CREATE TABLE baseline (table_name TEXT, record_key TEXT, payload TEXT, PRIMARY KEY "
+                "(table_name, record_key))"
             )
             try:
                 _baseline(self.spool, self.baseline)
@@ -764,7 +762,7 @@ class _Provenance:
     live observations, which then enter the partition's inputs digest.
     """
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: engine.Connection) -> None:
         self.conn = conn
         self._cache: dict[str, dict[tuple[str, str], frozenset[Observation]]] = {}
         self._groups: dict[str, tuple[str, ...]] = {}
@@ -824,7 +822,7 @@ class Extracted:
     live: dict[tuple[str, str], str] = field(default_factory=dict)
 
 
-def live_digest(conn: sqlite3.Connection, snapshot: str, parser: str) -> str:
+def live_digest(conn: engine.Connection, snapshot: str, parser: str) -> str:
     """A digest of a snapshot's live observations at one parser version."""
     return digest(sorted(list(item) for item in live_observations(conn, snapshot, parser)))
 
@@ -1249,13 +1247,13 @@ def public_tables(
 # ---------------------------------------------------------------------------
 
 
-def code_identity(conn: sqlite3.Connection) -> dict[str, str]:
+def code_identity(conn: engine.Connection) -> dict[str, str]:
     """The accepted build code, environment and history start, and these modules' bytes."""
     result = {
         str(name): str(value)
         for name, value in conn.execute(
-            "SELECT input_name,digest FROM accepted_inputs WHERE consumer='pipeline' "
-            "AND input_name IN ('recipe/env','recipe/code/build','policy/history_start')"
+            "SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'pipeline' AND input_name "
+            "IN ('recipe/env', 'recipe/code/build', 'policy/history_start')"
         )
     }
     here = Path(__file__).parent
@@ -1311,7 +1309,7 @@ def _inputs(
     }
 
 
-def _stale_units(conn: sqlite3.Connection, partition: Partition) -> list[str]:
+def _stale_units(conn: engine.Connection, partition: Partition) -> list[str]:
     """The units an event partition reads whole that are not current."""
     from swingset.state import derivations
     from swingset.state.recipes import RecipeScopeMissing
@@ -1639,7 +1637,7 @@ def _settle_claims(
             if outcome.current is None:
                 outcome.current = not _stale_units(conn, outcome.partition)
         mapped = conn.execute(
-            "SELECT event_id FROM source_event_map WHERE source=? AND source_ref=?", listing
+            "SELECT event_id FROM source_event_map WHERE source = %s AND source_ref = %s", listing
         ).fetchone()
         live = str(mapped[0]) if mapped is not None else None
 

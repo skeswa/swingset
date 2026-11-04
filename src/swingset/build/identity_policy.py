@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
@@ -15,6 +14,7 @@ import pyarrow.parquet as pq
 from swingset.admission.support import interpretation_support, selection_digest
 from swingset.link.decisions import POLICY_VERSION, DecisionResolver
 from swingset.normalize.names import normalize_name, paired_names
+from swingset.state import engine
 from swingset.state.identity_references import ReferenceReader
 
 from .builder import PUBLISHED_TABLES, BuildError, BuildInput
@@ -63,7 +63,7 @@ def verify_baseline(baseline: Path) -> None:
 
 
 def correction_token(
-    conn: sqlite3.Connection, *, closure: Mapping[str, Any] | None = None
+    conn: engine.Connection, *, closure: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
     from swingset.state.identity_journal import token
 
@@ -71,7 +71,7 @@ def correction_token(
     from .closure_support import support_token
 
     revision = conn.execute(
-        "SELECT value FROM revisions WHERE name='identity_decisions'"
+        "SELECT value FROM revisions WHERE name = 'identity_decisions'"
     ).fetchone()
     return {
         "release_version": RELEASE_POLICY_VERSION,
@@ -243,7 +243,7 @@ class IdentityPolicy:
 
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         *,
         baseline: Path | None,
         closure: Mapping[str, Any] | None = None,
@@ -472,7 +472,7 @@ class IdentityPolicy:
 
 
 def apply_identity_policy(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     data: BuildInput,
     *,
     baseline: Path | None,

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime, timedelta
 from typing import Any
 
 from swingset.admission.evidence_budget import BudgetExceeded
 from swingset.admission.page_evidence import Session
 from swingset.admission.parent_evidence import parent_support
+from swingset.state import engine
 
 from . import event_gaps
 
@@ -21,10 +21,10 @@ def encoded(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='event_accounting_receipts'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'event_accounting_receipts' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
@@ -97,7 +97,7 @@ def observe(
     result: dict[str, Any] = {"supports": [], "assessment": unknown("accounting_not_assessed")}
     try:
         header = session.read(
-            "SELECT parent_support_json,pagination FROM source_event_enumerations WHERE enumeration_id=?",
+            "SELECT parent_support_json, pagination FROM source_event_enumerations WHERE enumeration_id = %s",
             (enum,),
             ("parent_support_json", "pagination"),
             cap=1,
@@ -106,7 +106,11 @@ def observe(
         if not isinstance(parents, dict) or len(parents) > session.limits.candidates:
             raise ValueError("parent_set_unassessed")
         rows = session.read(
-            "SELECT request_id,stage,enumeration_id,availability,observed_at,valid_until,token_json FROM event_progress_observations WHERE source=? AND source_ref=? AND enumeration_id=?",
+            (
+                "SELECT request_id, stage, enumeration_id, availability, observed_at, valid_until, "
+                "token_json FROM event_progress_observations WHERE source = %s AND source_ref = %s AND "
+                "enumeration_id = %s"
+            ),
             (source, ref, enum),
             (
                 "request_id",
@@ -138,7 +142,11 @@ def observe(
             for stage, value in page["stages"].items():
                 pages[page["request_id"], stage] = {**common, "availability": value["availability"]}
         rows = session.read(
-            "SELECT generation_id,enumeration_id,availability,observed_at,valid_until,token_json FROM event_accounting_support_observations WHERE source=? AND source_ref=? AND enumeration_id=?",
+            (
+                "SELECT generation_id, enumeration_id, availability, observed_at, valid_until, token_json "
+                "FROM event_accounting_support_observations WHERE source = %s AND source_ref = %s AND "
+                "enumeration_id = %s"
+            ),
             (source, ref, enum),
             (
                 "generation_id",
@@ -257,7 +265,7 @@ def observe(
     return result
 
 
-def persist(conn: sqlite3.Connection, batch: dict[str, Any], *, now: datetime) -> int:
+def persist(conn: engine.Connection, batch: dict[str, Any], *, now: datetime) -> int:
     """Caller has rechecked the fence and owns the observation transaction."""
     source, ref, enum = (batch[k] for k in ("source", "source_ref", "enumeration_id"))
     value = batch.get(
@@ -265,18 +273,23 @@ def persist(conn: sqlite3.Connection, batch: dict[str, Any], *, now: datetime) -
         {"supports": [], "assessment": unknown(batch.get("reason", "accounting_not_assessed"))},
     )
     conn.execute(
-        "DELETE FROM event_accounting_support_observations WHERE source=? AND source_ref=? AND enumeration_id IS NOT ?",
+        (
+            "DELETE FROM event_accounting_support_observations WHERE source = %s AND source_ref = %s AND "
+            "enumeration_id IS DISTINCT FROM %s"
+        ),
         (source, ref, enum),
     )
     for row in value["supports"]:
         conn.execute(
-            "INSERT INTO event_accounting_support_observations VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(source,source_ref,generation_id) DO UPDATE SET enumeration_id=excluded.enumeration_id,availability=excluded.availability,observed_at=excluded.observed_at,valid_until=excluded.valid_until,token_json=excluded.token_json,reasons_json=excluded.reasons_json",
+            (
+                "INSERT INTO event_accounting_support_observations (source, source_ref, enumeration_id, generation_id, availability, observed_at, valid_until, token_json, reasons_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref, generation_id) DO UPDATE SET enumeration_id = excluded.enumeration_id, availability = excluded.availability, observed_at = excluded.observed_at, valid_until = excluded.valid_until, token_json = excluded.token_json, reasons_json = excluded.reasons_json"
+            ),
             (
                 source,
                 ref,
                 enum,
                 row["generation_id"],
-                row["availability"],
+                (None if row["availability"] is None else int(row["availability"])),
                 row["observed_at"],
                 row["valid_until"],
                 row["token_json"],
@@ -284,14 +297,21 @@ def persist(conn: sqlite3.Connection, batch: dict[str, Any], *, now: datetime) -
             ),
         )
     prior = conn.execute(
-        "SELECT receipt_id,enumeration_id,assessment FROM event_accounting_receipts WHERE source=? AND source_ref=? ORDER BY receipt_id DESC LIMIT 1",
+        (
+            "SELECT receipt_id, enumeration_id, assessment FROM event_accounting_receipts WHERE source = "
+            "%s AND source_ref = %s ORDER BY receipt_id DESC NULLS LAST LIMIT 1"
+        ),
         (source, ref),
     ).fetchone()
     assessment = value["assessment"]
     if prior and (prior["enumeration_id"], prior["assessment"]) == (enum, assessment["assessment"]):
         return 0
     definite = conn.execute(
-        "SELECT assessment FROM event_accounting_receipts WHERE source=? AND source_ref=? AND enumeration_id IS ? AND assessment!='unassessed' ORDER BY receipt_id DESC LIMIT 1",
+        (
+            "SELECT assessment FROM event_accounting_receipts WHERE source = %s AND source_ref = %s AND "
+            "enumeration_id IS NOT DISTINCT FROM %s AND assessment <> 'unassessed' ORDER BY receipt_id "
+            "DESC NULLS LAST LIMIT 1"
+        ),
         (source, ref, enum),
     ).fetchone()
     transition = (
@@ -307,7 +327,11 @@ def persist(conn: sqlite3.Connection, batch: dict[str, Any], *, now: datetime) -
         elif definite[0] == "unfinished" and assessment["assessment"] == "locally_accounted":
             transition = "availability_restored"
     conn.execute(
-        "INSERT INTO event_accounting_receipts(source,source_ref,enumeration_id,previous_receipt_id,assessment,transition,observed_at,earliest_checked_at,valid_until,token_json,summary_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO event_accounting_receipts (source, source_ref, enumeration_id, "
+            "previous_receipt_id, assessment, transition, observed_at, earliest_checked_at, valid_until, "
+            "token_json, summary_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             source,
             ref,

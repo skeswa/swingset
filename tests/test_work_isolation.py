@@ -32,13 +32,15 @@ def seed_snapshot(database, clock, identifier, body):
     run_id = database.start_run(clock.now())
     sha = archive.store_body(body)
     database.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-        "body_sha256,body_bytes,content_changed,run_id,classification) "
-        "VALUES (?,?,'GET',?,?,200,?,?,1,?,'Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_sha256, body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+            "%s, %s, 200, %s, %s, 1, %s, 'Ok')"
+        ),
         (identifier, spec.watch_id, spec.url, clock.now().isoformat(), sha, len(body), run_id),
     )
     database.connection.execute(
-        "UPDATE watches SET next_check_at='2099-01-01T00:00:00Z' WHERE watch_id=?",
+        "UPDATE watches SET next_check_at = '2099-01-01T00:00:00Z' WHERE watch_id = %s",
         (spec.watch_id,),
     )
     unit = WorkUnit("parse", "snapshot", identifier)
@@ -89,7 +91,7 @@ def test_failed_parse_does_not_starve_healthy_fetch_or_derivation(tmp_path, monk
         )
         healthy, _, seed_run = seed_snapshot(database, clock, "healthy-derived", FIXTURE)
         assert not parse_snapshot(database, Archive(state), healthy, clock, seed_run).failed
-        assert database.connection.execute("SELECT count(*) FROM events").fetchone()[0] == 0
+        assert database.connection.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0
         results = []
         for _ in range(3):
             results.append(
@@ -102,11 +104,11 @@ def test_failed_parse_does_not_starve_healthy_fetch_or_derivation(tmp_path, monk
                 )
             )
             clock.sleep(1)
-        assert database.connection.execute("SELECT count(*) FROM events").fetchone()[0] == 1
+        assert database.connection.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
         assert "https://worldsdc.com/events/" in requests
         assert (
             database.connection.execute(
-                "SELECT count(*) FROM snapshots WHERE url='https://worldsdc.com/events/'"
+                "SELECT COUNT(*) FROM snapshots WHERE url = 'https://worldsdc.com/events/'"
             ).fetchone()[0]
             == 1
         )
@@ -118,18 +120,26 @@ def test_failed_parse_does_not_starve_healthy_fetch_or_derivation(tmp_path, monk
             for record in result.sequence
         )
         attempts = database.connection.execute(
-            "SELECT * FROM work_attempts WHERE stage='parse' AND unit_id=?", (broken.unit_id,)
+            (
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts WHERE stage = 'parse' AND unit_id = %s"
+            ),
+            (broken.unit_id,),
         ).fetchall()
         assert len(attempts) == 1
         assert attempts[0]["outcome"] == "blocked"
         # The failure lives on the queue and attempt rows, not in a finding (D-0237).
         queued = database.connection.execute(
-            "SELECT last_reason FROM work_queue WHERE stage='parse' AND unit_id=?",
+            "SELECT last_reason FROM work_queue WHERE stage = 'parse' AND unit_id = %s",
             (broken.unit_id,),
         ).fetchone()
         assert queued[0] == attempts[0]["reason_code"]
         assert not database.connection.execute(
-            "SELECT 1 FROM findings WHERE kind='work_attempt'"
+            "SELECT 1 FROM findings WHERE kind = 'work_attempt'"
         ).fetchone()
 
 
@@ -171,23 +181,24 @@ def test_cycle_restores_missing_historical_body_from_real_checkpoint_and_commits
         assert Archive(state).read_body(sha) == historical
         assert (
             database.connection.execute(
-                "SELECT COUNT(*) FROM observations WHERE snapshot_id=?", (unit.unit_id,)
+                "SELECT COUNT(*) FROM observations WHERE snapshot_id = %s", (unit.unit_id,)
             ).fetchone()[0]
             == 1
         )
         assert (
             database.connection.execute(
-                "SELECT COUNT(*) FROM events WHERE name='Historical Swing'"
+                "SELECT COUNT(*) FROM events WHERE name = 'Historical Swing'"
             ).fetchone()[0]
             == 1
         )
         row = database.connection.execute(
-            "SELECT outcome FROM work_attempts WHERE stage='parse' AND unit_id=?", (unit.unit_id,)
+            "SELECT outcome FROM work_attempts WHERE stage = 'parse' AND unit_id = %s",
+            (unit.unit_id,),
         ).fetchone()
         assert row[0] == "succeeded"
         assert (
             database.connection.execute(
-                "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (unit.unit_id,)
+                "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (unit.unit_id,)
             ).fetchone()[0]
             == sha
         )
@@ -234,33 +245,41 @@ def test_cycle_missing_artifact_without_backup_retains_unavailable_and_independe
         assert "https://worldsdc.com/events/" in requests
         assert (
             database.connection.execute(
-                "SELECT COUNT(*) FROM events WHERE name='Example Swing'"
+                "SELECT COUNT(*) FROM events WHERE name = 'Example Swing'"
             ).fetchone()[0]
             == 1
         )
         attempts = database.connection.execute(
-            "SELECT * FROM work_attempts WHERE stage='parse' AND unit_id=?", (broken.unit_id,)
+            (
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts WHERE stage = 'parse' AND unit_id = %s"
+            ),
+            (broken.unit_id,),
         ).fetchall()
         assert len(attempts) == 1
         assert attempts[0]["outcome"] == "unavailable"
         assert json.loads(attempts[0]["evidence_json"])["sha256"] == sha
         assert attempts[0]["requirement_id"] is None
         queued = database.connection.execute(
-            "SELECT last_reason FROM work_queue WHERE stage='parse' AND unit_id=?",
+            "SELECT last_reason FROM work_queue WHERE stage = 'parse' AND unit_id = %s",
             (broken.unit_id,),
         ).fetchone()
         assert queued[0] == attempts[0]["reason_code"]
         assert not database.connection.execute(
-            "SELECT 1 FROM findings WHERE kind='work_attempt'"
+            "SELECT 1 FROM findings WHERE kind = 'work_attempt'"
         ).fetchone()
         assert (
             database.connection.execute(
-                "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (broken.unit_id,)
+                "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (broken.unit_id,)
             ).fetchone()[0]
             == sha
         )
         assert database.connection.execute(
-            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (broken.unit_id,)
+            "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s", (broken.unit_id,)
         ).fetchone()
         assert not Archive(state).blob_path(sha).exists()
         assert not any("/historical-missing/" in url for url in requests)

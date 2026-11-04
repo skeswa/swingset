@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections import OrderedDict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -32,7 +31,7 @@ from datetime import date
 from typing import Any
 
 from swingset.sources.phase_one import stored_scope_ref
-from swingset.state import body_packs
+from swingset.state import body_packs, engine
 
 from .builder import CHECKS, BuildError
 from .closure_manifest import canonical
@@ -66,7 +65,7 @@ class SupportIndex:
     from (`closure_support.support`'s key).
     """
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: engine.Connection) -> None:
         self.conn = conn
         self._cache: dict[tuple[str, str], Support] = {}
         self._observations: OrderedDict[str, frozenset[Observation]] = OrderedDict()
@@ -75,7 +74,7 @@ class SupportIndex:
         self._policies = {
             str(kind): str(version)
             for kind, version in conn.execute(
-                "SELECT page_kind,contract_version FROM admission_policies"
+                "SELECT page_kind, contract_version FROM admission_policies"
             )
         }
 
@@ -100,12 +99,9 @@ class SupportIndex:
             recipe_parser,
             report_json,
         ) in self.conn.execute(
-            "SELECT g.generation_id,g.state,g.page_kind,g.contract_version,"
-            "json_extract(g.recipe_json,'$.context.snapshot_id'),"
-            "json_extract(g.recipe_json,'$.parser_version'),"
-            "g.report_json FROM snapshots s JOIN source_units u ON u.watch_id=s.watch_id "
-            "JOIN source_generations g ON g.unit_key=u.unit_key WHERE s.snapshot_id=? "
-            "ORDER BY g.generation_id",
+            (
+                "SELECT g.generation_id, g.state, g.page_kind, g.contract_version, JSON_EXTRACT_PATH_TEXT(CAST(g.recipe_json AS JSON), 'context', 'snapshot_id') AS _value_4, JSON_EXTRACT_PATH_TEXT(CAST(g.recipe_json AS JSON), 'parser_version') AS _value_5, g.report_json FROM snapshots AS s JOIN source_units AS u ON u.watch_id = s.watch_id JOIN source_generations AS g ON g.unit_key = u.unit_key WHERE s.snapshot_id = %s ORDER BY g.generation_id NULLS FIRST"
+            ),
             (snapshot_id,),
         ):
             if str(recipe_snapshot) != snapshot_id or str(recipe_parser) != parser_version:
@@ -116,7 +112,7 @@ class SupportIndex:
             if (
                 self._policies.get(str(page_kind)) == str(contract)
                 and self.conn.execute(
-                    "SELECT 1 FROM admission_decisions WHERE generation_id=? AND state='accepted' LIMIT 1",
+                    "SELECT 1 AS _value_0 FROM admission_decisions WHERE generation_id = %s AND state = 'accepted' LIMIT 1",
                     (generation_id,),
                 ).fetchone()
                 and not self._failures(str(generation_id), str(report_json))
@@ -148,17 +144,17 @@ class SupportIndex:
             self._observations.move_to_end(generation_id)
             return found
         row = self.conn.execute(
-            "SELECT CASE WHEN result_json=:stub THEN NULL "
-            "ELSE json_extract(result_json,'$.observations') END,"
-            "json_extract(recipe_json,'$.extract_version'),result_json=:stub,unit_key "
-            "FROM source_generations WHERE generation_id=:id",
+            (
+                "SELECT CASE WHEN result_json = %(stub)s THEN NULL ELSE JSON_EXTRACT_PATH_TEXT(CAST(result_json AS JSON), 'observations') END AS _value_0, JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'extract_version') AS _value_1, CAST(result_json = %(stub)s AS INT) AS _value_2, unit_key FROM source_generations WHERE generation_id = %(id)s"
+            ),
             {"stub": body_packs.STUB, "id": generation_id},
         ).fetchone()
         if row is not None and row[2]:
             # A packed body: the same extraction over the exact stored string.
             result = body_packs.packed_body(self.conn, generation_id).result_json
             extracted = self.conn.execute(
-                "SELECT json_extract(?,'$.observations')", (result,)
+                "SELECT JSON_EXTRACT_PATH_TEXT(CAST(%s AS JSON), 'observations') AS _value_0",
+                (result,),
             ).fetchone()[0]
             row = (extracted, row[1], 0, row[3])
         keys: set[Observation] = set()
@@ -216,7 +212,7 @@ class SupportIndex:
 
 
 def live_observations(
-    conn: sqlite3.Connection, snapshot_id: str, parser_version: str
+    conn: engine.Connection, snapshot_id: str, parser_version: str
 ) -> frozenset[Observation]:
     """A snapshot's live observations at one parser version (through the watch index)."""
     return frozenset(
@@ -229,9 +225,11 @@ def live_observations(
             str(extract),
         )
         for scope_kind, scope_id, kind, seq, payload, extract in conn.execute(
-            "SELECT o.scope_kind,o.scope_id,o.kind,o.seq,o.payload_json,o.extract_version "
-            "FROM observations o WHERE o.watch_id=(SELECT watch_id FROM snapshots "
-            "WHERE snapshot_id=:s) AND o.snapshot_id=:s AND CAST(o.parser_version AS TEXT)=:p",
+            (
+                "SELECT o.scope_kind, o.scope_id, o.kind, o.seq, o.payload_json, o.extract_version FROM "
+                "observations AS o WHERE o.watch_id = (SELECT watch_id FROM snapshots WHERE snapshot_id = "
+                "%(s)s) AND o.snapshot_id = %(s)s AND CAST(o.parser_version AS TEXT) = %(p)s"
+            ),
             {"s": snapshot_id, "p": parser_version},
         )
     )

@@ -1,6 +1,8 @@
 """Independent H15 acceptance: immutable inputs, atomic output, and derived work."""
 
+import ast
 import json
+import re
 import shutil
 from dataclasses import replace
 from types import SimpleNamespace
@@ -12,11 +14,12 @@ from swingset.model.canonical import Event
 from swingset.project.writer import Projection, replace_scope, replace_source_event_map
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
-from swingset.state.recipes import capture_runtime, captured_recipe_inputs
+from swingset.state.postgres_schema import verify
+from swingset.state.recipes import capture_runtime, captured_audit_inputs, captured_recipe_inputs
 from swingset.versions import versions
 
 
-def test_actual_code_and_schema_change_recipe_with_unchanged_human_labels(tmp_path, monkeypatch):
+def test_code_and_schema_changes_only_audit_until_declared_version_changes(tmp_path, monkeypatch):
     monkeypatch.setenv("SWINGSET_REVISION", "unchanged-human-label")
     package = tmp_path / "src/swingset"
     (package / "project").mkdir(parents=True)
@@ -25,18 +28,29 @@ def test_actual_code_and_schema_change_recipe_with_unchanged_human_labels(tmp_pa
     implementation = package / "project/process.py"
     implementation.write_text("PROJECTOR_VERSION = 19\nVALUE = 'before'\n")
     schema = package / "project/schema.sql"
-    schema.write_text("CREATE TABLE example(value TEXT);\n")
+    schema.write_text("CREATE TABLE example (value TEXT)")
     scope = "recipe/code/project/event"
     initial = capture_runtime(package)
     first = captured_recipe_inputs(initial, history_start="2010-01-01")
     implementation.write_text("PROJECTOR_VERSION = 19\nVALUE = 'after'\n")
     changed_code = captured_recipe_inputs(capture_runtime(package), history_start="2010-01-01")
-    assert changed_code[scope] != first[scope]
-    assert changed_code["recipe/env"] == first["recipe/env"]
+    assert changed_code[scope] == first[scope]
+    assert (
+        captured_audit_inputs(capture_runtime(package))[scope]
+        != captured_audit_inputs(initial)[scope]
+    )
+    assert "recipe/env" not in changed_code
+    assert (
+        captured_audit_inputs(capture_runtime(package))["recipe/env"]
+        == captured_audit_inputs(initial)["recipe/env"]
+    )
     assert changed_code["policy/history_start"] == first["policy/history_start"]
-    schema.write_text("CREATE TABLE example(value TEXT, revision INTEGER);\n")
+    schema.write_text("CREATE TABLE example (value TEXT, revision INT)")
     changed_schema = captured_recipe_inputs(capture_runtime(package), history_start="2010-01-01")
-    assert changed_schema[scope] != changed_code[scope]
+    assert changed_schema[scope] == changed_code[scope]
+    implementation.write_text("PROJECTOR_VERSION = 20\nVALUE = 'after'\n")
+    bumped = captured_recipe_inputs(capture_runtime(package), history_start="2010-01-01")
+    assert bumped[scope] != first[scope]
     # Retained old artifacts remain sufficient to reproduce their old recipe.
     assert captured_recipe_inputs(initial, history_start="2010-01-01") == first
     corrupted = dict(initial)
@@ -127,7 +141,7 @@ def output_state(conn):
     )
     return {
         table: sorted(
-            (tuple(row) for row in conn.execute("SELECT * FROM " + table)),
+            (tuple(row) for row in conn.execute(" SELECT * FROM " + table)),
             key=lambda row: json.dumps(row, default=str),
         )
         for table in tables
@@ -136,9 +150,9 @@ def output_state(conn):
 
 def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_path):
     import hashlib
-    import sqlite3
 
     from swingset.clock import FakeClock
+    from swingset.state import engine
 
     with open_database(tmp_path) as db:
         now = FakeClock().now()
@@ -147,26 +161,40 @@ def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_pat
         manifest = '{"source_generations":[{"unit":"retained-source","generation":"selected-before"}],"captured_recipe":"before"}'
         with db.transaction():
             conn.execute(
-                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project','event','fixture',?)",
+                (
+                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                    "'event', 'fixture', %s)"
+                ),
                 (now.isoformat(),),
             )
             conn.execute(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('dependencies',?)",
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('dependencies', %s)",
                 (manifest,),
             )
             conn.execute(
-                "INSERT INTO derivation_generations VALUES ('generation','project','event','fixture','input-fingerprint','{}','dependencies',NULL,'output-digest',1,?,?)",
+                (
+                    "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                    "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                    "row_count, created_at, run_id) VALUES ('generation', 'project', 'event', 'fixture', "
+                    "'input-fingerprint', '{}', 'dependencies', NULL, 'output-digest', 1, %s, %s)"
+                ),
                 (now.isoformat(), run),
             )
             payload = '{"name_raw":"Retained name"}'
             payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
-            conn.execute("INSERT INTO derivation_payloads VALUES (?,?)", (payload_sha256, payload))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES ('generation',0,'entries','[\"retained-row\"]',?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s)",
+                (payload_sha256, payload),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES ('generation', 0, 'entries', '[\"retained-row\"]', %s)"
+                ),
                 (payload_sha256,),
             )
             conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id='generation' WHERE unit_id='fixture'"
+                "UPDATE derivation_scopes SET materialized_generation_id = 'generation' WHERE unit_id = 'fixture'"
             )
         immutable = {
             "derivation_dependency_sets": "manifest_json= '{}'",
@@ -174,15 +202,15 @@ def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_pat
             "derivation_row_refs": "record_key='[\"changed-row\"]'",
         }
         for table, assignment in immutable.items():
-            with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            with pytest.raises(engine.IntegrityError, match="immutable"):
                 conn.execute(f"UPDATE {table} SET {assignment}")
-            with pytest.raises(sqlite3.IntegrityError, match="immutable"):
-                conn.execute("DELETE FROM " + table)
+            with pytest.raises(engine.IntegrityError, match="immutable"):
+                conn.execute(" DELETE FROM " + table)
         # Payload bytes are the one derivation record a written removal plan may
         # take away, so their delete gate is a permission row, not immutability.
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
-            conn.execute("UPDATE derivation_payloads SET payload_json='{}'")
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
+        with pytest.raises(engine.IntegrityError, match="immutable"):
+            conn.execute("UPDATE derivation_payloads SET payload_json = '{}'")
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
             conn.execute("DELETE FROM derivation_payloads")
         assert (
             conn.execute("SELECT manifest_json FROM derivation_dependency_sets").fetchone()[0]
@@ -195,7 +223,7 @@ def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_pat
         assert json.loads(
             conn.execute("SELECT payload_json FROM derivation_rows").fetchone()[0]
         ) == {"name_raw": "Retained name"}
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert verify(conn)["equal"]
 
 
 def scope_rows(conn, event):
@@ -204,15 +232,18 @@ def scope_rows(conn, event):
 
     result = []
     for table, key in conn.execute(
-        "SELECT table_name,record_key FROM canonical_scope_rows WHERE scope_kind='event' AND scope_id=? ORDER BY table_name,record_key",
+        (
+            "SELECT table_name, record_key FROM canonical_scope_rows WHERE scope_kind = 'event' AND "
+            "scope_id = %s ORDER BY table_name NULLS FIRST, record_key NULLS FIRST"
+        ),
         (event,),
     ):
         columns = TABLES[table].primary_key
         row = conn.execute(
-            "SELECT * FROM "
+            " SELECT * FROM "
             + table
             + " WHERE "
-            + " AND ".join(column + "=?" for column in columns),
+            + " AND ".join(column + "=%s" for column in columns),
             json.loads(key),
         ).fetchone()
         assert row is not None
@@ -278,7 +309,7 @@ def test_completion_crash_rolls_back_real_rows_fingerprint_and_revision_then_res
     committed = output_state(f.conn)
     assert derivations.current(f.conn, unit)
     assert (
-        f.conn.execute("SELECT COUNT(*) FROM entries WHERE event_id='event-a'").fetchone()[0] == 2
+        f.conn.execute("SELECT COUNT(*) FROM entries WHERE event_id = 'event-a'").fetchone()[0] == 2
     )
     # A new SQLite reader sees the committed output and receipt together. The
     # fixture retains its writer lock; no services or recovery jobs are started.
@@ -328,7 +359,7 @@ def test_new_desired_generation_blocks_late_worker_and_preserves_new_output(sour
             run_id=f.corpus.run,
         )
     committed = output_state(f.conn)
-    assert f.conn.execute("SELECT 1 FROM entries WHERE name_raw='Newer Name'").fetchone()
+    assert f.conn.execute("SELECT 1 FROM entries WHERE name_raw = 'Newer Name'").fetchone()
     with pytest.raises(SupersededWorkError):
         with f.db.transaction():
             replace_scope(
@@ -350,7 +381,7 @@ def test_new_desired_generation_blocks_late_worker_and_preserves_new_output(sour
     assert derivations.selected_generation(f.conn, unit) == newer.generation_id
     assert derivations.current(f.conn, unit)
     assert not f.conn.execute(
-        "SELECT 1 FROM derivation_generations WHERE generation_id=?", (old.generation_id,)
+        "SELECT 1 FROM derivation_generations WHERE generation_id = %s", (old.generation_id,)
     ).fetchone()
 
 
@@ -363,10 +394,11 @@ def test_lost_enqueue_and_deleted_materialization_cannot_hide_stale_scope(source
     unit = WorkUnit("project", "event", "event-a")
     drain_project(f)
     first = derivations.desired(f.conn, unit)
-    f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project','link')")
+    f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project', 'link')")
     assert unit not in set(derivations.pending_units(f.conn, "project"))
     f.conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='event' AND unit_id='event-a'"
+        "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = 'project' AND "
+        "unit_kind = 'event' AND unit_id = 'event-a'"
     )
     assert unit in set(derivations.pending_units(f.conn, "project"))
     assert (
@@ -376,14 +408,17 @@ def test_lost_enqueue_and_deleted_materialization_cannot_hide_stale_scope(source
         == unit
     )
     f.conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=? WHERE stage='project' AND unit_kind='event' AND unit_id='event-a'",
+        (
+            "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = 'project' AND "
+            "unit_kind = 'event' AND unit_id = 'event-a'"
+        ),
         (first.generation_id,),
     )
     changed_body = f.body.replace(b"Alice Example", b"Changed Evidence")
     context = f.corpus.snapshot("round-changed", changed_body)
     generation, report = f.corpus.stage(context, body=changed_body)
     assert not report.failures and f.corpus.admit(generation) == "accepted"
-    f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project','link')")
+    f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project', 'link')")
     # No scan, refresh, manual enqueue or version bump intervenes here.
     assert unit in set(derivations.pending_units(f.conn, "project"))
     assert (
@@ -402,7 +437,8 @@ def test_lost_enqueue_and_deleted_materialization_cannot_hide_stale_scope(source
     assert lag["by_stage"]["project"] == projected["count"]
     assert lag["unknown_enqueue_times"] > 0
     assert (
-        f.conn.execute("SELECT count(*) FROM pending_work WHERE stage='project'").fetchone()[0] == 0
+        f.conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage = 'project'").fetchone()[0]
+        == 0
     )
 
 
@@ -423,17 +459,26 @@ def test_previous_generation_keeps_exact_source_manifest_after_new_source_select
         )
     generation_before = tuple(
         f.conn.execute(
-            "SELECT * FROM derivation_generations WHERE generation_id=?", (first.generation_id,)
+            (
+                "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+                "derivation_generations.unit_kind, derivation_generations.unit_id, "
+                "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+                "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+                "derivation_generations.output_digest, derivation_generations.row_count, "
+                "derivation_generations.created_at, derivation_generations.run_id FROM "
+                "derivation_generations WHERE generation_id = %s"
+            ),
+            (first.generation_id,),
         ).fetchone()
     )
     root_set = f.conn.execute(
-        "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+        "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
         (first.generation_id,),
     ).fetchone()[0]
     set_ids = {root_set, *first.dependency_sets}
     manifests_before = {
         identifier: f.conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (identifier,),
         ).fetchone()[0]
         for identifier in set_ids
@@ -442,7 +487,7 @@ def test_previous_generation_keeps_exact_source_manifest_after_new_source_select
     rows_before = [
         tuple(row)
         for row in f.conn.execute(
-            "SELECT * FROM derivation_rows WHERE generation_id=? ORDER BY ordinal",
+            "SELECT * FROM derivation_rows WHERE generation_id = %s ORDER BY ordinal NULLS FIRST",
             (first.generation_id,),
         )
     ]
@@ -463,14 +508,23 @@ def test_previous_generation_keeps_exact_source_manifest_after_new_source_select
     assert (
         tuple(
             f.conn.execute(
-                "SELECT * FROM derivation_generations WHERE generation_id=?", (first.generation_id,)
+                (
+                    "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+                    "derivation_generations.unit_kind, derivation_generations.unit_id, "
+                    "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+                    "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+                    "derivation_generations.output_digest, derivation_generations.row_count, "
+                    "derivation_generations.created_at, derivation_generations.run_id FROM "
+                    "derivation_generations WHERE generation_id = %s"
+                ),
+                (first.generation_id,),
             ).fetchone()
         )
         == generation_before
     )
     assert {
         identifier: f.conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (identifier,),
         ).fetchone()[0]
         for identifier in set_ids
@@ -478,14 +532,14 @@ def test_previous_generation_keeps_exact_source_manifest_after_new_source_select
     assert [
         tuple(row)
         for row in f.conn.execute(
-            "SELECT * FROM derivation_rows WHERE generation_id=? ORDER BY ordinal",
+            "SELECT * FROM derivation_rows WHERE generation_id = %s ORDER BY ordinal NULLS FIRST",
             (first.generation_id,),
         )
     ] == rows_before
 
 
 def change_code(fixture, monkeypatch, marker="changed artifact with unchanged labels"):
-    """Accept a runtime bundle whose only change is a comment in one module."""
+    """Accept unchanged-output code with bumped project and link declarations."""
     from swingset.fetch.archive import canonical, digest
     from swingset.state import inputs, recipe_scope
 
@@ -498,6 +552,17 @@ def change_code(fixture, monkeypatch, marker="changed artifact with unchanged la
     retained_runtime[name] += f"\n# Independent fixture: {marker}.\n".encode()
     manifest = json.loads(retained_runtime["recipes/runtime.json"])
     manifest["files"][name] = digest(retained_runtime[name])
+    for module, constant in (
+        ("project/process", "PROJECTOR_VERSION"),
+        ("link/service", "LINKER_VERSION"),
+    ):
+        path = f"runtime/swingset/{module}.py"
+        text = retained_runtime[path].decode()
+        pattern = rf"(?m)^{constant} = (.+)$"
+        value = ast.literal_eval(re.search(pattern, text).group(1))
+        bumped = str(int(value) + 1) if isinstance(value, str) else value + 1
+        retained_runtime[path] = re.sub(pattern, f"{constant} = {bumped!r}", text).encode()
+        manifest["files"][path] = digest(retained_runtime[path])
     retained_runtime["recipes/runtime.json"] = canonical(manifest)
     retained_runtime["recipes/scopes.json"] = canonical(recipe_scope.manifest(retained_runtime))
     monkeypatch.setattr(inputs, "capture_runtime", lambda: retained_runtime)
@@ -508,7 +573,7 @@ def change_code(fixture, monkeypatch, marker="changed artifact with unchanged la
     assert newer_bundle.files["versions.json"] == fixture.bundle.files["versions.json"]
     inputs.accept(fixture.db, newer_bundle, fixture.corpus.clock)
     fixture.bundle = newer_bundle
-    fixture.conn.execute("DELETE FROM pending_work WHERE stage IN ('project','link')")
+    fixture.conn.execute("DELETE FROM pending_work WHERE stage IN ('project', 'link')")
 
 
 def count(conn, table):
@@ -519,7 +584,7 @@ def pointers(conn):
     return {
         tuple(row[:3]): row[3]
         for row in conn.execute(
-            "SELECT stage,unit_kind,unit_id,materialized_generation_id FROM derivation_scopes"
+            "SELECT stage, unit_kind, unit_id, materialized_generation_id FROM derivation_scopes"
         )
     }
 
@@ -528,16 +593,16 @@ def epochs(conn, namespace):
     return {
         row[0]: row[1]
         for row in conn.execute(
-            "SELECT input_key,version FROM derivation_input_versions WHERE namespace=?",
+            "SELECT input_key, version FROM derivation_input_versions WHERE namespace = %s",
             (namespace,),
         )
     }
 
 
-def test_changed_captured_code_replays_scope_without_manual_version_bump(
+def test_declared_version_bump_replays_scope_and_cuts_off_identical_output(
     source_fixture, monkeypatch
 ):
-    """A code-only change re-runs the scope; identical output keeps its id (D-0205)."""
+    """A declared bump re-runs the scope; identical output keeps its id (D-0205)."""
     from swingset.state import derivations
     from swingset.state.work import WorkUnit
 
@@ -574,7 +639,7 @@ def test_changed_captured_code_replays_scope_without_manual_version_bump(
     assert [
         tuple(row)
         for row in f.conn.execute(
-            "SELECT input_fingerprint,generation_id FROM derivation_equivalences"
+            "SELECT input_fingerprint, generation_id FROM derivation_equivalences"
         )
     ] == [(newer.fingerprint, first.generation_id)]
 
@@ -585,7 +650,10 @@ def signed_for(conn, unit, generation_id):
     from swingset.state.recipes import recipe_inputs
 
     signature = conn.execute(
-        "SELECT materialized_signature FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "SELECT materialized_signature FROM derivation_scopes WHERE stage = %s AND unit_kind = %s "
+            "AND unit_id = %s"
+        ),
         (unit.stage, unit.unit_kind, unit.unit_id),
     ).fetchone()[0]
     proof = certificate(conn, unit, recipe_inputs(conn, unit.stage, unit.unit_kind), {})
@@ -665,29 +733,32 @@ def test_different_output_after_a_cutoff_names_the_kept_generation_as_previous(
     assert newer != kept
     assert (
         f.conn.execute(
-            "SELECT previous_generation_id FROM derivation_generations WHERE generation_id=?",
+            "SELECT previous_generation_id FROM derivation_generations WHERE generation_id = %s",
             (newer,),
         ).fetchone()[0]
         == kept
     )
-    assert f.conn.execute("SELECT 1 FROM entries WHERE name_raw='Really Changed'").fetchone()
+    assert f.conn.execute("SELECT 1 FROM entries WHERE name_raw = 'Really Changed'").fetchone()
 
 
-def test_process_death_immediately_after_commit_leaves_current_generation(source_fixture, tmp_path):
-    import sqlite3
+def test_process_death_immediately_after_commit_leaves_current_generation(
+    source_fixture, tmp_path, request
+):
     import subprocess
     import sys
-    from contextlib import closing
     from pathlib import Path
 
     from swingset.state import derivations
+    from swingset.state.postgres_copy import Copies
     from swingset.state.work import WorkUnit
 
     f = source_fixture
     clone = tmp_path / "after-commit-process"
-    clone.mkdir()
-    with closing(sqlite3.connect(clone / "state.sqlite")) as target:
-        f.conn.backup(target)
+    shutil.copytree(f.db.state_dir, clone, ignore=shutil.ignore_patterns("database.json"))
+    copies = Copies(f.db.state_dir)
+    copies.__enter__()
+    request.addfinalizer(lambda: copies.__exit__(None, None, None))
+    copies.freeze(f.conn, clone)
     code = """
 import os,sys
 from pathlib import Path
@@ -721,7 +792,7 @@ with open_database(Path(state)) as db:
         assert unit not in set(derivations.pending_units(restarted.connection, "project"))
         assert (
             restarted.connection.execute(
-                "SELECT COUNT(*) FROM entries WHERE event_id='event-a'"
+                "SELECT COUNT(*) FROM entries WHERE event_id = 'event-a'"
             ).fetchone()[0]
             == 2
         )
@@ -731,7 +802,7 @@ with open_database(Path(state)) as db:
             ]
             == 1
         )
-        assert restarted.connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert verify(restarted.connection)["equal"]
 
 
 def drain_project(fixture):
@@ -768,7 +839,7 @@ def test_alias_move_replays_old_and_new_scopes_and_preserves_exact_mapping_gener
     )
     f.bundle = capture(f.config, f.overrides, f.db.state_dir, versions())
     accept(f.db, f.bundle, f.corpus.clock)
-    f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project','link')")
+    f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project', 'link')")
     completed = drain_project(f)
     # The source's mapping and both events' resolutions replace the map (F19).
     assert {
@@ -778,13 +849,13 @@ def test_alias_move_replays_old_and_new_scopes_and_preserves_exact_mapping_gener
     } <= set(completed)
     assert (
         f.conn.execute(
-            "SELECT event_id FROM source_event_map WHERE source_ref='eepro:test'"
+            "SELECT event_id FROM source_event_map WHERE source_ref = 'eepro:test'"
         ).fetchone()[0]
         == "event-b"
     )
     assert scope_rows(f.conn, "event-a") == []
     entries = f.conn.execute(
-        "SELECT event_id,name_raw,snapshot_id FROM entries ORDER BY name_raw"
+        "SELECT event_id, name_raw, snapshot_id FROM entries ORDER BY name_raw NULLS FIRST"
     ).fetchall()
     assert [tuple(row) for row in entries] == [
         ("event-b", "Alice Example", "round-one"),
@@ -798,21 +869,24 @@ def test_alias_move_replays_old_and_new_scopes_and_preserves_exact_mapping_gener
         assert map_generation is not None
         assert derivations.current(f.conn, unit)
         manifest = f.conn.execute(
-            "SELECT d.manifest_json FROM derivation_generations g JOIN derivation_dependency_sets d USING(dependency_set_id) WHERE g.generation_id=?",
+            (
+                "SELECT d.manifest_json FROM derivation_generations AS g JOIN derivation_dependency_sets AS "
+                "d USING (dependency_set_id) WHERE g.generation_id = %s"
+            ),
             (derivations.selected_generation(f.conn, unit),),
         ).fetchone()[0]
         assert map_generation in manifest + json.dumps(
             derivations.desired(f.conn, unit).dependency_sets
         )
     retained = f.conn.execute(
-        "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name='entries'",
+        "SELECT payload_json FROM derivation_rows WHERE generation_id = %s AND table_name = 'entries'",
         (old_generation,),
     ).fetchall()
     assert len(retained) == 2 and all(
         json.loads(row[0])["event_id"] == "event-a" for row in retained
     )
     assert drain_project(f) == []
-    assert f.conn.execute("PRAGMA foreign_key_check").fetchall() == []
+    assert verify(f.conn)["equal"]
 
 
 def test_a_fetched_sheet_queues_its_event_and_its_year_only(source_fixture):
@@ -863,7 +937,7 @@ def test_a_fetched_sheet_queues_its_event_and_its_year_only(source_fixture):
     # A re-parsed sheet of event-a with one changed name.
     with f.db.transaction():
         f.conn.execute(
-            "UPDATE observations SET payload_json=replace(payload_json,'Alice Example','Alice Changed')"
+            "UPDATE observations SET payload_json = REPLACE(payload_json, 'Alice Example', 'Alice Changed')"
         )
     completed = drain_project(f)
     assert WorkUnit("project", "event", "event-a") in completed
@@ -873,7 +947,7 @@ def test_a_fetched_sheet_queues_its_event_and_its_year_only(source_fixture):
     hinted = {
         tuple(row)
         for row in f.conn.execute(
-            "SELECT unit_kind,unit_id FROM pending_work WHERE stage='project' AND unit_kind='year'"
+            "SELECT unit_kind, unit_id FROM pending_work WHERE stage = 'project' AND unit_kind = 'year'"
         )
     }
     assert ("year", "2025") not in hinted
@@ -899,11 +973,11 @@ def test_new_registry_dancer_reconsiders_unmatched_entry_without_prior_candidate
     link_event(f.db, "event-a", f.bundle, f.corpus.clock, f.corpus.run)
     unit = WorkUnit("link", "event", "event-a")
     assert derivations.current(f.conn, unit)
-    entry = f.conn.execute("SELECT entry_id FROM entries WHERE name_raw='Diane Abele'").fetchone()[
-        0
-    ]
+    entry = f.conn.execute(
+        "SELECT entry_id FROM entries WHERE name_raw = 'Diane Abele'"
+    ).fetchone()[0]
     assert not f.conn.execute(
-        "SELECT 1 FROM link_candidates WHERE subject_id=?", (entry,)
+        "SELECT 1 FROM link_candidates WHERE subject_id = %s", (entry,)
     ).fetchone()
     previous = derivations.selected_generation(f.conn, unit)
     spec = SOURCE.watch(1)
@@ -911,19 +985,20 @@ def test_new_registry_dancer_reconsiders_unmatched_entry_without_prior_candidate
     body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
     context = f.corpus.snapshot("registry-newcomer", body, spec=spec)
     f.conn.execute(
-        "UPDATE snapshots SET method=? WHERE snapshot_id=?", (spec.method, context.snapshot_id)
+        "UPDATE snapshots SET method = %s WHERE snapshot_id = %s",
+        (spec.method, context.snapshot_id),
     )
     generation, report = f.corpus.stage(context, body=body)
     assert not report.failures
     f.corpus.review(generation)
     assert f.corpus.admit(generation) == "accepted"
     drain_project(f)
-    f.conn.execute("DELETE FROM pending_work WHERE stage='link'")
+    f.conn.execute("DELETE FROM pending_work WHERE stage = 'link'")
     assert unit in set(derivations.pending_units(f.conn, "link"))
     assert not derivations.current(f.conn, unit)
     link_event(f.db, "event-a", f.bundle, f.corpus.clock, f.corpus.run)
     assert f.conn.execute(
-        "SELECT 1 FROM link_candidates WHERE subject_id=? AND wsdc_id=1", (entry,)
+        "SELECT 1 FROM link_candidates WHERE subject_id = %s AND wsdc_id = 1", (entry,)
     ).fetchone()
     assert derivations.current(f.conn, unit)
     assert derivations.selected_generation(f.conn, unit) != previous
@@ -942,11 +1017,11 @@ def test_reference_migration_changes_desired_link_without_journal_or_source_chan
     unit = WorkUnit("link", "event", "event-a")
     old = derivations.desired(f.conn, unit)
     binding = f.conn.execute(
-        "SELECT ref_id,semantic_hash FROM identity_reference_bindings ORDER BY ref_id LIMIT 1"
+        "SELECT ref_id, semantic_hash FROM identity_reference_bindings ORDER BY ref_id NULLS FIRST LIMIT 1"
     ).fetchone()
     assert binding is not None and derivations.current(f.conn, unit)
     journal = f.conn.execute(
-        "SELECT value FROM meta WHERE key='identity_journal_digest'"
+        "SELECT value FROM meta WHERE key = 'identity_journal_digest'"
     ).fetchone()
     with f.db.transaction():
         record_migration(
@@ -962,10 +1037,10 @@ def test_reference_migration_changes_desired_link_without_journal_or_source_chan
             now=f.corpus.clock.now().isoformat(),
         )
     assert (
-        f.conn.execute("SELECT value FROM meta WHERE key='identity_journal_digest'").fetchone()
+        f.conn.execute("SELECT value FROM meta WHERE key = 'identity_journal_digest'").fetchone()
         == journal
     )
-    f.conn.execute("DELETE FROM pending_work WHERE stage='link'")
+    f.conn.execute("DELETE FROM pending_work WHERE stage = 'link'")
     assert not derivations.current(f.conn, unit)
     assert derivations.desired(f.conn, unit).fingerprint != old.fingerprint
     assert unit in set(derivations.pending_units(f.conn, "link"))
@@ -985,7 +1060,7 @@ def test_sibling_source_index_evidence_invalidates_shared_metadata_generation(tm
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         row = SourceEventRow(
             "source_event_row",
@@ -1008,7 +1083,7 @@ def test_sibling_source_index_evidence_invalidates_shared_metadata_generation(tm
             replace(row, name_raw="New detail name"),
             "2026-09-02T00:00:00Z",
         )
-        conn.execute("DELETE FROM pending_work WHERE stage='project'")
+        conn.execute("DELETE FROM pending_work WHERE stage = 'project'")
         assert not derivations.current(conn, unit)
         assert derivations.desired(conn, unit).fingerprint != old.fingerprint
 
@@ -1035,18 +1110,30 @@ def test_registry_enrichment_keeps_captured_calendar_identity_and_replay_quiet(s
         (),
     )
     f.conn.execute(
-        "INSERT INTO observations VALUES ('calendar-research',?,'round-one','calendar_row','calendar','2026',0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('calendar-research', "
+            "%s, 'round-one', 'calendar_row', 'calendar', '2026', 0, '1', '1', %s)"
+        ),
         (f.corpus.spec.watch_id, encode_payload(row)),
     )
     unit = WorkUnit("project", "calendar", "2026")
     process_unit(f.db, unit, f.bundle, f.corpus.clock, f.corpus.run)
     first = derivations.desired(f.conn, unit)
     original = dict(
-        f.conn.execute("SELECT * FROM events WHERE name='Registry Joined Weekend'").fetchone()
+        f.conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events WHERE name = 'Registry Joined "
+            "Weekend'"
+        ).fetchone()
     )
     continuity_id = first.continuity["dependency_set_id"]
     captured_continuity = f.conn.execute(
-        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
         (continuity_id,),
     ).fetchone()[0]
     assert all(
@@ -1071,14 +1158,27 @@ def test_registry_enrichment_keeps_captured_calendar_identity_and_replay_quiet(s
         ),
     )
     f.conn.execute(
-        "INSERT INTO observations VALUES ('registry-occurrence',?,'registry-occurrence','dancer_lookup','dancer','999',0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES "
+            "('registry-occurrence', %s, 'registry-occurrence', 'dancer_lookup', 'dancer', '999', 0, "
+            "'1', '1', %s)"
+        ),
         (context.watch_id, encode_payload(registry)),
     )
     completed = drain_project(f)
     assert WorkUnit("project", "dancer", "999") in completed
     assert WorkUnit("project", "inventory", "all") in completed
     enriched = dict(
-        f.conn.execute("SELECT * FROM events WHERE name='Registry Joined Weekend'").fetchone()
+        f.conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events WHERE name = 'Registry Joined "
+            "Weekend'"
+        ).fetchone()
     )
     assert enriched["event_id"] == original["event_id"]
     assert enriched["series_id"] == "wsdc-999" and enriched["held"] == "held"
@@ -1093,14 +1193,14 @@ def test_registry_enrichment_keeps_captured_calendar_identity_and_replay_quiet(s
     # Captured continuity remains byte-identical after live inventory changed.
     assert (
         f.conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (continuity_id,),
         ).fetchone()[0]
         == captured_continuity
     )
     recipe = json.loads(
         f.conn.execute(
-            "SELECT recipe_json FROM derivation_generations WHERE generation_id=?",
+            "SELECT recipe_json FROM derivation_generations WHERE generation_id = %s",
             (first.generation_id,),
         ).fetchone()[0]
     )
@@ -1142,10 +1242,14 @@ def add_dancer(
     )
     with fixture.db.transaction():
         fixture.conn.execute(
-            "DELETE FROM observations WHERE scope_kind='dancer' AND scope_id='999'"
+            "DELETE FROM observations WHERE scope_kind = 'dancer' AND scope_id = '999'"
         )
         fixture.conn.execute(
-            "INSERT INTO observations VALUES (?,?,?,'dancer_lookup','dancer','999',0,'1','1',?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, "
+                "'dancer_lookup', 'dancer', '999', 0, '1', '1', %s)"
+            ),
             (snapshot, context.watch_id, snapshot, encode_payload(registry)),
         )
 
@@ -1167,7 +1271,11 @@ def add_calendar(fixture):
         (),
     )
     fixture.conn.execute(
-        "INSERT INTO observations VALUES ('calendar-research',?,'round-one','calendar_row','calendar','2026',0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('calendar-research', "
+            "%s, 'round-one', 'calendar_row', 'calendar', '2026', 0, '1', '1', %s)"
+        ),
         (fixture.corpus.spec.watch_id, encode_payload(row)),
     )
 
@@ -1251,7 +1359,8 @@ def test_a_real_dancer_change_keeps_the_year_and_reaches_only_its_links(
     reached = {
         str(row[0])
         for row in f.conn.execute(
-            "SELECT event_id FROM judges WHERE name_raw='Diane Abele' UNION SELECT event_id FROM entries WHERE name_raw='Diane Abele'"
+            "SELECT event_id FROM judges WHERE name_raw = 'Diane Abele' UNION SELECT event_id FROM "
+            "entries WHERE name_raw = 'Diane Abele'"
         )
     }
     assert reached and reached <= set(old_links)
@@ -1259,7 +1368,7 @@ def test_a_real_dancer_change_keeps_the_year_and_reaches_only_its_links(
     # link of the event it names re-runs; its output is unchanged.
     placed = {
         str(row[0])
-        for row in f.conn.execute("SELECT event_id FROM registry_placements WHERE wsdc_id=999")
+        for row in f.conn.execute("SELECT event_id FROM registry_placements WHERE wsdc_id = 999")
     }
     assert {unit.unit_id for unit in link_all(f)} == reached | placed
     new_dancer = derivations.selected_generation(f.conn, dancer)
@@ -1305,12 +1414,13 @@ def test_retention_walk_from_a_kept_pointer_reaches_what_the_rerun_consumed(
     for root_set in [
         row[0]
         for row in f.conn.execute(
-            "SELECT dependency_set_id FROM derivation_equivalences WHERE generation_id=?", (kept,)
+            "SELECT dependency_set_id FROM derivation_equivalences WHERE generation_id = %s",
+            (kept,),
         )
     ]:
         manifest = json.loads(
             f.conn.execute(
-                "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                 (root_set,),
             ).fetchone()[0]
         )
@@ -1325,7 +1435,7 @@ def test_retention_walk_from_a_kept_pointer_reaches_what_the_rerun_consumed(
             if entry["kind"] == "dependency_set"
             for member in json.loads(
                 f.conn.execute(
-                    "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                    "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                     (entry["fingerprint"],),
                 ).fetchone()[0]
             )
@@ -1370,7 +1480,7 @@ def test_a_member_whose_provisional_id_a_sibling_captured_never_cuts_off(
     # (D-0224; before, the closure-stable rule minted it as well).
     assert derivations.selected_generation(f.conn, source_event) == kept_source_event
     assert count(f.conn, "derivation_generations") == generations + 1
-    assert f.conn.execute("PRAGMA foreign_key_check").fetchall() == []
+    assert verify(f.conn)["equal"]
 
 
 def test_a_sibling_captured_after_a_member_cut_off_names_the_kept_id(source_fixture, monkeypatch):
@@ -1405,7 +1515,7 @@ def test_a_sibling_captured_after_a_member_cut_off_names_the_kept_id(source_fixt
         )
     assert derivations.selected_generation(f.conn, event) == kept
     assert derivations.current(f.conn, event) and derivations.current(f.conn, source_event)
-    assert f.conn.execute("PRAGMA foreign_key_check").fetchall() == []
+    assert verify(f.conn)["equal"]
 
 
 def test_a_scheduled_source_event_with_a_nested_reused_event_cuts_off(source_fixture, monkeypatch):
@@ -1432,7 +1542,7 @@ def test_a_scheduled_source_event_with_a_nested_reused_event_cuts_off(source_fix
     assert count(f.conn, "derivation_generations") == generations
     assert {
         tuple(row)
-        for row in f.conn.execute("SELECT unit_kind,generation_id FROM derivation_equivalences")
+        for row in f.conn.execute("SELECT unit_kind, generation_id FROM derivation_equivalences")
     } >= {("event", kept[event]), ("source_event", kept[source_event])}
 
 
@@ -1453,7 +1563,15 @@ def test_a_calendar_cutoff_that_rewrote_enrichment_moves_the_replay_epoch(source
 
     def event_state():
         return dict(
-            f.conn.execute("SELECT * FROM events WHERE name='Registry Joined Weekend'").fetchone()
+            f.conn.execute(
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE name = 'Registry Joined "
+                "Weekend'"
+            ).fetchone()
         )
 
     def replay_calendar(marker):
@@ -1508,12 +1626,14 @@ def test_a_calendar_cutoff_that_rewrote_enrichment_moves_the_replay_epoch(source
     # generation's own, which names another predecessor.
     selection = derivations.desired(f.conn, inventory)
     recorded = f.conn.execute(
-        "SELECT r.recipe_json FROM derivation_equivalences e JOIN derivation_recipes r "
-        "USING(recipe_sha256) WHERE e.unit_kind='inventory' AND e.input_fingerprint=?",
+        (
+            "SELECT r.recipe_json FROM derivation_equivalences AS e JOIN derivation_recipes AS r USING "
+            "(recipe_sha256) WHERE e.unit_kind = 'inventory' AND e.input_fingerprint = %s"
+        ),
         (selection.fingerprint,),
     ).fetchone()[0]
     own = f.conn.execute(
-        "SELECT recipe_json FROM derivation_generations WHERE generation_id=?",
+        "SELECT recipe_json FROM derivation_generations WHERE generation_id = %s",
         (selection.generation_id,),
     ).fetchone()[0]
     assert selection.continuity == json.loads(recorded)["continuity"]
@@ -1524,12 +1644,12 @@ def test_a_calendar_cutoff_that_rewrote_enrichment_moves_the_replay_epoch(source
     from swingset.model.observations import decode_payload, encode_payload
 
     payload = f.conn.execute(
-        "SELECT payload_json FROM observations WHERE observation_id='calendar-research'"
+        "SELECT payload_json FROM observations WHERE observation_id = 'calendar-research'"
     ).fetchone()[0]
     moved = replace(decode_payload("calendar_row", payload), location_raw="Boulder, USA")
     with f.db.transaction():
         f.conn.execute(
-            "UPDATE observations SET payload_json=? WHERE observation_id='calendar-research'",
+            "UPDATE observations SET payload_json = %s WHERE observation_id = 'calendar-research'",
             (encode_payload(moved),),
         )
     process_unit(f.db, calendar, f.bundle, f.corpus.clock, f.corpus.run)
@@ -1537,7 +1657,7 @@ def test_a_calendar_cutoff_that_rewrote_enrichment_moves_the_replay_epoch(source
     assert newer != kept[("project", "calendar", "2026")]
     assert (
         f.conn.execute(
-            "SELECT previous_generation_id FROM derivation_generations WHERE generation_id=?",
+            "SELECT previous_generation_id FROM derivation_generations WHERE generation_id = %s",
             (newer,),
         ).fetchone()[0]
         == kept[("project", "calendar", "2026")]
@@ -1556,7 +1676,13 @@ def test_crash_between_the_comparison_and_the_equivalence_rolls_back(source_fixt
     change_code(f, monkeypatch)
     state = output_state(f.conn)
     scopes = [
-        tuple(row) for row in f.conn.execute("SELECT * FROM derivation_scopes ORDER BY 1,2,3")
+        tuple(row)
+        for row in f.conn.execute(
+            "SELECT derivation_scopes.stage, derivation_scopes.unit_kind, derivation_scopes.unit_id, "
+            "derivation_scopes.desired_fingerprint, derivation_scopes.materialized_generation_id, "
+            "derivation_scopes.registered_at, derivation_scopes.materialized_signature FROM "
+            "derivation_scopes ORDER BY 1 NULLS FIRST, 2 NULLS FIRST, 3 NULLS FIRST"
+        )
     ]
     generations = count(f.conn, "derivation_generations")
     compared = []
@@ -1585,7 +1711,13 @@ def test_crash_between_the_comparison_and_the_equivalence_rolls_back(source_fixt
             )
     assert output_state(f.conn) == state
     assert [
-        tuple(row) for row in f.conn.execute("SELECT * FROM derivation_scopes ORDER BY 1,2,3")
+        tuple(row)
+        for row in f.conn.execute(
+            "SELECT derivation_scopes.stage, derivation_scopes.unit_kind, derivation_scopes.unit_id, "
+            "derivation_scopes.desired_fingerprint, derivation_scopes.materialized_generation_id, "
+            "derivation_scopes.registered_at, derivation_scopes.materialized_signature FROM "
+            "derivation_scopes ORDER BY 1 NULLS FIRST, 2 NULLS FIRST, 3 NULLS FIRST"
+        )
     ] == scopes
     assert count(f.conn, "derivation_equivalences") == 0
     assert count(f.conn, "derivation_recipes") == 0
@@ -1616,8 +1748,8 @@ def replay_state(conn):
     return sorted(
         tuple(row)
         for row in conn.execute(
-            "SELECT namespace,input_key,version FROM derivation_input_versions "
-            "WHERE namespace IN ('replayed','replayed_unit')"
+            "SELECT namespace, input_key, version FROM derivation_input_versions WHERE namespace IN "
+            "('replayed', 'replayed_unit')"
         )
     )
 
@@ -1657,7 +1789,7 @@ def test_a_dancer_change_runs_the_dancer_the_inventory_the_years_and_its_readers
     readers = {unit.unit_id for unit in read_index.dependents(f.conn, "project/dancer/999")}
     placed = {
         str(row[0])
-        for row in f.conn.execute("SELECT event_id FROM registry_placements WHERE wsdc_id=999")
+        for row in f.conn.execute("SELECT event_id FROM registry_placements WHERE wsdc_id = 999")
     }
     # The same dancer with other points: a new registry page, same name.
     add_dancer(f, snapshot="registry-points", points=3)
@@ -1694,7 +1826,7 @@ def test_the_inventory_writes_json_as_every_other_writer_does(source_fixture):
         )
     listed_fixture(f)
     rows = f.conn.execute(
-        "SELECT event_id,sources,history_source FROM events WHERE history_source IS NOT NULL"
+        "SELECT event_id, sources, history_source FROM events WHERE NOT history_source IS NULL"
     ).fetchall()
     assert any("eepro" in str(row[1]) for row in rows), rows
     for event_id, *values in rows:
@@ -1702,22 +1834,25 @@ def test_the_inventory_writes_json_as_every_other_writer_does(source_fixture):
             assert value == json.dumps(json.loads(value), separators=(",", ":")), (event_id, value)
     # The inventory runs again on the same inputs: nothing moves.
     replayed = replay_state(f.conn)
-    revisions = dict(f.conn.execute("SELECT name,value FROM revisions").fetchall())
+    revisions = dict(f.conn.execute("SELECT name, value FROM revisions").fetchall())
     process_unit(
         f.db, WorkUnit("project", "inventory", "all"), f.bundle, f.corpus.clock, f.corpus.run
     )
     assert replay_state(f.conn) == replayed
-    assert dict(f.conn.execute("SELECT name,value FROM revisions").fetchall()) == revisions
+    assert dict(f.conn.execute("SELECT name, value FROM revisions").fetchall()) == revisions
     # A row stored with spaces by the old code differs in text only: the
     # inventory neither rewrites it nor refreshes its other columns.
     from swingset.project.history import prepare_inventory
 
     event_id = next(row[0] for row in rows if "eepro" in str(row[1]))
     with f.db.transaction() as conn:
-        stored = conn.execute("SELECT sources FROM events WHERE event_id=?", (event_id,)).fetchone()
+        stored = conn.execute(
+            "SELECT sources FROM events WHERE event_id = %s", (event_id,)
+        ).fetchone()
         spaced = json.dumps(json.loads(stored[0]))
         conn.execute(
-            "UPDATE events SET sources=?,parser_version='old' WHERE event_id=?", (spaced, event_id)
+            "UPDATE events SET sources = %s, parser_version = 'old' WHERE event_id = %s",
+            (spaced, event_id),
         )
         assert not prepare_inventory(
             conn,
@@ -1727,11 +1862,12 @@ def test_the_inventory_writes_json_as_every_other_writer_does(source_fixture):
         )
         assert tuple(
             conn.execute(
-                "SELECT sources,parser_version FROM events WHERE event_id=?", (event_id,)
+                "SELECT sources, parser_version FROM events WHERE event_id = %s", (event_id,)
             ).fetchone()
         ) == (spaced, "old")
         conn.execute(
-            "UPDATE events SET sources=?,parser_version='1' WHERE event_id=?", (stored[0], event_id)
+            "UPDATE events SET sources = %s, parser_version = '1' WHERE event_id = %s",
+            (stored[0], event_id),
         )
 
 

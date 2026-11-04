@@ -1,6 +1,5 @@
 """Whole-cohort readiness reuse is confined to owned selector read snapshots."""
 
-import sqlite3
 from contextlib import contextmanager
 
 import pytest
@@ -8,7 +7,7 @@ from test_dancer_readiness import registry_fixture as registry_fixture
 from test_h15_acceptance import source_fixture as source_fixture
 
 from swingset.schedule.fairness import next_offline
-from swingset.state import derivation_query, derivations
+from swingset.state import derivation_query, derivations, engine
 from swingset.state.derivation_readiness import dancers_current
 from swingset.state.work import WorkUnit, enqueue
 
@@ -18,17 +17,14 @@ DANCER = WorkUnit("project", "dancer", "1")
 @contextmanager
 def bulk_reads(conn):
     statements = []
-    conn.set_trace_callback(
-        lambda sql: (
-            statements.append(sql)
-            if "SELECT s.unit_id,s.materialized_generation_id" in sql
+    with conn.observing(
+        lambda query, params: (
+            statements.append(str(query))
+            if "SELECT s.unit_id, s.materialized_generation_id" in str(query)
             else None
         )
-    )
-    try:
+    ):
         yield statements
-    finally:
-        conn.set_trace_callback(None)
 
 
 def test_a_link_fleet_selects_the_same_work_without_reading_the_dancer_cohort(
@@ -41,12 +37,17 @@ def test_a_link_fleet_selects_the_same_work_without_reading_the_dancer_cohort(
     enqueue(f.conn, (*fleet, healthy), enqueued_at=f.corpus.clock.now().isoformat())
     # Each link's event unit exists but never materialized: the link waits.
     f.conn.executemany(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-        "VALUES ('project','event',?,?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+            "'event', %s, %s) ON CONFLICT DO NOTHING"
+        ),
         [(unit.unit_id, f.corpus.clock.now().isoformat()) for unit in fleet],
     )
     f.conn.execute(
-        "INSERT INTO scheduler_offline_service VALUES ('parse','snapshot',1,?,999)",
+        (
+            "INSERT INTO scheduler_offline_service (stage, unit_kind, attempts, last_served_at, "
+            "sequence) VALUES ('parse', 'snapshot', 1, %s, 999)"
+        ),
         (f.corpus.clock.now().isoformat(),),
     )
 
@@ -60,7 +61,10 @@ def test_a_link_fleet_selects_the_same_work_without_reading_the_dancer_cohort(
     with bulk_reads(f.conn) as reference_reads:
         reference = next_offline(f.conn, now=f.corpus.clock.now(), allowed=allowed)
     assert reference == optimized and reference_reads == []
-    assert not f.conn.in_transaction and f.conn.execute("PRAGMA query_only").fetchone()[0] == 0
+    assert (
+        not f.conn.in_transaction
+        and f.conn.execute("SHOW transaction_read_only").fetchone()[0] == "off"
+    )
 
 
 def test_changed_cohort_and_input_get_independent_answers(registry_fixture):
@@ -73,7 +77,8 @@ def test_changed_cohort_and_input_get_independent_answers(registry_fixture):
         assert not dancers_current(f.conn, (DANCER, unknown), current=derivations.current)
         assert len(reads) == 2
     f.conn.execute(
-        "UPDATE accepted_inputs SET digest='changed-runtime' WHERE input_name='recipe/env'"
+        "UPDATE accepted_inputs SET digest = 'changed-projector-version' WHERE input_name = "
+        "'recipe/code/project/dancer'"
     )
     with derivation_query.read_snapshot(f.conn):
         assert not dancers_current(f.conn, (DANCER,), current=derivations.current)
@@ -85,7 +90,8 @@ def test_mutable_transaction_and_savepoint_rollback_recompute(registry_fixture):
         assert dancers_current(f.conn, (DANCER,), current=derivations.current)
         f.conn.execute("SAVEPOINT changed")
         f.conn.execute(
-            "UPDATE observations SET payload_json=replace(payload_json,'Diane','Changed') WHERE scope_kind='dancer'"
+            "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Changed') WHERE "
+            "scope_kind = 'dancer'"
         )
         assert not dancers_current(f.conn, (DANCER,), current=derivations.current)
         f.conn.execute("ROLLBACK TO changed")
@@ -96,11 +102,12 @@ def test_mutable_transaction_and_savepoint_rollback_recompute(registry_fixture):
 
 def test_other_connection_changes_are_fresh_after_snapshot(registry_fixture):
     f = registry_fixture
-    with sqlite3.connect(f.db.state_dir / "state.sqlite", isolation_level=None) as other:
+    with engine.connect(engine.resolve_dsn(f.db.state_dir)) as other:
         with derivation_query.read_snapshot(f.conn), bulk_reads(f.conn) as reads:
             assert dancers_current(f.conn, (DANCER,), current=derivations.current)
             other.execute(
-                "UPDATE observations SET payload_json=replace(payload_json,'Diane','Concurrent') WHERE scope_kind='dancer'"
+                "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Concurrent') WHERE "
+                "scope_kind = 'dancer'"
             )
             assert dancers_current(f.conn, (DANCER,), current=derivations.current)
             assert len(reads) == 1
@@ -110,8 +117,7 @@ def test_other_connection_changes_are_fresh_after_snapshot(registry_fixture):
 
 def test_read_only_caller_transaction_is_not_an_owned_cache(registry_fixture):
     f = registry_fixture
-    f.conn.execute("PRAGMA query_only=ON")
-    f.conn.execute("BEGIN")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     try:
         with derivation_query.read_snapshot(f.conn), bulk_reads(f.conn) as reads:
             assert dancers_current(f.conn, (DANCER,), current=derivations.current)
@@ -120,7 +126,6 @@ def test_read_only_caller_transaction_is_not_an_owned_cache(registry_fixture):
         assert f.conn.in_transaction
     finally:
         f.conn.rollback()
-        f.conn.execute("PRAGMA query_only=OFF")
 
 
 def test_custom_callback_with_mutable_non_database_state_is_not_cached(registry_fixture):

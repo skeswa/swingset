@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 import zlib
 from dataclasses import dataclass
 from datetime import date, datetime
 
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 from .db import Database
 from .requirement_scopes import scope_page, scope_present
@@ -51,7 +51,7 @@ class Requirement:
 
 
 def reconcile_requirement(
-    conn: sqlite3.Connection, requirement: Requirement, now: datetime, run_id: str
+    conn: engine.Connection, requirement: Requirement, now: datetime, run_id: str
 ) -> str:
     """Commit only a checked postcondition.
 
@@ -71,20 +71,18 @@ def reconcile_requirement(
     fingerprint = hashlib.sha256(evidence.encode()).hexdigest()
     at = now.isoformat()
     previous = conn.execute(
-        "SELECT state,desired_fingerprint,next_action,blocking_reason,next_eligible_at FROM findings WHERE finding_id=?",
+        (
+            "SELECT state, desired_fingerprint, next_action, blocking_reason, next_eligible_at FROM "
+            "findings WHERE finding_id = %s"
+        ),
         (requirement.identifier,),
     ).fetchone()
     # A new row opens now: the transition history that kept a re-created
     # requirement's first opening time is gone (D-0237).
     conn.execute(
-        """INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,run_id,policy_version,desired_fingerprint,state,source,next_action,blocking_reason,next_eligible_at,status_at,closed_at,last_progress_at)
-        VALUES (?,'requirement',?,?,'scope',?,'warning',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ON CONFLICT(finding_id) DO UPDATE SET evidence_json=excluded.evidence_json,
-        desired_fingerprint=excluded.desired_fingerprint,state=excluded.state,source=excluded.source,
-        next_action=excluded.next_action,blocking_reason=excluded.blocking_reason,
-        next_eligible_at=excluded.next_eligible_at,closed_at=excluded.closed_at,
-        status_at=CASE WHEN findings.state<>excluded.state THEN excluded.status_at ELSE findings.status_at END,
-        last_progress_at=CASE WHEN findings.state<>excluded.state AND excluded.state='satisfied' THEN excluded.status_at ELSE findings.last_progress_at END""",
+        (
+            "INSERT INTO findings (finding_id, owner_kind, owner_id, kind, subject_kind, subject_id, severity, summary, evidence_json, opened_at, run_id, policy_version, desired_fingerprint, state, source, next_action, blocking_reason, next_eligible_at, status_at, closed_at, last_progress_at) VALUES (%s, 'requirement', %s, %s, 'scope', %s, 'warning', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(finding_id) DO UPDATE SET evidence_json = excluded.evidence_json, desired_fingerprint = excluded.desired_fingerprint, state = excluded.state, source = excluded.source, next_action = excluded.next_action, blocking_reason = excluded.blocking_reason, next_eligible_at = excluded.next_eligible_at, closed_at = excluded.closed_at, status_at = CASE WHEN findings.state <> excluded.state THEN excluded.status_at ELSE findings.status_at END, last_progress_at = CASE WHEN findings.state <> excluded.state AND excluded.state = 'satisfied' THEN excluded.status_at ELSE findings.last_progress_at END"
+        ),
         (
             requirement.identifier,
             requirement.kind,
@@ -120,12 +118,14 @@ def reconcile_requirement(
 
 
 def _check(
-    conn: sqlite3.Connection, archive: Archive, scope: str, key: str, history_start: date
+    conn: engine.Connection, archive: Archive, scope: str, key: str, history_start: date
 ) -> Requirement | None:
     if scope == "round":
-        watch = conn.execute("SELECT source,state FROM watches WHERE watch_id=?", (key,)).fetchone()
+        watch = conn.execute(
+            "SELECT source, state FROM watches WHERE watch_id = %s", (key,)
+        ).fetchone()
         usable = conn.execute(
-            "SELECT 1 FROM observations WHERE watch_id=? LIMIT 1", (key,)
+            "SELECT 1 AS _value_0 FROM observations WHERE watch_id = %s LIMIT 1", (key,)
         ).fetchone()
         state = "out_of_scope" if watch[1] == "retired" else "satisfied" if usable else "ready"
         return Requirement(
@@ -139,7 +139,7 @@ def _check(
     if scope == "mapping":
         source, reference = json.loads(key)
         mapped = conn.execute(
-            "SELECT event_id FROM source_event_map WHERE source=? AND source_ref=?",
+            "SELECT event_id FROM source_event_map WHERE source = %s AND source_ref = %s",
             (source, reference),
         ).fetchone()
         return Requirement(
@@ -169,7 +169,7 @@ def _check(
     if scope == "occurrence":
         series, month = json.loads(key)
         rows = conn.execute(
-            "SELECT DISTINCT event_id FROM registry_placements WHERE series_id=? AND event_month=?",
+            "SELECT DISTINCT event_id FROM registry_placements WHERE series_id = %s AND event_month = %s",
             (series, month),
         ).fetchall()
         mapped = len(rows) == 1 and rows[0][0] is not None
@@ -195,7 +195,9 @@ def _check(
         )
     if scope == "finalist":
         matched = conn.execute(
-            """SELECT 1 FROM entries e JOIN contests c USING(contest_id) JOIN placements p ON (p.leader_entry_id=e.entry_id OR p.follower_entry_id=e.entry_id) JOIN registry_placements rp ON rp.wsdc_id=e.wsdc_id AND rp.event_id=e.event_id AND rp.role=e.role AND rp.division=c.division AND rp.dance_style=c.dance_style AND rp.result IN (CAST(p.place AS TEXT),'F') WHERE e.entry_id=? LIMIT 1""",
+            (
+                "SELECT 1 AS _value_0 FROM entries AS e JOIN contests AS c USING (contest_id) JOIN placements AS p ON (p.leader_entry_id = e.entry_id OR p.follower_entry_id = e.entry_id) JOIN registry_placements AS rp ON rp.wsdc_id = e.wsdc_id AND rp.event_id = e.event_id AND rp.role = e.role AND rp.division = c.division AND rp.dance_style = c.dance_style AND rp.result IN (CAST(p.place AS TEXT), 'F') WHERE e.entry_id = %s LIMIT 1"
+            ),
             (key,),
         ).fetchone()
         return Requirement(
@@ -211,7 +213,10 @@ def _check(
         # file in the retention closure. The requirement reports on that file;
         # it does not hold it. See `reconcile_requirement`.
         support = conn.execute(
-            "SELECT s.snapshot_id,w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.body_sha256=? ORDER BY s.snapshot_id",
+            (
+                "SELECT s.snapshot_id, w.source FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE "
+                "s.body_sha256 = %s ORDER BY s.snapshot_id NULLS FIRST"
+            ),
             (key,),
         ).fetchall()
         sources = sorted({row[1] for row in support})
@@ -230,7 +235,19 @@ def _check(
             failure,
         )
     if scope == "retirement":
-        row = conn.execute("SELECT * FROM findings WHERE finding_id=?", (key,)).fetchone()
+        row = conn.execute(
+            (
+                "SELECT findings.finding_id, findings.owner_kind, findings.owner_id, findings.kind, "
+                "findings.subject_kind, findings.subject_id, findings.watch_id, findings.snapshot_id, "
+                "findings.severity, findings.summary, findings.evidence_json, findings.suggested_override, "
+                "findings.opened_at, findings.run_id, findings.closed_at, findings.closed_by, "
+                "findings.policy_version, findings.desired_fingerprint, findings.state, findings.source, "
+                "findings.next_action, findings.blocking_reason, findings.next_eligible_at, "
+                "findings.attempt_count, findings.last_progress_at, findings.status_at FROM findings WHERE "
+                "finding_id = %s"
+            ),
+            (key,),
+        ).fetchone()
         if row["policy_version"] != POLICY_VERSION or (
             not scope_present(conn, row["kind"], row["subject_id"])
         ):
@@ -259,19 +276,19 @@ def scan(
         raise ValueError("scan limit must be positive")
     with database.transaction() as conn:
         checkpoint = conn.execute(
-            "SELECT cursor,started_at FROM requirement_scan WHERE singleton=1"
+            "SELECT cursor, started_at FROM requirement_scan WHERE singleton = 1"
         ).fetchone()
         rows = scope_page(conn, checkpoint[0], limit)
         for row in rows:
             if row["scope"] == "finding":
                 support = conn.execute(
-                    "SELECT payload_json FROM finding_support WHERE finding_id=?", (row["id"],)
+                    "SELECT payload_json FROM finding_support WHERE finding_id = %s", (row["id"],)
                 ).fetchone()
                 payload = json.loads(support[0])
                 columns = ",".join(payload)
-                marks = ",".join("?" for _ in payload)
+                marks = ",".join("%s" for _ in payload)
                 inserted = conn.execute(
-                    f"INSERT OR IGNORE INTO findings(finding_id,{columns}) VALUES (?,{marks})",
+                    f"INSERT INTO findings(finding_id,{columns}) VALUES (%s,{marks}) ON CONFLICT DO NOTHING",
                     (row["id"], *payload.values()),
                 ).rowcount
                 if inserted:
@@ -282,12 +299,16 @@ def scan(
                 reconcile_requirement(conn, requirement, now, run_id)
         end = len(rows) < limit
         conn.execute(
-            "UPDATE requirement_scan SET cursor=?,started_at=?,last_scanned_at=?,last_completed_at=CASE WHEN ? THEN ? ELSE last_completed_at END,scanned=scanned+? WHERE singleton=1",
+            (
+                "UPDATE requirement_scan SET cursor = %s, started_at = %s, last_scanned_at = %s, "
+                "last_completed_at = CASE WHEN %s THEN %s ELSE last_completed_at END, scanned = scanned + %s "
+                "WHERE singleton = 1"
+            ),
             (
                 "" if end else rows[-1]["key"],
                 now.isoformat() if end or checkpoint[1] is None else checkpoint[1],
                 now.isoformat(),
-                int(end),
+                end,
                 now.isoformat(),
                 len(rows),
             ),

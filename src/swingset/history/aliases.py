@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import defaultdict
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any
 
 from swingset.fetch.archive import canonical, durable_write
 from swingset.model.ids import series_slug
+from swingset.state import engine
 
 
 def _next_month(month: str) -> str:
@@ -18,11 +18,11 @@ def _next_month(month: str) -> str:
     return f"{year + (number == 12):04d}-{number % 12 + 1:02d}"
 
 
-def _registry(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
+def _registry(conn: engine.Connection) -> dict[str, dict[str, Any]]:
     series: dict[str, dict[str, Any]] = {}
     for row in conn.execute(
-        "SELECT series_id,series_name_raw,event_month,MIN(snapshot_id) AS snapshot_id,"
-        "COUNT(*) AS placements FROM registry_placements GROUP BY series_id,series_name_raw,event_month"
+        "SELECT series_id, series_name_raw, event_month, MIN(snapshot_id) AS snapshot_id, COUNT(*) "
+        "AS placements FROM registry_placements GROUP BY series_id, series_name_raw, event_month"
     ):
         item = series.setdefault(
             row["series_id"], {"names": set(), "months": set(), "occurrences": []}
@@ -33,13 +33,13 @@ def _registry(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
     return series
 
 
-def _evidence(conn: sqlite3.Connection, keys: set[str]) -> dict[str, list[dict[str, Any]]]:
+def _evidence(conn: engine.Connection, keys: set[str]) -> dict[str, list[dict[str, Any]]]:
     evidence: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in conn.execute(
-        "SELECT o.observation_id,o.payload_json,o.snapshot_id,w.source,s.url,s.archive_url,"
-        "s.captured_at,s.fetched_at,s.body_sha256,o.parser_version FROM observations o "
-        "JOIN snapshots s USING(snapshot_id) JOIN watches w USING(watch_id) "
-        "WHERE o.scope_kind='calendar' ORDER BY s.observed_at,s.fetched_at,o.seq"
+        "SELECT o.observation_id, o.payload_json, o.snapshot_id, w.source, s.url, s.archive_url, "
+        "s.captured_at, s.fetched_at, s.body_sha256, o.parser_version FROM observations AS o JOIN "
+        "snapshots AS s USING (snapshot_id) JOIN watches AS w USING (watch_id) WHERE o.scope_kind = "
+        "'calendar' ORDER BY s.observed_at NULLS FIRST, s.fetched_at NULLS FIRST, o.seq NULLS FIRST"
     ):
         payload = json.loads(row["payload_json"])
         key = series_slug(payload.get("name_raw", ""))
@@ -49,10 +49,10 @@ def _evidence(conn: sqlite3.Connection, keys: set[str]) -> dict[str, list[dict[s
             item["raw_row"] = payload
             evidence[key].append(item)
     for row in conn.execute(
-        "SELECT se.name_raw,se.start_date,se.end_date,se.location_raw,se.url AS listing_url,"
-        "se.source,se.snapshot_id,se.parser_version,s.url,s.archive_url,s.captured_at,s.fetched_at,"
-        "s.body_sha256 FROM source_events se JOIN snapshots s USING(snapshot_id) "
-        "WHERE se.start_date IS NOT NULL AND se.end_date IS NOT NULL"
+        "SELECT se.name_raw, se.start_date, se.end_date, se.location_raw, se.url AS listing_url, "
+        "se.source, se.snapshot_id, se.parser_version, s.url, s.archive_url, s.captured_at, "
+        "s.fetched_at, s.body_sha256 FROM source_events AS se JOIN snapshots AS s USING "
+        "(snapshot_id) WHERE NOT se.start_date IS NULL AND NOT se.end_date IS NULL"
     ):
         key = series_slug(row["name_raw"] or "")
         if key in keys:
@@ -126,12 +126,13 @@ def _candidates(group: dict[str, Any], registry: dict[str, dict[str, Any]]) -> l
     return selected
 
 
-def alias_proposals(conn: sqlite3.Connection, output: Path, *, now: str) -> dict[str, int]:
+def alias_proposals(conn: engine.Connection, output: Path, *, now: str) -> dict[str, int]:
     """Write proposals only. Never change the database, overrides, or year acceptance."""
     grouped: dict[str, dict[str, Any]] = {}
     for row in conn.execute(
-        "SELECT finding_id,subject_id,evidence_json,snapshot_id FROM findings "
-        "WHERE kind='series_alias' AND owner_kind='history_year' AND closed_at IS NULL ORDER BY subject_id"
+        "SELECT finding_id, subject_id, evidence_json, snapshot_id FROM findings WHERE kind = "
+        "'series_alias' AND owner_kind = 'history_year' AND closed_at IS NULL ORDER BY subject_id "
+        "NULLS FIRST"
     ):
         finding = json.loads(row["evidence_json"])
         key = series_slug(finding["printed_name"])

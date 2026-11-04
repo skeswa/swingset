@@ -3,16 +3,9 @@
 A set is the database plus every file it needs, written so that a daily set
 sends only what is new:
 
-1. **Snapshot.** Under the caller's shared state lock, `VACUUM INTO` copies
-   the database in one read transaction while the loops keep running. Then,
-   under the control lock (D-0164's order), the file closure comes from that
-   copy: `retention.artifact_closure` (bodies, extracts, input bundles),
-   every `objects` row, the release manifests and partition artifacts a
-   retained manifest or a current partition names, the baseline and pending
-   candidates, `holds/`, and the other loose state files a checkpoint copies.
-   Files that change in place (candidates, holds, the rest) are copied into
-   the set's scratch under the same lock, so the set holds the hold that
-   produced the closure.
+1. **Snapshot.** Pin one REPEATABLE READ read-only snapshot while B captures
+   matching baseline, pending intent and hold metadata. Release B before
+   streaming the filtered history tables and immutable file closure.
 2. **Database.** The copy is streamed through zstd into `db/part-NNNN.zst`,
    a new part every `PART_BYTES`, with the sha256 of the raw file and of
    each part.
@@ -26,7 +19,9 @@ sends only what is new:
    (canonical) names the parts, the index and every segment the index needs,
    and is written last; the scratch directory is then renamed into place.
 5. **Publish and record.** The transport sends the new segments and the set,
-   `backup.json` last. Then `backup_objects` and `backup_sets` record it.
+   `backup.json` last. Read it back and restore it into a fresh private
+   Postgres database. Only a complete schema, foreign-key and typed-row audit
+   permits `backup_objects` and `backup_sets` to record success.
 
 `prune_sets` keeps the newest local set and the newest drilled one; segments
 no kept set names go, and their `backup_objects` rows for the local
@@ -46,8 +41,8 @@ import json
 import os
 import re
 import shutil
-import sqlite3
 import tarfile
+import tempfile
 import uuid
 import zlib
 from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -57,6 +52,7 @@ from pathlib import Path
 from typing import IO, Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir
+from swingset.state import engine
 from swingset.state.db import Database
 
 from .transport import (
@@ -255,7 +251,21 @@ def read_index(path: Path) -> Iterator[Entry]:
 # ---------------------------------------------------------------------------
 
 
-def create_set(
+def create_set(database: Database, transport: Transport, **kwargs: Any) -> dict[str, Any]:
+    from .r2 import R2Transport
+    from .snapshot import backup_lock
+    from .transport import HuggingFaceSegments
+
+    binding = (
+        transport.bound(database.connection)
+        if isinstance(transport, (HuggingFaceSegments, R2Transport))
+        else contextlib.nullcontext()
+    )
+    with binding, backup_lock(database.connection):
+        return _create_set(database, transport, **kwargs)
+
+
+def _create_set(
     database: Database,
     transport: Transport,
     *,
@@ -269,19 +279,11 @@ def create_set(
 ) -> dict[str, Any]:
     """Write, publish and record one set; returns its summary.
 
-    The caller holds the state lock, shared (a loop's) or exclusive, and no
-    SQLite transaction. It refuses before `VACUUM INTO` unless the disk,
-    quota included, has the database's bytes in use plus `headroom` free.
-    A failure before publishing leaves no set; a failed publish removes the
-    unrecorded local set, and the next run sends the same segments again
-    (equal content, equal names). An `objects` file that is gone is put back
-    from the newest local set that holds it (`restored`); failing that, an
-    earlier segment the transport still holds stands for it (`absent`). An
-    object, release item or new file that is still missing, or that does not
-    match its digest, does not stop the set: it is listed under `missing` in
-    `backup.json` and `[backup-incomplete]` goes to ALERTS.log; a restore or
-    drill of that set then refuses. A missing body, extract or input bundle
-    still fails the set (`retention.artifact_closure`).
+    The caller holds the state lock, shared for a loop or exclusive for an
+    operator, and no transaction. The common backup lock serializes scheduled
+    and pre-publication jobs. Required lost objects may be repaired from a
+    verified earlier segment before snapshot capture. Upload and restore
+    checks must succeed before a receipt commits or older sets are pruned.
     """
     if not 0 < part_bytes <= MAX_FILE_BYTES or not 0 < segment_bytes <= MAX_FILE_BYTES:
         raise ValueError("parts and segments are at most 4 GiB")
@@ -289,7 +291,7 @@ def create_set(
     if conn.in_transaction:
         raise BackupError("a backup set cannot be taken inside a transaction")
     if not conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='backup_sets'"
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'backup_sets') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
     ).fetchone():
         raise BackupError("segmented backups need schema 36")
     checkpoints = database.state_dir / "checkpoints"
@@ -297,20 +299,23 @@ def create_set(
     sets_dir.mkdir(parents=True, exist_ok=True)
     segments_dir.mkdir(parents=True, exist_ok=True)
     # A killed run's scratch first: it may hold a whole database copy.
-    cleaned = clean_abandoned(checkpoints, now=now)
+    cleaned = clean_abandoned(checkpoints, now=now, owns_backup_lock=True)
+    cleaned.update(_recover_pending_sets(database, sets_dir))
     room = _room(database, checkpoints, headroom)
     # The one closure file that fails the set and is cheap to see first: no
-    # minutes-long `VACUUM INTO` of the database only to refuse after it.
-    bundle = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+    # history export only to refuse after it.
+    bundle = conn.execute("SELECT value FROM meta WHERE key = 'input_bundle_hash'").fetchone()
     if bundle and bundle[0] and not (database.state_dir / "inputs" / str(bundle[0])).is_dir():
         raise BackupError(f"referenced input bundle is missing: {bundle[0]}")
     set_id = _new_set_id(sets_dir, now)
     staging = sets_dir / f".tmp-{set_id}"
     staging.mkdir()
     try:
+        recovered = _recover_objects(database, transport)
         snapshot = _snapshot(database, staging, control_timeout)
-        db_record = _write_database(staging / "db.sqlite", staging, part_bytes)
-        (staging / "db.sqlite").unlink()
+        snapshot.restored.extend(recovered)
+        db_record = _write_database(staging / "database", staging, part_bytes)
+        shutil.rmtree(staging / "database")
         present = transport.segments()
         _forget_missing(database, transport.name, present)
         placed = _segment(
@@ -349,6 +354,22 @@ def create_set(
         body = canonical_json(manifest)
         durable_write(staging / MANIFEST, body)
         fsync_dir(staging)
+        pending_path = sets_dir / (".pending-" + set_id + ".json")
+        durable_write(
+            pending_path,
+            canonical_json(
+                {
+                    "format": "swingset-pending-backup-v1",
+                    "set_id": set_id,
+                    "database_id": str(
+                        conn.execute("SELECT database_id FROM ops.environment_identity").fetchone()[
+                            0
+                        ]
+                    ),
+                    "manifest_sha256": hashlib.sha256(body).hexdigest(),
+                }
+            ),
+        )
         os.replace(staging, sets_dir / set_id)
         fsync_dir(sets_dir)
     except BaseException:
@@ -356,6 +377,9 @@ def create_set(
         raise
     try:
         commit = transport.publish(checkpoints, set_id, manifest["segments"])
+        from .restore_set import verify_set
+
+        verify_set(transport, set_id)
     except BaseException:
         # Unrecorded, so nothing would ever use it: about a database's worth.
         shutil.rmtree(sets_dir / set_id, ignore_errors=True)
@@ -367,17 +391,20 @@ def create_set(
     stamp = now.astimezone(UTC).isoformat()
     with database.transaction() as write:
         write.executemany(
-            "INSERT INTO backup_objects(transport,key,segment,staged_at) VALUES (?,?,?,?) "
-            "ON CONFLICT(transport,key) DO UPDATE SET segment=excluded.segment,"
-            "staged_at=excluded.staged_at",
+            (
+                "INSERT INTO backup_objects (transport, key, segment, staged_at) VALUES (%s, %s, %s, %s) ON CONFLICT(transport, key) DO UPDATE SET segment = excluded.segment, staged_at = excluded.staged_at"
+            ),
             (
                 (transport.name, item.key, placed.assigned[item.path], stamp)
                 for item in placed.new_items
             ),
         )
         write.execute(
-            "INSERT INTO backup_sets(set_id,created_at,manifest_sha256,db_raw_bytes,db_raw_sha256,"
-            "parts,objects,new_objects,transport,uploaded_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO backup_sets (set_id, created_at, manifest_sha256, db_raw_bytes, db_raw_sha256, "
+                "parts, objects, new_objects, transport, uploaded_at) VALUES (%s, %s, %s, %s, %s, %s, %s, "
+                "%s, %s, %s)"
+            ),
             (
                 set_id,
                 stamp,
@@ -391,8 +418,11 @@ def create_set(
                 stamp,
             ),
         )
+    pending_path.unlink()
+    fsync_dir(sets_dir)
     result: dict[str, Any] = {
         "set_id": set_id,
+        "verified": True,
         "path": str(sets_dir / set_id),
         "manifest_sha256": manifest_sha256,
         "transport": transport.name,
@@ -451,19 +481,11 @@ def collect_remote(
 
 
 def _room(database: Database, checkpoints: Path, headroom: int) -> dict[str, Any]:
-    """Refuse before `VACUUM INTO` without room for the copy and the headroom.
-
-    `VACUUM INTO` copies only the pages in use, so a file whose free list is
-    large (after `storage apply`, before reclaim) needs far less than its size.
-    """
+    """Require the live database size plus the configured backup headroom."""
     from swingset.state import disk
 
     conn = database.connection
-    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
-    in_use = page_size * (
-        int(conn.execute("PRAGMA page_count").fetchone()[0])
-        - int(conn.execute("PRAGMA freelist_count").fetchone()[0])
-    )
+    in_use = int(conn.execute("SELECT pg_database_size(current_database())").fetchone()[0])
     found = disk.room(checkpoints)
     need = in_use + headroom
     measured = {"bytes_in_use": in_use, "needed_bytes": need, **found.document()}
@@ -476,7 +498,9 @@ def _room(database: Database, checkpoints: Path, headroom: int) -> dict[str, Any
     return measured
 
 
-def clean_abandoned(checkpoints: Path, *, now: datetime) -> dict[str, Any]:
+def clean_abandoned(
+    checkpoints: Path, *, now: datetime, owns_backup_lock: bool = False
+) -> dict[str, Any]:
     """Remove scratch sets (`sets/.tmp-*`) and segment writes (`segments/.writing-*`)
     older than `ABANDONED`: what a killed backup leaves. A younger one may be
     a backup still running in another process."""
@@ -487,7 +511,9 @@ def clean_abandoned(checkpoints: Path, *, now: datetime) -> dict[str, Any]:
         if not directory.is_dir():
             continue
         for path in sorted(directory.iterdir()):
-            if not path.name.startswith(prefix) or _mtime(path) >= cutoff:
+            if not path.name.startswith(prefix) or (
+                not owns_backup_lock and _mtime(path) >= cutoff
+            ):
                 continue
             removed_bytes += _size(path)
             if path.is_dir():
@@ -510,12 +536,66 @@ def _size(path: Path) -> int:
 
 
 def _new_set_id(sets_dir: Path, now: datetime) -> str:
-    base = "set_" + now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
-    candidate, suffix = base, 2
-    while (sets_dir / candidate).exists() or (sets_dir / f".tmp-{candidate}").exists():
-        candidate = f"{base}-{suffix}"
-        suffix += 1
-    return candidate
+    # A fresh volume gets a new random namespace; the counter orders retries
+    # at the same clock instant without reusing an immutable remote key.
+    sequence = sets_dir.parent / "set-sequence.json"
+    if sequence.exists():
+        state = json.loads(sequence.read_text())
+        if (
+            set(state) != {"nonce", "counter"}
+            or not re.fullmatch(r"[0-9a-f]{16}", state["nonce"])
+            or type(state["counter"]) is not int
+            or state["counter"] < 0
+        ):
+            raise BackupError("backup sequence metadata is invalid")
+    else:
+        state = {"nonce": uuid.uuid4().hex[:16], "counter": 0}
+    state["counter"] += 1
+    if state["counter"] >= 10**20:
+        raise BackupError("backup sequence is exhausted")
+    durable_write(sequence, canonical_json(state))
+    suffix = int(state["nonce"], 16) * 10**20 + state["counter"]
+    return "set_" + now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + f"{suffix:040d}"
+
+
+def _recover_pending_sets(database: Database, sets_dir: Path) -> dict[str, list[str]]:
+    from .transport import SET_ID
+
+    identity = str(
+        database.connection.execute("SELECT database_id FROM ops.environment_identity").fetchone()[
+            0
+        ]
+    )
+    removed, confirmed = [], []
+    for path in sorted(sets_dir.glob(".pending-*.json")):
+        record = json.loads(path.read_text())
+        name = record.get("set_id", "")
+        if (
+            record.get("format") != "swingset-pending-backup-v1"
+            or not SET_ID.fullmatch(name)
+            or record.get("database_id") != identity
+            or path.name != ".pending-" + name + ".json"
+        ):
+            raise BackupError("pending backup ownership metadata differs")
+        receipt = database.connection.execute(
+            "SELECT manifest_sha256 FROM backup_sets WHERE set_id=%s", (name,)
+        ).fetchone()
+        if receipt is not None:
+            if receipt[0] != record["manifest_sha256"]:
+                raise BackupError("pending backup receipt differs from its committed manifest")
+            confirmed.append(name)
+        elif (sets_dir / name).exists():
+            manifest = sets_dir / name / MANIFEST
+            if (
+                not manifest.is_file()
+                or hashlib.sha256(manifest.read_bytes()).hexdigest() != record["manifest_sha256"]
+            ):
+                raise BackupError("unrecorded backup no longer matches its ownership metadata")
+            shutil.rmtree(sets_dir / name)
+            removed.append(name)
+        path.unlink()
+    fsync_dir(sets_dir)
+    return {"removed_unrecorded_sets": removed, "confirmed_sets": confirmed}
 
 
 @dataclass
@@ -532,86 +612,50 @@ class _Snapshot:
 
 
 def _snapshot(database: Database, staging: Path, control_timeout: float) -> _Snapshot:
-    """Copy the database, then read its file closure under the control lock.
+    """Capture filtered history and files from one publication-aligned snapshot."""
+    from .snapshot import capture
 
-    The copy comes first and outside the lock, as `checkpoint.create` does:
-    `VACUUM INTO` of a large file takes minutes, and every database open and
-    control waits on that lock. A hold is a file written under the lock after
-    its targets exist, so a hold newer than the copy only adds files that are
-    already on disk.
-    """
-    from swingset.publish.service import pending_candidates
-    from swingset.state.control_lock import control_lock, holds_control_lock
-    from swingset.state.retention import RetentionError, referenced_candidates
-
-    from .recovery import SegmentRecovery
-
-    state_dir = database.state_dir
-    copy = staging / "db.sqlite"
-    fence: contextlib.AbstractContextManager[None] = (
-        contextlib.nullcontext()
-        if holds_control_lock(state_dir)
-        else control_lock(state_dir, timeout=control_timeout)
+    history = capture(
+        database.state_dir, database.connection, staging / "database", timeout=control_timeout
     )
-    _vacuum_into(database, copy)
-    with fence:
-        candidates = referenced_candidates(state_dir)
-        baseline_link = state_dir / "baseline"
-        baseline = baseline_link.resolve().name if baseline_link.is_symlink() else None
-        pending = [
-            path.name
-            for path in pending_candidates(state_dir)
-            if path.resolve() in candidates and path.name != baseline
+    items = []
+    for relative in history["files"]:
+        path = staging / "database/files" / relative
+        parts = Path(relative).parts
+        cls = {
+            "blobs": "body",
+            "extracts": "extract",
+            "inputs": "input_bundle",
+            "candidates": "candidate",
+            "holds": "hold",
+            "partitions": "partition_artifact",
+        }.get(parts[0], "other")
+        if parts[0] == "objects":
+            cls = parts[1]
+        digest, size = digest_file(cls, path)
+        items.append(Item(cls, relative, digest, size, source=str(path)))
+    # Move retained files to the existing incremental segment staging area.
+    if (staging / "database/files").exists():
+        os.replace(staging / "database/files", staging / "files")
+        items = [
+            Item(
+                item.cls,
+                item.path,
+                item.sha256,
+                item.bytes,
+                source=str(staging / "files" / item.path),
+            )
+            for item in items
         ]
-        snapshot = sqlite3.connect(f"{copy.resolve().as_uri()}?mode=ro&immutable=1", uri=True)
-        try:
-            schema = int(snapshot.execute("PRAGMA user_version").fetchone()[0])
-            row = snapshot.execute(
-                "SELECT value FROM meta WHERE key='input_bundle_hash'"
-            ).fetchone()
-            missing: list[list[str]] = []
-            restored: list[list[str]] = []
-            recovery = SegmentRecovery(state_dir / "checkpoints")
-            try:
-                items = list(
-                    _closure(
-                        state_dir,
-                        snapshot,
-                        candidates,
-                        staging / "files",
-                        missing,
-                        _Lost(state_dir, recovery, restored),
-                    )
-                )
-                items.sort(key=lambda item: item.path)
-            except RetentionError as error:
-                raise BackupError(str(error)) from error
-            finally:
-                recovery.close()
-        finally:
-            snapshot.close()
+    metadata = history["metadata"]
+    pending = metadata["pending_candidates"]
     return _Snapshot(
-        items,
-        schema,
-        str(row[0]) if row and row[0] else None,
-        baseline,
+        sorted(items, key=lambda item: item.path),
+        history["schema_version"],
+        metadata["input_bundle_hash"],
+        metadata["baseline_candidate"],
         pending[0] if pending else None,
-        sorted(missing),
-        sorted(restored),
     )
-
-
-def _vacuum_into(database: Database, target: Path) -> None:
-    row = database.connection.execute("PRAGMA database_list").fetchone()
-    location = Path(str(row[2]))
-    reader = sqlite3.connect(
-        f"{location.resolve().as_uri()}?mode=ro", uri=True, isolation_level=None
-    )
-    try:
-        reader.execute("PRAGMA busy_timeout=60000")
-        reader.execute("VACUUM INTO ?", (str(target),))
-    finally:
-        reader.close()
 
 
 class _Lost:
@@ -645,7 +689,7 @@ class _Lost:
 
 def _closure(
     state_dir: Path,
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     candidates: set[Path],
     files: Path,
     missing: list[list[str]],
@@ -679,9 +723,16 @@ def _closure(
         else:
             raise BackupError(f"unexpected closure file: {relative}")
     del names
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
+    }
     if "objects" in tables:
-        for cls, digest in conn.execute("SELECT class,digest FROM objects ORDER BY class,digest"):
+        for cls, digest in conn.execute(
+            "SELECT class, digest FROM objects ORDER BY class NULLS FIRST, digest NULLS FIRST"
+        ):
             if cls not in STORED or not _DIGEST.fullmatch(str(digest)):
                 raise BackupError(f"malformed objects row: {cls}/{digest}")
             relative = f"objects/{cls}/{digest[:2]}/{digest}"
@@ -720,29 +771,28 @@ _UNINDEXED = (
     (
         "derivation_output",
         "derivation_evicted",
-        "SELECT DISTINCT g.output_digest FROM derivation_evicted e "
-        "JOIN derivation_generations g USING(generation_id) WHERE NOT EXISTS("
-        "SELECT 1 FROM objects o WHERE o.class='derivation_output' AND o.digest=g.output_digest) "
-        "ORDER BY 1",
+        (
+            "SELECT DISTINCT g.output_digest FROM derivation_evicted AS e JOIN derivation_generations AS g USING (generation_id) WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM objects AS o WHERE o.class = 'derivation_output' AND o.digest = g.output_digest) ORDER BY 1 NULLS FIRST"
+        ),
     ),
     (
         "parse_body",
         "source_generation_packs",
-        "SELECT DISTINCT p.pack_digest FROM source_generation_packs p WHERE NOT EXISTS("
-        "SELECT 1 FROM objects o WHERE o.class='parse_body' AND o.digest=p.pack_digest) "
-        "ORDER BY 1",
+        (
+            "SELECT DISTINCT p.pack_digest FROM source_generation_packs AS p WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM objects AS o WHERE o.class = 'parse_body' AND o.digest = p.pack_digest) ORDER BY 1 NULLS FIRST"
+        ),
     ),
     (
         "label_body",
         "label_body_packs",
-        "SELECT DISTINCT p.pack_digest FROM label_body_packs p WHERE NOT EXISTS("
-        "SELECT 1 FROM objects o WHERE o.class='label_body' AND o.digest=p.pack_digest) "
-        "ORDER BY 1",
+        (
+            "SELECT DISTINCT p.pack_digest FROM label_body_packs AS p WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM objects AS o WHERE o.class = 'label_body' AND o.digest = p.pack_digest) ORDER BY 1 NULLS FIRST"
+        ),
     ),
 )
 
 
-def unindexed_packs(conn: sqlite3.Connection, tables: set[str]) -> list[list[str]]:
+def unindexed_packs(conn: engine.Connection, tables: set[str]) -> list[list[str]]:
     """`[class, digest, reason]` of every pack a row names with no `objects` row.
 
     Every writer records the object's row with the pack row, so this is
@@ -777,7 +827,7 @@ def _alert_incomplete(
 
 
 def _releases(
-    state_dir: Path, conn: sqlite3.Connection, tables: set[str], missing: list[list[str]]
+    state_dir: Path, conn: engine.Connection, tables: set[str], missing: list[list[str]]
 ) -> Iterator[Item]:
     """Release manifests written before phase 4 and the partition artifacts a
     current partition or a retained manifest names."""
@@ -794,7 +844,7 @@ def _releases(
     artifacts = {
         str(row[0])
         for row in conn.execute(
-            "SELECT artifact_digest FROM release_partitions WHERE artifact_digest IS NOT NULL"
+            "SELECT artifact_digest FROM release_partitions WHERE NOT artifact_digest IS NULL"
         )
     }
     for digest in sorted(retained_manifests(state_dir) | build_manifests(conn)):
@@ -930,16 +980,33 @@ def _write_database(source: Path, staging: Path, part_bytes: int) -> dict[str, A
 
     parts = _Parts(staging / "db", part_bytes)
     raw = hashlib.sha256()
-    size = 0
+    length = 0
     with pa.CompressedOutputStream(pa.PythonFile(parts, mode="w"), "zstd") as output:
-        with source.open("rb") as reader:
-            while chunk := reader.read(_CHUNK):
-                raw.update(chunk)
-                size += len(chunk)
-                output.write(chunk)
+
+        class Raw(io.RawIOBase):
+            def write(self, block: Any) -> int:
+                nonlocal length
+                raw.update(block)
+                length += len(block)
+                output.write(block)
+                return len(block)
+
+        with tarfile.open(fileobj=Raw(), mode="w|", format=tarfile.PAX_FORMAT) as archive:
+            for path in sorted(source.rglob("*")):
+                if path.is_file():
+                    with path.open("rb") as stream:
+                        archive.addfile(
+                            tar_info(path.relative_to(source).as_posix(), path.stat().st_size),
+                            stream,
+                        )
     parts.close()
     fsync_dir(staging / "db")
-    return {"raw_bytes": size, "raw_sha256": raw.hexdigest(), "parts": parts.records}
+    return {
+        "format": "postgres-history",
+        "raw_bytes": length,
+        "raw_sha256": raw.hexdigest(),
+        "parts": parts.records,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -975,14 +1042,14 @@ def _forget_missing(database: Database, transport: str, present: frozenset[str])
     gone = [
         str(row[0])
         for row in database.connection.execute(
-            "SELECT DISTINCT segment FROM backup_objects WHERE transport=?", (transport,)
+            "SELECT DISTINCT segment FROM backup_objects WHERE transport = %s", (transport,)
         )
         if str(row[0]) not in present
     ]
     if gone:
         with database.transaction() as conn:
             conn.executemany(
-                "DELETE FROM backup_objects WHERE transport=? AND segment=?",
+                "DELETE FROM backup_objects WHERE transport = %s AND segment = %s",
                 ((transport, segment) for segment in gone),
             )
 
@@ -1000,7 +1067,7 @@ def _segment(
     try:
         for item in items:
             row = database.connection.execute(
-                "SELECT segment FROM backup_objects WHERE transport=? AND key=?",
+                "SELECT segment FROM backup_objects WHERE transport = %s AND key = %s",
                 (transport, item.key),
             ).fetchone()
             if row is not None and str(row[0]) in present:
@@ -1253,7 +1320,7 @@ def prune_sets(database: Database, *, now: datetime) -> dict[str, Any]:
     complete = local_sets(checkpoints)
     kept: set[str] = set(complete[-1:])
     for (set_id,) in database.connection.execute(
-        "SELECT set_id FROM backup_sets WHERE drilled_at IS NOT NULL ORDER BY set_id DESC"
+        "SELECT set_id FROM backup_sets WHERE NOT drilled_at IS NULL ORDER BY set_id DESC NULLS LAST"
     ):
         if str(set_id) in complete:
             kept.add(str(set_id))
@@ -1288,7 +1355,7 @@ def prune_sets(database: Database, *, now: datetime) -> dict[str, Any]:
     if removed:
         with database.transaction() as conn:
             conn.executemany(
-                "DELETE FROM backup_objects WHERE transport=? AND segment=?",
+                "DELETE FROM backup_objects WHERE transport = %s AND segment = %s",
                 ((LOCAL_TRANSPORT, segment) for segment in removed),
             )
     return {
@@ -1318,3 +1385,54 @@ __all__ = [
     "read_index",
     "read_manifest",
 ]
+
+
+def _recover_objects(database: Database, transport: Transport) -> list[list[str]]:
+    """Repair missing immutable objects before qualifying the native snapshot."""
+    from swingset.state.objects import STORED, ObjectUnavailable, Store
+
+    from .recovery import SegmentRecovery
+    from .transport import segment_path
+
+    checkpoints = database.state_dir / "checkpoints"
+    recovery = SegmentRecovery(checkpoints)
+    store = Store(database.state_dir)
+    restored = []
+    try:
+        for cls, digest in database.connection.execute(
+            "SELECT class,digest FROM objects ORDER BY class,digest"
+        ):
+            if cls not in STORED:
+                continue
+            relative = f"objects/{cls}/{digest[:2]}/{digest}"
+            if (database.state_dir / relative).is_file():
+                continue
+            try:
+                found = recovery.recover_object(store, cls, digest)
+            except ObjectUnavailable:
+                hint = recovery.find(relative, digest)
+                if hint is None:
+                    continue  # The filtered closure decides whether it is required.
+                _, segment, _size = hint
+                target = checkpoints / segment_path(segment)
+                # A checked older remote segment can replace a lost local copy.
+                try:
+                    with tempfile.TemporaryDirectory(
+                        prefix="segment-recovery-", dir=checkpoints
+                    ) as temporary:
+                        fetched = transport.fetch(segment_path(segment), Path(temporary))
+                        with fetched.open("rb") as reader:
+                            if hashlib.file_digest(reader, "sha256").hexdigest() != segment:
+                                raise BackupError(
+                                    "recovery segment differs from its content identity"
+                                )
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        os.replace(fetched, target)
+                        fsync_dir(target.parent)
+                    found = recovery.recover_object(store, cls, digest)
+                except (OSError, ValueError, ObjectUnavailable, TransportError):
+                    continue
+            restored.append([str(cls), str(digest), str(found["set"])])
+    finally:
+        recovery.close()
+    return restored

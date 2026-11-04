@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Mapping
 from datetime import date, datetime
 from typing import Any
@@ -13,12 +12,15 @@ from swingset.build.builder import PUBLISHED_TABLES, BuildInput
 from swingset.build.schema import PRIMARY_KEYS, RELEASE_FIELDS, SCHEMAS
 from swingset.model.history import HISTORY_START
 from swingset.model.schema import TABLES
+from swingset.state import engine
 
 
-def _tables(connection: sqlite3.Connection) -> set[str]:
+def _tables(connection: engine.Connection) -> set[str]:
     return {
         str(row[0])
-        for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        for row in connection.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
     }
 
 
@@ -37,9 +39,11 @@ def _convert(value: Any, data_type: pa.DataType) -> Any:
     return value
 
 
-def _read_table(connection: sqlite3.Connection, table: str) -> list[dict[str, Any]]:
+def _read_table(connection: engine.Connection, table: str) -> list[dict[str, Any]]:
     schema = SCHEMAS[table]
-    available = {str(row[1]) for row in connection.execute(f'PRAGMA table_info("{table}")')}
+    from swingset.state.schema_catalog import columns as column_names
+
+    available = set(column_names(connection, table))
     missing = set(schema.names) - available
     missing -= set(RELEASE_FIELDS.get(table, ()))
     if table == "identity_links":
@@ -47,7 +51,7 @@ def _read_table(connection: sqlite3.Connection, table: str) -> list[dict[str, An
 
         missing -= set(PUBLIC_RESOLUTION_FIELDS)
     if missing:
-        raise RuntimeError(f"SQLite table {table} is missing public columns: {sorted(missing)}")
+        raise RuntimeError(f"Postgres table {table} is missing public columns: {sorted(missing)}")
     columns = [field.name for field in schema if field.name in available]
     if not columns:
         return []
@@ -62,16 +66,9 @@ def _read_table(connection: sqlite3.Connection, table: str) -> list[dict[str, An
     return result
 
 
-def _read_snapshots(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+def _read_snapshots(connection: engine.Connection) -> list[dict[str, Any]]:
     schema = SCHEMAS["snapshots"]
-    query = """
-        SELECT s.snapshot_id, w.source, s.url, s.fetched_at, s.http_status,
-               s.body_sha256, s.body_bytes, s.content_changed, w.parser,
-               s.parser_version, s.parse_status, s.via,
-               COALESCE(s.captured_at,s.fetched_at), s.archive_url,
-               COALESCE(s.observed_at,s.captured_at,s.fetched_at)
-        FROM snapshots AS s JOIN watches AS w ON w.watch_id = s.watch_id
-    """
+    query = "SELECT s.snapshot_id, w.source, s.url, s.fetched_at, s.http_status, s.body_sha256, s.body_bytes, s.content_changed, w.parser, s.parser_version, s.parse_status, s.via, COALESCE(s.captured_at, s.fetched_at) AS _value_12, s.archive_url, COALESCE(s.observed_at, s.captured_at, s.fetched_at) AS _value_14 FROM snapshots AS s JOIN watches AS w ON w.watch_id = s.watch_id"
     result: list[dict[str, Any]] = []
     for values in connection.execute(query):
         row = dict(zip(schema.names, values, strict=True))
@@ -83,7 +80,7 @@ def _review_id(kind: str, subject: str, evidence: str) -> str:
     return "review_" + hashlib.sha256(f"{kind}|{subject}|{evidence}".encode()).hexdigest()[:16]
 
 
-def _review_queue(connection: sqlite3.Connection, existing: set[str]) -> list[dict[str, Any]]:
+def _review_queue(connection: engine.Connection, existing: set[str]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     if "findings" in existing:
         for row in connection.execute(
@@ -103,7 +100,7 @@ def _review_queue(connection: sqlite3.Connection, existing: set[str]) -> list[di
             )
     if "identity_links" in existing:
         for row in connection.execute(
-            "SELECT subject_id, status, run_id, asserted_at FROM identity_links WHERE status='ambiguous'"
+            "SELECT subject_id, status, run_id, asserted_at FROM identity_links WHERE status = 'ambiguous'"
         ):
             subject = str(row[0])
             items.append(
@@ -119,7 +116,7 @@ def _review_queue(connection: sqlite3.Connection, existing: set[str]) -> list[di
             )
     if "contests" in existing:
         for row in connection.execute(
-            "SELECT contest_id, run_id, first_seen_at FROM contests WHERE parse_status='unsupported'"
+            "SELECT contest_id, run_id, first_seen_at FROM contests WHERE parse_status = 'unsupported'"
         ):
             subject = str(row[0])
             items.append(
@@ -135,9 +132,9 @@ def _review_queue(connection: sqlite3.Connection, existing: set[str]) -> list[di
             )
     if {"source_events", "source_event_map"} <= existing:
         for row in connection.execute(
-            "SELECT e.source, e.source_ref, e.run_id, e.first_seen_at FROM source_events e "
-            "LEFT JOIN source_event_map m ON m.source=e.source AND m.source_ref=e.source_ref "
-            "WHERE m.event_id IS NULL"
+            "SELECT e.source, e.source_ref, e.run_id, e.first_seen_at FROM source_events AS e LEFT JOIN "
+            "source_event_map AS m ON m.source = e.source AND m.source_ref = e.source_ref WHERE "
+            "m.event_id IS NULL"
         ):
             subject = f"{row[0]}:{row[1]}"
             items.append(
@@ -154,7 +151,7 @@ def _review_queue(connection: sqlite3.Connection, existing: set[str]) -> list[di
     return items
 
 
-def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
+def read_build_input(connection: engine.Connection, bundle: Any) -> BuildInput:
     """Capture every published DB dependency from the caller's read transaction."""
     existing = _tables(connection)
     if "pending_work" in existing:
@@ -211,7 +208,7 @@ def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
 
 
 def read_selected_input(
-    connection: sqlite3.Connection, bundle: Any, selected: Any, *, snapshot_ids: set[str]
+    connection: engine.Connection, bundle: Any, selected: Any, *, snapshot_ids: set[str]
 ) -> BuildInput:
     """Convert a reconstructed immutable closure without reading live canonical rows."""
     rows: dict[str, list[dict[str, Any]]] = {}
@@ -239,7 +236,7 @@ def read_selected_input(
         PRIMARY_KEYS,
         {
             str(row[0]): int(row[1])
-            for row in connection.execute("SELECT name,value FROM revisions")
+            for row in connection.execute("SELECT name, value FROM revisions")
         },
         bundle.file_hashes,
         bundle.digest,

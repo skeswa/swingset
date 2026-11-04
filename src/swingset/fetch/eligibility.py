@@ -58,7 +58,19 @@ def _ordinary(
     run_id: str | None,
 ) -> Assessment:
     conn, now, config = gate.connection, gate.clock.now(), gate.config
-    row = conn.execute("SELECT * FROM watches WHERE watch_id=?", (watch_id,)).fetchone()
+    row = conn.execute(
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s"
+        ),
+        (watch_id,),
+    ).fetchone()
     if row is None:
         return Assessment("unknown", "watch_missing", deadline)
     watch = SimpleNamespace(**dict(row))
@@ -128,7 +140,7 @@ def _ordinary(
     # policy() may extend this host's next_allowed_at when it learns a delay.
     if policy.crawl_delay:
         fetched = conn.execute(
-            "SELECT robots_fetched_at FROM hosts WHERE host=?", (host,)
+            "SELECT robots_fetched_at FROM hosts WHERE host = %s", (host,)
         ).fetchone()[0]
         from datetime import timedelta
 

@@ -38,7 +38,8 @@ def write_corpus(
     for state in states:
         with open_database(state, read_only=True, lock=False) as db:
             for row in db.connection.execute(
-                "SELECT snapshot_id,snapshots.body_sha256,parser,source_ref FROM snapshots JOIN watches USING(watch_id)"
+                "SELECT snapshot_id, snapshots.body_sha256, parser, source_ref FROM snapshots JOIN watches "
+                "USING (watch_id)"
             ):
                 if page_kinds is not None and str(row[2]) not in page_kinds:
                     continue
@@ -57,22 +58,29 @@ def write_corpus(
                         {
                             "state": str(state),
                             "schema_version": db.schema_version,
-                            "snapshots": conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[
-                                0
-                            ],
+                            "snapshots": conn.execute(
+                                "SELECT COUNT(*) AS _value_0 FROM snapshots"
+                            ).fetchone()[0],
                             "selected_observations": conn.execute(
-                                "SELECT COUNT(*) FROM observations"
+                                "SELECT COUNT(*) AS _value_0 FROM observations"
                             ).fetchone()[0],
                             "accepted_inputs": [
                                 tuple(row)
                                 for row in conn.execute(
-                                    "SELECT * FROM accepted_inputs ORDER BY consumer,input_name"
+                                    "SELECT accepted_inputs.consumer, accepted_inputs.input_name, accepted_inputs.digest FROM "
+                                    "accepted_inputs ORDER BY consumer NULLS FIRST, input_name NULLS FIRST"
                                 )
                             ],
                         }
                     )
                     rows = conn.execute(
-                        "SELECT s.*,w.source,w.parser,w.source_ref,w.kind AS watch_kind FROM snapshots s JOIN watches w USING(watch_id) ORDER BY w.parser,s.snapshot_id"
+                        "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+                        "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+                        "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+                        "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+                        "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, w.source, "
+                        "w.parser, w.source_ref, w.kind AS watch_kind FROM snapshots AS s JOIN watches AS w USING "
+                        "(watch_id) ORDER BY w.parser NULLS FIRST, s.snapshot_id NULLS FIRST"
                     )
                     for row in rows:
                         if page_kinds is not None and str(row["parser"]) not in page_kinds:

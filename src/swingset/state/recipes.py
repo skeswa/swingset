@@ -1,18 +1,20 @@
-"""Capture the runtime artifact independently of human version labels."""
+"""Capture transform declarations separately from byte and runtime audit identities."""
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
-import sqlite3
 import sys
 import sysconfig
 from collections.abc import Mapping
 from pathlib import Path
 
 from swingset.fetch.archive import canonical, digest
+from swingset.state import engine
 
 from . import recipe_scope
 
@@ -24,6 +26,11 @@ def environment_identity() -> dict[str, object]:
     dependency identities, not an audit of every installed binary on each cycle.
     The project's own executed source is captured separately, byte for byte.
     """
+    dependency_image = os.environ.get("SWINGSET_DEPENDENCY_IMAGE")
+    if dependency_image:
+        if not dependency_image.startswith("sha256:") or len(dependency_image) != 71:
+            raise ValueError("invalid dependency image identity")
+        return {"dependency_image": dependency_image}
     distributions = []
     for distribution in importlib.metadata.distributions():
         name = distribution.metadata.get("Name", "").casefold().replace("_", "-")
@@ -50,14 +57,45 @@ def environment_identity() -> dict[str, object]:
     }
 
 
+def _runtime_files(root: Path) -> dict[str, bytes]:
+    if "__pycache__" in root.parts:
+        return {}
+    ignored = (errno.ENOENT, errno.ENOTDIR, errno.EBADF, errno.ELOOP)
+    pending: list[tuple[str, tuple[str, ...]]] = [(os.fspath(root), ())]
+    files: list[tuple[tuple[str, ...], str]] = []
+    while pending:
+        directory, relative = pending.pop()
+        try:
+            with os.scandir(directory) as stream:
+                entries = list(stream)
+        except OSError as error:
+            if isinstance(error, PermissionError) or error.errno in ignored:
+                continue
+            raise
+        for entry in entries:
+            if entry.name == "__pycache__":
+                continue
+            parts = (*relative, entry.name)
+            try:
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append((entry.path, parts))
+                elif not (entry.name.endswith(".pyc") and entry.name != ".pyc") and entry.is_file():
+                    files.append((parts, entry.path))
+            except OSError as error:
+                if error.errno not in ignored:
+                    raise
+    result = {}
+    # Component order matches Path ordering, including prefix-named siblings.
+    for parts, path in sorted(files):
+        with open(path, "rb") as stream:
+            result["runtime/swingset/" + "/".join(parts)] = stream.read()
+    return result
+
+
 def capture_runtime(package_root: Path | None = None) -> dict[str, bytes]:
     """Retain code, schemas, vocabularies, lock inputs, and their exact manifest."""
     root = package_root or Path(__file__).resolve().parents[1]
-    files = {
-        "runtime/swingset/" + path.relative_to(root).as_posix(): path.read_bytes()
-        for path in sorted(root.rglob("*"))
-        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
-    }
+    files = _runtime_files(root)
     if not files or "runtime/swingset/__init__.py" not in files:
         raise ValueError("runtime package is missing its source artifact")
     project = root.parent.parent
@@ -85,9 +123,9 @@ def capture_runtime(package_root: Path | None = None) -> dict[str, bytes]:
 def captured_recipe_inputs(files: Mapping[str, bytes], *, history_start: str) -> dict[str, str]:
     """Reduce captured artifacts to accepted semantic inputs, excluding scheduling.
 
-    A bundle with `recipes/scopes.json` yields `recipe/env` and one digest per
-    code scope (D-0207). An older bundle yields its package-wide
-    `recipe/runtime`, so retained bundles still reproduce their recipe.
+    New scoped bundles yield declared transform versions and a byte-based
+    build digest. Earlier scoped bundles reproduce their byte and environment
+    identities; older bundles retain their package-wide `recipe/runtime`.
     """
     raw = files.get("recipes/runtime.json")
     result = {"policy/history_start": digest(canonical(history_start))}
@@ -110,20 +148,48 @@ def captured_recipe_inputs(files: Mapping[str, bytes], *, history_start: str) ->
     env, members = scopes.get("env"), scopes.get("scopes")
     if not isinstance(env, dict) or not isinstance(members, dict):
         raise ValueError("captured scoped recipe is malformed")
+    member_digests: dict[str, str | None] = {}
+
+    def member_digest(path: str) -> str | None:
+        if path not in member_digests:
+            member_digests[path] = recipe_scope.member_digest(files, path)
+        return member_digests[path]
+
     for name, group in (("recipe/env", env), *members.items()):
         if name != "recipe/env" and not name.startswith(recipe_scope.SCOPE_PREFIX):
             raise ValueError(f"captured scoped recipe names a non-code input: {name}")
         if not isinstance(group, dict) or any(
-            recipe_scope.member_digest(files, path) != value for path, value in group.items()
+            member_digest(path) != value for path, value in group.items()
         ):
             raise ValueError("captured runtime artifact differs from its scoped recipe")
         result[name] = digest(canonical(group))
+    declared = scopes.get("declared")
+    if declared is not None:
+        if declared != recipe_scope.declared_versions(files):
+            raise ValueError("captured declared versions differ from source")
+        result.pop("recipe/env", None)
+        for name, versions in declared.items():
+            if name in members:
+                result[name] = digest(canonical(versions))
     return result
+
+
+def captured_audit_inputs(files: Mapping[str, bytes]) -> dict[str, str]:
+    """Byte and runtime identities; audit changes queue no derivation work."""
+    captured_recipe_inputs(files, history_start="")  # validate both manifests
+    raw = files.get("recipes/scopes.json")
+    if raw is None:
+        return {}
+    scopes = json.loads(raw)
+    return {
+        name: digest(canonical(group))
+        for name, group in (("recipe/env", scopes["env"]), *scopes["scopes"].items())
+    }
 
 
 # `recipe/runtime` is the package-wide identity of bundles captured before
 # D-0207. After the first scoped bundle it stays at the absent-input digest.
-_COMMON = frozenset({"recipe/env", "recipe/runtime", "policy/history_start"})
+_COMMON = frozenset({"recipe/runtime", "policy/history_start"})
 
 
 def recipe_names(stage: str, kind: str | None = None) -> frozenset[str]:
@@ -169,10 +235,10 @@ class RecipeScopeMissing(ValueError):
     """An accepted scoped runtime names no code scope for a derivation kind."""
 
 
-def recipe_inputs(conn: sqlite3.Connection, stage: str, kind: str | None = None) -> dict[str, str]:
+def recipe_inputs(conn: engine.Connection, stage: str, kind: str | None = None) -> dict[str, str]:
     """Return accepted execution and policy identities for one derivation stage and kind.
 
-    Fails closed: once a scoped runtime is accepted (`recipe/env`), a project,
+    Fails closed: once a scoped runtime is accepted, a project,
     link or build unit whose code scope is not accepted has no code identity,
     so no code change would ever re-run it. That is a defect, not a recipe.
     Offline selection skips that kind and reports it (`schedule/fairness`).
@@ -181,11 +247,18 @@ def recipe_inputs(conn: sqlite3.Connection, stage: str, kind: str | None = None)
     result = {
         str(name): str(value)
         for name, value in conn.execute(
-            "SELECT input_name,digest FROM accepted_inputs WHERE consumer='pipeline' ORDER BY input_name"
+            "SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'pipeline' ORDER BY "
+            "input_name NULLS FIRST"
         )
         if name in selected
     }
-    if stage in {"project", "link", "build"} and "recipe/env" in result:
+    if (
+        stage in {"project", "link", "build"}
+        and conn.execute(
+            "SELECT 1 AS _value_0 FROM accepted_inputs WHERE consumer = 'audit' OR (consumer = 'pipeline' AND input_name ILIKE 'recipe/code/%') LIMIT 1"
+        ).fetchone()
+        is not None
+    ):
         missing = sorted(
             name
             for name in selected

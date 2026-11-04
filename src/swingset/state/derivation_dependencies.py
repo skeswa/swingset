@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Callable, Iterable, Iterator
 from functools import partial
 from typing import Any
+
+from swingset.state import engine
 
 from .derivation_query import memo
 from .work import WorkUnit
@@ -40,9 +41,7 @@ def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def store_set(
-    conn: sqlite3.Connection, set_id: str, manifest_json: str, *, created_at: str
-) -> None:
+def store_set(conn: engine.Connection, set_id: str, manifest_json: str, *, created_at: str) -> None:
     """Insert one dependency set once, stamped with when it was first written.
 
     `created_at` (schema 36) lets the collector leave a set alone for a day,
@@ -52,16 +51,20 @@ def store_set(
     """
     try:
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json,"
-            "created_at) VALUES (?,?,?)",
+            (
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json, created_at) "
+                "VALUES (%s, %s, %s) ON CONFLICT DO NOTHING"
+            ),
             (set_id, manifest_json, created_at),
         )
-    except sqlite3.OperationalError as error:
+    except engine.OperationalError as error:
         if "created_at" not in str(error):
             raise
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-            "VALUES (?,?)",
+            (
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s) "
+                "ON CONFLICT DO NOTHING"
+            ),
             (set_id, manifest_json),
         )
 
@@ -70,18 +73,20 @@ def _digest(value: object) -> str:
     return hashlib.sha256(_canonical(value).encode()).hexdigest()
 
 
-def scopes(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
+def scopes(conn: engine.Connection, stage: str) -> Iterator[WorkUnit]:
     yield from memo(conn, ("scopes", stage), lambda: tuple(_scopes(conn, stage)))
 
 
-def _scopes(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
+def _scopes(conn: engine.Connection, stage: str) -> Iterator[WorkUnit]:
     units = {
         unit
         for unit in (
             WorkUnit(*row)
             for row in conn.execute(
-                "SELECT stage,unit_kind,unit_id FROM derivation_scopes WHERE stage=? "
-                "UNION SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=?",
+                (
+                    "SELECT stage, unit_kind, unit_id FROM derivation_scopes WHERE stage = %s UNION SELECT "
+                    "stage, unit_kind, unit_id FROM pending_work WHERE stage = %s"
+                ),
                 (stage, stage),
             )
         )
@@ -91,7 +96,8 @@ def _scopes(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
         physical = {
             WorkUnit(stage, str(kind), str(identifier))
             for kind, identifier in conn.execute(
-                "SELECT DISTINCT scope_kind,scope_id FROM observations UNION SELECT DISTINCT scope_kind,scope_id FROM canonical_scope_rows"
+                "SELECT DISTINCT scope_kind, scope_id FROM observations UNION SELECT DISTINCT scope_kind, "
+                "scope_id FROM canonical_scope_rows"
             )
             if kind in PROJECT
         }
@@ -113,7 +119,7 @@ def _scopes(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
             physical
             or any(item.unit_kind in {"inventory", "mapping", "resolution"} for item in units)
             or conn.execute(
-                "SELECT 1 FROM source_events UNION SELECT 1 FROM registry_placements UNION SELECT 1 FROM events LIMIT 1"
+                "SELECT 1 AS _value_0 FROM source_events UNION SELECT 1 AS _value_0 FROM registry_placements UNION SELECT 1 AS _value_0 FROM events LIMIT 1"
             ).fetchone()
         ):
             units.add(WorkUnit(stage, "inventory", "all"))
@@ -122,14 +128,13 @@ def _scopes(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
         units.update(
             WorkUnit(stage, "event", str(row[0]))
             for row in conn.execute(
-                "SELECT event_id FROM events UNION SELECT event_id FROM entries UNION SELECT event_id FROM judges "
-                "UNION SELECT substr(subject_id,1,instr(subject_id,'/')-1) FROM identity_links WHERE instr(subject_id,'/')>0"
+                "SELECT event_id FROM events UNION SELECT event_id FROM entries UNION SELECT event_id FROM judges UNION SELECT SUBSTRING(subject_id FROM 1 FOR POSITION('/' IN subject_id) - 1) AS _value_0 FROM identity_links WHERE POSITION('/' IN subject_id) > 0"
             )
         )
         units.update(
             WorkUnit(stage, "event", str(row[0]))
             for row in conn.execute(
-                "SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='event'"
+                "SELECT unit_id FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'event'"
             )
         )
     elif stage == "build":
@@ -150,7 +155,7 @@ def _scopes(conn: sqlite3.Connection, stage: str) -> Iterator[WorkUnit]:
     )
 
 
-def _project_subset(conn: sqlite3.Connection, kinds: frozenset[str]) -> tuple[WorkUnit, ...]:
+def _project_subset(conn: engine.Connection, kinds: frozenset[str]) -> tuple[WorkUnit, ...]:
     def selected() -> tuple[WorkUnit, ...]:
         if kinds == frozenset({"mapping"}):
             return mapping_units(conn)
@@ -163,7 +168,7 @@ def _project_subset(conn: sqlite3.Connection, kinds: frozenset[str]) -> tuple[Wo
     )
 
 
-def _year_ids(conn: sqlite3.Connection) -> list[str]:
+def _year_ids(conn: engine.Connection) -> list[str]:
     """Every year a unit exists for (plan F17).
 
     The years of events, by `year` and by reporting month; the reporting
@@ -176,31 +181,25 @@ def _year_ids(conn: sqlite3.Connection) -> list[str]:
     return sorted(
         str(row[0])
         for row in conn.execute(
-            "SELECT CAST(year AS TEXT) FROM events WHERE year IS NOT NULL "
-            "UNION SELECT substr(event_month,1,4) FROM events WHERE length(event_month)>=4 "
-            "UNION SELECT substr(event_month,1,4) FROM registry_placements "
-            "WHERE event_id IS NOT NULL "
-            "UNION SELECT CAST(year AS TEXT) FROM coverage "
-            "UNION SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='year' "
-            "UNION SELECT unit_id FROM pending_work WHERE stage='project' AND unit_kind='year'"
+            "SELECT CAST(year AS TEXT) AS _value_0 FROM events WHERE NOT year IS NULL UNION SELECT SUBSTRING(event_month FROM 1 FOR 4) AS _value_0 FROM events WHERE LENGTH(event_month) >= 4 UNION SELECT SUBSTRING(event_month FROM 1 FOR 4) AS _value_0 FROM registry_placements WHERE NOT event_id IS NULL UNION SELECT CAST(year AS TEXT) AS _value_0 FROM coverage UNION SELECT unit_id FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'year' UNION SELECT unit_id FROM pending_work WHERE stage = 'project' AND unit_kind = 'year'"
         )
         if row[0] is not None and _is_year(str(row[0]))
     )
 
 
-def year_units(conn: sqlite3.Connection) -> tuple[WorkUnit, ...]:
+def year_units(conn: engine.Connection) -> tuple[WorkUnit, ...]:
     """Every year unit, in year order."""
     return tuple(WorkUnit("project", "year", year) for year in _year_ids(conn))
 
 
-def event_years(conn: sqlite3.Connection, event_id: str) -> tuple[str, ...]:
+def event_years(conn: engine.Connection, event_id: str) -> tuple[str, ...]:
     """The years whose units own an event's facts: its `year` and its reporting month's.
 
     They differ for a December event reported in January: coverage counts it
     in its year, and the January year associates its placements.
     """
     row = conn.execute(
-        "SELECT CAST(year AS TEXT),substr(event_month,1,4) FROM events WHERE event_id=?",
+        "SELECT CAST(year AS TEXT) AS _value_0, SUBSTRING(event_month FROM 1 FOR 4) AS _value_1 FROM events WHERE event_id = %s",
         (event_id,),
     ).fetchone()
     if row is None:
@@ -208,19 +207,21 @@ def event_years(conn: sqlite3.Connection, event_id: str) -> tuple[str, ...]:
     return tuple(sorted({str(value) for value in row if _is_year(str(value))}))
 
 
-def _year_events(conn: sqlite3.Connection, year: str) -> tuple[WorkUnit, ...]:
+def _year_events(conn: engine.Connection, year: str) -> tuple[WorkUnit, ...]:
     """The event units a year reads: its events and those reported in its months."""
     return tuple(
         WorkUnit("project", "event", str(row[0]))
         for row in conn.execute(
-            "SELECT event_id FROM events WHERE year=? OR substr(event_month,1,4)=? "
-            "ORDER BY event_id",
+            (
+                "SELECT event_id FROM events WHERE year = %s OR SUBSTRING(event_month FROM 1 FOR 4) = %s "
+                "ORDER BY event_id NULLS FIRST"
+            ),
             (int(year), year),
         )
     )
 
 
-def year_hints(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
+def year_hints(conn: engine.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
     """The year units a project unit's rows touch; hints only, currency decides.
 
     An event (or a source event's events): the event's years. A dancer: the
@@ -239,7 +240,7 @@ def year_hints(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]
         years.update(event_years(conn, unit.unit_id))
     elif kind == "source_event":
         for (event_id,) in conn.execute(
-            "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref=?", (unit.unit_id,)
+            "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref = %s", (unit.unit_id,)
         ):
             years.update(event_years(conn, str(event_id)))
     elif kind == "dancer" and unit.unit_id.isdigit():
@@ -248,11 +249,9 @@ def year_hints(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]
         years.update(
             str(row[0])
             for row in conn.execute(
-                "SELECT DISTINCT substr(p.event_month,1,4) FROM registry_placements p "
-                "WHERE p.wsdc_id=? AND EXISTS (SELECT 1 FROM events e "
-                "WHERE substr(e.event_month,1,4)=substr(p.event_month,1,4)) "
-                "UNION SELECT DISTINCT CAST(e.year AS TEXT) FROM registry_placements p "
-                "JOIN events e USING(event_id) WHERE p.wsdc_id=?",
+                (
+                    "SELECT DISTINCT SUBSTRING(p.event_month FROM 1 FOR 4) AS _value_0 FROM registry_placements AS p WHERE p.wsdc_id = %s AND EXISTS(SELECT 1 AS _value_0 FROM events AS e WHERE SUBSTRING(e.event_month FROM 1 FOR 4) = SUBSTRING(p.event_month FROM 1 FOR 4)) UNION SELECT DISTINCT CAST(e.year AS TEXT) AS _value_0 FROM registry_placements AS p JOIN events AS e USING (event_id) WHERE p.wsdc_id = %s"
+                ),
                 (int(unit.unit_id), int(unit.unit_id)),
             )
             if row[0] is not None
@@ -260,15 +259,12 @@ def year_hints(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]
     return tuple(WorkUnit("project", "year", year) for year in sorted(years) if _is_year(year))
 
 
-def _project_event(conn: sqlite3.Connection, identifier: str) -> WorkUnit | None:
+def _project_event(conn: engine.Connection, identifier: str) -> WorkUnit | None:
     """Check one event's catalog membership without loading every event or dancer."""
     present = conn.execute(
-        "SELECT 1 FROM derivation_scopes WHERE stage='project' AND unit_kind='event' AND unit_id=? "
-        "UNION ALL SELECT 1 FROM pending_work WHERE stage='project' AND unit_kind='event' AND unit_id=? "
-        "UNION ALL SELECT 1 FROM observations WHERE scope_kind='event' AND scope_id=? "
-        "UNION ALL SELECT 1 FROM canonical_scope_rows WHERE scope_kind='event' AND scope_id=? "
-        "UNION ALL SELECT 1 FROM events WHERE event_id=? "
-        "UNION ALL SELECT 1 FROM source_event_map WHERE event_id=? LIMIT 1",
+        (
+            "SELECT 1 AS _value_0 FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'event' AND unit_id = %s UNION ALL SELECT 1 AS _value_0 FROM pending_work WHERE stage = 'project' AND unit_kind = 'event' AND unit_id = %s UNION ALL SELECT 1 AS _value_0 FROM observations WHERE scope_kind = 'event' AND scope_id = %s UNION ALL SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE scope_kind = 'event' AND scope_id = %s UNION ALL SELECT 1 AS _value_0 FROM events WHERE event_id = %s UNION ALL SELECT 1 AS _value_0 FROM source_event_map WHERE event_id = %s LIMIT 1"
+        ),
         (identifier,) * 6,
     ).fetchone()
     return WorkUnit("project", "event", identifier) if present else None
@@ -281,8 +277,8 @@ _NO_PROPOSALS = (
 
 
 def _execute(
-    conn: sqlite3.Connection, sql: str, parameters: tuple[Any, ...] | dict[str, Any] = ()
-) -> list[sqlite3.Row]:
+    conn: engine.Connection, sql: str, parameters: tuple[Any, ...] | dict[str, Any] = ()
+) -> list[engine.Row]:
     """Run a query over the proposals, which read as empty before schema 35.
 
     Old-schema tests and checkpoints run current code on a database without
@@ -290,7 +286,7 @@ def _execute(
     """
     try:
         return conn.execute(sql, parameters).fetchall()
-    except sqlite3.OperationalError as error:
+    except engine.OperationalError as error:
         if "source_event_proposals" not in str(error):
             raise
         return conn.execute(
@@ -298,7 +294,7 @@ def _execute(
         ).fetchall()
 
 
-def mapping_units(conn: sqlite3.Connection) -> tuple[WorkUnit, ...]:
+def mapping_units(conn: engine.Connection) -> tuple[WorkUnit, ...]:
     """One mapping unit per source: its listings, proposals, map rows and registrations.
 
     A source named only by an override file gets its unit from the input
@@ -308,18 +304,19 @@ def mapping_units(conn: sqlite3.Connection) -> tuple[WorkUnit, ...]:
         WorkUnit("project", "mapping", str(row[0]))
         for row in _execute(
             conn,
-            "SELECT source FROM source_events UNION SELECT source FROM source_event_proposals "
-            "UNION SELECT source FROM source_event_map "
-            "UNION SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='mapping' "
-            "UNION SELECT unit_id FROM pending_work WHERE stage='project' AND unit_kind='mapping' "
-            "UNION SELECT scope_id FROM canonical_scope_rows WHERE scope_kind='mapping' "
-            "UNION SELECT scope_id FROM observations WHERE scope_kind='mapping' "
-            "ORDER BY 1",
+            (
+                "SELECT source FROM source_events UNION SELECT source FROM source_event_proposals UNION "
+                "SELECT source FROM source_event_map UNION SELECT unit_id FROM derivation_scopes WHERE stage "
+                "= 'project' AND unit_kind = 'mapping' UNION SELECT unit_id FROM pending_work WHERE stage = "
+                "'project' AND unit_kind = 'mapping' UNION SELECT scope_id FROM canonical_scope_rows WHERE "
+                "scope_kind = 'mapping' UNION SELECT scope_id FROM observations WHERE scope_kind = 'mapping' "
+                "ORDER BY 1 NULLS FIRST"
+            ),
         )
     )
 
 
-def resolution_units(conn: sqlite3.Connection) -> tuple[WorkUnit, ...]:
+def resolution_units(conn: engine.Connection) -> tuple[WorkUnit, ...]:
     """One resolution unit per event a listing names, maps or once did.
 
     Proposed and mapped events, the events of resolution scope rows and of
@@ -331,54 +328,43 @@ def resolution_units(conn: sqlite3.Connection) -> tuple[WorkUnit, ...]:
         WorkUnit("project", "resolution", str(row[0]))
         for row in _execute(
             conn,
-            "SELECT event_id FROM source_event_proposals UNION SELECT event_id FROM source_event_map "
-            "UNION SELECT scope_id FROM canonical_scope_rows WHERE scope_kind='resolution' "
-            "UNION SELECT scope_id FROM observations WHERE scope_kind='resolution' "
-            "UNION SELECT json_extract(record_key,'$[0]') FROM canonical_scope_rows "
-            "WHERE scope_kind IN ('unmatched_source_events','override_events') AND scope_id='all' "
-            "AND table_name='events' "
-            "UNION SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='resolution' "
-            "UNION SELECT unit_id FROM pending_work WHERE stage='project' AND unit_kind='resolution' "
-            "ORDER BY 1",
+            (
+                "SELECT event_id FROM source_event_proposals UNION SELECT event_id FROM source_event_map UNION SELECT scope_id FROM canonical_scope_rows WHERE scope_kind = 'resolution' UNION SELECT scope_id FROM observations WHERE scope_kind = 'resolution' UNION SELECT JSON_EXTRACT_PATH_TEXT(CAST(record_key AS JSON), '0') AS _value_0 FROM canonical_scope_rows WHERE scope_kind IN ('unmatched_source_events', 'override_events') AND scope_id = 'all' AND table_name = 'events' UNION SELECT unit_id FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'resolution' UNION SELECT unit_id FROM pending_work WHERE stage = 'project' AND unit_kind = 'resolution' ORDER BY 1 NULLS FIRST"
+            ),
         )
         if row[0] is not None
     )
 
 
-def resolution_unit(conn: sqlite3.Connection, event_id: str) -> WorkUnit | None:
+def resolution_unit(conn: engine.Connection, event_id: str) -> WorkUnit | None:
     """The event's resolution unit when it has one (the same sets as `resolution_units`)."""
     present = _execute(
         conn,
-        "SELECT 1 FROM source_event_proposals WHERE event_id=:e "
-        "UNION ALL SELECT 1 FROM source_event_map WHERE event_id=:e "
-        "UNION ALL SELECT 1 FROM canonical_scope_rows WHERE scope_kind='resolution' AND scope_id=:e "
-        "UNION ALL SELECT 1 FROM observations WHERE scope_kind='resolution' AND scope_id=:e "
-        "UNION ALL SELECT 1 FROM canonical_scope_rows WHERE scope_kind IN "
-        "('unmatched_source_events','override_events') AND scope_id='all' "
-        "AND table_name='events' AND record_key=json_array(:e) "
-        "UNION ALL SELECT 1 FROM derivation_scopes WHERE stage='project' AND unit_kind='resolution' "
-        "AND unit_id=:e "
-        "UNION ALL SELECT 1 FROM pending_work WHERE stage='project' AND unit_kind='resolution' "
-        "AND unit_id=:e LIMIT 1",
+        (
+            "SELECT 1 AS _value_0 FROM source_event_proposals WHERE event_id = %(e)s UNION ALL SELECT 1 AS _value_0 FROM source_event_map WHERE event_id = %(e)s UNION ALL SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE scope_kind = 'resolution' AND scope_id = %(e)s UNION ALL SELECT 1 AS _value_0 FROM observations WHERE scope_kind = 'resolution' AND scope_id = %(e)s UNION ALL SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE scope_kind IN ('unmatched_source_events', 'override_events') AND scope_id = 'all' AND table_name = 'events' AND record_key = ops.compact_json(json_build_array(%(e)s::text)) UNION ALL SELECT 1 AS _value_0 FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'resolution' AND unit_id = %(e)s UNION ALL SELECT 1 AS _value_0 FROM pending_work WHERE stage = 'project' AND unit_kind = 'resolution' AND unit_id = %(e)s LIMIT 1"
+        ),
         {"e": event_id},
     )
     return WorkUnit("project", "resolution", event_id) if present else None
 
 
-def resolution_proposals(conn: sqlite3.Connection, event_id: str) -> list[list[Any]]:
+def resolution_proposals(conn: engine.Connection, event_id: str) -> list[list[Any]]:
     """The proposals naming an event: a resolution's content input."""
     return [
         list(row)
         for row in _execute(
             conn,
-            "SELECT source,source_ref,event_id,match_method,match_confidence,placeholder_json "
-            "FROM source_event_proposals WHERE event_id=? ORDER BY source,source_ref",
+            (
+                "SELECT source, source_ref, event_id, match_method, match_confidence, placeholder_json FROM "
+                "source_event_proposals WHERE event_id = %s ORDER BY source NULLS FIRST, source_ref NULLS "
+                "FIRST"
+            ),
             (event_id,),
         )
     ]
 
 
-def waits_for(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
+def waits_for(conn: engine.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
     """Units that must be current before ``unit`` runs, beyond its prerequisites.
 
     A resolution waits for the mappings of the sources that propose its
@@ -393,25 +379,27 @@ def waits_for(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
         WorkUnit("project", "mapping", str(row[0]))
         for row in _execute(
             conn,
-            "SELECT source FROM source_event_proposals WHERE event_id=? "
-            "UNION SELECT source FROM source_event_map WHERE event_id=? ORDER BY 1",
+            (
+                "SELECT source FROM source_event_proposals WHERE event_id = %s UNION SELECT source FROM "
+                "source_event_map WHERE event_id = %s ORDER BY 1 NULLS FIRST"
+            ),
             (unit.unit_id, unit.unit_id),
         )
     )
 
 
-def _index_scopes(conn: sqlite3.Connection, source: str) -> tuple[WorkUnit, ...]:
+def _index_scopes(conn: engine.Connection, source: str) -> tuple[WorkUnit, ...]:
     """The source-index pages that list a source's events (index scopes are pages, F19)."""
     return tuple(
         WorkUnit("project", "source_index", str(row[0]))
         for row in conn.execute(
-            "SELECT DISTINCT scope_id FROM source_event_scope_rows WHERE source=? ORDER BY 1",
+            "SELECT DISTINCT scope_id FROM source_event_scope_rows WHERE source = %s ORDER BY 1 NULLS FIRST",
             (source,),
         )
     )
 
 
-def prerequisites(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
+def prerequisites(conn: engine.Connection, unit: WorkUnit) -> tuple[WorkUnit, ...]:
     if unit.stage == "project":
         if unit.unit_kind in BASE:
             return ()
@@ -443,7 +431,7 @@ def prerequisites(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, .
             events = [
                 str(row[0])
                 for row in conn.execute(
-                    "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref=? ORDER BY event_id",
+                    "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref = %s ORDER BY event_id NULLS FIRST",
                     (unit.unit_id,),
                 )
             ]
@@ -503,7 +491,7 @@ def prerequisites(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, .
     return ()
 
 
-def dancer_units(conn: sqlite3.Connection, identifiers: Iterable[str]) -> tuple[WorkUnit, ...]:
+def dancer_units(conn: engine.Connection, identifiers: Iterable[str]) -> tuple[WorkUnit, ...]:
     """The dancer units of ``identifiers`` that exist: registered, queued or observed.
 
     An id with none of these (a WSDC id a sheet prints that the registry
@@ -515,25 +503,26 @@ def dancer_units(conn: sqlite3.Connection, identifiers: Iterable[str]) -> tuple[
     found = {
         str(row[0])
         for row in conn.execute(
-            "SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='dancer' "
-            "AND unit_id IN (SELECT value FROM json_each(:ids)) "
-            "UNION SELECT unit_id FROM pending_work WHERE stage='project' AND unit_kind='dancer' "
-            "AND unit_id IN (SELECT value FROM json_each(:ids)) "
-            "UNION SELECT scope_id FROM observations WHERE scope_kind='dancer' "
-            "AND scope_id IN (SELECT value FROM json_each(:ids))",
+            (
+                "SELECT unit_id FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'dancer' AND "
+                "unit_id IN (SELECT value FROM jsonb_array_elements_text(%(ids)s::jsonb)) UNION SELECT unit_id FROM pending_work "
+                "WHERE stage = 'project' AND unit_kind = 'dancer' AND unit_id IN (SELECT value FROM "
+                "jsonb_array_elements_text(%(ids)s::jsonb)) UNION SELECT scope_id FROM observations WHERE scope_kind = 'dancer' AND "
+                "scope_id IN (SELECT value FROM jsonb_array_elements_text(%(ids)s::jsonb))"
+            ),
             {"ids": json.dumps(wanted)},
         )
     }
     return tuple(WorkUnit("project", "dancer", value) for value in wanted if value in found)
 
 
-def _raw(conn: sqlite3.Connection, unit: WorkUnit) -> list[dict[str, Any]]:
+def _raw(conn: engine.Connection, unit: WorkUnit) -> list[dict[str, Any]]:
     scopes_to_read = [(unit.unit_kind, unit.unit_id)]
     if unit.unit_kind == "event":
         scopes_to_read.extend(
             ("source_event", str(row[0]))
             for row in conn.execute(
-                "SELECT DISTINCT source_ref FROM source_event_map WHERE event_id=? ORDER BY source_ref",
+                "SELECT DISTINCT source_ref FROM source_event_map WHERE event_id = %s ORDER BY source_ref NULLS FIRST",
                 (unit.unit_id,),
             )
         )
@@ -541,7 +530,14 @@ def _raw(conn: sqlite3.Connection, unit: WorkUnit) -> list[dict[str, Any]]:
     watches: set[str] = set()
     for scope_kind, scope_id in scopes_to_read:
         for row in conn.execute(
-            "SELECT o.*,s.body_sha256,s.observed_at,s.fetched_at,s.via,w.source AS watch_source,w.kind AS watch_kind,w.parser AS watch_parser FROM observations o JOIN snapshots s USING(snapshot_id) JOIN watches w USING(watch_id) WHERE o.scope_kind=? AND o.scope_id=? ORDER BY o.observation_id",
+            (
+                "SELECT o.observation_id, o.watch_id, o.snapshot_id, o.kind, o.scope_kind, o.scope_id, "
+                "o.seq, o.extract_version, o.parser_version, o.payload_json, s.body_sha256, s.observed_at, "
+                "s.fetched_at, s.via, w.source AS watch_source, w.kind AS watch_kind, w.parser AS "
+                "watch_parser FROM observations AS o JOIN snapshots AS s USING (snapshot_id) JOIN watches AS "
+                "w ON w.watch_id=o.watch_id WHERE o.scope_kind = %s AND o.scope_id = %s ORDER BY o.observation_id "
+                "NULLS FIRST"
+            ),
             (scope_kind, scope_id),
         ):
             watches.add(str(row["watch_id"]))
@@ -573,7 +569,10 @@ def _raw(conn: sqlite3.Connection, unit: WorkUnit) -> list[dict[str, Any]]:
                 "legacy_snapshot_id": row[2],
             }
             for row in conn.execute(
-                "SELECT unit_key,accepted_generation_id,legacy_snapshot_id FROM source_units WHERE watch_id=? ORDER BY unit_key",
+                (
+                    "SELECT unit_key, accepted_generation_id, legacy_snapshot_id FROM source_units WHERE "
+                    "watch_id = %s ORDER BY unit_key NULLS FIRST"
+                ),
                 (watch,),
             )
         )
@@ -615,9 +614,9 @@ def replayed_kinds(unit: WorkUnit) -> set[tuple[str, str]]:
 
 
 def dependencies(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
-    selected: Callable[[sqlite3.Connection, WorkUnit], dict[str, Any]],
+    selected: Callable[[engine.Connection, WorkUnit], dict[str, Any]],
     *,
     reads: Iterable[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, tuple[dict[str, Any], ...]]]:
@@ -689,7 +688,7 @@ def dependencies(
                 [
                     {"kind": "snapshot", "key": row[0], "observed_at": row[1]}
                     for row in conn.execute(
-                        "SELECT snapshot_id,coalesce(observed_at,fetched_at) FROM snapshots WHERE snapshot_id IN (SELECT snapshot_id FROM source_events) ORDER BY snapshot_id"
+                        "SELECT snapshot_id, COALESCE(observed_at, fetched_at) AS _value_1 FROM snapshots WHERE snapshot_id IN (SELECT snapshot_id FROM source_events) ORDER BY snapshot_id NULLS FIRST"
                     )
                 ],
             )
@@ -700,7 +699,7 @@ def dependencies(
                     conn,
                     "source_events",
                     excluded={"first_seen_at", "last_seen_at", "run_id"},
-                    where="source=?",
+                    where="source=%s",
                     parameters=(unit.unit_id,),
                 ),
             )
@@ -717,14 +716,17 @@ def dependencies(
             group("year_placements", _rows_digest(_year_placements(conn, year)))
             group(
                 "year_acceptance",
-                _table_rows(conn, "history_acceptance", where="year=?", parameters=(int(year),)),
+                _table_rows(conn, "history_acceptance", where="year=%s", parameters=(int(year),)),
             )
             group(
                 "year_findings",
                 [
                     {"kind": "finding", "key": row[0], "owner_kind": row[1], "owner_id": row[2]}
                     for row in conn.execute(
-                        "SELECT finding_id,owner_kind,owner_id FROM findings WHERE owner_kind IN ('history_year','phase1_year') AND owner_id=? AND closed_at IS NULL ORDER BY finding_id",
+                        (
+                            "SELECT finding_id, owner_kind, owner_id FROM findings WHERE owner_kind IN ('history_year', "
+                            "'phase1_year') AND owner_id = %s AND closed_at IS NULL ORDER BY finding_id NULLS FIRST"
+                        ),
                         (year,),
                     )
                 ],
@@ -734,20 +736,13 @@ def dependencies(
                 [
                     {"kind": "snapshot", "key": row[0], "via": row[1]}
                     for row in conn.execute(
-                        "SELECT snapshot_id,via FROM snapshots WHERE snapshot_id IN ("
-                        "SELECT snapshot_id FROM events WHERE year=:year "
-                        "UNION SELECT snapshot_id FROM registry_placements WHERE substr(event_month,1,4)=:text "
-                        f"UNION SELECT snapshot_id FROM registry_placements WHERE {_ELSEWHERE} "
-                        f"UNION SELECT snapshot_id FROM contests WHERE event_id IN ({_EVENTS}) "
-                        f"UNION SELECT snapshot_id FROM entries WHERE event_id IN ({_EVENTS}) "
-                        "UNION SELECT r.snapshot_id FROM rounds r JOIN contests c USING(contest_id) "
-                        f"WHERE c.event_id IN ({_EVENTS})) ORDER BY snapshot_id",
+                        f"SELECT snapshot_id,via FROM snapshots WHERE snapshot_id IN (SELECT snapshot_id FROM events WHERE year=%(year)s UNION SELECT snapshot_id FROM registry_placements WHERE substr(event_month,1,4)=%(text)s UNION SELECT snapshot_id FROM registry_placements WHERE {_ELSEWHERE} UNION SELECT snapshot_id FROM contests WHERE event_id IN ({_EVENTS}) UNION SELECT snapshot_id FROM entries WHERE event_id IN ({_EVENTS}) UNION SELECT r.snapshot_id FROM rounds r JOIN contests c USING(contest_id) WHERE c.event_id IN ({_EVENTS})) ORDER BY snapshot_id",
                         {"year": int(year), "text": year},
                     )
                 ],
             )
         if unit.unit_kind in {"event", "source_event"}:
-            condition = "event_id=?" if unit.unit_kind == "event" else "source_ref=?"
+            condition = "event_id=%s" if unit.unit_kind == "event" else "source_ref=%s"
             group(
                 "source_mapping",
                 [
@@ -759,7 +754,7 @@ def dependencies(
                         "confidence": row[4],
                     }
                     for row in conn.execute(
-                        "SELECT * FROM source_event_map WHERE "
+                        ("SELECT * FROM source_event_map WHERE ")
                         + condition
                         + " ORDER BY source,source_ref",
                         (unit.unit_id,),
@@ -770,12 +765,15 @@ def dependencies(
         if unit.unit_kind == "release":
             result.extend(
                 {"kind": "revision", "key": row[0], "value": row[1]}
-                for row in conn.execute("SELECT name,value FROM revisions ORDER BY name")
+                for row in conn.execute(
+                    "SELECT name, value FROM revisions ORDER BY name NULLS FIRST"
+                )
             )
         result.extend(
             {"kind": "input", "key": row[0], "value": row[1]}
             for row in conn.execute(
-                "SELECT key,value FROM meta WHERE key IN ('input_bundle_hash','identity_journal_digest') ORDER BY key"
+                "SELECT key, value FROM meta WHERE key IN ('input_bundle_hash', 'identity_journal_digest') "
+                "ORDER BY key NULLS FIRST"
             )
         )
         from swingset.admission.support import selection_digest
@@ -784,11 +782,11 @@ def dependencies(
     return result, sets
 
 
-def replay_versions(conn: sqlite3.Connection) -> dict[tuple[str, str], int]:
+def replay_versions(conn: engine.Connection) -> dict[tuple[str, str], int]:
     """Every per-kind replay epoch; a missing token is version 0."""
     versions = {}
     for key, version in conn.execute(
-        "SELECT input_key,version FROM derivation_input_versions WHERE namespace='replayed'"
+        "SELECT input_key, version FROM derivation_input_versions WHERE namespace = 'replayed'"
     ):
         stage, kind = json.loads(key)
         versions[(str(stage), str(kind))] = int(version)
@@ -796,19 +794,19 @@ def replay_versions(conn: sqlite3.Connection) -> dict[tuple[str, str], int]:
 
 
 def _selected_members(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     members: tuple[WorkUnit, ...],
-    selected: Callable[[sqlite3.Connection, WorkUnit], dict[str, Any]],
+    selected: Callable[[engine.Connection, WorkUnit], dict[str, Any]],
 ) -> tuple[tuple[dict[str, Any], ...], str]:
     ordered = tuple(sorted((selected(conn, item) for item in members), key=_canonical))
     return ordered, _digest(ordered)
 
 
-def _raw_kind(conn: sqlite3.Connection, kind: str) -> list[dict[str, Any]]:
+def _raw_kind(conn: engine.Connection, kind: str) -> list[dict[str, Any]]:
     return [
         item
         for row in conn.execute(
-            "SELECT DISTINCT scope_id FROM observations WHERE scope_kind=? ORDER BY scope_id",
+            "SELECT DISTINCT scope_id FROM observations WHERE scope_kind = %s ORDER BY scope_id NULLS FIRST",
             (kind,),
         )
         for item in _raw(conn, WorkUnit("project", kind, str(row[0])))
@@ -834,17 +832,17 @@ def _rows_digest(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _table_rows(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     table: str,
     excluded: set[str] | frozenset[str] | None = None,
     *,
-    where: str = "1",
+    where: str = "TRUE",
     parameters: tuple[Any, ...] | dict[str, Any] = (),
 ) -> list[dict[str, Any]]:
     ignored = excluded or set()
-    columns = [
-        str(row[1]) for row in conn.execute(f"PRAGMA table_info({table})") if row[1] not in ignored
-    ]
+    from .schema_catalog import columns as column_names
+
+    columns = [name for name in column_names(conn, table) if name not in ignored]
     return [
         {"kind": "input_row", "table": table, "row": dict(row)}
         for row in conn.execute(
@@ -855,26 +853,24 @@ def _table_rows(
 
 
 # A year's events, and the placements reported in another year that name one
-# of them (a December event's January placements), as SQL over `:year`
-# (the integer) and `:text` (the four digits).
-_EVENTS = "SELECT event_id FROM events WHERE year=:year"
-_ELSEWHERE = f"substr(event_month,1,4)!=:text AND event_id IN ({_EVENTS})"
+# of them (a December event's January placements), as SQL over `%(year)s`
+# (the integer) and `%(text)s` (the four digits).
+_EVENTS = "SELECT event_id FROM events WHERE year = %(year)s"
+_ELSEWHERE = f"substr(event_month,1,4)!=%(text)s AND event_id IN ({_EVENTS})"
 
 
-def _associated_elsewhere(conn: sqlite3.Connection, year: str) -> list[list[Any]]:
+def _associated_elsewhere(conn: engine.Connection, year: str) -> list[list[Any]]:
     """Keys and associations of placements reported in another year that name the year's events."""
     return [
         list(row)
         for row in conn.execute(
-            "SELECT wsdc_id,role,series_id,event_month,division,dance_style,event_id "
-            f"FROM registry_placements WHERE {_ELSEWHERE} "
-            "ORDER BY wsdc_id,role,series_id,event_month,division,dance_style",
+            f"SELECT wsdc_id,role,series_id,event_month,division,dance_style,event_id FROM registry_placements WHERE {_ELSEWHERE} ORDER BY wsdc_id,role,series_id,event_month,division,dance_style",
             {"year": int(year), "text": year},
         )
     ]
 
 
-def _year_placements(conn: sqlite3.Connection, year: str) -> list[dict[str, Any]]:
+def _year_placements(conn: engine.Connection, year: str) -> list[dict[str, Any]]:
     """The placement rows a year reads, without the column it writes (F23).
 
     Placements reported in the year leave out `event_id`, which the year
@@ -888,7 +884,7 @@ def _year_placements(conn: sqlite3.Connection, year: str) -> list[dict[str, Any]
             conn,
             "registry_placements",
             excluded={"event_id"},
-            where="substr(event_month,1,4)=:text",
+            where="substr(event_month,1,4)=%(text)s",
             parameters=named,
         ),
         *_table_rows(conn, "registry_placements", where=_ELSEWHERE, parameters=named),
@@ -947,7 +943,7 @@ def default_reads(event_id: str) -> frozenset[str]:
     )
 
 
-def recorded_reads(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[str]:
+def recorded_reads(conn: engine.Connection, unit: WorkUnit) -> frozenset[str]:
     """The read set of a link's current generation, else its default.
 
     `derivation_reads` holds it (completion and cutoff replace it). Without
@@ -962,7 +958,7 @@ def recorded_reads(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[str]:
 
         try:
             keys = read_index.keys(conn, unit)
-        except sqlite3.OperationalError as exc:
+        except engine.OperationalError as exc:
             if "no such table" not in str(exc):
                 raise
             keys = frozenset()
@@ -971,11 +967,13 @@ def recorded_reads(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[str]:
     return memo(conn, ("link_reads", unit), read)
 
 
-def _manifest_reads(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[str]:
+def _manifest_reads(conn: engine.Connection, unit: WorkUnit) -> frozenset[str]:
     row = conn.execute(
-        "SELECT s.materialized_generation_id,g.dependency_set_id FROM derivation_scopes s "
-        "JOIN derivation_generations g ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+        (
+            "SELECT s.materialized_generation_id, g.dependency_set_id FROM derivation_scopes AS s JOIN "
+            "derivation_generations AS g ON g.generation_id = s.materialized_generation_id WHERE s.stage "
+            "= %s AND s.unit_kind = %s AND s.unit_id = %s"
+        ),
         (unit.stage, unit.unit_kind, unit.unit_id),
     ).fetchone()
     if row is None:
@@ -983,25 +981,28 @@ def _manifest_reads(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[str]:
     set_id = str(row[1])
     try:
         newer = conn.execute(
-            "SELECT dependency_set_id FROM derivation_equivalences WHERE stage=? AND unit_kind=? "
-            "AND unit_id=? AND generation_id=? ORDER BY created_at DESC LIMIT 1",
+            (
+                "SELECT dependency_set_id FROM derivation_equivalences WHERE stage = %s AND unit_kind = %s "
+                "AND unit_id = %s AND generation_id = %s ORDER BY created_at DESC NULLS LAST LIMIT 1"
+            ),
             (unit.stage, unit.unit_kind, unit.unit_id, row[0]),
         ).fetchone()
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" not in str(exc):
             raise
         newer = None
     if newer is not None:
         set_id = str(newer[0])
     manifest = conn.execute(
-        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?", (set_id,)
+        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
+        (set_id,),
     ).fetchone()
     keys = set()
     items = json.loads(manifest[0]) if manifest else []
     for item in list(items):
         if item.get("kind") == "dependency_set" and item.get("key") == BINDING_GROUP:
             members = conn.execute(
-                "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                 (item["fingerprint"],),
             ).fetchone()
             items.extend(json.loads(members[0]) if members else [])
@@ -1016,15 +1017,15 @@ def _manifest_reads(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[str]:
     return frozenset(keys)
 
 
-def unit_replay_version(conn: sqlite3.Connection, unit: WorkUnit) -> int:
+def unit_replay_version(conn: engine.Connection, unit: WorkUnit) -> int:
     row = conn.execute(
-        "SELECT version FROM derivation_input_versions WHERE namespace=? AND input_key=?",
+        "SELECT version FROM derivation_input_versions WHERE namespace = %s AND input_key = %s",
         (UNIT_REPLAY, _canonical((unit.stage, unit.unit_kind, unit.unit_id))),
     ).fetchone()
     return int(row[0]) if row else 0
 
 
-def link_inputs(conn: sqlite3.Connection, event_id: str, keys: Iterable[str]) -> dict[str, Any]:
+def link_inputs(conn: engine.Connection, event_id: str, keys: Iterable[str]) -> dict[str, Any]:
     """The current value of each read key of `link/event/<event_id>`.
 
     A project key's value is the scope's selected generation (an event's
@@ -1041,9 +1042,10 @@ def link_inputs(conn: sqlite3.Connection, event_id: str, keys: Iterable[str]) ->
         found = {
             str(row[0]): row[1]
             for row in conn.execute(
-                "SELECT unit_id,materialized_generation_id FROM derivation_scopes "
-                "WHERE stage='project' AND unit_kind='dancer' "
-                "AND unit_id IN (SELECT value FROM json_each(?))",
+                (
+                    "SELECT unit_id, materialized_generation_id FROM derivation_scopes WHERE stage = 'project' "
+                    "AND unit_kind = 'dancer' AND unit_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb))"
+                ),
                 (json.dumps(dancers),),
             )
         }
@@ -1051,10 +1053,20 @@ def link_inputs(conn: sqlite3.Connection, event_id: str, keys: Iterable[str]) ->
         unscoped = [dancer for dancer in dancers if found.get(dancer) is None]
         if unscoped:
             cursor = conn.execute(
-                "SELECT * FROM dancers WHERE CAST(wsdc_id AS TEXT) IN "
-                "(SELECT value FROM json_each(?))",
+                (
+                    "SELECT dancers.wsdc_id, dancers.first_name, dancers.last_name, dancers.name_norm, "
+                    "dancers.is_pro, dancers.primary_role, dancers.leader_required_level, "
+                    "dancers.leader_allowed_level, dancers.follower_required_level, "
+                    "dancers.follower_allowed_level, dancers.leader_highest_level, "
+                    "dancers.leader_highest_points, dancers.follower_highest_level, "
+                    "dancers.follower_highest_points, dancers.recent_year, dancers.registry_internal_id, "
+                    "dancers.registry_fetched_at, dancers.merged_into_wsdc_id, dancers.source, "
+                    "dancers.snapshot_id, dancers.parser_version, dancers.first_seen_at, dancers.last_seen_at, "
+                    "dancers.run_id FROM dancers WHERE CAST(wsdc_id AS TEXT) IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb))"
+                ),
                 (json.dumps(unscoped),),
             )
+            assert cursor.description is not None
             names = [column[0] for column in cursor.description]
             rows = {
                 str(row[0]): _digest(
@@ -1076,7 +1088,7 @@ def link_inputs(conn: sqlite3.Connection, event_id: str, keys: Iterable[str]) ->
     return values
 
 
-def _read_value(conn: sqlite3.Connection, key: str) -> Any:
+def _read_value(conn: engine.Connection, key: str) -> Any:
     from .derivations import selected_generation
 
     if key.startswith(EVENT):
@@ -1084,7 +1096,7 @@ def _read_value(conn: sqlite3.Connection, key: str) -> Any:
         return [selected_generation(conn, event), unit_replay_version(conn, event)]
     if key.startswith(POOL):
         row = conn.execute(
-            "SELECT version FROM derivation_input_versions WHERE namespace=? AND input_key=?",
+            "SELECT version FROM derivation_input_versions WHERE namespace = %s AND input_key = %s",
             (POOL_NAMESPACE, key.removeprefix(POOL)),
         ).fetchone()
         return int(row[0]) if row else 0
@@ -1094,10 +1106,21 @@ def _read_value(conn: sqlite3.Connection, key: str) -> Any:
     if name == "event_row":
         # The row is a calendar's, the inventory's or a resolution's, not the
         # event unit's; its tier is the year's.
-        cursor = conn.execute("SELECT * FROM events WHERE event_id=?", (argument,))
+        cursor = conn.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (argument,),
+        )
         row = cursor.fetchone()
         if row is None:
             return None
+        assert cursor.description is not None
         names = [column[0] for column in cursor.description]
         return _digest(
             {
@@ -1109,17 +1132,19 @@ def _read_value(conn: sqlite3.Connection, key: str) -> Any:
     if name == "registry_event":
         return _digest(
             _table_rows(
-                conn, "registry_placements", _CLOCKS, where="event_id=?", parameters=(argument,)
+                conn, "registry_placements", _CLOCKS, where="event_id=%s", parameters=(argument,)
             )
         )
     if name == "missing_identity":
         return [
             str(row[0])
             for row in conn.execute(
-                "SELECT DISTINCT f.finding_id FROM findings f JOIN rounds r ON r.round_id=f.subject_id "
-                "JOIN contests c ON c.contest_id=r.contest_id WHERE f.kind='missing_identity' "
-                "AND f.subject_kind='round' AND f.closed_at IS NULL AND r.round_type='prelim' "
-                "AND c.event_id=? ORDER BY f.finding_id",
+                (
+                    "SELECT DISTINCT f.finding_id FROM findings AS f JOIN rounds AS r ON r.round_id = "
+                    "f.subject_id JOIN contests AS c ON c.contest_id = r.contest_id WHERE f.kind = "
+                    "'missing_identity' AND f.subject_kind = 'round' AND f.closed_at IS NULL AND r.round_type = "
+                    "'prelim' AND c.event_id = %s ORDER BY f.finding_id NULLS FIRST"
+                ),
                 (argument,),
             )
         ]
@@ -1138,11 +1163,11 @@ def _read_value(conn: sqlite3.Connection, key: str) -> Any:
     raise ValueError(f"unknown read key {key}")
 
 
-def _journal(conn: sqlite3.Connection) -> list[Any]:
+def _journal(conn: engine.Connection) -> list[Any]:
     """The accepted identity journal: its digest, its decision revision and migrations."""
-    digest = conn.execute("SELECT value FROM meta WHERE key='identity_journal_digest'").fetchone()
+    digest = conn.execute("SELECT value FROM meta WHERE key = 'identity_journal_digest'").fetchone()
     revision = conn.execute(
-        "SELECT value FROM revisions WHERE name='identity_decisions'"
+        "SELECT value FROM revisions WHERE name = 'identity_decisions'"
     ).fetchone()
     return [
         None if digest is None else str(digest[0]),
@@ -1151,9 +1176,7 @@ def _journal(conn: sqlite3.Connection) -> list[Any]:
     ]
 
 
-def _binding_refs(
-    conn: sqlite3.Connection, event_id: str | None, refs: list[str]
-) -> dict[str, str]:
+def _binding_refs(conn: engine.Connection, event_id: str | None, refs: list[str]) -> dict[str, str]:
     """Each source reference's bindings to subjects of other events.
 
     The link binds its own subjects, so their rows are its output. What it
@@ -1163,13 +1186,9 @@ def _binding_refs(
     """
     grouped: dict[str, list[list[Any]]] = {ref: [] for ref in refs}
     for row in conn.execute(
-        "SELECT b.ref_id,b.binding_id,b.subject_kind,b.subject_id,b.event_id,b.snapshot_id,"
-        "b.semantic_hash,EXISTS(SELECT 1 FROM entries WHERE entry_id=b.subject_id) "
-        "OR EXISTS(SELECT 1 FROM judges WHERE judge_id=b.subject_id),"
-        "(SELECT r.reason FROM identity_link_resolutions r WHERE r.subject_kind=b.subject_kind "
-        "AND r.subject_id=b.subject_id) FROM identity_reference_bindings b "
-        "WHERE b.ref_id IN (SELECT value FROM json_each(?)) AND b.event_id IS NOT ? "
-        "ORDER BY b.ref_id,b.binding_id",
+        (
+            "SELECT b.ref_id, b.binding_id, b.subject_kind, b.subject_id, b.event_id, b.snapshot_id, b.semantic_hash, CAST(EXISTS(SELECT 1 AS _value_0 FROM entries WHERE entry_id = b.subject_id) OR EXISTS(SELECT 1 AS _value_0 FROM judges WHERE judge_id = b.subject_id) AS INT) AS _value_7, (SELECT r.reason FROM identity_link_resolutions AS r WHERE r.subject_kind = b.subject_kind AND r.subject_id = b.subject_id) AS _value_8 FROM identity_reference_bindings AS b WHERE b.ref_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb)) AND b.event_id IS DISTINCT FROM %s ORDER BY b.ref_id NULLS FIRST, b.binding_id NULLS FIRST"
+        ),
         (json.dumps(refs), event_id),
     ):
         grouped[str(row[0])].append(list(row[1:]))
@@ -1206,7 +1225,7 @@ def read_entries(key: str, value: Any) -> list[dict[str, Any]]:
 
 
 def _link_dependencies(
-    conn: sqlite3.Connection, unit: WorkUnit, reads: Iterable[str] | None
+    conn: engine.Connection, unit: WorkUnit, reads: Iterable[str] | None
 ) -> tuple[list[dict[str, Any]], dict[str, tuple[dict[str, Any], ...]]]:
     keys = frozenset(reads) if reads is not None else recorded_reads(conn, unit)
     values = link_inputs(conn, unit.unit_id, keys)
@@ -1241,23 +1260,25 @@ def _link_dependencies(
     return result, sets
 
 
-def read_hints(conn: sqlite3.Connection, key: str, *, enqueued_at: str) -> None:
+def read_hints(conn: engine.Connection, key: str, *, enqueued_at: str) -> None:
     """Queue the units whose read set names `key` (a hint; currency decides).
 
     A unit already queued keeps its time. Before schema 35 there is no index.
     """
     try:
         conn.execute(
-            "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
-            "SELECT stage,unit_kind,unit_id,? FROM derivation_reads WHERE read_key=?",
+            (
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) SELECT stage, unit_kind, "
+                "unit_id, %s FROM derivation_reads WHERE read_key = %s ON CONFLICT DO NOTHING"
+            ),
             (enqueued_at, key),
         )
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" not in str(exc):
             raise
 
 
-def hint_state(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[tuple[str | None, str]]:
+def hint_state(conn: engine.Connection, unit: WorkUnit) -> frozenset[tuple[str | None, str]]:
     """Rows a project unit may rewrite that links read as content, by event.
 
     A dancer rewrites its registry placements and their association; a year
@@ -1280,29 +1301,31 @@ def hint_state(conn: sqlite3.Connection, unit: WorkUnit) -> frozenset[tuple[str 
                 conn,
                 "registry_placements",
                 _CLOCKS,
-                where="wsdc_id=?",
+                where="wsdc_id=%s",
                 parameters=(int(identifier),),
             )
         )
     association = {
-        "year": ("substr(event_month,1,4)=?", (identifier,)),
+        "year": ("substr(event_month,1,4)=%s", (identifier,)),
         "calendar": ("event_id IS NOT NULL", ()),
-        "resolution": ("event_id=?", (identifier,)),
+        "resolution": ("event_id=%s", (identifier,)),
     }.get(kind)
     if association is not None and (kind != "year" or _is_year(identifier)):
         # Only the association: the key and the event it names.
         state.update(
             (row[0], str(row[1]))
             for row in conn.execute(
-                "SELECT event_id,wsdc_id||'|'||role||'|'||series_id||'|'||event_month||'|'||"
-                "division||'|'||dance_style FROM registry_placements WHERE " + association[0],
+                (
+                    "SELECT event_id, wsdc_id || '|' || role || '|' || series_id || '|' || event_month || '|' || division || '|' || dance_style AS _value_1 FROM registry_placements WHERE "
+                )
+                + association[0],
                 association[1],
             )
         )
     rows = {
-        "calendar": ("1", ()),
-        "inventory": ("1", ()),
-        "resolution": ("event_id=?", (identifier,)),
+        "calendar": ("TRUE", ()),
+        "inventory": ("TRUE", ()),
+        "resolution": ("event_id=%s", (identifier,)),
     }.get(kind)
     if rows is not None:
         state.update(

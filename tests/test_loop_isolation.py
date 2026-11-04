@@ -7,7 +7,6 @@ without holding its neighbours; waiting parse work does not hold acquisition;
 an exclusive writer waits for the running loops and holds the next ones.
 """
 
-import fcntl
 import json
 import signal
 import subprocess
@@ -19,6 +18,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from postgres_statements import assert_integrity
 from test_loops import ARCHIVE_BODY, _enqueue, _tick
 from test_loops import dirs as dirs  # noqa: F401
 from test_loops import history as history  # noqa: F401
@@ -26,7 +26,7 @@ from test_watchdog import _run as watchdog
 
 from swingset.clock import FakeClock
 from swingset.loops import acquire, derive, maintain, plan, release
-from swingset.state import derivations, queue, rwlock
+from swingset.state import derivations, engine, queue, rwlock
 from swingset.state.db import DatabaseLockedError, open_database
 from swingset.state.work import WorkUnit
 
@@ -76,7 +76,7 @@ def _run(loop, dirs, clock, seen=None, *, archive=True):
 def _due(state, watch_id, clock):
     with open_database(state) as db:
         db.connection.execute(
-            "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+            "UPDATE watches SET next_check_at = %s WHERE watch_id = %s",
             (clock.now().isoformat(), watch_id),
         )
 
@@ -87,7 +87,31 @@ def _kill(dirs, clock, loop, fault, chunk=None):
     args = [sys.executable, str(HELPER), str(state), str(config), str(overrides), loop]
     args += [clock.now().isoformat(), fault, *([str(chunk)] if chunk else [])]
     done = subprocess.run(args, capture_output=True, text=True, timeout=60)
-    assert done.returncode == -signal.SIGKILL, (done.returncode, done.stdout[-2000:])
+    assert done.returncode == -signal.SIGKILL, (
+        done.returncode,
+        done.stdout[-2000:],
+        done.stderr[-2000:],
+    )
+    witness = json.loads(
+        next(
+            line.removeprefix("LOOP_BACKEND ")
+            for line in done.stdout.splitlines()
+            if line.startswith("LOOP_BACKEND ")
+        )
+    )
+    # SIGKILL confirms client exit; wait for this exact server session to
+    # finish rollback and release its locks before the next tick starts.
+    with engine.connect(engine.resolve_dsn(state), read_only=True) as observer:
+        deadline = time.monotonic() + 10
+        while (
+            observer.execute(
+                "SELECT 1 FROM pg_stat_activity WHERE pid=%s AND datname=%s AND backend_start::text=%s",
+                (witness["pid"], witness["database"], witness["started"]),
+            ).fetchone()
+            is not None
+        ):
+            assert time.monotonic() < deadline, "killed loop backend did not exit"
+            time.sleep(0.01)
 
 
 def _scalar(state, sql, *params):
@@ -97,8 +121,8 @@ def _scalar(state, sql, *params):
 
 #: Ledger rows of a leased unit: none since schema 37 (D-0238).
 UNIT_ADMISSIONS = (
-    "SELECT count(*) FROM execution_admissions WHERE substr(action_id,1,5)='work_' "
-    "OR action_kind IN ('parse','link') OR work_attempt_id IS NOT NULL"
+    "SELECT COUNT(*) FROM execution_admissions WHERE SUBSTRING(action_id FROM 1 FOR 5) = 'work_' "
+    "OR action_kind IN ('parse', 'link') OR NOT work_attempt_id IS NULL"
 )
 
 
@@ -111,7 +135,7 @@ def started(dirs, history):
     seen = []
     record = _run("acquire", dirs, history.clock, seen)
     assert {url.host for url in seen} == {"web.archive.org", "eepro.com"}
-    assert _scalar(dirs[0], "SELECT count(*) FROM pending_work WHERE stage='parse'") == 1
+    assert _scalar(dirs[0], "SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'") == 1
     history.clock.sleep(60)
     return history
 
@@ -152,7 +176,7 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
         sources = dirs[1] / "sources.toml"
         sources.write_text(sources.read_text() + "\n[derivation]\ncutoff = false\n")
     _kill(dirs, clock, loop, fault, chunk)
-    dead = _scalar(state, "SELECT run_id FROM runs WHERE loop=? AND finished_at IS NULL", loop)
+    dead = _scalar(state, "SELECT run_id FROM runs WHERE loop = %s AND finished_at IS NULL", loop)
     assert dead is not None
     # A unit killed mid-write left its lease and attempt, no ledger row (D-0238).
     assert _scalar(state, UNIT_ADMISSIONS) == 0
@@ -160,7 +184,7 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
     if chunk:
         with open_database(state, lock=False) as db:
             rows = db.connection.execute(
-                "SELECT generation_id,label_rows,rows_stored FROM derivation_building"
+                "SELECT generation_id, label_rows, rows_stored FROM derivation_building"
             ).fetchall()
         # Killed between chunks: part of the generation is stored.
         (building,) = [row for row in rows if 0 < row[2] < row[1]]
@@ -192,27 +216,30 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
     with open_database(state, lock=False) as db:
         conn = db.connection
         finished, summary = conn.execute(
-            "SELECT finished_at,summary_json FROM runs WHERE run_id=?", (dead,)
+            "SELECT finished_at, summary_json FROM runs WHERE run_id = %s", (dead,)
         ).fetchone()
         assert finished is not None
         closed = json.loads(summary)
         assert closed["failed"] is True and closed["error"] == "process_interrupted"
         assert json.loads((state / "runs" / f"{dead}.json").read_bytes())["failed"] is True
         # The fixture's own runs carry no loop; every loop run is closed.
-        open_runs = "SELECT count(*) FROM runs WHERE loop IS NOT NULL AND finished_at IS NULL"
+        open_runs = "SELECT COUNT(*) FROM runs WHERE NOT loop IS NULL AND finished_at IS NULL"
         assert conn.execute(open_runs).fetchone()[0] == 0
         assert (
-            conn.execute("SELECT count(*) FROM work_attempts WHERE outcome='running'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM work_attempts WHERE outcome = 'running'").fetchone()[
+                0
+            ]
             == 0
         )
         assert (
-            conn.execute("SELECT count(*) FROM work_queue WHERE state='leased'").fetchone()[0] == 0
+            conn.execute("SELECT COUNT(*) FROM work_queue WHERE state = 'leased'").fetchone()[0]
+            == 0
         )
         # No admission is left active, with a run or without one, and no
         # admission row exists for a unit.
         assert (
             conn.execute(
-                "SELECT count(*) FROM execution_admissions WHERE state='active'"
+                "SELECT COUNT(*) FROM execution_admissions WHERE state = 'active'"
             ).fetchone()[0]
             == 0
         )
@@ -220,15 +247,15 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
         if building is not None:
             # The rerun resumed the building generation and finished it.
             generation_id, label_rows, _ = building
-            assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+            assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 0
             assert (
                 conn.execute(
-                    "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?",
+                    "SELECT COUNT(*) FROM derivation_row_refs WHERE generation_id = %s",
                     (generation_id,),
                 ).fetchone()[0]
                 == label_rows
             )
-        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert_integrity(conn)
 
 
 def test_a_failing_unit_is_quarantined_and_the_others_drain(dirs, monkeypatch):
@@ -245,7 +272,7 @@ def test_a_failing_unit_is_quarantined_and_the_others_drain(dirs, monkeypatch):
         derivations.complete(
             database.connection, selection, rows=(), now=clock.now(), run_id=run_id
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     bad = WorkUnit("project", "dancer", "bad")
@@ -263,7 +290,7 @@ def test_a_failing_unit_is_quarantined_and_the_others_drain(dirs, monkeypatch):
             clock.sleep(wait * 60)
     assert records[2]["queue"]["quarantined"]
     assert sorted(ran) == ["a", "b", "c", "d"]
-    assert _scalar(state, "SELECT group_concat(unit_id) FROM pending_work") == "bad"
+    assert _scalar(state, "SELECT STRING_AGG(unit_id, ',') FROM pending_work") == "bad"
     lines = [
         line
         for line in watchdog(state, now=clock.now().isoformat())
@@ -286,7 +313,7 @@ def test_waiting_and_quarantined_units_do_not_hold_acquisition(dirs, history):
     assert len(units) > limit
     with open_database(state) as db, db.transaction() as conn:
         conn.executemany(
-            "INSERT INTO pending_work VALUES (?,?,?,?)",
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES (%s, %s, %s, %s)",
             [(u.stage, u.unit_kind, u.unit_id, stamp) for u in units],
         )
         rows = [(u, "waiting_input", 1, None) for u in units]
@@ -326,12 +353,12 @@ def test_waiting_and_quarantined_units_do_not_hold_acquisition(dirs, history):
 
 def _intent_held(state) -> bool:
     """Whether an exclusive open holds the intent (it waits for the lock)."""
-    with (state / rwlock.STATE_INTENT).open("a+b") as handle:
-        try:
-            fcntl.flock(handle, fcntl.LOCK_SH | fcntl.LOCK_NB)
-        except BlockingIOError:
+    from swingset.state.engine.locks import release, try_lock
+
+    with open_database(state, lock=False) as database:
+        if not try_lock(database.connection, rwlock.STATE_INTENT, shared=True):
             return True
-        fcntl.flock(handle, fcntl.LOCK_UN)
+        release(database.connection, rwlock.STATE_INTENT, shared=True)
         return False
 
 
@@ -346,7 +373,7 @@ def test_an_exclusive_writer_waits_for_derive_and_holds_the_next_acquire(dirs, s
         # A backup's open: exclusive, waiting up to its lock timeout.
         with open_database(state, lock_timeout=20) as db:
             opened["at"] = time.monotonic()
-            db.connection.execute("SELECT count(*) FROM runs").fetchone()
+            db.connection.execute("SELECT COUNT(*) FROM runs").fetchone()
 
     with _tick("derive", dirs, clock) as running:
         writer = threading.Thread(target=backup)
@@ -370,7 +397,7 @@ def test_an_exclusive_writer_waits_for_derive_and_holds_the_next_acquire(dirs, s
     writer.join(20)
     assert not writer.is_alive() and opened["at"] >= released
     assert running.record is not None and running.record["progress"] > 0
-    assert _scalar(state, "SELECT count(*) FROM runs WHERE loop='acquire'") == 1
+    assert _scalar(state, "SELECT COUNT(*) FROM runs WHERE loop = 'acquire'") == 1
     # Then every loop resumes.
     clock.sleep(60)
     _due(state, started.origin, clock)
@@ -388,7 +415,7 @@ def _projector(monkeypatch, ran):
         derivations.complete(
             database.connection, selection, rows=(), now=clock.now(), run_id=run_id
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
 
@@ -420,7 +447,7 @@ def test_a_unit_whose_admission_raises_fails_alone_and_is_quarantined(dirs, monk
         # No attempt exists: the queue row alone carries the clock.
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM work_attempts WHERE unit_id='aaa-poison'"
+                "SELECT COUNT(*) FROM work_attempts WHERE unit_id = 'aaa-poison'"
             ).fetchone()[0]
             == 0
         )
@@ -465,7 +492,7 @@ def test_a_unit_that_kills_its_process_is_quarantined_and_the_others_drain(dirs,
             _enqueue(state, clock, [neighbour])
             clock.sleep(wait * 60)
     assert sorted(ran) == ["b1", "b2", "b3", "b4"]
-    assert _scalar(state, "SELECT group_concat(unit_id) FROM pending_work") == "aaa-poison"
+    assert _scalar(state, "SELECT STRING_AGG(unit_id, ',') FROM pending_work") == "aaa-poison"
     # Quarantined: the next tick does not pick it, so nothing dies.
     clock.sleep(3600)
     after = _run("derive", dirs, clock)
@@ -490,7 +517,7 @@ def test_a_unit_that_kills_its_process_in_its_admission_is_quarantined(dirs, mon
             assert row is not None and row.state == "leased"
             assert (
                 db.connection.execute(
-                    "SELECT count(*) FROM work_attempts WHERE unit_id='aaa-poison'"
+                    "SELECT COUNT(*) FROM work_attempts WHERE unit_id = 'aaa-poison'"
                 ).fetchone()[0]
                 == 0
             )
@@ -547,8 +574,7 @@ def test_an_exception_that_escapes_derive_one_counts_and_quarantines(dirs, monke
             row = queue.get(conn, poison)
             assert (
                 conn.execute(
-                    "SELECT count(*) FROM work_attempts WHERE unit_id='aaa-poison' "
-                    "AND outcome='running'"
+                    "SELECT COUNT(*) FROM work_attempts WHERE unit_id = 'aaa-poison' AND outcome = 'running'"
                 ).fetchone()[0]
                 == 0
             )
@@ -593,7 +619,7 @@ def test_a_unit_killed_after_a_stop_request_is_not_counted(dirs, monkeypatch):
     _kill(dirs, clock, "derive", "unit:aaa-poison")
     with open_database(state, lock=False) as db:
         (dead,) = db.connection.execute(
-            "SELECT run_id FROM runs WHERE loop='derive' AND finished_at IS NULL"
+            "SELECT run_id FROM runs WHERE loop = 'derive' AND finished_at IS NULL"
         ).fetchone()
     marker = queue.stop_marker(state, dead)
     marker.parent.mkdir(exist_ok=True)
@@ -638,7 +664,7 @@ sys.exit(swingset.cli.main(["derive", "--state", {str(state)!r}, "--config", {st
     assert done.returncode == -signal.SIGKILL, (done.returncode, done.stderr[-2000:])
     with open_database(state, lock=False) as db:
         (dead,) = db.connection.execute(
-            "SELECT run_id FROM runs WHERE loop='derive' AND finished_at IS NULL"
+            "SELECT run_id FROM runs WHERE loop = 'derive' AND finished_at IS NULL"
         ).fetchone()
     if overrun:
         clock.sleep(31 * 60)
@@ -707,7 +733,7 @@ def test_a_recovery_record_whose_transaction_rolled_back_is_no_ending(dirs, monk
     _kill(dirs, clock, "derive", "unit:aaa-poison")
     with open_database(state, lock=False) as db:
         (dead,) = db.connection.execute(
-            "SELECT run_id FROM runs WHERE loop='derive' AND finished_at IS NULL"
+            "SELECT run_id FROM runs WHERE loop = 'derive' AND finished_at IS NULL"
         ).fetchone()
     (state / "runs").mkdir(exist_ok=True)
     (state / "runs" / f"{dead}.json").write_text(
@@ -737,9 +763,9 @@ def test_a_unit_write_that_outwaits_the_busy_timeout_is_never_counted(dirs, monk
     transaction: the unit returns `write_lock_timeout`, writes nothing, the
     tick does not fail, and the next tick closes the attempt uncounted (F7)."""
     import contextlib
-    import sqlite3
 
     import swingset.schedule.derive as derive_module
+    from swingset.state import engine
     from swingset.state.db import Database
 
     state = dirs[0]
@@ -766,9 +792,12 @@ def test_a_unit_write_that_outwaits_the_busy_timeout_is_never_counted(dirs, monk
             # Another process takes the writer lock before the unit's write,
             # and this connection waits only a tenth of a second for it.
             armed.clear()
-            other = sqlite3.connect(self.state_dir / "state.sqlite", isolation_level=None)
-            other.execute("BEGIN IMMEDIATE")
-            self.connection.execute("PRAGMA busy_timeout=100")
+            from swingset.state.engine.locks import acquire_writer
+
+            other = engine.connect(engine.resolve_dsn(self.state_dir))
+            other.execute("BEGIN")
+            acquire_writer(other)
+            self.connection.execute("SET lock_timeout='100ms'")
         try:
             with real_transaction(self, **kwargs) as conn:
                 yield conn
@@ -801,7 +830,7 @@ def test_a_unit_write_that_outwaits_the_busy_timeout_is_never_counted(dirs, monk
     with open_database(state, lock=False) as db:
         row = queue.get(db.connection, unit)
         (outcome,) = db.connection.execute(
-            "SELECT outcome FROM work_attempts WHERE unit_id='a' ORDER BY attempt_id"
+            "SELECT outcome FROM work_attempts WHERE unit_id = 'a' ORDER BY attempt_id NULLS FIRST"
         ).fetchone()
         # Closed uncounted, retried in a minute.
         assert outcome == "interrupted"
@@ -809,7 +838,7 @@ def test_a_unit_write_that_outwaits_the_busy_timeout_is_never_counted(dirs, monk
         assert row.next_attempt_at == queue.at(clock.now() + timedelta(seconds=60))
     clock.sleep(61)
     assert not _run("derive", dirs, clock)["failed"]
-    assert ran == ["a"] and _scalar(state, "SELECT count(*) FROM pending_work") == 0
+    assert ran == ["a"] and _scalar(state, "SELECT COUNT(*) FROM pending_work") == 0
 
 
 def test_a_publication_that_fences_a_unit_mid_write_is_never_counted(dirs, monkeypatch):
@@ -817,8 +846,8 @@ def test_a_publication_that_fences_a_unit_mid_write_is_never_counted(dirs, monke
     the write: derive writes nothing more, its tick does not fail, and the
     next tick after the publication closes the attempt uncounted (F6)."""
     import contextlib
-    import sqlite3
 
+    from swingset.state import engine
     from swingset.state.db import Database
 
     state = dirs[0]
@@ -844,11 +873,13 @@ def test_a_publication_that_fences_a_unit_mid_write_is_never_counted(dirs, monke
         if armed and not self.connection.in_transaction:
             # Another process admits a publication before the unit's write.
             armed.clear()
-            other = sqlite3.connect(self.state_dir / "state.sqlite")
+            other = engine.connect(engine.resolve_dsn(self.state_dir))
             other.execute(
-                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
-                "control_revision,all_sources,all_kinds,state) "
-                "VALUES ('publication_x','publication',?,0,1,1,'active')",
+                (
+                    "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                    "all_sources, all_kinds, state) VALUES ('publication_x', 'publication', %s, 0, 1, 1, "
+                    "'active')"
+                ),
                 (clock.now().isoformat(),),
             )
             other.commit()
@@ -869,8 +900,10 @@ def test_a_publication_that_fences_a_unit_mid_write_is_never_counted(dirs, monke
         assert row is not None and row.state == "leased" and row.attempts == 0
         # The publication ends (release settles it).
         conn.execute(
-            "UPDATE execution_admissions SET state='settled',settled_at=?,outcome='published' "
-            "WHERE action_id='publication_x'",
+            (
+                "UPDATE execution_admissions SET state = 'settled', settled_at = %s, outcome = 'published' "
+                "WHERE action_id = 'publication_x'"
+            ),
             (clock.now().isoformat(),),
         )
         conn.commit()
@@ -884,7 +917,7 @@ def test_a_publication_that_fences_a_unit_mid_write_is_never_counted(dirs, monke
         assert row.next_attempt_at == queue.at(clock.now() + timedelta(seconds=60))
     clock.sleep(61)
     assert not _run("derive", dirs, clock)["failed"]
-    assert _scalar(state, "SELECT count(*) FROM pending_work") == 0
+    assert _scalar(state, "SELECT COUNT(*) FROM pending_work") == 0
 
 
 def test_a_unit_write_that_meets_the_narrow_fence_is_closed_uncounted_in_its_tick(
@@ -903,21 +936,23 @@ def test_a_unit_write_that_meets_the_narrow_fence_is_closed_uncounted_in_its_tic
         ran.append(unit.unit_id)
         if unit.unit_id == "fenced":
             database.connection.execute(
-                "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) "
-                "VALUES ('fixture','1','shadow:1')"
+                "INSERT INTO admission_policies (page_kind, contract_version, policy_revision) VALUES "
+                "('fixture', '1', 'shadow:1')"
             )
         derivations.complete(
             database.connection, selection, rows=(), now=clock.now(), run_id=run_id
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     _enqueue(state, clock, ["fenced", "free"])
     with open_database(state) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
-            "control_revision,all_sources,all_kinds,state) "
-            "VALUES ('publication_n','publication_narrow',?,0,1,1,'active')",
+            (
+                "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                "all_sources, all_kinds, state) VALUES ('publication_n', 'publication_narrow', %s, 0, 1, 1, "
+                "'active')"
+            ),
             (clock.now().isoformat(),),
         )
     record = _run("derive", dirs, clock)
@@ -930,12 +965,14 @@ def test_a_unit_write_that_meets_the_narrow_fence_is_closed_uncounted_in_its_tic
         # Nothing is left for the next tick's recovery.
         assert (
             conn.execute(
-                "SELECT count(*) FROM execution_admissions WHERE state='active'"
+                "SELECT COUNT(*) FROM execution_admissions WHERE state = 'active'"
             ).fetchone()[0]
             == 1
         )
         assert (
-            conn.execute("SELECT count(*) FROM work_attempts WHERE outcome='running'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM work_attempts WHERE outcome = 'running'").fetchone()[
+                0
+            ]
             == 0
         )
         row = queue.get(conn, unit)
@@ -943,12 +980,14 @@ def test_a_unit_write_that_meets_the_narrow_fence_is_closed_uncounted_in_its_tic
         assert row.state != "leased"
         assert row.next_attempt_at == queue.at(clock.now() + timedelta(seconds=60))
         conn.execute(
-            "UPDATE execution_admissions SET state='settled',settled_at=?,outcome='published' "
-            "WHERE action_id='publication_n'",
+            (
+                "UPDATE execution_admissions SET state = 'settled', settled_at = %s, outcome = 'published' "
+                "WHERE action_id = 'publication_n'"
+            ),
             (clock.now().isoformat(),),
         )
         conn.commit()
     clock.sleep(61)
     after = _run("derive", dirs, clock)
     assert not after["failed"] and after["recovered"]["attempts"] == 0
-    assert _scalar(state, "SELECT count(*) FROM pending_work") == 0
+    assert _scalar(state, "SELECT COUNT(*) FROM pending_work") == 0

@@ -21,7 +21,8 @@ def test_real_migrated_database_reads_every_public_table(tmp_path: Path) -> None
 def test_real_pending_queue_blocks_consistent_build_read(tmp_path: Path) -> None:
     with open_database(tmp_path) as database:
         database.connection.execute(
-            "INSERT INTO pending_work VALUES ('project','event','e','2026-01-01T00:00:00Z')"
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', "
+            "'event', 'e', '2026-01-01T00:00:00Z')"
         )
         bundle = SimpleNamespace(file_hashes={}, digest="bundle")
         with pytest.raises(BuildError, match="pending"):

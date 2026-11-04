@@ -41,7 +41,6 @@ import csv
 import io
 import json
 import re
-import sqlite3
 import sys
 import time
 from collections.abc import Callable, Iterable
@@ -57,6 +56,8 @@ from protego import Protego
 
 from journal.tools.collection.event_site_review import open_state, read_overrides
 from swingset.fetch.client import USER_AGENT
+from swingset.state import engine
+from swingset.state.environment import ensure_external_allowed
 
 FLOOR_SECONDS = 2.0
 MAX_BODY_BYTES = 2 * 1024 * 1024
@@ -257,7 +258,7 @@ class BudgetSpent(Exception):
 
 
 def select(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     start: date,
     end: date,
@@ -269,14 +270,14 @@ def select(
     if events:
         rows = conn.execute(
             "SELECT event_id,website,end_date FROM events WHERE event_id IN "
-            f"({','.join('?' * len(events))}) AND website IS NOT NULL ORDER BY end_date,event_id",
+            f"({','.join('%s' for _ in events)}) AND website IS NOT NULL ORDER BY end_date,event_id",
             events,
         ).fetchall()
         return [(str(row[0]), str(row[1]), row[2]) for row in rows]
     covered = {row.get("event_id", "") for row in overrides}
     rows = conn.execute(
-        "SELECT e.event_id,e.website,e.end_date FROM events e WHERE e.held='held' AND e.series_id LIKE 'wsdc-%' "
-        "AND e.website IS NOT NULL AND e.end_date BETWEEN ? AND ? "
+        "SELECT e.event_id,e.website,e.end_date FROM events e WHERE e.held='held' AND e.series_id LIKE 'wsdc-%%' "
+        "AND e.website IS NOT NULL AND e.end_date BETWEEN %s AND %s "
         "AND NOT EXISTS (SELECT 1 FROM contests c WHERE c.event_id=e.event_id) "
         "ORDER BY e.end_date,e.event_id",
         (start.isoformat(), end.isoformat()),
@@ -412,6 +413,8 @@ def main(argv: list[str] | None = None, *, transport: httpx.BaseTransport | None
     args = parser.parse_args(argv)
     conn = open_state(args.state)
     try:
+        if not args.list:
+            ensure_external_allowed(conn, "event-site link research", transport)
         chosen = select(
             conn,
             start=args.start,

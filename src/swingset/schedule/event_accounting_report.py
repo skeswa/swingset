@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime
 from typing import Any
 
@@ -11,6 +10,7 @@ from swingset.admission.enumeration_evidence import members as verified_members
 from swingset.admission.page_evidence import Limits, Session
 from swingset.config import Config
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 from . import event_accounting as accounting
 from . import event_gaps, event_retirement
@@ -18,7 +18,7 @@ from .event_progress import ENUMERATION_MEMBERS, _fence, policy
 
 
 def report(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     config: Config | None,
     *,
@@ -69,7 +69,9 @@ def report(
     # requires the caller's query-only transaction, as does live inventory.
     session = Session(conn, archive, cutoff=now, now=now, limits=Limits(rows=8192))
     keys = conn.execute(
-        "SELECT rowid FROM source_event_inventory WHERE rowid>? AND (? IS NULL OR source=?) AND (? IS NULL OR source_ref=?) ORDER BY rowid LIMIT ?",
+        (
+            "SELECT rowid FROM source_event_inventory WHERE rowid > %s AND (CAST(%s AS TEXT) IS NULL OR source = %s) AND (CAST(%s AS TEXT) IS NULL OR source_ref = %s) ORDER BY rowid NULLS FIRST LIMIT %s"
+        ),
         (after_event, source, source, source_ref, source_ref, limit + 1),
     ).fetchall()
     last = after_event
@@ -79,7 +81,7 @@ def report(
             break
         try:
             subject = session.read(
-                "SELECT source,source_ref,enumeration_id FROM source_event_inventory WHERE rowid=?",
+                "SELECT source, source_ref, enumeration_id FROM source_event_inventory WHERE rowid = %s",
                 (key[0],),
                 ("source", "source_ref", "enumeration_id"),
                 cap=1,
@@ -105,7 +107,7 @@ def report(
                     limit=ENUMERATION_MEMBERS,
                 )
                 stored = session.read(
-                    "SELECT policy_json FROM event_progress_policies WHERE digest=?",
+                    "SELECT policy_json FROM event_progress_policies WHERE digest = %s",
                     (captured["digest"],),
                     ("policy_json",),
                     cap=1,
@@ -139,14 +141,22 @@ def report(
                     max_age=config.scheduler.event_pressure_max_age_seconds,
                 )
             history = session.read(
-                "SELECT receipt_id,enumeration_id,assessment,transition,observed_at FROM event_accounting_receipts WHERE source=? AND source_ref=? ORDER BY receipt_id DESC LIMIT 1",
+                (
+                    "SELECT receipt_id, enumeration_id, assessment, transition, observed_at FROM "
+                    "event_accounting_receipts WHERE source = %s AND source_ref = %s ORDER BY receipt_id DESC "
+                    "NULLS LAST LIMIT 1"
+                ),
                 (subject["source"], subject["source_ref"]),
                 ("receipt_id", "enumeration_id", "assessment", "transition", "observed_at"),
                 cap=1,
             )
             item["last_observed_transition"] = history[0] if history else None
             definite = session.read(
-                "SELECT receipt_id,enumeration_id,assessment,transition,observed_at FROM event_accounting_receipts WHERE source=? AND source_ref=? AND assessment!='unassessed' ORDER BY receipt_id DESC LIMIT 1",
+                (
+                    "SELECT receipt_id, enumeration_id, assessment, transition, observed_at FROM "
+                    "event_accounting_receipts WHERE source = %s AND source_ref = %s AND assessment <> "
+                    "'unassessed' ORDER BY receipt_id DESC NULLS LAST LIMIT 1"
+                ),
                 (subject["source"], subject["source_ref"]),
                 ("receipt_id", "enumeration_id", "assessment", "transition", "observed_at"),
                 cap=1,

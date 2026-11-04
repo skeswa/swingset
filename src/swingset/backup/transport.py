@@ -31,11 +31,21 @@ import os
 import re
 import shutil
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from swingset.build.files import fsync_dir
+from swingset.state.environment import (
+    EnvironmentRefused,
+    FixtureIO,
+    ensure_external_allowed,
+    identity,
+)
+
+if TYPE_CHECKING:
+    from swingset.state.engine import Connection
 
 #: No set file or segment is larger (4 GiB).
 MAX_FILE_BYTES = 4 * 1024**3
@@ -225,6 +235,7 @@ class HuggingFaceSegments:
         token: str | None,
         api: Any = None,
         keep: int = REMOTE_KEPT,
+        connection: Connection | None = None,
     ) -> None:
         if api is None:
             from huggingface_hub import HfApi
@@ -235,8 +246,32 @@ class HuggingFaceSegments:
         self.api = api
         self.keep = keep
         self.name = f"hf:{repo_id}"
+        self.connection = connection
+
+    @contextmanager
+    def bound(self, connection: Connection) -> Iterator[None]:
+        """Attach one backup's actual database until its complete I/O finishes."""
+        previous = self.connection
+        if (
+            previous is not None
+            and identity(previous).database_id != identity(connection).database_id
+        ):
+            raise EnvironmentRefused("Archive transport is attached to another database")
+        self.connection = connection
+        try:
+            self._external("archive I/O")
+            yield
+        finally:
+            self.connection = previous
+
+    def _external(self, operation: str, *, write: bool = False) -> None:
+        if self.connection is not None:
+            ensure_external_allowed(self.connection, operation, self.api)
+        elif write and not isinstance(self.api, FixtureIO):
+            raise EnvironmentRefused("Archive writes require an attached database identity")
 
     def _files(self) -> list[str]:
+        self._external("archive listing")
         try:
             return [
                 str(name) for name in self.api.list_repo_files(self.repo_id, repo_type="dataset")
@@ -253,6 +288,7 @@ class HuggingFaceSegments:
     def publish(self, local: Path, set_id: str, segments: Sequence[str]) -> str | None:
         from huggingface_hub import CommitOperationAdd, CommitOperationDelete
 
+        self._external("archive publication", write=True)
         listing = self._files()
         operations: list[Any] = []
         for segment in sorted(set(segments) - _segments_of(listing)):
@@ -273,6 +309,7 @@ class HuggingFaceSegments:
             for old in existing
             if old not in kept
         )
+        self._external("archive publication", write=True)
         try:
             result = self.api.create_commit(
                 repo_id=self.repo_id,
@@ -289,6 +326,7 @@ class HuggingFaceSegments:
         their bytes leave the repository's storage (D-0234)."""
         from huggingface_hub import CommitOperationDelete
 
+        self._external("archive collection", write=True)
         listing = self._files()
         foreign = sorted({name.split("/", 1)[0] for name in listing} - OWN_PATHS)
         if foreign:
@@ -304,6 +342,7 @@ class HuggingFaceSegments:
         squashed = False
         if unnamed:
             try:
+                self._external("archive collection", write=True)
                 result = self.api.create_commit(
                     repo_id=self.repo_id,
                     repo_type="dataset",
@@ -314,6 +353,7 @@ class HuggingFaceSegments:
                     commit_message=f"Collect {len(unnamed)} unnamed segments",
                 )
                 commit = str(result.oid)
+                self._external("archive history squashing", write=True)
                 self.api.super_squash_history(
                     repo_id=self.repo_id,
                     repo_type="dataset",
@@ -334,6 +374,7 @@ class HuggingFaceSegments:
         }
 
     def _sizes(self) -> dict[str, int]:
+        self._external("archive sizing")
         try:
             return {
                 str(entry.path): int(getattr(entry, "size", 0) or 0)
@@ -347,6 +388,7 @@ class HuggingFaceSegments:
 
     def fetch(self, relative: str, scratch: Path) -> Path:
         name = _relative(relative).as_posix()
+        self._external("archive download")
         try:
             path = self.api.hf_hub_download(
                 self.repo_id,

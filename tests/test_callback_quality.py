@@ -1,4 +1,3 @@
-import sqlite3
 from pathlib import Path
 
 from swingset.model.canonical import Callback, CallbackMark, Entry, Round
@@ -7,17 +6,22 @@ from swingset.project.contests import project_event
 from swingset.sources.base import ParseContext
 from swingset.sources.records import Cell, ResultRow, ResultTable, RoundSheet
 from swingset.sources.scoringdance.adapter import RoundPage
+from swingset.state import engine
 from swingset.state.db import open_database
 
 EVENT = "2026-08-callback-quality"
 
 
-def _seed(conn: sqlite3.Connection, source: str, source_ref: str) -> None:
+def _seed(conn: engine.Connection, source: str, source_ref: str) -> None:
     conn.execute(
-        "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-09-10T00:00:00Z',0)"
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', '2026-09-10T00:00:00Z', 0)"
     )
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             EVENT,
             "slug-callback-quality",
@@ -36,28 +40,40 @@ def _seed(conn: sqlite3.Connection, source: str, source_ref: str) -> None:
         ),
     )
     conn.execute(
-        "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES (?,?,?,'override',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES (%s, %s, %s, 'override', 1)"
+        ),
         (source, source_ref, EVENT),
     )
 
 
 def _add(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     source: str,
     source_ref: str,
     sheet: RoundSheet | tuple[RoundSheet, ...],
 ) -> None:
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES ('watch',?,'round','GET','https://example/round','round',?,'live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+            "('watch', %s, 'round', 'GET', 'https://example/round', 'round', %s, 'live')"
+        ),
         (source, source_ref),
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('snapshot','watch','GET','https://example/round','2026-09-10T00:00:00Z',200,1,1,'run','Ok')"
+        "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+        "body_bytes, content_changed, run_id, classification) VALUES ('snapshot', 'watch', 'GET', "
+        "'https://example/round', '2026-09-10T00:00:00Z', 200, 1, 1, 'run', 'Ok')"
     )
     sheets = sheet if isinstance(sheet, tuple) else (sheet,)
     for sequence, item in enumerate(sheets):
         conn.execute(
-            "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?, 'watch','snapshot','round_sheet','source_event',?,?,'1','1',?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, 'watch', "
+                "'snapshot', 'round_sheet', 'source_event', %s, %s, '1', '1', %s)"
+            ),
             (f"observation-{sequence}", source_ref, sequence, encode_payload(item)),
         )
 

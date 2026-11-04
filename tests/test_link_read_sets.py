@@ -82,44 +82,54 @@ class Bundle:
 def _events(conn):
     for index, event in enumerate(EVENTS):
         conn.execute(
-            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,event_month,"
-            "wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-            "VALUES (?,?,?,2026,'2026-01-10','2026-01-12','2026-01','registry','[]','test','snap',"
-            "'1','t','t','run')",
+            (
+                "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, event_month, "
+                "wsdc_status, sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                "run_id) VALUES (%s, %s, %s, 2026, '2026-01-10', '2026-01-12', '2026-01', 'registry', '[]', "
+                "'test', 'snap', '1', 't', 't', 'run')"
+            ),
             (event, f"wsdc-{100 + index}", f"Series {index}"),
         )
         contest = f"{event}/novice"
         conn.execute(
-            "INSERT INTO contests(contest_id,event_id,name_raw,division,age_division,contest_type,"
-            "partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,"
-            "source_contest_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-            "VALUES (?,?,'Novice J&J','novice','none','jack_and_jill','random_partner','wcs',1,'[]',"
-            "'parsed',?,'test','snap','1','t','t','run')",
+            (
+                "INSERT INTO contests (contest_id, event_id, name_raw, division, age_division, contest_type, "
+                "partner_mode, dance_style, wsdc_points_eligible, combined_from, parse_status, "
+                "source_contest_ref, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                "run_id) VALUES (%s, %s, 'Novice J&J', 'novice', 'none', 'jack_and_jill', 'random_partner', "
+                "'wcs', 1, '[]', 'parsed', %s, 'test', 'snap', '1', 't', 't', 'run')"
+            ),
             (contest, event, contest),
         )
         conn.execute(
-            "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,"
-            "callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,"
-            "parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,'final',1,'Final',"
-            "'relative_placement','{}',2,6,'final','test','snap','1','t','t','run')",
+            (
+                "INSERT INTO rounds (round_id, contest_id, round_type, round_index, name_raw, "
+                "scoring_method, callback_legend, judge_count, entry_count, source_round_ref, source, "
+                "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, %s, 'final', "
+                "1, 'Final', 'relative_placement', '{}', 2, 6, 'final', 'test', 'snap', '1', 't', 't', 'run')"
+            ),
             (f"{contest}/final", contest),
         )
         names = random.Random(index).sample(ENTRY_NAMES, 6)
         for position, name in enumerate(names):
             role = "leader" if position % 2 == 0 else "follower"
             conn.execute(
-                "INSERT INTO entries(entry_id,contest_id,event_id,role,bib,name_raw,name_norm,"
-                "link_status,link_confidence,rounds_danced,source,snapshot_id,parser_version,"
-                "first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,?,?,'unmatched',0,"
-                "'[\"final\"]','test','snap','1','t','t','run')",
+                (
+                    "INSERT INTO entries (entry_id, contest_id, event_id, role, bib, name_raw, name_norm, "
+                    "link_status, link_confidence, rounds_danced, source, snapshot_id, parser_version, "
+                    "first_seen_at, last_seen_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, 'unmatched', 0, "
+                    "'[\"final\"]', 'test', 'snap', '1', 't', 't', 'run')"
+                ),
                 (f"{event}/{position}", contest, event, role, str(position), name, name.casefold()),
             )
         for place in (1, 2):
             conn.execute(
-                "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,"
-                "leader_entry_id,follower_entry_id,tally,source,snapshot_id,parser_version,"
-                "first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,?,?,'','test','snap','1',"
-                "'t','t','run')",
+                (
+                    "INSERT INTO placements (placement_id, round_id, contest_id, event_id, place, "
+                    "leader_entry_id, follower_entry_id, tally, source, snapshot_id, parser_version, "
+                    "first_seen_at, last_seen_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, '', 'test', "
+                    "'snap', '1', 't', 't', 'run')"
+                ),
                 (
                     f"{event}/place-{place}",
                     f"{contest}/final",
@@ -132,9 +142,11 @@ def _events(conn):
             )
         for position, name in enumerate(random.Random(100 + index).sample(JUDGE_NAMES, 2)):
             conn.execute(
-                "INSERT INTO judges(judge_id,event_id,name_raw,anonymous,source,snapshot_id,"
-                "parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,0,'test','snap',"
-                "'1','t','t','run')",
+                (
+                    "INSERT INTO judges (judge_id, event_id, name_raw, anonymous, source, snapshot_id, "
+                    "parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, %s, %s, 0, 'test', 'snap', "
+                    "'1', 't', 't', 'run')"
+                ),
                 (f"{event}/judge-{position}", event, name),
             )
 
@@ -142,9 +154,11 @@ def _events(conn):
 def _placements(conn, first, last):
     """The registry's record of a person: their placed entries at the fixture's events."""
     rows = conn.execute(
-        "SELECT p.event_id,p.place,e.role FROM placements p JOIN entries e "
-        "ON e.entry_id IN (p.leader_entry_id,p.follower_entry_id) WHERE e.name_raw=? "
-        "ORDER BY p.event_id",
+        (
+            "SELECT p.event_id, p.place, e.role FROM placements AS p JOIN entries AS e ON e.entry_id IN "
+            "(p.leader_entry_id, p.follower_entry_id) WHERE e.name_raw = %s ORDER BY p.event_id NULLS "
+            "FIRST"
+        ),
         (f"{first} {last}",),
     ).fetchall()
     return [
@@ -173,9 +187,11 @@ class World(SimpleNamespace):
         upsert_watch(self.conn, spec, NOW)
         snapshot = f"registry-{wsdc_id}-{self.pages}"
         self.conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-            "body_bytes,content_changed,run_id,classification) "
-            "VALUES (?,?,'POST',?,?,200,1,1,'run','Ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'POST', %s, %s, 200, "
+                "1, 1, 'run', 'Ok')"
+            ),
             (snapshot, spec.watch_id, spec.url, NOW.isoformat()),
         )
         payload = DancerLookup(
@@ -198,10 +214,15 @@ class World(SimpleNamespace):
         )
         page = DancerPage()
         self.conn.execute(
-            "DELETE FROM observations WHERE scope_kind='dancer' AND scope_id=?", (str(wsdc_id),)
+            "DELETE FROM observations WHERE scope_kind = 'dancer' AND scope_id = %s",
+            (str(wsdc_id),),
         )
         self.conn.execute(
-            "INSERT INTO observations VALUES (?,?,?,?,'dancer',?,0,?,?,?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, "
+                "'dancer', %s, 0, %s, %s, %s)"
+            ),
             (
                 observation_id(spec.watch_id, snapshot, payload.kind, 0),
                 spec.watch_id,
@@ -223,7 +244,7 @@ class World(SimpleNamespace):
     def link_all(self):
         for event in EVENTS:
             self.link(event)
-        self.conn.execute("DELETE FROM pending_work WHERE stage='link'")
+        self.conn.execute("DELETE FROM pending_work WHERE stage = 'link'")
         assert self.stale() == set()
 
     def stale(self):
@@ -238,7 +259,7 @@ class World(SimpleNamespace):
         return {
             str(row[0])
             for row in self.conn.execute(
-                "SELECT unit_id FROM pending_work WHERE stage='link' AND unit_kind='event'"
+                "SELECT unit_id FROM pending_work WHERE stage = 'link' AND unit_kind = 'event'"
             )
         }
 
@@ -275,7 +296,7 @@ class World(SimpleNamespace):
         assert stale <= self.queued(), sorted(stale - self.queued())
         for event in sorted(stale):
             self.link(event)
-        self.conn.execute("DELETE FROM pending_work WHERE stage='link'")
+        self.conn.execute("DELETE FROM pending_work WHERE stage = 'link'")
         assert self.stale() == set()
         return stale
 
@@ -285,7 +306,8 @@ def world(tmp_path):
     with open_database(tmp_path / "state", lock=False) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run',?,1)", (NOW.isoformat(),)
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', %s, 1)",
+            (NOW.isoformat(),),
         )
         _events(conn)
         w = World(db=db, conn=conn, clock=FakeClock(NOW), people={}, pages=0)
@@ -315,7 +337,7 @@ def test_a_link_records_what_it_read(world):
     candidates = {
         f"project/dancer/{row[0]}"
         for row in w.conn.execute(
-            "SELECT wsdc_id FROM link_candidates WHERE subject_id LIKE 'e00/%'"
+            "SELECT wsdc_id FROM link_candidates WHERE subject_id ILIKE 'e00/%'"
         )
     }
     dancers = {key for key in keys if key.startswith("project/dancer/")}
@@ -343,7 +365,7 @@ def test_a_new_matching_dancer_requeues_that_event_only(world):
     w = world
     named = {
         str(row[0])
-        for row in w.conn.execute("SELECT event_id FROM entries WHERE name_raw='Zoe Marsh'")
+        for row in w.conn.execute("SELECT event_id FROM entries WHERE name_raw = 'Zoe Marsh'")
     }
     assert named
     w.registry(40, first="Zoe", last="Marsh", placements=[])
@@ -358,8 +380,10 @@ def test_a_surname_word_change_requeues_events_with_candidates_of_either_word(wo
         return {
             str(row[0])
             for row in w.conn.execute(
-                "SELECT DISTINCT e.event_id FROM link_candidates c JOIN dancers d USING(wsdc_id) "
-                "JOIN entries e ON e.entry_id=c.subject_id WHERE lower(d.last_name)=?",
+                (
+                    "SELECT DISTINCT e.event_id FROM link_candidates AS c JOIN dancers AS d USING (wsdc_id) JOIN "
+                    "entries AS e ON e.entry_id = c.subject_id WHERE LOWER(d.last_name) = %s"
+                ),
                 (word,),
             )
         }
@@ -376,7 +400,7 @@ def test_an_eligibility_change_requeues_the_events_of_matching_judges(world):
     w = world
     judged = {
         str(row[0])
-        for row in w.conn.execute("SELECT event_id FROM judges WHERE name_raw='Nina Vale'")
+        for row in w.conn.execute("SELECT event_id FROM judges WHERE name_raw = 'Nina Vale'")
     }
     w.registry(42, first="Nina", last="Vale", placements=[])
     # Not yet eligible to judge: no pool reads her.
@@ -427,25 +451,30 @@ def test_a_year_remint_leaves_links_current_unless_their_association_moved(world
     # A calendar gives one event another series: its row changes, and the
     # year then takes its placements away. Only that event's link re-runs.
     moved = "e07"
-    assert w.conn.execute("SELECT 1 FROM registry_placements WHERE event_id=?", (moved,)).fetchone()
+    assert w.conn.execute(
+        "SELECT 1 FROM registry_placements WHERE event_id = %s", (moved,)
+    ).fetchone()
     with w.db.transaction():
-        w.conn.execute("UPDATE events SET series_id='wsdc-999' WHERE event_id=?", (moved,))
+        w.conn.execute("UPDATE events SET series_id = 'wsdc-999' WHERE event_id = %s", (moved,))
         derivations.bump_replay(w.conn, "project", "calendar")
         # The calendar unit's hint for the event whose row it changed.
-        w.conn.execute("INSERT INTO pending_work VALUES ('link','event',?,'t')", (moved,))
+        w.conn.execute(
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', %s, 't')",
+            (moved,),
+        )
     assert w.settle() == {moved}
     before = derivations.selected_generation(w.conn, year)
     process_unit(w.db, year, Bundle(), w.clock, "run")
     assert derivations.selected_generation(w.conn, year) != before
     assert not w.conn.execute(
-        "SELECT 1 FROM registry_placements WHERE event_id=?", (moved,)
+        "SELECT 1 FROM registry_placements WHERE event_id = %s", (moved,)
     ).fetchone()
     assert w.settle() == {moved}
 
 
 def test_a_journal_change_requeues_every_link(world):
     w = world
-    w.conn.execute("UPDATE revisions SET value=value+1 WHERE name='identity_decisions'")
+    w.conn.execute("UPDATE revisions SET value = value + 1 WHERE name = 'identity_decisions'")
     assert w.stale() == set(EVENTS)
 
 
@@ -471,14 +500,16 @@ def test_an_input_changed_between_load_and_commit_supersedes_the_run(world, monk
                 pool.bump(w.conn, [event], now=NOW.isoformat())
         elif change == "registry":
             w.conn.execute(
-                "UPDATE registry_placements SET points=points+1 WHERE event_id=?", (event,)
+                "UPDATE registry_placements SET points = points + 1 WHERE event_id = %s", (event,)
             )
         else:
             # A dancer the run used moves to another of its generations.
             w.conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=CASE "
-                "materialized_generation_id WHEN ? THEN ? ELSE ? END "
-                "WHERE stage='project' AND unit_kind='dancer' AND unit_id=?",
+                (
+                    "UPDATE derivation_scopes SET materialized_generation_id = CASE materialized_generation_id "
+                    "WHEN %s THEN %s ELSE %s END WHERE stage = 'project' AND unit_kind = 'dancer' AND unit_id = "
+                    "%s"
+                ),
                 (*generations, generations[0], str(used[0])),
             )
         return original(evidence, rules)
@@ -502,11 +533,11 @@ def test_ready_links_are_listed_without_the_dancer_cohort(world, monkeypatch):
     # A dancer no link read goes stale; one link's own event row moves.
     w.registry(43, first="Nobody", last="Anywhere", placements=[])
     w.conn.execute(
-        "UPDATE observations SET payload_json=replace(payload_json,'Nobody','Somebody') "
-        "WHERE scope_kind='dancer' AND scope_id='43'"
+        "UPDATE observations SET payload_json = REPLACE(payload_json, 'Nobody', 'Somebody') WHERE "
+        "scope_kind = 'dancer' AND scope_id = '43'"
     )
     assert not derivations.current(w.conn, WorkUnit("project", "dancer", "43"))
-    w.conn.execute("UPDATE events SET name='Renamed Series' WHERE event_id='e05'")
+    w.conn.execute("UPDATE events SET name = 'Renamed Series' WHERE event_id = 'e05'")
 
     def forbidden(*args, **kwargs):
         raise AssertionError("listing ready links read the dancer cohort")
@@ -615,7 +646,7 @@ def test_every_source_reference_a_link_binds_is_a_read_key(tmp_path):
         refs = {
             str(row[0])
             for row in db.connection.execute(
-                "SELECT ref_id FROM identity_reference_bindings WHERE event_id='event'"
+                "SELECT ref_id FROM identity_reference_bindings WHERE event_id = 'event'"
             )
         }
         keys = read_index.keys(db.connection, WorkUnit("link", "event", "event"))
@@ -672,7 +703,10 @@ def test_a_printed_id_the_registry_lacks_never_blocks_its_link(tmp_path, monkeyp
             return current(conn, target, **kwargs)
 
         monkeypatch.setattr(derivations, "current", others_current)
-        conn.execute("INSERT OR IGNORE INTO pending_work VALUES ('link','event','event','t')")
+        conn.execute(
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+            "'event', 't') ON CONFLICT DO NOTHING"
+        )
         with derivation_query.read_snapshot(conn):
             assert derivations.ready(conn, unit)
         conn.execute("DELETE FROM pending_work")
@@ -683,7 +717,7 @@ def test_a_printed_id_the_registry_lacks_never_blocks_its_link(tmp_path, monkeyp
         w.registry(82468, first="Pat", last="Unknown", placements=[])
         assert {
             str(row[0])
-            for row in conn.execute("SELECT unit_id FROM pending_work WHERE stage='link'")
+            for row in conn.execute("SELECT unit_id FROM pending_work WHERE stage = 'link'")
         } == {"event"}
         assert not derivations.current(conn, unit)
         assert dancer in derivation_dependencies.prerequisites(conn, unit)
@@ -704,7 +738,7 @@ def test_a_previous_default_outside_the_pool_is_read_in_the_load(tmp_path):
         conn = db.connection
         seed(conn)
         entry(conn, "event/c1/L-7", "c1", "7", "Pat Unknown")
-        conn.execute("UPDATE entries SET wsdc_id=777777 WHERE entry_id='event/c1/L-7'")
+        conn.execute("UPDATE entries SET wsdc_id = 777777 WHERE entry_id = 'event/c1/L-7'")
         snapshot = load_linking_snapshot(conn, "event", Bundle(), None)
         assert snapshot.reads is not None
         assert "project/dancer/777777" in snapshot.reads.unscoped
@@ -715,28 +749,35 @@ def test_a_write_during_the_load_is_never_certified_as_what_the_link_read(world,
     transaction. A write another process commits between the evidence reads
     and the observed values used to be recorded as what the link read, so
     the commit check passed and stale output was certified current."""
-    import sqlite3
-
     from swingset.link import evidence
+    from swingset.state import engine
 
     w = world
     event = "e03"
     unit = WorkUnit("link", "event", event)
-    assert w.conn.execute("SELECT 1 FROM registry_placements WHERE event_id=?", (event,)).fetchone()
+    assert w.conn.execute(
+        "SELECT 1 FROM registry_placements WHERE event_id = %s", (event,)
+    ).fetchone()
     original = evidence._loaded_reads
-    other = sqlite3.connect(w.db.state_dir / "state.sqlite", timeout=10)
+    other = engine.connect(engine.resolve_dsn(w.db.state_dir), timeout=10)
 
     def racing(*args, **kwargs):
         # Another process moves the event's registry rows after the evidence
         # reads and before the observed values.
         with other:
             other.execute(
-                "UPDATE registry_placements SET points=points+7 WHERE event_id=?", (event,)
+                "UPDATE registry_placements SET points = points + 7 WHERE event_id = %s", (event,)
             )
         return original(*args, **kwargs)
 
     monkeypatch.setattr(evidence, "_loaded_reads", racing)
-    w.conn.execute("INSERT OR IGNORE INTO pending_work VALUES ('link','event',?,'t')", (event,))
+    w.conn.execute(
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+            "%s, 't') ON CONFLICT DO NOTHING"
+        ),
+        (event,),
+    )
     w.link(event)
     other.close()
     # Whatever it committed, it stands for the rows its evidence read: the

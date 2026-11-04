@@ -1,9 +1,9 @@
 """Unavailable observations account for gaps without inventing successful work."""
 
 import json
-import sqlite3
 
 import pytest
+from postgres_statements import assert_integrity, contents
 from test_cycle import overrides as overrides
 from test_event_accounting import event_view, receipts, settle
 from test_event_enumerations import admit_parent, child, finish_bootstrap
@@ -18,6 +18,7 @@ from swingset.schedule.event_accounting_report import report
 from swingset.schedule.event_evidence import request
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
+from swingset.state import engine
 
 
 def response(f, name="one.htm", *, label="gone", classification="Gone", status=404, kind="round"):
@@ -27,7 +28,7 @@ def response(f, name="one.htm", *, label="gone", classification="Gone", status=4
     upsert_watch(f.conn, spec, f.corpus.clock.now())
     context = f.corpus.snapshot(label, ("negative " + label).encode(), spec=spec)
     f.conn.execute(
-        "UPDATE snapshots SET classification=?,http_status=? WHERE snapshot_id=?",
+        "UPDATE snapshots SET classification = %s, http_status = %s WHERE snapshot_id = %s",
         (classification, status, context.snapshot_id),
     )
     return context
@@ -47,7 +48,13 @@ def ready(f, names=("one.htm",), *, unavailable=True):
 def gap(f):
     return dict(
         f.conn.execute(
-            "SELECT * FROM event_gap_observations WHERE availability=1 LIMIT 1"
+            "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+            "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+            "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+            "event_gap_observations.availability, event_gap_observations.token_json, "
+            "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+            "event_gap_observations.evidence_digest FROM event_gap_observations WHERE availability = 1 "
+            "LIMIT 1"
         ).fetchone()
     )
 
@@ -73,7 +80,7 @@ def test_accounting_is_three_state_union(interpreted, unavailable, expected):
 def test_supported_gap_and_real_page_account_without_success_inflation(event):
     f = event
     ready(f)
-    operations = f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+    operations = f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
     settle(f)
     value = event_view(f)
     assert value["assessment"] == "locally_accounted" and value["listed_pages"] == 2
@@ -82,7 +89,7 @@ def test_supported_gap_and_real_page_account_without_success_inflation(event):
     assert value["unavailable"] == dict(positive=1, negative=1, unknown=0)
     assert value["parents"]["positive"] > 0
     assert not f.conn.execute("SELECT 1 FROM event_progress_receipts").fetchone()
-    assert f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0] == operations
+    assert f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0] == operations
     proof = json.loads(gap(f)["evidence_json"])
     assert proof["unavailability_support"]["snapshot_id"] == "gone-0"
     assert proof["acquired"] is proof["interpreted"] is False
@@ -129,7 +136,7 @@ def test_malformed_stored_gap_is_unknown_without_false_reopening(event, damage):
         else:
             proof["request"]["url"] += "wrong"
         f.conn.execute(
-            "UPDATE event_gap_observations SET evidence_json=?,evidence_digest=? WHERE request_id=?",
+            "UPDATE event_gap_observations SET evidence_json = %s, evidence_digest = %s WHERE request_id = %s",
             (canonical(proof).decode(), digest(canonical(proof)), row["request_id"]),
         )
     else:
@@ -141,7 +148,7 @@ def test_malformed_stored_gap_is_unknown_without_false_reopening(event, damage):
             "revision": ("source_revision", -1),
         }[damage]
         f.conn.execute(
-            f"UPDATE event_gap_observations SET {column}=? WHERE request_id=?",
+            f"UPDATE event_gap_observations SET {column} = %s WHERE request_id = %s",
             (value, row["request_id"]),
         )
     before = receipts(f)
@@ -157,13 +164,19 @@ def test_false_gap_rejects_malformed_stage_metadata_even_with_recomputed_digest(
     observe(f)
     row = dict(
         f.conn.execute(
-            "SELECT * FROM event_gap_observations WHERE json_extract(evidence_json,'$.interpreted')=0 LIMIT 1"
+            "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+            "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+            "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+            "event_gap_observations.availability, event_gap_observations.token_json, "
+            "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+            "event_gap_observations.evidence_digest FROM event_gap_observations WHERE "
+            "JSON_EXTRACT_PATH_TEXT(CAST(evidence_json AS JSON), 'interpreted') = 'false' LIMIT 1"
         ).fetchone()
     )
     proof = json.loads(row["evidence_json"])
     proof["acquired"] = "False"
     f.conn.execute(
-        "UPDATE event_gap_observations SET evidence_json=?,evidence_digest=? WHERE request_id=?",
+        "UPDATE event_gap_observations SET evidence_json = %s, evidence_digest = %s WHERE request_id = %s",
         (canonical(proof).decode(), digest(canonical(proof)), row["request_id"]),
     )
     assert event_view(f)["assessment"] == "unassessed"
@@ -197,17 +210,17 @@ def test_unenrolled_alias_response_invalidates_gap_without_changing_progress_fen
     ready(f)
     settle(f)
     before = f.conn.execute(
-        "SELECT revision FROM event_pressure_subjects WHERE source='eepro' AND source_ref='eepro:test'"
+        "SELECT revision FROM event_pressure_subjects WHERE source = 'eepro' AND source_ref = 'eepro:test'"
     ).fetchone()[0]
     context = response(
         f, label="alias", classification=classification, status=status, kind="other-round"
     )
     assert not f.conn.execute(
-        "SELECT 1 FROM event_pressure_watches WHERE watch_id=?", (context.watch_id,)
+        "SELECT 1 FROM event_pressure_watches WHERE watch_id = %s", (context.watch_id,)
     ).fetchone()
     assert (
         f.conn.execute(
-            "SELECT revision FROM event_pressure_subjects WHERE source='eepro' AND source_ref='eepro:test'"
+            "SELECT revision FROM event_pressure_subjects WHERE source = 'eepro' AND source_ref = 'eepro:test'"
         ).fetchone()[0]
         == before
     )
@@ -232,11 +245,11 @@ def test_alias_response_metadata_changes_invalidate_gap(event, column, value):
     response(f, label="alias", kind="other-round")
     settle(f)
     old = gap(f)["source_revision"]
-    f.conn.execute(f"UPDATE snapshots SET {column}=? WHERE snapshot_id='alias'", (value,))
+    f.conn.execute(f"UPDATE snapshots SET {column} = %s WHERE snapshot_id = 'alias'", (value,))
     assert (
-        f.conn.execute("SELECT revision FROM event_gap_revisions WHERE source='eepro'").fetchone()[
-            0
-        ]
+        f.conn.execute(
+            "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
+        ).fetchone()[0]
         > old
     )
     assert event_view(f)["assessment"] == "unassessed"
@@ -248,19 +261,22 @@ def test_watch_source_move_invalidates_both_gap_domains(event):
     response(f, label="alias", kind="other-round")
     settle(f)
     source = f.conn.execute(
-        "SELECT revision FROM event_gap_revisions WHERE source='eepro'"
+        "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
     ).fetchone()[0]
     f.conn.execute(
-        "UPDATE watches SET source='wdr' WHERE watch_id=(SELECT watch_id FROM snapshots WHERE snapshot_id='alias')"
+        "UPDATE watches SET source = 'wdr' WHERE watch_id = (SELECT watch_id FROM snapshots WHERE "
+        "snapshot_id = 'alias')"
     )
     assert (
-        f.conn.execute("SELECT revision FROM event_gap_revisions WHERE source='eepro'").fetchone()[
-            0
-        ]
+        f.conn.execute(
+            "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
+        ).fetchone()[0]
         > source
     )
     assert (
-        f.conn.execute("SELECT revision FROM event_gap_revisions WHERE source='wdr'").fetchone()[0]
+        f.conn.execute("SELECT revision FROM event_gap_revisions WHERE source = 'wdr'").fetchone()[
+            0
+        ]
         > 0
     )
     assert event_view(f)["assessment"] == "unassessed"
@@ -273,11 +289,11 @@ def test_alias_parse_bookkeeping_does_not_invalidate_gap_domain(event):
     settle(f)
     old = gap(f)["source_revision"]
     epoch = f.conn.execute("SELECT epoch FROM event_pressure_state").fetchone()[0]
-    f.conn.execute("UPDATE snapshots SET parse_status='failed' WHERE snapshot_id='alias'")
+    f.conn.execute("UPDATE snapshots SET parse_status = 'failed' WHERE snapshot_id = 'alias'")
     assert (
-        f.conn.execute("SELECT revision FROM event_gap_revisions WHERE source='eepro'").fetchone()[
-            0
-        ]
+        f.conn.execute(
+            "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
+        ).fetchone()[0]
         == old
     )
     assert f.conn.execute("SELECT epoch FROM event_pressure_state").fetchone()[0] == epoch
@@ -322,20 +338,23 @@ def test_positive_alias_support_rewrite_invalidates_sampled_stages(event, column
         # An identical upsert is bookkeeping, not changed support authority.
         epoch = f.conn.execute("SELECT epoch FROM event_pressure_state").fetchone()[0]
         revision = f.conn.execute(
-            "SELECT revision FROM event_gap_revisions WHERE source='eepro'"
+            "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
         ).fetchone()[0]
-        f.conn.execute("UPDATE watches SET source=source WHERE watch_id=?", (alias.watch_id,))
+        f.conn.execute("UPDATE watches SET source = source WHERE watch_id = %s", (alias.watch_id,))
         assert f.conn.execute("SELECT epoch FROM event_pressure_state").fetchone()[0] == epoch
         assert (
             f.conn.execute(
-                "SELECT revision FROM event_gap_revisions WHERE source='eepro'"
+                "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
             ).fetchone()[0]
             == revision
         )
-        f.conn.execute("UPDATE watches SET source=? WHERE watch_id=?", (value, alias.watch_id))
+        f.conn.execute(
+            "UPDATE watches SET source = %s WHERE watch_id = %s", (value, alias.watch_id)
+        )
     else:
         f.conn.execute(
-            f"UPDATE snapshots SET {column}=? WHERE snapshot_id=?", (value, context.snapshot_id)
+            f"UPDATE snapshots SET {column} = %s WHERE snapshot_id = %s",
+            (value, context.snapshot_id),
         )
     assert event_view(f)["assessment"] == "unassessed"
     if column in {"classification", "watch_source"}:
@@ -355,7 +374,7 @@ def test_gap_to_real_acquisition_and_interpretation_still_qualifies_progress(eve
     assert observe(f)["qualified_progress"] == 1
     settle(f)
     assert event_view(f)["unavailable"]["positive"] == 0
-    assert f.conn.execute("SELECT count(*) FROM event_progress_receipts").fetchone()[0] == 2
+    assert f.conn.execute("SELECT COUNT(*) FROM event_progress_receipts").fetchone()[0] == 2
 
 
 def test_gap_expiry_and_restored_epoch_are_unknown(event):
@@ -365,7 +384,7 @@ def test_gap_expiry_and_restored_epoch_are_unknown(event):
     f.corpus.clock.sleep(config().scheduler.event_pressure_max_age_seconds)
     assert event_view(f)["assessment"] == "unassessed"
     settle(f)
-    f.conn.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+    f.conn.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
     assert event_view(f)["assessment"] == "unassessed"
     settle(f)
     assert not f.conn.execute("SELECT 1 FROM event_progress_receipts").fetchone()
@@ -378,7 +397,7 @@ def test_latest_terminal_tie_cannot_hide_invalid_response_status(event, valid_la
     response(f, label=valid_label)
     response(f, label=invalid_label, classification="ExpectedUnavailable", status=200)
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at=? WHERE snapshot_id IN (?,?)",
+        "UPDATE snapshots SET fetched_at = %s WHERE snapshot_id IN (%s, %s)",
         (f.corpus.clock.now().isoformat(), valid_label, invalid_label),
     )
     with f.db.transaction(immediate=False):
@@ -405,9 +424,9 @@ def test_concurrent_gap_domain_change_discards_gap_accounting_only(event, monkey
         nonlocal changed
         proof = original(*args, **kwargs)
         if not changed:
-            with sqlite3.connect(f.db.state_dir / "state.sqlite") as conn:
+            with engine.connect(engine.resolve_dsn(f.db.state_dir)) as conn:
                 conn.execute(
-                    "UPDATE event_gap_revisions SET revision=revision+1 WHERE source='eepro'"
+                    "UPDATE event_gap_revisions SET revision = revision + 1 WHERE source = 'eepro'"
                 )
             changed = True
         return proof
@@ -423,17 +442,17 @@ def test_concurrent_gap_domain_change_discards_gap_accounting_only(event, monkey
 def test_gap_write_failure_rolls_back_progress_and_accounting(event):
     f = event
     ready(f)
-    f.conn.execute(
-        "CREATE TRIGGER reject_gap BEFORE INSERT ON event_gap_observations BEGIN SELECT RAISE(ABORT,'gap write failure'); END"
-    )
-    with pytest.raises(sqlite3.IntegrityError, match="gap write failure"):
-        observe(f)
+    from helpers.corruption import reject_inserts
+
+    with reject_inserts(f.conn, "event_gap_observations", "gap write failure"):
+        with pytest.raises(engine.IntegrityError, match="23514"):
+            observe(f)
     for table in (
         "event_gap_observations",
         "event_progress_observations",
         "event_accounting_receipts",
     ):
-        assert not f.conn.execute("SELECT 1 FROM " + table).fetchone()
+        assert not f.conn.execute(" SELECT 1 FROM " + table).fetchone()
 
 
 def test_negative_body_and_parents_share_budget_without_false_completion(event):
@@ -464,7 +483,29 @@ def test_backup_preserves_gap_evidence_and_readonly_reporting(event, tmp_path):
     f = event
     ready(f)
     settle(f)
-    expected = list(map(tuple, f.conn.execute("SELECT * FROM event_gap_observations")))
+    expected = list(
+        map(
+            tuple,
+            f.conn.execute(
+                "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+                "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+                "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+                "event_gap_observations.availability, event_gap_observations.token_json, "
+                "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+                "event_gap_observations.evidence_digest FROM event_gap_observations"
+            ),
+        )
+    )
+    assert event_view(f)["assessment"] == "locally_accounted"
+    retained = {
+        table: sorted((tuple(row) for row in f.conn.execute("SELECT * FROM " + table)), key=repr)
+        for table in (
+            "event_accounting_receipts",
+            "event_accounting_support_observations",
+            "event_progress_receipts",
+            "event_stage_operations",
+        )
+    }
     saved = create_checkpoint(
         f.db.state_dir,
         f.conn,
@@ -475,17 +516,20 @@ def test_backup_preserves_gap_evidence_and_readonly_reporting(event, tmp_path):
     )
     target = tmp_path / "restored"
     restore_checkpoint(saved.path, target, maximum_schema_version=SCHEMA_VERSION)
-    with sqlite3.connect((target / "state.sqlite").as_uri() + "?mode=ro", uri=True) as conn:
-        conn.row_factory = sqlite3.Row
-        assert list(map(tuple, conn.execute("SELECT * FROM event_gap_observations"))) == expected
-        conn.execute("PRAGMA query_only=ON")
-        conn.execute("BEGIN")
-        before = conn.total_changes
+    with engine.connect(engine.resolve_dsn(target), read_only=True) as conn, conn.read_snapshot():
+        assert expected  # The pre-backup observer had verified unavailable-page evidence.
+        assert not conn.execute("SELECT 1 FROM event_gap_observations").fetchone()
+        for table, rows in retained.items():
+            assert (
+                sorted((tuple(row) for row in conn.execute("SELECT * FROM " + table)), key=repr)
+                == rows
+            )
+        before = contents(conn)
         assert (
             report(conn, Archive(target), config(), now=f.corpus.clock.now())["events"][0][
                 "assessment"
             ]
-            == "locally_accounted"
+            == "unassessed"
         )
-        assert conn.total_changes == before
-        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+        assert contents(conn) == before
+        assert_integrity(conn)

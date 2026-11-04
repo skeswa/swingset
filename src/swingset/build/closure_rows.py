@@ -1,9 +1,8 @@
-"""Reconstruct a pinned release in a disposable, disk-backed SQLite spool."""
+"""Reconstruct a pinned release in a disposable, disk-backed DuckDB spool."""
 
 from __future__ import annotations
 
 import json
-import sqlite3
 import tempfile
 from collections import Counter
 from collections.abc import Iterator, Mapping
@@ -12,8 +11,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import duckdb
+
+from swingset import scratch_db
 from swingset.model.schema import TABLES
-from swingset.state import output_packs
+from swingset.state import engine, output_packs
 
 from .closure import ReleaseClosure, validate
 from .closure_manifest import ClosureError, canonical
@@ -56,27 +58,33 @@ def _equivalent(left: Any, right: Any) -> bool:
 
 
 class ReconstructedRows:
-    def __init__(self, connection: sqlite3.Connection):
+    def __init__(self, connection: duckdb.DuckDBPyConnection):
         self.connection = connection
         self.omissions: list[dict[str, Any]] = []
         self.counts: Counter[str] = Counter()
 
     def iter_table(self, name: str) -> Iterator[dict[str, Any]]:
-        for (payload,) in self.connection.execute(
-            "SELECT payload FROM rows WHERE table_name=? ORDER BY record_key", (name,)
+        for (key,) in scratch_db.scan_keys(
+            self.connection,
+            "SELECT record_key FROM rows WHERE table_name=? ORDER BY record_key",
+            (name,),
         ):
-            yield json.loads(payload)
+            row = self.connection.execute(
+                "SELECT payload FROM rows WHERE table_name=? AND record_key=?", (name, key)
+            ).fetchone()
+            if row is not None:
+                yield json.loads(row[0])
 
     def table_names(self) -> tuple[str, ...]:
         return tuple(
             str(row[0])
             for row in self.connection.execute(
-                "SELECT DISTINCT table_name FROM rows ORDER BY table_name"
-            )
+                "SELECT DISTINCT table_name FROM rows ORDER BY table_name NULLS FIRST"
+            ).fetchall()
         )
 
 
-def _baseline(conn: sqlite3.Connection, path: Path | None) -> None:
+def _baseline(conn: duckdb.DuckDBPyConnection, path: Path | None) -> None:
     if path is None:
         return
     import pyarrow.parquet as pq
@@ -93,8 +101,9 @@ def _baseline(conn: sqlite3.Connection, path: Path | None) -> None:
             if expected is None or sha256_file(file) != expected:
                 raise ClosureError("baseline_owned_values_artifact_changed")
             for batch in pq.ParquetFile(file).iter_batches(batch_size=4096):
-                conn.executemany(
-                    "INSERT OR REPLACE INTO baseline VALUES (?,?,?)",
+                scratch_db.insert_many(
+                    conn,
+                    "INSERT OR REPLACE INTO baseline VALUES (?, ?, ?)",
                     (
                         (
                             table,
@@ -107,14 +116,14 @@ def _baseline(conn: sqlite3.Connection, path: Path | None) -> None:
 
 
 def _legacy_matches(
-    conn: sqlite3.Connection, table: str, key: str, payload: dict[str, Any]
+    conn: duckdb.DuckDBPyConnection, table: str, key: str, payload: dict[str, Any]
 ) -> bool:
     import pyarrow as pa
 
     from .schema import SCHEMAS
 
     old = conn.execute(
-        "SELECT payload FROM baseline WHERE table_name=? AND record_key=?", (table, key)
+        "SELECT payload FROM baseline WHERE table_name = ? AND record_key = ?", (table, key)
     ).fetchone()
     if old is None:
         return False
@@ -147,7 +156,7 @@ def _legacy_matches(
 _HEADER_RECOMPUTED = frozenset({"scope_status", "evidence_observed_at", "coverage_tier"})
 
 
-def _baseline_header(conn: sqlite3.Connection, key: str) -> dict[str, Any] | None:
+def _baseline_header(conn: duckdb.DuckDBPyConnection, key: str) -> dict[str, Any] | None:
     """The published baseline's `events` row, as a rejected legacy header's stand-in (D-0251).
 
     A legacy header row that differs from the baseline used to withhold its
@@ -159,7 +168,7 @@ def _baseline_header(conn: sqlite3.Connection, key: str) -> dict[str, Any] | Non
     baseline does not publish the event.
     """
     old = conn.execute(
-        "SELECT payload FROM baseline WHERE table_name='events' AND record_key=?", (key,)
+        "SELECT payload FROM baseline WHERE table_name = 'events' AND record_key = ?", (key,)
     ).fetchone()
     if old is None:
         return None
@@ -202,7 +211,7 @@ def _header_pair(row: Mapping[str, Any]) -> tuple[str, str] | None:
 
 
 def _stand_in(
-    conn: sqlite3.Connection,
+    conn: duckdb.DuckDBPyConnection,
     key: str,
     stand_ins: set[str],
     revoked: set[tuple[str, str]],
@@ -214,11 +223,11 @@ def _stand_in(
     calendar's) corrects the stand-in's status again (`_corrected_status`).
     """
     if conn.execute(
-        "SELECT 1 FROM rows WHERE table_name='events' AND record_key=?", (key,)
+        "SELECT 1 AS _value_0 FROM rows WHERE table_name = 'events' AND record_key = ?", (key,)
     ).fetchone():
         if key not in stand_ins or rejected is None:
             return
-        conn.execute("DELETE FROM rows WHERE table_name='events' AND record_key=?", (key,))
+        conn.execute("DELETE FROM rows WHERE table_name = 'events' AND record_key = ?", (key,))
     header = _baseline_header(conn, key)
     if header is None or _header_pair(header) in revoked:
         return
@@ -229,23 +238,32 @@ def _stand_in(
 
 
 def _put(
-    conn: sqlite3.Connection, table: str, key: str, payload: dict[str, Any], *, patch: bool = False
+    conn: duckdb.DuckDBPyConnection,
+    table: str,
+    key: str,
+    payload: dict[str, Any],
+    *,
+    patch: bool = False,
 ) -> bool:
     previous = conn.execute(
-        "SELECT payload FROM rows WHERE table_name=? AND record_key=?", (table, key)
+        "SELECT payload FROM rows WHERE table_name = ? AND record_key = ?", (table, key)
     ).fetchone()
     if patch and previous is None:
         return False
     merged = json.loads(previous[0]) if previous else dict(_NEUTRAL.get(table, {}))
     merged.update(payload)
     conn.execute(
-        "INSERT INTO rows VALUES (?,?,?) ON CONFLICT(table_name,record_key) DO UPDATE SET payload=excluded.payload",
+        (
+            "INSERT INTO rows VALUES (?, ?, ?) ON CONFLICT(table_name, record_key) DO UPDATE SET payload = excluded.payload"
+        ),
         (table, key, canonical(merged)),
     )
     return True
 
 
-def _event(conn: sqlite3.Connection, table: str, key: str, row: Mapping[str, Any]) -> str | None:
+def _event(
+    conn: duckdb.DuckDBPyConnection, table: str, key: str, row: Mapping[str, Any]
+) -> str | None:
     """The event a row belongs to, through parents kept or rejected.
 
     A rejected parent still names its event. Looking only at kept rows let a
@@ -267,10 +285,17 @@ def _event(conn: sqlite3.Connection, table: str, key: str, row: Mapping[str, Any
             if target == table or not row.get(field):
                 continue
             parent_key = canonical([row[field]])
-            for (payload,) in conn.execute(
-                f"SELECT payload FROM {source} WHERE table_name=? AND record_key=?",
+            for (ordinal,) in scratch_db.scan_keys(
+                conn,
+                f"SELECT rowid FROM {source} WHERE table_name=? AND record_key=?",
                 (target, parent_key),
             ):
+                found = conn.execute(
+                    f"SELECT payload FROM {source} WHERE rowid=?", (ordinal,)
+                ).fetchone()
+                if found is None:
+                    continue
+                payload = found[0]
                 value = _event(conn, target, parent_key, json.loads(payload))
                 if value:
                     return value
@@ -292,7 +317,7 @@ _REFERENCES = (
 )
 
 
-def _dangling(conn: sqlite3.Connection) -> Iterator[tuple[str, str, dict[str, Any]]]:
+def _dangling(conn: duckdb.DuckDBPyConnection) -> Iterator[tuple[str, str, dict[str, Any]]]:
     tables = sorted({table for table, _, _, _ in _REFERENCES})
     for table in tables:
         checks = [
@@ -300,9 +325,15 @@ def _dangling(conn: sqlite3.Connection) -> Iterator[tuple[str, str, dict[str, An
             for name, field, target, required in _REFERENCES
             if name == table
         ]
-        for key, payload in conn.execute(
-            "SELECT record_key,payload FROM rows WHERE table_name=?", (table,)
+        for (key,) in scratch_db.scan_keys(
+            conn, "SELECT record_key FROM rows WHERE table_name=?", (table,)
         ):
+            found = conn.execute(
+                "SELECT payload FROM rows WHERE table_name=? AND record_key=?", (table, key)
+            ).fetchone()
+            if found is None:
+                continue
+            payload = found[0]
             row = json.loads(payload)
             for field, target, required in checks:
                 value = row.get(field)
@@ -310,7 +341,7 @@ def _dangling(conn: sqlite3.Connection) -> Iterator[tuple[str, str, dict[str, An
                     required
                     if value is None
                     else not conn.execute(
-                        "SELECT 1 FROM rows WHERE table_name=? AND record_key=?",
+                        "SELECT 1 AS _value_0 FROM rows WHERE table_name = ? AND record_key = ?",
                         (target, canonical([value])),
                     ).fetchone()
                 )
@@ -320,32 +351,46 @@ def _dangling(conn: sqlite3.Connection) -> Iterator[tuple[str, str, dict[str, An
 
 
 def _remove_events(
-    conn: sqlite3.Connection, events: set[str], dancers: set[Any] | frozenset[Any] = frozenset()
+    conn: duckdb.DuckDBPyConnection,
+    events: set[str],
+    dancers: set[Any] | frozenset[Any] = frozenset(),
 ) -> None:
     # Resolve descendants while all structural parent rows still exist.
     conn.execute("DELETE FROM to_remove")
-    for table, key, payload in conn.execute("SELECT table_name,record_key,payload FROM rows"):
+    for table, key in scratch_db.scan_keys(conn, "SELECT table_name,record_key FROM rows"):
+        payload_row = conn.execute(
+            "SELECT payload FROM rows WHERE table_name=? AND record_key=?", (table, key)
+        ).fetchone()
+        if payload_row is None:
+            continue
+        payload = payload_row[0]
         row = json.loads(payload)
         if table in {"dancers", "registry_placements"} and row.get("wsdc_id") in dancers:
-            conn.execute("INSERT OR IGNORE INTO to_remove VALUES (?,?)", (table, key))
+            conn.execute("INSERT INTO to_remove VALUES (?, ?) ON CONFLICT DO NOTHING", (table, key))
         elif table != "registry_placements" and _event(conn, table, key, row) in events:
-            conn.execute("INSERT OR IGNORE INTO to_remove VALUES (?,?)", (table, key))
+            conn.execute("INSERT INTO to_remove VALUES (?, ?) ON CONFLICT DO NOTHING", (table, key))
     conn.execute(
-        "DELETE FROM rows WHERE (table_name,record_key) IN (SELECT table_name,record_key FROM to_remove)"
+        "DELETE FROM rows WHERE (table_name, record_key) IN (SELECT table_name, record_key FROM to_remove)"
     )
 
 
-def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
+def _close(conn: duckdb.DuckDBPyConnection, result: ReconstructedRows) -> None:
     omitted_events = set()
     omitted_dancers = set()
-    conn.execute("CREATE INDEX IF NOT EXISTS rejected_key ON rejected(table_name,record_key)")
-    for table, key, payload, reason in conn.execute("SELECT * FROM rejected"):
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS rejected_key ON rejected(table_name NULLS FIRST, record_key NULLS FIRST)"
+    )
+    for (ordinal,) in scratch_db.scan_keys(conn, "SELECT rowid FROM rejected"):
+        rejected_row = conn.execute("SELECT * FROM rejected WHERE rowid=?", (ordinal,)).fetchone()
+        assert rejected_row is not None
+        table, key, payload, reason = rejected_row
         result.counts[reason] += 1
         if (
             table == "events"
             and reason == "legacy_owned_values_not_published"
             and conn.execute(
-                "SELECT 1 FROM rows WHERE table_name='events' AND record_key=?", (key,)
+                "SELECT 1 AS _value_0 FROM rows WHERE table_name = 'events' AND record_key = ?",
+                (key,),
             ).fetchone()
         ):
             # An unsupported structural alternative does not revoke an event
@@ -361,7 +406,7 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
         if table in {"dancers", "registry_placements"} and row.get("wsdc_id") is not None:
             omitted_dancers.add(row["wsdc_id"])
     conn.execute(
-        "CREATE TABLE to_remove(table_name TEXT,record_key TEXT,PRIMARY KEY(table_name,record_key))"
+        "CREATE TABLE to_remove (table_name TEXT, record_key TEXT, PRIMARY KEY (table_name, record_key))"
     )
     _remove_events(conn, omitted_events, omitted_dancers)
     # Safety net: an event left with a reference the builder would refuse is
@@ -370,14 +415,18 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
     dangling_events: set[str] = set()
     while True:
         found: set[str] = set()
-        for table, key, row in list(_dangling(conn)):
+        for table, key, row in _dangling(conn):
             event = _event(conn, table, key, row)
             if event is None:
-                conn.execute("DELETE FROM rows WHERE table_name=? AND record_key=?", (table, key))
+                conn.execute(
+                    "DELETE FROM rows WHERE table_name = ? AND record_key = ?", (table, key)
+                )
                 result.counts["unattributed_dangling_row_dropped"] += 1
             elif event in omitted_events | dangling_events:
                 # Its event is already withheld; the row goes with it.
-                conn.execute("DELETE FROM rows WHERE table_name=? AND record_key=?", (table, key))
+                conn.execute(
+                    "DELETE FROM rows WHERE table_name = ? AND record_key = ?", (table, key)
+                )
                 result.counts["withheld_dangling_row_dropped"] += 1
             else:
                 found.add(event)
@@ -385,8 +434,9 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
             break
         dangling_events |= found
         _remove_events(conn, found)
-    conn.execute("CREATE TABLE omitted_events(event_id TEXT PRIMARY KEY)")
-    conn.executemany(
+    conn.execute("CREATE TABLE omitted_events (event_id TEXT PRIMARY KEY)")
+    scratch_db.insert_many(
+        conn,
         "INSERT INTO omitted_events VALUES (?)",
         ((value,) for value in sorted(omitted_events | dangling_events)),
     )
@@ -404,9 +454,18 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
             }
         )
     # Null associations and identity claims whose structural/registry support was omitted.
-    for table, key, payload in conn.execute(
-        "SELECT table_name,record_key,payload FROM rows WHERE table_name IN ('registry_placements','entries','judges','placements','identity_links','link_candidates','identity_link_resolutions')"
+    for table, key in scratch_db.scan_keys(
+        conn,
+        "SELECT table_name,record_key FROM rows WHERE table_name IN "
+        "('registry_placements','entries','judges','placements','identity_links',"
+        "'link_candidates','identity_link_resolutions')",
     ):
+        payload_row = conn.execute(
+            "SELECT payload FROM rows WHERE table_name=? AND record_key=?", (table, key)
+        ).fetchone()
+        if payload_row is None:
+            continue
+        payload = payload_row[0]
         row = json.loads(payload)
         if table == "registry_placements" and row.get("event_id") in omitted_events:
             row["event_id"] = None
@@ -415,16 +474,18 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
         if table in {"identity_links", "link_candidates", "identity_link_resolutions"}:
             subject_table = "entries" if row.get("subject_kind") == "entry" else "judges"
             exists = conn.execute(
-                "SELECT 1 FROM rows WHERE table_name=? AND record_key=?",
+                "SELECT 1 AS _value_0 FROM rows WHERE table_name = ? AND record_key = ?",
                 (subject_table, canonical([row.get("subject_id")])),
             ).fetchone()
             if not exists or row.get("wsdc_id") in omitted_dancers:
-                conn.execute("DELETE FROM rows WHERE table_name=? AND record_key=?", (table, key))
+                conn.execute(
+                    "DELETE FROM rows WHERE table_name = ? AND record_key = ?", (table, key)
+                )
                 continue
         if table == "placements":
             for role in ("leader", "follower"):
                 entry = conn.execute(
-                    "SELECT payload FROM rows WHERE table_name='entries' AND record_key=?",
+                    "SELECT payload FROM rows WHERE table_name = 'entries' AND record_key = ?",
                     (canonical([row.get(role + "_entry_id")]),),
                 ).fetchone()
                 if not entry or json.loads(entry[0]).get("wsdc_id") is None:
@@ -433,14 +494,14 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
                     row["registry_confirmed"] = 0
                     row["points_matches_expected"] = None
         conn.execute(
-            "UPDATE rows SET payload=? WHERE table_name=? AND record_key=?",
+            "UPDATE rows SET payload = ? WHERE table_name = ? AND record_key = ?",
             (canonical(row), table, key),
         )
 
 
 @contextmanager
 def reconstruct(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     closure: ReleaseClosure,
     *,
     directory: Path,
@@ -455,10 +516,13 @@ def reconstruct(
             raise ClosureError("baseline_compatibility_artifact_changed")
     directory.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="closure-", dir=directory) as temporary:
-        spool = sqlite3.connect(Path(temporary) / "rows.sqlite")
+        spool = scratch_db.connect(Path(temporary) / "rows.duckdb")
         try:
-            spool.executescript(
-                "CREATE TABLE rows(table_name TEXT,record_key TEXT,payload TEXT,PRIMARY KEY(table_name,record_key)); CREATE TABLE baseline(table_name TEXT,record_key TEXT,payload TEXT,PRIMARY KEY(table_name,record_key)); CREATE TABLE rejected(table_name TEXT,record_key TEXT,payload TEXT,reason TEXT);"
+            spool.execute(
+                "CREATE TABLE rows (table_name TEXT, record_key TEXT, payload TEXT, PRIMARY KEY (table_name, "
+                "record_key)); CREATE TABLE baseline (table_name TEXT, record_key TEXT, payload TEXT, "
+                "PRIMARY KEY (table_name, record_key)); CREATE TABLE rejected (table_name TEXT, record_key "
+                "TEXT, payload TEXT, reason TEXT)"
             )
             result = ReconstructedRows(spool)
             _baseline(spool, baseline)
@@ -468,7 +532,7 @@ def reconstruct(
             revoked = {
                 (str(recipe["context"]["snapshot_id"]), str(recipe["parser_version"]))
                 for (raw,) in conn.execute(
-                    "SELECT recipe_json FROM source_generations WHERE state='revoked'"
+                    "SELECT recipe_json FROM source_generations WHERE state = 'revoked'"
                 )
                 for recipe in (json.loads(raw),)
             }
@@ -495,6 +559,8 @@ def reconstruct(
                     item["unit_id"],
                 ),
             )
+            spool.execute("BEGIN")
+            processed = 0
             for generation in selected:
                 # The one accessor reads the view or the pack and checks the
                 # label once the rows run out (phase 4, F34).
@@ -505,6 +571,10 @@ def reconstruct(
                 )
                 try:
                     for table, key, raw in stream:
+                        if processed and processed % scratch_db.BATCH_ROWS == 0:
+                            spool.commit()
+                            spool.execute("BEGIN")
+                        processed += 1
                         payload = json.loads(raw)
                         snapshot = payload.get("snapshot_id")
                         if snapshot and snapshot != "override":
@@ -519,7 +589,7 @@ def reconstruct(
                                     spool, table, key, payload
                                 ):
                                     spool.execute(
-                                        "INSERT INTO rejected VALUES (?,?,?,?)",
+                                        "INSERT INTO rejected VALUES (?, ?, ?, ?)",
                                         (
                                             table,
                                             key,
@@ -551,7 +621,7 @@ def reconstruct(
                             # An admissible header replaces the baseline's stand-in whole.
                             stand_ins.discard(key)
                             spool.execute(
-                                "DELETE FROM rows WHERE table_name='events' AND record_key=?",
+                                "DELETE FROM rows WHERE table_name = 'events' AND record_key = ?",
                                 (key,),
                             )
                         if not _put(spool, table, key, payload, patch=patch):
@@ -559,8 +629,8 @@ def reconstruct(
                 except output_packs.GenerationUnavailable as error:
                     raise ClosureError("selected_output_digest_mismatch") from error
             result.counts["baseline_header_republished"] += len(stand_ins)
-            _close(spool, result)
             spool.commit()
+            _close(spool, result)
             yield result
         finally:
             spool.close()

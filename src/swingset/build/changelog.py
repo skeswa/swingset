@@ -4,31 +4,62 @@ from __future__ import annotations
 
 import json
 import pickle
-import sqlite3
+import tempfile
 from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime
+from itertools import islice
 from pathlib import Path
 from typing import Any
 
+import duckdb
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 Row = Mapping[str, Any]
 
 
-def _open(path: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(path)
-    try:
-        # These files are disposable build intermediates, never recovery authority.
-        conn.execute("PRAGMA journal_mode=OFF")
-        conn.execute("PRAGMA synchronous=OFF")
-        conn.execute("PRAGMA temp_store=FILE")
-        conn.execute("PRAGMA cache_size=-8192")
-        return conn
-    except BaseException:
-        conn.close()
-        path.unlink(missing_ok=True)
-        raise
+def _open(path: Path) -> duckdb.DuckDBPyConnection:
+    # The spool is disposable; DuckDB spills sorting work to the build scratch.
+    return duckdb.connect(
+        str(path),
+        config={
+            "threads": "1",
+            "preserve_insertion_order": "false",
+            "memory_limit": "32MB",
+            "temp_directory": str(path) + ".tmp",
+        },
+    )
+
+
+def _stream(conn: duckdb.DuckDBPyConnection, sql: str) -> Iterator[tuple[Any, ...]]:
+    result = conn.execute(sql)
+    while rows := result.fetchmany(32):
+        yield from rows
+
+
+def _many(conn: duckdb.DuckDBPyConnection, sql: str, rows: Iterable[tuple[Any, ...]]) -> None:
+    source = iter(rows)
+    while batch := list(islice(source, 32)):
+        conn.execute("BEGIN")
+        try:
+            conn.register(
+                "spool_batch",
+                pa.table(
+                    {
+                        f"value{index}": [row[index] for row in batch]
+                        for index in range(len(batch[0]))
+                    }
+                ),
+            )
+            try:
+                conn.execute(sql)
+            finally:
+                conn.unregister("spool_batch")
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
 
 
 def sort_key(row: Row, fields: tuple[str, ...]) -> str:
@@ -75,21 +106,21 @@ def changes(
     conn = _open(scratch)
     try:
         conn.execute(
-            "CREATE TABLE facts (key TEXT PRIMARY KEY, row_key BLOB, before BLOB, after BLOB)"
+            "CREATE TABLE facts (key TEXT PRIMARY KEY, row_key BYTEA, before BYTEA, after BYTEA)"
         )
         for table, new_rows in current.items():
             if table == "changelog" or table not in keys:
                 continue
             conn.execute("DELETE FROM facts")
             for side, source in (("before", _baseline_rows(baseline, table)), ("after", new_rows)):
-                conn.executemany(
-                    f"INSERT INTO facts(key,row_key,{side}) VALUES (?,?,?) "
-                    f"ON CONFLICT(key) DO UPDATE SET row_key=excluded.row_key,{side}=excluded.{side}",
+                _many(
+                    conn,
+                    f"INSERT INTO facts(key,row_key,{side}) SELECT value0,value1,value2 FROM spool_batch ON CONFLICT(key) DO UPDATE SET row_key=excluded.row_key,{side}=excluded.{side}",
                     _encoded_rows(table, source, keys[table], baseline=side == "before"),
                 )
             conn.commit()
-            for key_blob, old_blob, new_blob in conn.execute(
-                "SELECT row_key,before,after FROM facts ORDER BY key"
+            for key_blob, old_blob, new_blob in _stream(
+                conn, "SELECT row_key, before, after FROM facts ORDER BY key NULLS FIRST"
             ):
                 yield from change_rows(
                     table,
@@ -234,35 +265,55 @@ class DeltaRows:
         self.conn = _open(path)
         try:
             self.conn.execute(
-                "CREATE TABLE delta (position INTEGER PRIMARY KEY, ordering TEXT, row BLOB)"
+                "CREATE TABLE delta (position BIGINT, ordering TEXT, payload_offset BIGINT)"
             )
-            self.conn.execute("CREATE INDEX delta_order ON delta(ordering,position)")
+            self.payload = tempfile.TemporaryFile(dir=path.parent)
         except BaseException:
             self.close()
             raise
 
     def replace(self, rows: Iterable[Row]) -> None:
         self.conn.execute("DELETE FROM delta")
-        self.conn.executemany(
-            "INSERT INTO delta VALUES (?,?,?)",
-            (
-                (index, sort_key(row, self.keys), pickle.dumps(dict(row)))
-                for index, row in enumerate(rows)
-            ),
+        self.payload.seek(0)
+        self.payload.truncate()
+
+        def records() -> Iterator[tuple[int, str, int]]:
+            for position, row in enumerate(rows):
+                stored = dict(row)
+                offset = self.payload.tell()
+                pickle.dump(stored, self.payload)
+                yield position, sort_key(stored, self.keys), offset
+
+        _many(
+            self.conn,
+            "INSERT INTO delta SELECT value0,value1,value2 FROM spool_batch",
+            records(),
         )
+        self.payload.flush()
         self.conn.commit()
 
+    def _ordered(self, ordering: str) -> Iterator[dict[str, Any]]:
+        # DuckDB sorts only keys and offsets within its fixed memory budget.
+        # Payloads stay in an unnamed scratch file: reading one does not need
+        # a second database cursor while the external sort holds its buffers.
+        with self.conn.cursor() as keys:
+            for (offset,) in _stream(keys, "SELECT payload_offset FROM delta ORDER BY " + ordering):
+                self.payload.seek(offset)
+                yield pickle.load(self.payload)
+
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        for (body,) in self.conn.execute("SELECT row FROM delta ORDER BY position"):
-            yield pickle.loads(body)
+        yield from self._ordered("position")
 
     def sorted_rows(self) -> Iterator[dict[str, Any]]:
-        for (body,) in self.conn.execute("SELECT row FROM delta ORDER BY ordering,position"):
-            yield pickle.loads(body)
+        yield from self._ordered("ordering,position")
 
     def close(self) -> None:
-        self.conn.close()
-        self.path.unlink(missing_ok=True)
+        try:
+            self.conn.close()
+        finally:
+            if payload := getattr(self, "payload", None):
+                payload.close()
+            self.path.unlink(missing_ok=True)
 
 
 @contextmanager

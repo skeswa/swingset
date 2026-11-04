@@ -7,7 +7,6 @@ import gzip
 import hashlib
 import json
 import os
-import sqlite3
 import tarfile
 import threading
 from datetime import UTC, datetime, timedelta
@@ -29,7 +28,10 @@ from swingset.backup.segments import (
     read_manifest,
 )
 from swingset.backup.transport import LocalDirectoryTransport
+from swingset.build.files import canonical_json
+from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 from swingset.state.db import SCHEMA_VERSION, open_database
 from swingset.state.objects import Store, record
 from swingset.state.retention import add_hold
@@ -56,77 +58,120 @@ def _extract(state: Path, value: object) -> str:
 
 
 def build_state(state: Path) -> dict[str, Any]:
-    """A schema-36 state with a file of every backed-up class, plus files a
-    set must leave out."""
+    """Native schema37 history with rooted objects in every backup class."""
+    from test_drill import _artifact
+    from test_output_packs import evict, write
+
+    from swingset.build import manifest as release_manifest
+    from swingset.schedule.derive import derive_one
+    from swingset.state.inputs import accept, capture
+    from swingset.state.work import WorkUnit, enqueue
+
     found: dict[str, Any] = {}
+    config, overrides = (
+        state.parent / (state.name + "-config"),
+        state.parent / (state.name + "-overrides"),
+    )
+    config.mkdir(exist_ok=True)
+    overrides.mkdir(exist_ok=True)
+    (config / "hosts.toml").write_text("[hosts]\n")
+    (config / "sources.toml").write_text("[sources]\n")
+    bundle = capture(config, overrides, state, VERSIONS)
+    found["bundle"] = bundle.digest
     with open_database(state) as database:
         conn = database.connection
+        clock = FakeClock(NOW)
+        accept(database, bundle, clock)
         run = database.start_run(NOW)
         body = _blob(state, b"User-agent: *\n")
         extract = _extract(state, {"held": True})
+        # Historical nonempty public bytes remain immutable; a separate real
+        # empty-year projector is the ordinary cache anchor activation rebuilds.
+        artifact = _artifact(database, unit=WorkUnit("project", "history", "partition-fixture"))
+        for ordinary in (
+            WorkUnit("project", "inventory", "all"),
+            WorkUnit("project", "year", "2024"),
+        ):
+            enqueue(conn, (ordinary,), enqueued_at=NOW.isoformat())
+            outcome = derive_one(database, Archive(state), ordinary, bundle, clock, run)
+            assert not outcome.failed and outcome.reason is None
+        # A detached historical generation whose only output copy is its pack.
+        write(
+            database,
+            "dg_pack",
+            ("project", "history", "pack"),
+            [
+                (
+                    "coverage",
+                    '[2025,"test","origin"]',
+                    {"year": 2025, "source": "test", "via": "origin"},
+                )
+            ],
+            point=False,
+        )
+        evict(database, "dg_pack")
+        found["derivation_output"] = conn.execute(
+            "SELECT output_digest FROM derivation_generations WHERE generation_id='dg_pack'"
+        ).fetchone()[0]
         store = Store(state)
         with database.transaction():
             conn.execute(
-                "INSERT INTO hosts(host,pause_streak,robots_sha256) VALUES ('h.example',0,?)",
+                "INSERT INTO hosts(host,pause_streak,robots_sha256) VALUES('h.example',0,%s)",
                 (body,),
             )
             conn.execute(
-                "INSERT INTO meta(key,value) VALUES ('input_bundle_hash','bundle-a') "
-                "ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+                "INSERT INTO meta(key,value) VALUES('input_bundle_hash',%s) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (bundle.digest,),
             )
-            for cls in ("derivation_output", "parse_body", "label_body"):
-                digest, stored = store.put_bytes(cls, f"{cls} rows\n".encode() * 50)
-                record(conn, cls, digest, 50, stored, NOW)
+            for cls in ("parse_body", "label_body"):
+                value = f"{cls} rows\n".encode() * 50
+                digest, stored = store.put_bytes(cls, value)
+                record(conn, cls, digest, len(value), stored, NOW)
                 found[cls] = digest
-            manifest = json.dumps({"built": [["year/2025", "a" * 64]]}).encode()
-            digest, stored = store.put_bytes("release_manifest", manifest)
-            record(conn, "release_manifest", digest, len(manifest), stored, NOW)
+            release = canonical_json(
+                {"format": release_manifest.FORMAT, "built": [["year/2025", artifact]]}
+            )
+            digest, stored = store.put_bytes("release_manifest", release)
+            record(conn, "release_manifest", digest, len(release), stored, NOW)
             found["release_manifest"] = digest
             conn.execute(
-                "INSERT INTO release_partitions(partition,inputs_digest,artifact_digest,state,"
-                "built_at,run_id) VALUES ('year/2025','i',?,'built',?,?)",
-                ("b" * 64, NOW.isoformat(), run),
+                "INSERT INTO release_partitions(partition,inputs_digest,artifact_digest,state,built_at,run_id) VALUES('year/2025','i',%s,'built',%s,%s)",
+                (artifact, NOW.isoformat(), run),
             )
         add_hold(state, conn, who="test", why="keep the extract", now=NOW, artifacts=[extract])
-    bundle = state / "inputs" / "bundle-a"
-    bundle.mkdir(parents=True)
-    (bundle / "manifest.json").write_text('{"bundle":"a"}')
-    artifact = state / "partitions" / "bb" / ("b" * 64)
-    artifact.mkdir(parents=True)
-    (artifact / "sidecar.json").write_text('{"generations":[]}')
-    (artifact / "rows.parquet").write_bytes(os.urandom(2048))
-    # A phase 3 manifest that the published candidate names.
-    legacy = json.dumps({"built": [["year/2024", "b" * 64]]}).encode()
-    legacy_digest = hashlib.sha256(legacy).hexdigest()
+    legacy_digest = hashlib.sha256(release).hexdigest()
     (state / "partitions" / "manifests").mkdir(parents=True)
-    (state / "partitions" / "manifests" / f"{legacy_digest}.json").write_bytes(legacy)
+    (state / "partitions" / "manifests" / f"{legacy_digest}.json").write_bytes(release)
     candidate = state / "candidates" / "cand_base"
     (candidate / "_meta").mkdir(parents=True)
-    (candidate / "BUILT").write_text('{"manifest_hash":"m"}')
+    candidate_manifest = canonical_json(
+        {
+            "candidate_id": "cand_base",
+            "release_policy": {"mode": "partitioned", "manifest_digest": legacy_digest},
+            "files": {},
+        }
+    )
+    (candidate / "BUILT").write_bytes(
+        canonical_json({"manifest_hash": hashlib.sha256(candidate_manifest).hexdigest()})
+    )
     (candidate / "PUBLISHED").write_text(
         json.dumps({"commit": "abc", "manifest_digest": legacy_digest, "verified_at": "x"})
     )
-    (candidate / "_meta" / "manifest.json").write_text(
-        json.dumps(
-            {
-                "release_policy": {"mode": "partitioned", "manifest_digest": legacy_digest},
-                "files": {},
-            }
-        )
+    (candidate / "_meta" / "manifest.json").write_bytes(candidate_manifest)
+    (candidate / "data.parquet").write_bytes(
+        b"published rows are rebuilt or fetched, never history backup bytes"
     )
-    (candidate / "data.parquet").write_bytes(b"published rows")
     (state / "baseline").symlink_to(Path("candidates/cand_base"))
     (state / "archive-cdx" / "q1").mkdir(parents=True)
     (state / "archive-cdx" / "q1" / "page-0.json").write_text('{"rows":[]}')
     (state / "ALERTS.log").write_text("[old] alert\n")
-    # Never backed up.
     (state / "venv").mkdir()
     (state / "venv" / "secret").write_text("excluded")
     (state / "tmp").mkdir(exist_ok=True)
     (state / "tmp" / "scratch").write_text("excluded")
     (state / "gc").mkdir(exist_ok=True)
     (state / "gc" / "plan.json").write_text("{}")
-    found.update(body=body, extract=extract, legacy=legacy_digest)
+    found.update(body=body, extract=extract, legacy=legacy_digest, artifact=artifact)
     return found
 
 
@@ -136,6 +181,7 @@ def local(state: Path) -> LocalDirectoryTransport:
 
 def backup(state: Path, *, now: datetime = NOW, **options: Any) -> dict[str, Any]:
     transport = options.pop("transport", None) or local(state)
+    options.setdefault("headroom", 0)
     with open_database(state) as database:
         return create_set(database, transport, now=now, versions=VERSIONS, **options)
 
@@ -164,16 +210,18 @@ def test_a_set_round_trips_every_class(tmp_path: Path) -> None:
     for path in entries:
         assert (restored / path).read_bytes() == (state / path).read_bytes(), path
     assert (restored / "baseline").resolve().name == "cand_base"
-    assert not (restored / "venv").exists() and not (restored / "tmp").exists()
-    copy = sqlite3.connect(restored / "state.sqlite")
-    assert copy.execute("SELECT host FROM hosts").fetchall() == [("h.example",)]
-    assert copy.execute("SELECT count(*) FROM backup_sets").fetchone() == (0,)
+    assert not (restored / "venv").exists()
+    assert sorted(path.name for path in (restored / "tmp").iterdir()) == ["restore-history"]
+    assert not (restored / "tmp/scratch").exists()
+    copy = engine.connect(engine.resolve_dsn(restored))
+    assert [tuple(row) for row in copy.execute("SELECT host FROM hosts")] == [("h.example",)]
+    assert tuple(copy.execute("SELECT COUNT(*) FROM backup_sets").fetchone()) == (0,)
     copy.close()
     with open_database(state) as database:
         row = database.connection.execute(
-            "SELECT objects,new_objects,transport,parts FROM backup_sets"
+            "SELECT objects, new_objects, transport, parts FROM backup_sets"
         ).fetchone()
-        rows = database.connection.execute("SELECT count(*) FROM backup_objects").fetchone()[0]
+        rows = database.connection.execute("SELECT COUNT(*) FROM backup_objects").fetchone()[0]
     assert tuple(row) == (len(entries), len(entries), LOCAL_TRANSPORT, 1)
     assert rows == len(entries)
 
@@ -185,7 +233,8 @@ def test_a_second_set_sends_only_new_files(tmp_path: Path) -> None:
     body = _blob(state, b"a new page")
     with open_database(state) as database, database.transaction() as conn:
         conn.execute(
-            "INSERT INTO hosts(host,pause_streak,robots_sha256) VALUES ('n.example',0,?)", (body,)
+            "INSERT INTO hosts (host, pause_streak, robots_sha256) VALUES ('n.example', 0, %s)",
+            (body,),
         )
     with (state / "ALERTS.log").open("a") as alerts:
         alerts.write("[new] alert\n")
@@ -211,8 +260,10 @@ def test_parts_split_and_rejoin(tmp_path: Path) -> None:
     state = tmp_path / "state"
     build_state(state)
     with open_database(state) as database, database.transaction() as conn:
-        conn.execute("CREATE TABLE filler(x BLOB)")
-        conn.executemany("INSERT INTO filler VALUES (?)", ((os.urandom(65536),) for _ in range(60)))
+        conn.executemany(
+            "INSERT INTO meta(key,value) VALUES(%s,%s)",
+            ((f"filler/{index}", os.urandom(65536).hex()) for index in range(60)),
+        )
     result = backup(state, part_bytes=1 << 20)
     manifest = read_manifest(state / "checkpoints" / "sets" / result["set_id"])
     parts = manifest["database"]["parts"]
@@ -221,70 +272,57 @@ def test_parts_split_and_rejoin(tmp_path: Path) -> None:
     assert all(part["bytes"] == 1 << 20 for part in parts[:-1])
     restored = tmp_path / "restored"
     install(local(state), restored)
-    copy = sqlite3.connect(restored / "state.sqlite")
-    assert copy.execute("SELECT count(*) FROM filler").fetchone() == (60,)
+    copy = engine.connect(engine.resolve_dsn(restored))
+    assert tuple(
+        copy.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'filler/%%'").fetchone()
+    ) == (60,)
     copy.close()
 
 
 def test_segments_stay_under_their_size(tmp_path: Path) -> None:
     state = tmp_path / "state"
     build_state(state)
+    # A real captured runtime includes individual fixture files near 1 MiB.
+    limit = 2 * 1024 * 1024
     for index in range(12):
-        (state / "archive-cdx" / "q1" / f"big-{index}.json").write_bytes(os.urandom(20000))
-    result = backup(state, segment_bytes=64 * 1024)
+        (state / "archive-cdx" / "q1" / f"big-{index}.json").write_bytes(os.urandom(700000))
+    result = backup(state, segment_bytes=limit)
     assert len(result["new_segments"]) >= 4
     for segment in result["new_segments"]:
         path = state / "checkpoints" / "segments" / f"{segment}.tar"
-        assert path.stat().st_size <= 64 * 1024
+        assert path.stat().st_size <= limit
         assert hashlib.sha256(path.read_bytes()).hexdigest() == segment
         with tarfile.open(path) as archive:
             assert all(member.mtime == 0 and member.uid == 0 for member in archive)
     install(local(state), tmp_path / "restored")
     with pytest.raises(BackupError, match="does not fit"):
-        (state / "archive-cdx" / "huge.json").write_bytes(os.urandom(80000))
-        backup(state, now=NOW + timedelta(hours=1), segment_bytes=64 * 1024)
+        (state / "archive-cdx" / "huge.json").write_bytes(os.urandom(limit + 1))
+        backup(state, now=NOW + timedelta(hours=1), segment_bytes=limit)
 
 
-def test_a_corrupt_or_truncated_file_is_left_out_and_the_set_still_written(
-    tmp_path: Path,
-) -> None:
-    """A file that does not match its digest, or a pack cut short, no longer
-    stops every set: the set holds everything else, names the two under
-    `missing`, alerts, refuses to install, and its segment stays a whole tar."""
-    from swingset.backup.restore_set import SetError
-
+def test_corrupt_or_truncated_files_refuse_success_until_both_are_repaired(tmp_path: Path) -> None:
+    """A success receipt now requires an actual restore; bad bytes keep the prior set."""
     state = tmp_path / "state"
     found = build_state(state)
     body, pack = found["body"], found["derivation_output"]
     blob = state / "blobs" / "sha256" / body[:2] / body[2:4] / body
     original = blob.read_bytes()
-    blob.write_bytes(gzip.compress(b"something else", mtime=0))
     packed = Store(state).path("derivation_output", pack)
     whole = packed.read_bytes()
+    blob.write_bytes(gzip.compress(b"something else", mtime=0))
     packed.write_bytes(whole[: len(whole) // 2])
-    result = backup(state)
-    assert result["missing"] == 2 and result["alerted"] is True
-    manifest = read_manifest(state / "checkpoints" / "sets" / result["set_id"])
-    reasons = {(cls, key): reason for cls, key, reason in manifest["missing"]}
-    assert reasons[("body", body)] == "does not match its digest"
-    assert reasons[("derivation_output", pack)].startswith("does not decompress")
-    entries = index_of(state, result["set_id"])
-    assert f"blobs/sha256/{body[:2]}/{body[2:4]}/{body}" not in entries
-    assert f"objects/derivation_output/{pack[:2]}/{pack}" not in entries
-    assert "ALERTS.log" in entries and result["items"] == len(entries)
-    for segment in result["new_segments"]:
-        with tarfile.open(state / "checkpoints" / "segments" / f"{segment}.tar") as archive:
-            assert len(archive.getmembers()) == len(entries) + 2
-    for integrity in ("quick", "full"):
-        with pytest.raises(SetError):
-            install(local(state), tmp_path / f"restored-{integrity}", integrity=integrity)
-    # Repaired by hand, the next set holds both and installs.
+    with pytest.raises(ValueError, match="corrupt blob"):
+        backup(state, now=NOW + timedelta(hours=1))
+    assert local_sets(state / "checkpoints") == []
+    # Repairing the body alone must still reject the independently bad pack.
     blob.write_bytes(original)
+    with pytest.raises((ValueError, EOFError, gzip.BadGzipFile)):
+        backup(state, now=NOW + timedelta(hours=2))
+    assert local_sets(state / "checkpoints") == []
     packed.write_bytes(whole)
     second = backup(state, now=NOW + timedelta(days=1))
-    # The two files and ALERTS.log, which gained the alert.
-    assert second["missing"] == 0 and second["new_items"] == 3
-    install(local(state), tmp_path / "restored")
+    assert second["missing"] == 0
+    install(local(state), tmp_path / "restored", set_id=second["set_id"])
 
 
 def test_a_lost_pack_comes_back_from_the_last_set(tmp_path: Path) -> None:
@@ -311,41 +349,35 @@ def test_a_lost_pack_comes_back_from_the_last_set(tmp_path: Path) -> None:
     assert (restored / relative).read_bytes() == whole
 
 
-def test_a_lost_pack_with_no_good_local_copy_is_named_by_its_earlier_segment(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_a_lost_pack_with_no_local_segment_recovers_from_the_earlier_remote_segment(
+    tmp_path: Path,
 ) -> None:
-    """When no local copy can be put back, the segment that holds the pack
-    (`backup_objects`) still stands for it, so set 2 is complete; with no
-    such segment the pack is `missing`."""
-    import swingset.backup.recovery as recovery_module
-    from swingset.state.objects import ObjectUnavailable
-
-    def refuse(self: Any, store: Any, cls: str, sha256: str) -> dict[str, str]:
-        raise ObjectUnavailable(f"{cls}/{sha256} is in no local backup set")
-
+    """The stored segment identity repairs a genuinely missing local pack and tar."""
     state = tmp_path / "state"
     found = build_state(state)
-    first = backup(state)
+    remote = LocalDirectoryTransport(tmp_path / "archive")
+    first = backup(state, transport=remote)
     lost = found["derivation_output"]
     relative = f"objects/derivation_output/{lost[:2]}/{lost}"
     segment = index_of(state, first["set_id"])[relative].segment
     path = Store(state).path("derivation_output", lost)
     whole = path.read_bytes()
     path.unlink()
-    monkeypatch.setattr(recovery_module.SegmentRecovery, "recover_object", refuse)
-    second = backup(state, now=NOW + timedelta(days=1))
-    assert second["missing"] == 0 and second["absent"] == 1 and not path.exists()
+    (state / "checkpoints" / "segments" / f"{segment}.tar").unlink()
+    second = backup(state, now=NOW + timedelta(days=1), transport=remote)
+    assert second["missing"] == 0 and second["restored"] == 1
+    assert path.read_bytes() == whole
     assert index_of(state, second["set_id"])[relative].segment == segment
     restored = tmp_path / "restored"
-    install(local(state), restored, set_id=second["set_id"], integrity="quick")
+    install(remote, restored, set_id=second["set_id"], integrity="quick")
     assert (restored / relative).read_bytes() == whole
-    # Once no held segment has it, the pack is missing again.
-    for name in (state / "checkpoints" / "segments").iterdir():
-        name.unlink()
-    third = backup(state, now=NOW + timedelta(days=2))
-    manifest = read_manifest(state / "checkpoints" / "sets" / third["set_id"])
-    assert third["missing"] == 1
-    assert manifest["missing"][0][:2] == ["derivation_output", lost]
+    # Once neither verified local nor remote copy exists, refuse a success.
+    for directory in (state / "checkpoints" / "segments", tmp_path / "archive" / "segments"):
+        for file in directory.iterdir():
+            file.unlink()
+    path.unlink()
+    with pytest.raises(ValueError, match="missing captured file"):
+        backup(state, now=NOW + timedelta(days=2), transport=remote)
 
 
 def test_a_lost_segment_is_written_again(tmp_path: Path) -> None:
@@ -365,7 +397,7 @@ def test_pruning_keeps_the_newest_and_the_newest_drilled_set(tmp_path: Path) -> 
     first = backup(state, prune=False)
     with open_database(state) as database, database.transaction() as conn:
         conn.execute(
-            "UPDATE backup_sets SET drilled_at=?,drill_json='{}' WHERE set_id=?",
+            "UPDATE backup_sets SET drilled_at = %s, drill_json = '{}' WHERE set_id = %s",
             (NOW.isoformat(), first["set_id"]),
         )
     (state / "archive-cdx" / "q1" / "page-0.json").write_text('{"rows":[1]}')
@@ -400,19 +432,21 @@ def test_a_set_taken_while_a_writer_commits_is_consistent(tmp_path: Path) -> Non
     build_state(state)
     batch = 25
     with open_database(state) as database, database.transaction() as conn:
-        conn.execute("CREATE TABLE writes(batch INTEGER, n INTEGER)")
-        conn.execute("CREATE TABLE filler(x BLOB)")
-        conn.executemany("INSERT INTO filler VALUES (?)", ((os.urandom(65536),) for _ in range(80)))
+        conn.executemany(
+            "INSERT INTO meta(key,value) VALUES(%s,%s)",
+            ((f"filler/{index}", os.urandom(65536).hex()) for index in range(80)),
+        )
     stop = threading.Event()
     committed: list[int] = []
 
     def writer() -> None:
-        conn = sqlite3.connect(state / "state.sqlite", timeout=30, isolation_level=None)
+        conn = engine.connect(engine.resolve_dsn(state), timeout=30)
         number = 0
         while not stop.is_set():
-            conn.execute("BEGIN IMMEDIATE")
+            conn.execute("BEGIN")
             conn.executemany(
-                "INSERT INTO writes VALUES (?,?)", ((number, item) for item in range(batch))
+                "INSERT INTO meta(key,value) VALUES (%s,%s)",
+                ((f"writes/{number}/{item}", str(item)) for item in range(batch)),
             )
             conn.execute("COMMIT")
             committed.append(number)
@@ -430,8 +464,10 @@ def test_a_set_taken_while_a_writer_commits_is_consistent(tmp_path: Path) -> Non
         thread.join()
     restored = tmp_path / "restored"
     install(local(state), restored, set_id=result["set_id"])
-    copy = sqlite3.connect(restored / "state.sqlite")
-    counts = copy.execute("SELECT batch,count(*) FROM writes GROUP BY batch").fetchall()
+    copy = engine.connect(engine.resolve_dsn(restored))
+    counts = copy.execute(
+        "SELECT split_part(key,'/',2),COUNT(*) FROM meta WHERE key LIKE 'writes/%%' GROUP BY split_part(key,'/',2)"
+    ).fetchall()
     copy.close()
     assert counts and all(count == batch for _, count in counts)
     assert len(counts) <= len(committed)
@@ -491,26 +527,16 @@ def test_a_set_refuses_an_open_transaction(tmp_path: Path) -> None:
         database.connection.execute("ROLLBACK")
 
 
-def test_a_missing_named_file_is_recorded_and_the_set_refuses_to_restore(tmp_path: Path) -> None:
-    """One objects row without its file no longer fails every set: the set
-    is written, names it under `missing`, alerts, and refuses to install."""
-    from swingset.backup.restore_set import SetError
-
+def test_a_missing_named_file_refuses_a_successful_set(tmp_path: Path) -> None:
     state = tmp_path / "state"
     found = build_state(state)
     lost = found["derivation_output"]
     Store(state).path("derivation_output", lost).unlink()
-    result = backup(state)
-    assert result["missing"] == 1 and result["alerted"] is True
-    manifest = read_manifest(state / "checkpoints" / "sets" / result["set_id"])
-    assert manifest["missing"] == [["derivation_output", lost, "objects row without a file"]]
-    assert f"objects/derivation_output/{lost[:2]}/{lost}" not in index_of(state, result["set_id"])
-    line = (state / "ALERTS.log").read_text().splitlines()[-1]
-    assert line.startswith("2026-10-02T12:00:00Z [backup-incomplete] set ")
-    assert "(lost files)" in line and "`gc --collect` drops only rows nothing names" in line
-    for integrity in ("quick", "full"):
-        with pytest.raises(SetError, match="restored objects are incomplete: 1 missing"):
-            install(local(state), tmp_path / f"restored-{integrity}", integrity=integrity)
+    with pytest.raises(ValueError, match="missing captured file"):
+        backup(state)
+    assert local_sets(state / "checkpoints") == []
+    with open_database(state) as database:
+        assert database.connection.execute("SELECT count(*) FROM backup_sets").fetchone()[0] == 0
 
 
 def test_a_pack_row_without_an_objects_row_is_missing(tmp_path: Path) -> None:
@@ -520,26 +546,34 @@ def test_a_pack_row_without_an_objects_row_is_missing(tmp_path: Path) -> None:
     build_state(state)
     with open_database(state) as database:
         conn = database.connection
-        tables = {str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master")}
+        tables = {
+            str(row[0])
+            for row in conn.execute(
+                "SELECT relname AS name FROM pg_catalog.pg_class WHERE (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+            )
+        }
         assert unindexed_packs(conn, tables) == []
         # A pack row naming an object nobody indexed (foreign keys aside).
-        conn.execute("PRAGMA foreign_keys=OFF")
-        with database.transaction():
-            conn.execute(
-                "INSERT INTO label_body_packs(generation_id,pack_digest,packed_at) "
-                "VALUES ('dg_x',?,?)",
+        from psycopg.conninfo import conninfo_to_dict
+
+        from swingset.dev.services import ensure_service
+
+        name = conninfo_to_dict(engine.resolve_dsn(state))["dbname"]
+        with ensure_service().connect(name) as owner:
+            owner.execute("SET session_replication_role=replica")
+            owner.execute(
+                "INSERT INTO derive.label_body_packs(generation_id,pack_digest,packed_at) VALUES('dg_pack',%s,%s)",
                 ("c" * 64, NOW.isoformat()),
             )
-        conn.execute("PRAGMA foreign_keys=ON")
         assert unindexed_packs(conn, tables) == [
             ["label_body", "c" * 64, "label_body_packs names no objects row"]
         ]
-    # The set names it under `missing`, so it never restores as whole.
-    result = backup(state)
-    manifest = read_manifest(state / "checkpoints" / "sets" / result["set_id"])
-    assert manifest["missing"] == [
-        ["label_body", "c" * 64, "label_body_packs names no objects row"]
-    ]
+    # The malformed reference cannot earn a successful history backup.
+    with pytest.raises(
+        (ValueError, RuntimeError), match="reference|missing|closure|no retained storage ledger row"
+    ):
+        backup(state)
+    assert local_sets(state / "checkpoints") == []
 
 
 def test_a_set_refuses_before_its_copy_without_room(
@@ -551,10 +585,7 @@ def test_a_set_refuses_before_its_copy_without_room(
     build_state(state)
     with open_database(state) as database:
         conn = database.connection
-        in_use = int(conn.execute("PRAGMA page_size").fetchone()[0]) * (
-            int(conn.execute("PRAGMA page_count").fetchone()[0])
-            - int(conn.execute("PRAGMA freelist_count").fetchone()[0])
-        )
+        in_use = int(conn.execute("SELECT pg_database_size(current_database())").fetchone()[0])
     monkeypatch.setattr(
         disk, "room", lambda directory, **options: disk.Room(in_use + 99, None, None, False)
     )
@@ -573,11 +604,11 @@ def test_a_missing_input_bundle_refuses_before_the_copy(
     import swingset.backup.segments as segments_module
 
     state = tmp_path / "state"
-    build_state(state)
-    shutil.rmtree(state / "inputs" / "bundle-a")
+    found = build_state(state)
+    shutil.rmtree(state / "inputs" / found["bundle"])
     copied: list[object] = []
-    monkeypatch.setattr(segments_module, "_vacuum_into", lambda *args: copied.append(args))
-    with pytest.raises(BackupError, match="referenced input bundle is missing: bundle-a"):
+    monkeypatch.setattr(segments_module, "_snapshot", lambda *args: copied.append(args))
+    with pytest.raises(BackupError, match="referenced input bundle is missing: " + found["bundle"]):
         backup(state)
     assert copied == []
     assert [path.name for path in (state / "checkpoints" / "sets").iterdir()] == []
@@ -600,11 +631,17 @@ def test_a_killed_backup_scratch_goes_before_the_next_set(tmp_path: Path) -> Non
         os.utime(path, (stamp, stamp))
     result = backup(state, prune=False)
     assert result["cleaned"] == {
-        "removed": ["sets/.tmp-set_20261001T040000Z", "segments/.writing-dead.tar"],
-        "removed_bytes": 1010,
+        "removed": [
+            "sets/.tmp-set_20261001T040000Z",
+            "sets/.tmp-set_20261002T113000Z",
+            "segments/.writing-dead.tar",
+        ],
+        "removed_bytes": 2010,
+        "removed_unrecorded_sets": [],
+        "confirmed_sets": [],
     }
-    # A younger scratch may belong to a backup still running elsewhere.
-    assert young.is_dir() and not old.exists()
+    # The cluster-wide backup job lock proves neither scratch has a live owner.
+    assert not young.exists() and not old.exists()
 
 
 def test_a_failed_publish_removes_the_unrecorded_set(tmp_path: Path) -> None:
@@ -626,4 +663,4 @@ def test_a_failed_publish_removes_the_unrecorded_set(tmp_path: Path) -> None:
         )
     assert local_sets(state / "checkpoints") == [first["set_id"]]
     with open_database(state) as database:
-        assert database.connection.execute("SELECT count(*) FROM backup_sets").fetchone()[0] == 1
+        assert database.connection.execute("SELECT COUNT(*) FROM backup_sets").fetchone()[0] == 1

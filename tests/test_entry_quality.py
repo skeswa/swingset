@@ -174,7 +174,10 @@ def test_scoringdance_final_bib_reconciliation(
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('scoringdance','scoringdance:test',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('scoringdance', 'scoringdance:test', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         for index, sheet in enumerate(sheets):

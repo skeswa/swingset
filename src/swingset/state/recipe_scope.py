@@ -38,6 +38,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import PurePosixPath
 
 from swingset.fetch.archive import canonical, digest
@@ -108,6 +109,13 @@ _SCHEDULE = "scheduling; it runs stages through the modules the scopes name"
 # Since `versions.py` left the scheduler, no project, link or build closure
 # reaches the scheduler or acquisition (architecture plan, F4).
 EXCLUDED: dict[str, str] = {
+    "ops/": "read-only operator reports and health checks",
+    "dev/": "local development services, fixture seeds and scratch replay",
+    "state/migration_job.py": "explicit operator migration envelope",
+    "state/postgres_rebuild.py": "explicit restore bootstrap of discarded materializations",
+    "state/postgres_sample.py": "read-only bounded legacy sampler",
+    "state/postgres_import.py": "operator import of frozen SQLite checkpoints",
+    "state/legacy_checkpoint.py": "read-only validation of legacy import files",
     "admission/activation.py": "operator command that activates or pauses a reviewed contract",
     "admission/corpus.py": "offline admission corpus export",
     "admission/enumeration_evidence.py": _EVENTS,
@@ -116,6 +124,13 @@ EXCLUDED: dict[str, str] = {
     "admission/parent_evidence.py": _EVENTS,
     "admission/policy.py": "operator commands that change admission policy rows",
     "admission/relabel.py": "operator command that stores accepted results again (D-0241)",
+    "publish/service.py": "publication orchestration and its pre-push backup; derivations read only journal metadata",
+    "publish/huggingface.py": "external dataset repository transport",
+    "state/history_catalog.py": "filtered backup classification and exact restore audit",
+    "state/postgres_backup.py": "operator history COPY backup and restore",
+    "state/postgres_copy.py": "isolated verification database copies",
+    "state/postgres_copy_codec.py": "offline validation of retained binary COPY streams",
+    "state/postgres_files.py": "backup file closure qualification",
     "backup/": "backups copy state and do not derive it",
     "build/event_page_evidence.py": "offline event-page evidence report",
     "build/identity_restriction.py": "offline identity restriction report",
@@ -196,7 +211,11 @@ EXCLUDED: dict[str, str] = {
     "state/requirements.py": "requirement scan; acquisition runs it, no derivation does (D-0237)",
     "state/retention_apply.py": "operator retention commands",
     "state/storage.py": "operator storage move and the maintain evictor; no derivation reads it",
+    "state/verify_graph.py": "offline proof on isolated checkpoint copies",
+    "state/rekey.py": "operator command that records proven recipe equivalences",
+    "state/release_verification.py": "release authorization from complete differential proof receipts",
     "state/verify.py": "weekly verify sample; it re-runs units and rolls every write back",
+    "state/legacy_recipes.py": "operator backup and re-key archive closure; resolves retained code witnesses without executing them",
 }
 
 
@@ -307,6 +326,12 @@ class _Graph:
         path = self.modules[module]
         found = set()
         for name in imported_names(path, self.files[path]):
+            # The explicit pytest-only provisioning hook never runs a transform.
+            # Captured runtime artifacts still retain its exact source bytes.
+            if module == "swingset.state.engine.settings" and name.startswith(
+                "swingset.dev.testing"
+            ):
+                continue
             for candidate in (*_parents(name), name):
                 if candidate in self.modules:
                     found.add(candidate)
@@ -415,6 +440,178 @@ def entries(files: Mapping[str, bytes]) -> dict[str, tuple[Entry, ...]]:
     return result
 
 
+def _literals(body: bytes) -> dict[str, object]:
+    """Read declarations without importing or executing captured source."""
+    module = ast.parse(body)
+    bound: set[str] = set()
+    for statement in module.body:
+        if isinstance(statement, ast.Assign | ast.AnnAssign):
+            targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+            bound.update(
+                node.id
+                for target in targets
+                for node in ast.walk(target)
+                if isinstance(node, ast.Name)
+            )
+        elif isinstance(statement, ast.Import | ast.ImportFrom):
+            bound.update(alias.asname or alias.name.split(".")[0] for alias in statement.names)
+        elif isinstance(statement, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            bound.add(statement.name)
+    result: dict[str, object] = {}
+    for node in module.body:
+        target = (
+            node.target
+            if isinstance(node, ast.AnnAssign)
+            else node.targets[0]
+            if isinstance(node, ast.Assign) and len(node.targets) == 1
+            else None
+        )
+        value = getattr(node, "value", None)
+        if isinstance(target, ast.Name) and value is not None:
+            try:
+                result[target.id] = ast.literal_eval(value)
+            except (ValueError, TypeError):
+                # Historical contracts spelled their literal table as
+                # KINDS=frozenset({...}); VERSIONS=dict.fromkeys(sorted(KINDS),'1').
+                # Recognize only those exact constructors, with unshadowed
+                # builtins and already captured string keys. Never eval source.
+                if {"frozenset", "sorted", "dict"} & bound:
+                    continue
+                if (
+                    target.id == "KINDS"
+                    and isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Name)
+                    and value.func.id == "frozenset"
+                    and len(value.args) == 1
+                    and not value.keywords
+                ):
+                    try:
+                        keys = ast.literal_eval(value.args[0])
+                    except (ValueError, TypeError):
+                        continue
+                    if isinstance(keys, (set, tuple, list)) and all(
+                        isinstance(key, str) for key in keys
+                    ):
+                        result[target.id] = frozenset(keys)
+                elif (
+                    target.id == "VERSIONS"
+                    and isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Attribute)
+                    and value.func.attr == "fromkeys"
+                    and isinstance(value.func.value, ast.Name)
+                    and value.func.value.id == "dict"
+                    and len(value.args) == 2
+                    and not value.keywords
+                ):
+                    key_expression = value.args[0]
+                    if not (
+                        isinstance(key_expression, ast.Call)
+                        and isinstance(key_expression.func, ast.Name)
+                        and key_expression.func.id == "sorted"
+                        and len(key_expression.args) == 1
+                        and not key_expression.keywords
+                        and isinstance(key_expression.args[0], ast.Name)
+                        and key_expression.args[0].id == "KINDS"
+                    ):
+                        continue
+                    keys = result.get("KINDS")
+                    try:
+                        version = ast.literal_eval(value.args[1])
+                    except (ValueError, TypeError):
+                        continue
+                    if (
+                        isinstance(keys, (frozenset, set, tuple, list))
+                        and all(isinstance(key, str) for key in keys)
+                        and isinstance(version, (str, int))
+                        and not isinstance(version, bool)
+                    ):
+                        result[target.id] = dict.fromkeys(sorted(keys), version)
+    return result
+
+
+@lru_cache(maxsize=1024)
+def _pages(body: bytes) -> tuple[dict[str, object], ...]:
+    return tuple(
+        _literals("\n".join(ast.unparse(n) for n in node.body).encode())
+        for node in ast.parse(body).body
+        if isinstance(node, ast.ClassDef)
+    )
+
+
+def declared_versions(files: Mapping[str, bytes]) -> dict[str, dict[str, object]]:
+    """Transform versions from captured declarations, never live imports.
+
+    Adapter declarations belong to the class with the requested literal kind.
+    Shared parse writers use PARSE_CORE_VERSION; they have no separate knobs.
+    """
+    registry = _tables(files, "sources/registry.py", "ADAPTERS", "KIND_OWNERS")
+    contracts = _tables(files, "admission/kinds.py", "CONTRACTS")["CONTRACTS"]
+    result: dict[str, dict[str, object]] = {}
+    graph = _Graph(files)
+    literal_values: dict[bytes, dict[str, object]] = {}
+
+    def literals(body: bytes) -> dict[str, object]:
+        if body not in literal_values:
+            literal_values[body] = _literals(body)
+        return literal_values[body]
+
+    def constant(module: str, name: str) -> object:
+        body = files.get(PREFIX + module.replace(".", "/") + ".py")
+        if body is None:
+            return None  # partial artifacts used by offline helpers
+        values = literals(body)
+        if name not in values:
+            raise ValueError(f"missing literal declared version {module}:{name}")
+        value = values[name]
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            raise ValueError(f"invalid declared version {module}:{name}")
+        return value
+
+    for kind, owner in sorted(registry["KIND_OWNERS"].items()):
+        module = registry["ADAPTERS"][owner].removeprefix("swingset.")
+        matches = []
+        for path in sorted(graph.closure((Entry(module),))):
+            if not path.endswith(".py"):
+                continue
+            for page in _pages(files[path]):
+                if page.get("kind") == kind:
+                    matches.append((path, page))
+        if len(matches) != 1:
+            raise ValueError(f"missing or duplicate page declaration for {kind}")
+        page_path, page = matches[0]
+        module = page_path.removeprefix(PREFIX).removesuffix(".py").replace("/", ".")
+        for stage, label in (("extract", "EXTRACT_VERSION"), ("parse", "PARSER_VERSION")):
+            value = page.get(label)
+            if isinstance(value, bool) or not isinstance(value, (str, int)):
+                raise ValueError(f"missing literal declared version {module}:{kind}:{label}")
+            versions: dict[str, object] = {module: value}
+            if stage == "parse":
+                versions["admission.contracts"] = constant(
+                    "admission.contracts", "PARSE_CORE_VERSION"
+                )
+                if contract := contracts.get(kind):
+                    contract = contract.removeprefix("swingset.")
+                    values = literals(files[PREFIX + contract.replace(".", "/") + ".py"])
+                    declared = values.get("VERSIONS")
+                    if not isinstance(declared, dict) or kind not in declared:
+                        raise ValueError(f"missing literal contract version {contract}:{kind}")
+                    versions[contract] = declared[kind]
+            result[f"{SCOPE_PREFIX}{stage}/{kind}"] = dict(sorted(versions.items()))
+    for kind, module in sorted(PROJECTORS.items()):
+        versions = {
+            "project.process": constant("project.process", "PROJECTOR_VERSION"),
+            "project.materialization": constant("project.materialization", "VERSION"),
+        }
+        if module != "project.process":
+            versions[module] = constant(module, "VERSION")
+        result[f"{SCOPE_PREFIX}project/{kind}"] = dict(sorted(versions.items()))
+    result[f"{SCOPE_PREFIX}link"] = {
+        "link.service": constant("link.service", "LINKER_VERSION"),
+        "link.persistence": constant("link.persistence", "VERSION"),
+    }
+    return result
+
+
 _CACHE: dict[str, dict[str, object]] = {}
 
 
@@ -438,7 +635,12 @@ def manifest(files: Mapping[str, bytes]) -> dict[str, object]:
             else dispatch_code(files[path[: -len(CODE_SUFFIX)]])
             for path in sorted(graph.closure(named))
         }
-    result: dict[str, object] = {"format": FORMAT, "scopes": scopes, "env": env}
+    result: dict[str, object] = {
+        "format": FORMAT,
+        "scopes": scopes,
+        "env": env,
+        "declared": declared_versions(files),
+    }
     if len(_CACHE) >= 8:
         _CACHE.clear()
     _CACHE[key] = result

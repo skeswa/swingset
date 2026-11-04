@@ -28,13 +28,13 @@ more, to every dependency set; this module stays for `gc --closures` and
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from swingset.build.closure_manifest import digest
 from swingset.build.files import canonical_json, durable_write
+from swingset.state import engine
 
 from . import body_packs
 from .control_lock import control_lock
@@ -51,13 +51,14 @@ class ClosureCollectionError(RuntimeError):
     pass
 
 
-def _proofs(conn: sqlite3.Connection) -> dict[str, int]:
+def _proofs(conn: engine.Connection) -> dict[str, int]:
     # octet_length reads the record header, not the 235 MB value.
     return {
         str(row[0]): int(row[1])
         for row in conn.execute(
-            "SELECT dependency_set_id, octet_length(manifest_json) FROM derivation_dependency_sets "
-            "WHERE substr(manifest_json,1,?)=?",
+            (
+                "SELECT dependency_set_id, OCTET_LENGTH(manifest_json) AS _value_1 FROM derivation_dependency_sets WHERE SUBSTRING(manifest_json FROM 1 FOR %s) = %s"
+            ),
             (len(_PROOF_PREFIX), _PROOF_PREFIX),
         )
     }
@@ -88,7 +89,7 @@ def _candidate_names(state_dir: Path) -> dict[str, set[str]]:
     return names
 
 
-def plan(conn: sqlite3.Connection, state_dir: Path) -> dict[str, Any]:
+def plan(conn: engine.Connection, state_dir: Path) -> dict[str, Any]:
     """What would be removed and why everything else stays. Writes nothing."""
     proofs = _proofs(conn)
     kept: dict[str, set[str]] = {}
@@ -102,24 +103,23 @@ def plan(conn: sqlite3.Connection, state_dir: Path) -> dict[str, Any]:
     ):
         keep(str(identifier), "generation_dependency_set")
     for generation_id, set_id, named, private, packed in conn.execute(
-        "SELECT generation_id, dependency_set_id, "
-        "json_extract(recipe_json,'$.context.release_closure.digest'), "
-        "json_extract(recipe_json,'$.context.release_closure.private_digest'), "
-        "recipe_json=? FROM derivation_generations WHERE stage='build'",
+        (
+            "SELECT generation_id, dependency_set_id, JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'context', 'release_closure', 'digest') AS _value_2, JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'context', 'release_closure', 'private_digest') AS _value_3, CAST(recipe_json = %s AS INTEGER) AS _value_4 FROM derivation_generations WHERE stage = 'build'"
+        ),
         (body_packs.STUB,),
     ).fetchall():
         if packed:
             # A packed build recipe (phase 4): the same extraction over its pack.
             named, private = conn.execute(
-                "SELECT json_extract(?1,'$.context.release_closure.digest'),"
-                "json_extract(?1,'$.context.release_closure.private_digest')",
-                (body_packs.recipe(conn, str(generation_id)),),
+                "SELECT json_extract_path_text(%s::json,'context','release_closure','digest') AS named, "
+                "json_extract_path_text(%s::json,'context','release_closure','private_digest') AS private",
+                (body_packs.recipe(conn, str(generation_id)),) * 2,
             ).fetchone()
         for value in (named, private):
             if value:
                 keep(str(value), f"build_recipe:{generation_id}")
         row = conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (set_id,),
         ).fetchone()
         members = json.loads(row[0]) if row is not None else []
@@ -144,13 +144,10 @@ def plan(conn: sqlite3.Connection, state_dir: Path) -> dict[str, Any]:
     return {**content, "digest": digest(content)}
 
 
-def _usage(conn: sqlite3.Connection) -> dict[str, int]:
-    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
-    return {
-        "page_size": page_size,
-        "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
-        "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
-    }
+def _usage(conn: engine.Connection) -> dict[str, Any]:
+    from .disk import database_usage
+
+    return database_usage(conn)
 
 
 def collect(
@@ -158,18 +155,13 @@ def collect(
 ) -> dict[str, Any]:
     """Remove the proofs the plan with this digest names, one per transaction."""
     conn = database.connection
-    with control_lock(database.state_dir, timeout=timeout):
+    with control_lock(database.state_dir, connection=conn, timeout=timeout):
         current = plan(conn, database.state_dir)
         if current["digest"] != plan_digest:
             raise ClosureCollectionError(
                 f"the plan moved: {plan_digest} is no longer current ({current['digest']}); "
                 "read the new plan before collecting"
             )
-        trigger = conn.execute(
-            "SELECT sql FROM sqlite_master WHERE type='trigger' AND name=?", (_NO_DELETE,)
-        ).fetchone()
-        if trigger is None:
-            raise ClosureCollectionError(f"the {_NO_DELETE} trigger is missing")
         before = _usage(conn)
         removed: list[dict[str, Any]] = []
         error: str | None = None
@@ -179,17 +171,20 @@ def collect(
                     # The immutability trigger is lifted for this one statement
                     # and restored before commit; a failure rolls both back.
                     if not write.execute(
-                        "SELECT instr(manifest_json,?)>0 FROM derivation_dependency_sets "
-                        "WHERE dependency_set_id=?",
+                        "SELECT CAST(POSITION(%s IN manifest_json) > 0 AS INTEGER) AS _value_0 FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                         (_PROOF_FORMAT, item["id"]),
                     ).fetchone()[0]:
                         raise ClosureCollectionError(f"{item['id']} is not a release closure")
-                    write.execute(f"DROP TRIGGER {_NO_DELETE}")
+                    write.execute(
+                        "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
+                        "VALUES(1,%s,%s)",
+                        ("closure proof collection " + plan_digest, now.isoformat()),
+                    )
                     deleted = write.execute(
-                        "DELETE FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                        "DELETE FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                         (item["id"],),
                     ).rowcount
-                    write.execute(trigger[0])
+                    write.execute("DELETE FROM storage_eviction_authority")
                     if deleted != 1:
                         raise ClosureCollectionError(f"{item['id']} was not removed exactly once")
                 removed.append(item)

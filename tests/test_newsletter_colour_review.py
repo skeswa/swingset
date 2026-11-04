@@ -138,21 +138,35 @@ def test_real_colour_rows_project_conservatively_and_preserve_registry_evidence(
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (now,),
         )
 
         def evidence(payload, source, scope, ref, snapshot):
             conn.execute(
-                "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES (?,?,'index','GET','https://example.test/','events','live')",
+                (
+                    "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, %s, "
+                    "'index', 'GET', 'https://example.test/', 'events', 'live')"
+                ),
                 (snapshot, source),
             )
             conn.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET','https://example.test/',?,200,1,1,'run','Ok')",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+                    "'https://example.test/', %s, 200, 1, 1, 'run', 'Ok')"
+                ),
                 (snapshot, snapshot, now),
             )
             conn.execute(
-                "INSERT INTO observations VALUES (?,?,?,?,?,?,0,'1','8',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, %s, "
+                    "%s, 0, '1', '8', %s)"
+                ),
                 (snapshot, snapshot, snapshot, payload.kind, scope, ref, encode_payload(payload)),
             )
 
@@ -195,7 +209,9 @@ def test_real_colour_rows_project_conservatively_and_preserve_registry_evidence(
             else f"printed_name,series_id,source,note\n{name},listed-example,newsletter,test fixture\n".encode()
         )
         reconcile_history(conn, now=now, run_id="run", aliases=aliases)
-        events = conn.execute("SELECT held,wsdc_status,start_date,end_date FROM events").fetchall()
+        events = conn.execute(
+            "SELECT held, wsdc_status, start_date, end_date FROM events"
+        ).fetchall()
         assert len(events) == 1
         assert tuple(events[0]) == (
             "held" if held else "listed",

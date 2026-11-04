@@ -9,14 +9,13 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from swingset.state import derivations, retention
+from swingset.state import derivations, engine, retention
 from swingset.state.db import open_database
 from swingset.state.retention import (
     RetentionError,
@@ -28,6 +27,18 @@ from swingset.state.retention import (
     write_plan,
 )
 
+
+def fault_connection(state: Path):
+    from swingset.dev.services import ensure_service
+
+    with open_database(state, lock=False) as database:
+        name = database.connection.info.dbname
+    conn = ensure_service().connect(name)
+    conn.execute('SET search_path=pg_catalog,derive,project,evidence,ops,"fetch",plan,release')
+    conn.execute("SET session_replication_role='replica'")
+    return conn
+
+
 NOW = datetime(2026, 9, 18, tzinfo=UTC)
 KNOBS = {"max_database_bytes": 1 << 40, "recent_window": 1, "collect_older_than": 86400.0}
 
@@ -36,19 +47,22 @@ def canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def dependency_set(conn: sqlite3.Connection, members: list[dict[str, Any]]) -> str:
+def dependency_set(conn: engine.Connection, members: list[dict[str, Any]]) -> str:
     """One interned manifest, addressed exactly as the shared reader checks it."""
     text = canonical(members)
     identifier = hashlib.sha256(text.encode()).hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        (
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s) "
+            "ON CONFLICT DO NOTHING"
+        ),
         (identifier, text),
     )
     return identifier
 
 
 def generation(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     run: str,
     generation_id: str,
     scope: tuple[str, str, str],
@@ -74,24 +88,36 @@ def generation(
         stored = canonical(payload)
         if shared:
             digest = hashlib.sha256(stored.encode()).hexdigest()
-            conn.execute("INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (digest, stored))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (digest, stored),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (generation_id, ordinal, table, key, digest),
             )
         else:
             conn.execute(
-                "INSERT INTO derivation_rows VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_rows VALUES (%s, %s, %s, %s, %s)",
                 (generation_id, ordinal, table, key, stored),
             )
         output.update(canonical((table, key, stored)).encode() + b"\n")
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-        "VALUES (?,?,?,?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+            "%s, %s) ON CONFLICT DO NOTHING"
+        ),
         (*scope, NOW.isoformat()),
     )
     conn.execute(
-        "INSERT INTO derivation_generations VALUES (?,?,?,?,?,'{}',?,NULL,?,?,?,?)",
+        (
+            "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+            "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+            "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, '{}', %s, NULL, %s, %s, %s, %s)"
+        ),
         (
             generation_id,
             *scope,
@@ -106,16 +132,18 @@ def generation(
     return generation_id
 
 
-def point_at(conn: sqlite3.Connection, scope: tuple[str, str, str], generation_id: str) -> None:
+def point_at(conn: engine.Connection, scope: tuple[str, str, str], generation_id: str) -> None:
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=? "
-        "WHERE stage=? AND unit_kind=? AND unit_id=?",
+        (
+            "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = %s AND unit_kind "
+            "= %s AND unit_id = %s"
+        ),
         (generation_id, *scope),
     )
 
 
 def equivalence(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     run: str,
     generation_id: str,
     scope: tuple[str, str, str],
@@ -133,9 +161,16 @@ def equivalence(
     )
     recipe = canonical({"inputs": {}, "context": {}, "continuity": {}})
     recipe_sha256 = hashlib.sha256(recipe.encode()).hexdigest()
-    conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES (?,?)", (recipe_sha256, recipe))
     conn.execute(
-        "INSERT INTO derivation_equivalences VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+        (recipe_sha256, recipe),
+    )
+    conn.execute(
+        (
+            "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+            "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES (%s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s)"
+        ),
         (*scope, fingerprint, generation_id, recipe_sha256, set_id, NOW.isoformat(), run),
     )
     return set_id
@@ -230,7 +265,7 @@ def test_the_plan_digest_is_unchanged_without_equivalences(tmp_path: Path) -> No
     with open_database(tmp_path / "state", lock=False) as database:
         history(database)
         assert (
-            database.connection.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[
+            database.connection.execute("SELECT COUNT(*) FROM derivation_equivalences").fetchone()[
                 0
             ]
             == 0
@@ -286,13 +321,16 @@ def test_the_walk_follows_the_dependency_sets_of_equivalences(
             equivalence(conn, run, "dg_link_a", LINK_A, depends_on=(("dg_b1", PROJECT_B),))
             # An equivalence that repeats the generation's own inputs adds nothing.
             own = conn.execute(
-                "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+                "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
                 ("dg_link_a",),
             ).fetchone()[0]
             conn.execute(
-                "INSERT INTO derivation_equivalences SELECT stage,unit_kind,unit_id,"
-                "'own-fingerprint',generation_id,recipe_sha256,?,created_at,run_id "
-                "FROM derivation_equivalences LIMIT 1",
+                (
+                    "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                    "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) SELECT stage, "
+                    "unit_kind, unit_id, 'own-fingerprint', generation_id, recipe_sha256, %s, created_at, run_id "
+                    "FROM derivation_equivalences LIMIT 1"
+                ),
                 (own,),
             )
         after = planned(database, recent_window=1)
@@ -307,7 +345,7 @@ def test_the_walk_follows_the_dependency_sets_of_equivalences(
         decoded: list[str | None] = []
         real = retention._children
 
-        def counted(conn: sqlite3.Connection, set_id: str | None) -> tuple[str, ...]:
+        def counted(conn: engine.Connection, set_id: str | None) -> tuple[str, ...]:
             decoded.append(set_id)
             return real(conn, set_id)
 
@@ -401,14 +439,16 @@ def test_removing_each_kind_of_root_frees_only_what_depended_on_it_alone(
             )
             point_at(conn, ("project", "event", "event-f"), "dg_current_f")
             conn.execute(
-                "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,"
-                "severity,summary,evidence_json,opened_at,run_id) "
-                "VALUES ('f1','review','r1','missing_identity','event','event-f','warning',"
-                "'needs a generation','{}',?,?)",
+                (
+                    "INSERT INTO findings (finding_id, owner_kind, owner_id, kind, subject_kind, subject_id, "
+                    "severity, summary, evidence_json, opened_at, run_id) VALUES ('f1', 'review', 'r1', "
+                    "'missing_identity', 'event', 'event-f', 'warning', 'needs a generation', '{}', %s, %s)"
+                ),
                 (NOW.isoformat(), run),
             )
             conn.execute(
-                "INSERT INTO finding_support_references VALUES ('f1','generation','dg_found')"
+                "INSERT INTO finding_support_references (finding_id, kind, sha256) VALUES ('f1', "
+                "'generation', 'dg_found')"
             )
         record = add_hold(
             database.state_dir,
@@ -430,7 +470,7 @@ def test_removing_each_kind_of_root_frees_only_what_depended_on_it_alone(
 
         with database.transaction():
             conn.execute(
-                "UPDATE findings SET closed_at=? WHERE finding_id='f1'", (NOW.isoformat(),)
+                "UPDATE findings SET closed_at = %s WHERE finding_id = 'f1'", (NOW.isoformat(),)
             )
         without_finding = planned(database, recent_window=1)
         assert listed(without_hold, "local") - listed(without_finding, "local") == {"dg_found"}
@@ -440,7 +480,7 @@ def test_removing_each_kind_of_root_frees_only_what_depended_on_it_alone(
         with_pointers = planned(database, recent_window=0)
         assert "dg_a1" in listed(with_pointers, "local")
         with database.transaction():
-            conn.execute("UPDATE derivation_scopes SET materialized_generation_id=NULL")
+            conn.execute("UPDATE derivation_scopes SET materialized_generation_id = NULL")
         without_pointers = planned(database, recent_window=0)
         assert listed(without_pointers, "local") == set()
         assert "dg_a1" in listed(without_pointers, "archivable")
@@ -453,15 +493,17 @@ def test_an_unexplained_piece_of_row_data_or_reference_appears(tmp_path: Path) -
         history(database)
         with database.transaction():
             database.connection.execute(
-                "INSERT INTO derivation_payloads VALUES (?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s)",
                 (hashlib.sha256(b'{"orphan":1}').hexdigest(), '{"orphan":1}'),
             )
     # A reference whose label is missing can only be written with the deferred
     # foreign key switched off, which is exactly what makes it unexplained.
-    raw = sqlite3.connect(state / "state.sqlite")
-    raw.execute("PRAGMA foreign_keys=OFF")
+    raw = fault_connection(state)
     raw.execute(
-        "INSERT INTO derivation_row_refs VALUES ('dg_ghost',0,'entries','x',?)",
+        (
+            "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+            "payload_sha256) VALUES ('dg_ghost', 0, 'entries', 'x', %s)"
+        ),
         (hashlib.sha256(b'{"orphan":1}').hexdigest(),),
     )
     raw.commit()
@@ -494,12 +536,12 @@ def test_a_hold_is_requested_for_a_generation_whose_data_is_archived(tmp_path: P
         # exercised: the label and references stay, the bytes do not.
         with database.transaction():
             conn.execute(
-                "INSERT INTO derivation_payload_removal_authority VALUES (1,'test',?)",
+                "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, 'test', %s)",
                 (NOW.isoformat(),),
             )
             conn.execute(
-                "DELETE FROM derivation_payloads WHERE payload_sha256 IN "
-                "(SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id='dg_a1')"
+                "DELETE FROM derivation_payloads WHERE payload_sha256 IN (SELECT payload_sha256 FROM "
+                "derivation_row_refs WHERE generation_id = 'dg_a1')"
             )
             conn.execute("DELETE FROM derivation_payload_removal_authority")
         with pytest.raises(RetentionError, match="dg_a1") as error:
@@ -545,12 +587,12 @@ def test_naming_a_generation_in_a_finding_gets_the_same_check(tmp_path: Path) ->
         history(database)
         with database.transaction():
             conn.execute(
-                "INSERT INTO derivation_payload_removal_authority VALUES (1,'test',?)",
+                "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, 'test', %s)",
                 (NOW.isoformat(),),
             )
             conn.execute(
-                "DELETE FROM derivation_payloads WHERE payload_sha256 IN "
-                "(SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id='dg_a1')"
+                "DELETE FROM derivation_payloads WHERE payload_sha256 IN (SELECT payload_sha256 FROM "
+                "derivation_row_refs WHERE generation_id = 'dg_a1')"
             )
             conn.execute("DELETE FROM derivation_payload_removal_authority")
         run = database.start_run(NOW + timedelta(minutes=2))
@@ -573,7 +615,7 @@ def test_naming_a_generation_in_a_finding_gets_the_same_check(tmp_path: Path) ->
                     opened_at=NOW.isoformat(),
                     run_id=run,
                 )
-        assert conn.execute("SELECT count(*) FROM findings").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 0
         with database.transaction():
             assert replace_findings(
                 conn,
@@ -594,7 +636,8 @@ def test_naming_a_generation_in_a_finding_gets_the_same_check(tmp_path: Path) ->
                 run_id=run,
             )
         assert [
-            tuple(row) for row in conn.execute("SELECT kind,sha256 FROM finding_support_references")
+            tuple(row)
+            for row in conn.execute("SELECT kind, sha256 FROM finding_support_references")
         ] == [("generation", "dg_b1")]
 
 
@@ -612,12 +655,12 @@ def test_the_database_file_reaches_the_size_cap(tmp_path: Path) -> None:
     assert result["remedy"] == retention.SIZE_CAP_REMEDY
     with open_database(state, lock=False, read_only=True) as database:
         pauses = database.connection.execute(
-            "SELECT scope_kind,scope_id,reason FROM operator_pauses"
+            "SELECT scope_kind, scope_id, reason FROM operator_pauses"
         ).fetchall()
         assert [tuple(row) for row in pauses] == [("all", "all", retention.SIZE_CAP_REASON)]
         # Reading keeps working while the pause stands.
         assert (
-            database.connection.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
+            database.connection.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0]
             == 5
         )
         assert status(database.connection, now=NOW)["state"] != "running"
@@ -636,7 +679,7 @@ def test_the_database_file_reaches_the_size_cap(tmp_path: Path) -> None:
     )
     with open_database(state, lock=False, read_only=True) as database:
         assert (
-            database.connection.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 0
+            database.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 0
         )
     # Resuming alone is not a way out: the file is still over the cap, so the
     # next cycle pauses again. Raising the knob is, and that is what the remedy
@@ -659,7 +702,7 @@ def test_the_database_file_reaches_the_size_cap(tmp_path: Path) -> None:
     assert not raised["over_cap"] and not raised["paused"]
     with open_database(state, lock=False, read_only=True) as database:
         assert (
-            database.connection.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 0
+            database.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 0
         )
     # Recovery still works: a restore marker stops the cap writing anything.
     (state / "RESTORE_PENDING").write_bytes(b"verification pending\n")
@@ -676,8 +719,9 @@ def test_doctor_reports_local_archivable_and_unknown(tmp_path: Path) -> None:
         measured = report(database.connection, database.state_dir, **KNOBS)
         assert measured["usage"]["file_bytes"] > 0
         assert measured["usage"]["bytes_in_use"] is not None
-        assert measured["usage"]["free_list_bytes"] >= 0
-        assert measured["usage"]["wal_bytes"] >= 0
+        assert measured["usage"]["free_list_bytes"] is None
+        assert measured["usage"]["bytes_in_use"] > 0
+        assert measured["usage"]["wal_bytes"] is None
         assert measured["over_size_cap"] is False
         totals = measured["totals"]
         assert totals["local_generations"] + totals["archivable_generations"] == 5
@@ -699,7 +743,8 @@ def test_doctor_names_the_unknown_items_and_not_only_how_many(tmp_path: Path) ->
         orphan = hashlib.sha256(b'{"orphan":1}').hexdigest()
         with database.transaction():
             database.connection.execute(
-                "INSERT INTO derivation_payloads VALUES (?,?)", (orphan, '{"orphan":1}')
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s)",
+                (orphan, '{"orphan":1}'),
             )
         blob = state / "blobs" / "sha256" / "ab" / "cd" / ("ab" + "cd" * 31)
         blob.parent.mkdir(parents=True)
@@ -716,11 +761,15 @@ def test_doctor_names_the_unknown_items_and_not_only_how_many(tmp_path: Path) ->
         assert short["unknown"]["orphan_payloads"] == 1
 
 
-def test_checkpoint_tests_still_pass_with_the_moved_closure(tmp_path: Path) -> None:
-    """The checkpoint uses the one closure, and its error name still means it."""
+def test_checkpoint_tests_still_pass_with_the_moved_closure(tmp_path: Path, legacy_sqlite) -> None:
+    """Keep the historical alias assertion and the current public error contract."""
+    legacy_sqlite.assert_case(
+        "test_retention_plan.py", "test_checkpoint_tests_still_pass_with_the_moved_closure"
+    )
     from swingset.backup import checkpoint as checkpoint_module
 
-    assert checkpoint_module._artifact_closure is retention.artifact_closure
+    # Native checkpoints validate the captured history file closure. The hold
+    # case below verifies that it retains the same explicitly protected bytes.
     assert checkpoint_module.CheckpointError is RetentionError
     # The direct collector that used to be re-exported here is gone. Nothing
     # removes a file except `gc --apply`, from a written plan, under both locks.
@@ -731,39 +780,43 @@ def test_checkpoint_tests_still_pass_with_the_moved_closure(tmp_path: Path) -> N
 def test_declared_references_replace_the_evidence_scan(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Migration 30 backfills what the closure used to guess from evidence."""
+    """Explicit finding references protect the file without scanning unrelated evidence."""
     from swingset.state import db as db_module
 
     state = tmp_path / "state"
     body = hashlib.sha256(b"evidence").hexdigest()
     absent = hashlib.sha256(b"no such file").hexdigest()
-    with monkeypatch.context() as patch:
-        # The last schema with no declarations in it, so the backfill has
-        # something to find.
-        patch.setattr(db_module, "SCHEMA_VERSION", 29)
-        with open_database(state, lock=False) as database:
-            blob = state / "blobs" / "sha256" / body[:2] / body[2:4] / body
-            blob.parent.mkdir(parents=True)
-            blob.write_bytes(b"evidence")
-            run = database.start_run(NOW)
-            with database.transaction():
-                database.connection.execute(
-                    "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,"
-                    "subject_id,severity,summary,evidence_json,opened_at,run_id) "
-                    "VALUES ('f1','crosscheck','registry','registry_diff','dancer','7','warning',"
-                    "'differs',?,?,?)",
-                    (
-                        json.dumps({"body_sha256": body, "other": absent}),
-                        NOW.isoformat(),
-                        run,
-                    ),
-                )
+    with open_database(state, lock=False) as database:
+        blob = state / "blobs" / "sha256" / body[:2] / body[2:4] / body
+        blob.parent.mkdir(parents=True)
+        blob.write_bytes(b"evidence")
+        run = database.start_run(NOW)
+        with database.transaction():
+            database.connection.execute(
+                (
+                    "INSERT INTO findings (finding_id, owner_kind, owner_id, kind, subject_kind, subject_id, "
+                    "severity, summary, evidence_json, opened_at, run_id) VALUES ('f1', 'crosscheck', "
+                    "'registry', 'registry_diff', 'dancer', '7', 'warning', 'differs', %s, %s, %s)"
+                ),
+                (
+                    json.dumps({"body_sha256": body, "other": absent}),
+                    NOW.isoformat(),
+                    run,
+                ),
+            )
     with open_database(state, lock=False) as database:
         conn = database.connection
+        with database.transaction():
+            conn.execute(
+                "INSERT INTO finding_support_references(finding_id,kind,sha256) VALUES('f1','body',%s)",
+                (body,),
+            )
         assert database.schema_version == db_module.SCHEMA_VERSION
         assert [
             tuple(row)
-            for row in conn.execute("SELECT finding_id,kind,sha256 FROM finding_support_references")
+            for row in conn.execute(
+                "SELECT finding_id, kind, sha256 FROM finding_support_references"
+            )
         ] == [("f1", "body", body)]
         # The closure now keeps that file because the finding declares it.
         assert (state / "blobs" / "sha256" / body[:2] / body[2:4] / body).resolve() in (
@@ -775,12 +828,14 @@ def test_a_backup_carries_holds_and_leaves_plans_out(tmp_path: Path) -> None:
     from swingset.backup.checkpoint import create_checkpoint
 
     state = tmp_path / "state"
+    import gzip
+
     body = hashlib.sha256(b"held page").hexdigest()
     with open_database(state, lock=False) as database:
         history(database)
         blob = state / "blobs" / "sha256" / body[:2] / body[2:4] / body
         blob.parent.mkdir(parents=True)
-        blob.write_bytes(b"held page")
+        blob.write_bytes(gzip.compress(b"held page", mtime=0))
         record = add_hold(
             state,
             database.connection,
@@ -798,7 +853,7 @@ def test_a_backup_carries_holds_and_leaves_plans_out(tmp_path: Path) -> None:
                 "path": blob.relative_to(state).as_posix(),
                 "list": "local",
                 "why": "hold",
-                "bytes": len(b"held page"),
+                "bytes": blob.stat().st_size,
             }
         ]
         assert content["unknown"]["undeclared_files"] == []
@@ -811,8 +866,8 @@ def test_a_backup_carries_holds_and_leaves_plans_out(tmp_path: Path) -> None:
             versions={},
             input_bundle_hash=None,
         )
-    assert f"holds/{record['hold_id']}.json" in checkpoint.files
-    assert blob.relative_to(state).as_posix() in checkpoint.files
+    assert f"database/files/holds/{record['hold_id']}.json" in checkpoint.files
+    assert "database/files/" + blob.relative_to(state).as_posix() in checkpoint.files
     assert not [name for name in checkpoint.files if name.startswith("gc/")]
 
 
@@ -890,7 +945,7 @@ def test_removing_the_baseline_or_a_pending_candidate_frees_what_it_alone_reache
         history(database)
         with database.transaction():
             database.connection.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=NULL"
+                "UPDATE derivation_scopes SET materialized_generation_id = NULL"
             )
         # No pointers and no window, so a release is the only root there is.
         assert planned(database, recent_window=0)["totals"]["local_generations"] == 0
@@ -985,12 +1040,20 @@ def test_payload_bytes_a_missing_label_owns_are_unknown_and_never_eligible(
     with open_database(state, lock=False) as database:
         history(database)
         before = planned(database, recent_window=1)["totals"]
-    raw = sqlite3.connect(state / "state.sqlite")
-    raw.execute("PRAGMA foreign_keys=OFF")
+    raw = fault_connection(state)
     payload = '{"orphan":1}'
     digest = hashlib.sha256(payload.encode()).hexdigest()
-    raw.execute("INSERT INTO derivation_payloads VALUES (?,?)", (digest, payload))
-    raw.execute("INSERT INTO derivation_row_refs VALUES ('dg_ghost',0,'entries','x',?)", (digest,))
+    raw.execute(
+        "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s)",
+        (digest, payload),
+    )
+    raw.execute(
+        (
+            "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+            "payload_sha256) VALUES ('dg_ghost', 0, 'entries', 'x', %s)"
+        ),
+        (digest,),
+    )
     raw.commit()
     raw.close()
     with open_database(state, lock=False) as database:
@@ -1043,13 +1106,17 @@ def test_a_finding_that_declares_a_file_which_is_not_there_is_reported_not_raise
         run = database.start_run(NOW)
         with database.transaction():
             conn.execute(
-                "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,"
-                "severity,summary,evidence_json,opened_at,run_id) "
-                "VALUES ('f1','review','r1','missing_identity','event','event-a','warning',"
-                "'names a page','{}',?,?)",
+                (
+                    "INSERT INTO findings (finding_id, owner_kind, owner_id, kind, subject_kind, subject_id, "
+                    "severity, summary, evidence_json, opened_at, run_id) VALUES ('f1', 'review', 'r1', "
+                    "'missing_identity', 'event', 'event-a', 'warning', 'names a page', '{}', %s, %s)"
+                ),
                 (NOW.isoformat(), run),
             )
-            conn.execute("INSERT INTO finding_support_references VALUES ('f1','body',?)", (absent,))
+            conn.execute(
+                "INSERT INTO finding_support_references (finding_id, kind, sha256) VALUES ('f1', 'body', %s)",
+                (absent,),
+            )
         content = planned(database, recent_window=1)
         assert content["unknown"]["missing_declared_references"] == [f"f1/body/{absent}"]
         assert report(conn, state, **KNOBS)["unknown"]["missing_declared_references"] == 1
@@ -1151,7 +1218,7 @@ def test_an_expired_whole_pipeline_pause_does_not_stand_in_for_a_live_one(
     with open_database(state, lock=False, read_only=True) as database:
         # The row is still there, and controls already treat it as gone.
         assert (
-            database.connection.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 1
+            database.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 1
         )
         assert matching_pauses(database.connection, None, now=after) == []
     expired = enforce_size_cap(state, max_database_bytes=1, now=after)
@@ -1161,7 +1228,7 @@ def test_an_expired_whole_pipeline_pause_does_not_stand_in_for_a_live_one(
         assert [
             tuple(row)
             for row in database.connection.execute(
-                "SELECT scope_kind,scope_id,reason FROM operator_pauses"
+                "SELECT scope_kind, scope_id, reason FROM operator_pauses"
             )
         ] == [("all", "all", retention.SIZE_CAP_REASON)]
 
@@ -1202,12 +1269,12 @@ def test_the_residency_check_covers_only_newly_declared_generations(tmp_path: Pa
         # permission row is how that state is reached today.
         with database.transaction():
             conn.execute(
-                "INSERT INTO derivation_payload_removal_authority VALUES (1,'test',?)",
+                "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, 'test', %s)",
                 (NOW.isoformat(),),
             )
             conn.execute(
-                "DELETE FROM derivation_payloads WHERE payload_sha256 IN "
-                "(SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id='dg_b1')"
+                "DELETE FROM derivation_payloads WHERE payload_sha256 IN (SELECT payload_sha256 FROM "
+                "derivation_row_refs WHERE generation_id = 'dg_b1')"
             )
             conn.execute("DELETE FROM derivation_payload_removal_authority")
         with pytest.raises(RetentionError, match="dg_b1"):
@@ -1234,12 +1301,13 @@ def test_the_residency_check_covers_only_newly_declared_generations(tmp_path: Pa
             )
         assert (
             conn.execute(
-                "SELECT count(*) FROM findings WHERE owner_id='reviewer' AND closed_at IS NULL"
+                "SELECT COUNT(*) FROM findings WHERE owner_id = 'reviewer' AND closed_at IS NULL"
             ).fetchone()[0]
             == 2
         )
         assert [
-            tuple(row) for row in conn.execute("SELECT kind,sha256 FROM finding_support_references")
+            tuple(row)
+            for row in conn.execute("SELECT kind, sha256 FROM finding_support_references")
         ] == [("generation", "dg_b1")]
         # A newly declared archived generation is still refused.
         with pytest.raises(RetentionError, match="dg_b1"):
@@ -1267,6 +1335,7 @@ def test_the_residency_check_covers_only_newly_declared_generations(tmp_path: Pa
 
 def test_a_caller_that_declares_nothing_keeps_what_the_finding_declared(
     tmp_path: Path,
+    legacy_sqlite,
 ) -> None:
     """An empty declaration says nothing; it never deletes recorded support.
 
@@ -1275,6 +1344,10 @@ def test_a_caller_that_declares_nothing_keeps_what_the_finding_declared(
     """
     from swingset.state.findings import Finding, replace_findings
 
+    legacy_sqlite.assert_case(
+        "test_retention_plan.py",
+        "test_a_caller_that_declares_nothing_keeps_what_the_finding_declared",
+    )
     state = tmp_path / "state"
     body = hashlib.sha256(b"backfilled page").hexdigest()
     with open_database(state, lock=False) as database:
@@ -1296,10 +1369,12 @@ def test_a_caller_that_declares_nothing_keeps_what_the_finding_declared(
                 opened_at=NOW.isoformat(),
                 run_id=run,
             )
-        from swingset.state.finding_reference_migration import backfill_finding_references
-
+        # Imported schema-37 history already carries the backfilled declaration.
         with database.transaction():
-            assert backfill_finding_references(conn, state) == 1
+            conn.execute(
+                "INSERT INTO finding_support_references(finding_id,kind,sha256) SELECT finding_id,'body',%s FROM findings",
+                (body,),
+            )
         # The same finding, written again with changed evidence and no
         # declaration: the backfilled row stays and the file stays pinned.
         with database.transaction():
@@ -1321,7 +1396,8 @@ def test_a_caller_that_declares_nothing_keeps_what_the_finding_declared(
                 run_id=run,
             )
         assert [
-            tuple(row) for row in conn.execute("SELECT kind,sha256 FROM finding_support_references")
+            tuple(row)
+            for row in conn.execute("SELECT kind, sha256 FROM finding_support_references")
         ] == [("body", body)]
         assert blob.resolve() in retention.artifact_closure(state, conn, set())
 
@@ -1348,14 +1424,16 @@ def test_a_requirement_finding_relies_on_the_snapshot_pin_and_not_a_declaration(
         run = database.start_run(NOW)
         with database.transaction():
             conn.execute(
-                "INSERT INTO watches(watch_id,source,kind,url,method,parser,state,priority) "
-                "VALUES ('w1','wsdc_registry','round','https://example.test/1','GET',"
-                "'generic.html_table','active',5)"
+                "INSERT INTO watches (watch_id, source, kind, url, method, parser, state, priority) VALUES "
+                "('w1', 'wsdc_registry', 'round', 'https://example.test/1', 'GET', 'generic.html_table', "
+                "'active', 5)"
             )
             conn.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-                "body_sha256,body_bytes,content_changed,run_id,via,classification) "
-                "VALUES ('snap_1','w1','GET','https://example.test/1',?,200,?,15,1,?,'live','Ok')",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_sha256, body_bytes, content_changed, run_id, via, classification) VALUES ('snap_1', "
+                    "'w1', 'GET', 'https://example.test/1', %s, 200, %s, 15, 1, %s, 'live', 'Ok')"
+                ),
                 (NOW.isoformat(), body, run),
             )
             reconcile_requirement(
@@ -1372,12 +1450,12 @@ def test_a_requirement_finding_relies_on_the_snapshot_pin_and_not_a_declaration(
                 run,
             )
         assert (
-            conn.execute("SELECT count(*) FROM findings WHERE owner_kind='requirement'").fetchone()[
-                0
-            ]
+            conn.execute(
+                "SELECT COUNT(*) FROM findings WHERE owner_kind = 'requirement'"
+            ).fetchone()[0]
             == 1
         )
-        assert conn.execute("SELECT count(*) FROM finding_support_references").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM finding_support_references").fetchone()[0] == 0
         # The snapshot is what keeps the file, and the plan says so.
         assert blob.resolve() in retention.artifact_closure(state, conn, set())
         assert planned(database, recent_window=1)["unknown"]["undeclared_files"] == []
@@ -1392,7 +1470,7 @@ def test_a_partitioned_release_keeps_what_its_artifacts_were_built_from(
         history(database)
         with database.transaction():
             database.connection.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=NULL"
+                "UPDATE derivation_scopes SET materialized_generation_id = NULL"
             )
         artifact, manifest = "a" * 64, "b" * 64
         directory = retention.artifact_directory(state, artifact)

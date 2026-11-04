@@ -31,6 +31,7 @@ Words used across the [migration plan](README.md). Pages put a word in
 | Hash, digest, sha256          | A short fingerprint of some content; any change to the content changes it. sha256 is the method used                                                                              |
 | Hold                          | A switch that stops the worker's loops from starting new work                                                                                                                     |
 | History, rebuilt, bookkeeping | The three classes every table, or set of rows, belongs to: history is backed up and kept exactly; rebuilt state is re-derived; bookkeeping is reset by a rule                     |
+| History anchor                | A retained row whose pointer or status may advance through a listed normal transition after exact restoration; its identity and other history stay intact                         |
 | Lock, advisory lock           | A claim that stops two jobs from writing at once; an advisory lock is one the program asks Postgres for by name                                                                   |
 | Migration                     | A numbered script that changes the database's tables                                                                                                                              |
 | Namespace                     | A group of tables in Postgres (Postgres calls it a "schema")                                                                                                                      |

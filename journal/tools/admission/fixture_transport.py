@@ -1,4 +1,4 @@
-"""Bounded streaming transport for the one reviewed fixture manifest, without watches."""
+"""Historical SQLite transport for the retired, fixed-manifest fixture exception."""
 
 from __future__ import annotations
 

@@ -3,9 +3,11 @@
 **Start here.** This page is the whole plan in brief. The numbered pages
 below give the detail, and are written to be read in order.
 
-Status: design, revised 2026-11-04 after adversarial review and
-the stage 0 measurements. Not started. Production stays on SQLite on the
-Mac until the switch (stage 3). Decisions:
+Status: stages 0 and 1 passed their local gates on 2026-11-05, on the
+`postgres-migration` bookmark
+([outcome](../../../journal/investigations/2026/stage-1-implementation-2026-11-04.md)).
+Next is the full-size server rehearsal in stage 2. Production stays on SQLite
+on the Mac until the switch (stage 3). Decisions:
 [D-0263](../../../journal/decisions/0263-postgres-holds-all-state-and-moves-in-four-stages.md)
 and
 [D-0264](../../../journal/decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md).

@@ -82,7 +82,13 @@ def index_archive(
         return 0
     conn = client.connection
     current = conn.execute(
-        "SELECT * FROM archive_queries WHERE source=? AND prefix=? AND year=? ORDER BY started_at DESC,query_id DESC LIMIT 1",
+        (
+            "SELECT archive_queries.query_id, archive_queries.source, archive_queries.prefix, "
+            "archive_queries.year, archive_queries.next_page, archive_queries.total_pages, "
+            "archive_queries.completed_at, archive_queries.started_at FROM archive_queries WHERE source "
+            "= %s AND prefix = %s AND year = %s ORDER BY started_at DESC NULLS LAST, query_id DESC NULLS "
+            "LAST LIMIT 1"
+        ),
         (source, prefix, year),
     ).fetchone()
     query_id = str(current["query_id"]) if current is not None else ""
@@ -105,18 +111,22 @@ def index_archive(
                 raise ValueError("negative page count")
         except (ValueError, TypeError, KeyError) as exc:
             raise ExtractError("invalid CDX page count") from exc
-        conn.execute(
-            "INSERT OR REPLACE INTO archive_queries(query_id,source,prefix,year,next_page,total_pages,completed_at,started_at) VALUES (?,?,?,?,0,?,?,?)",
-            (
-                query_id,
-                source,
-                prefix,
-                year,
-                pages,
-                client.clock.now().isoformat() if pages == 0 else None,
-                client.clock.now().isoformat(),
-            ),
-        )
+        with client.database.transaction():
+            conn.execute(
+                (
+                    "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, "
+                    "total_pages, completed_at, started_at) VALUES (%s, %s, %s, %s, 0, %s, %s, %s) ON CONFLICT(query_id) DO UPDATE SET source=excluded.source,prefix=excluded.prefix,year=excluded.year,next_page=excluded.next_page,total_pages=excluded.total_pages,completed_at=excluded.completed_at,started_at=excluded.started_at"
+                ),
+                (
+                    query_id,
+                    source,
+                    prefix,
+                    year,
+                    pages,
+                    client.clock.now().isoformat() if pages == 0 else None,
+                    client.clock.now().isoformat(),
+                ),
+            )
         next_page = 0
     else:
         pages = int(current["total_pages"])

@@ -1,0 +1,93 @@
+{
+  "format": "swingset-linux-core-resource-probe-v1",
+  "timestamp": "2026-11-05T02:44:52.626047+00:00",
+  "executor": {
+    "architecture": "native Linux ARM64",
+    "image": "sha256:7f3ae98a9c1521c36f740bb88b7e43fbded024438a49d0530d235becea111761",
+    "workers": 8,
+    "distribution": "loadfile",
+    "loadscope_reorder": false,
+    "readonly_checkout": true,
+    "uv_sync": false,
+    "postgres_network": "shared Linux network namespace;127.0.0.1:5432"
+  },
+  "source_binding_sha256": "1290a152667f7c5de83cd87f8a13b7912f7994866ebd12534b21e97234dc75d6",
+  "source_stable": true,
+  "result": {
+    "complete": false,
+    "reason": "client_working_memory",
+    "docker_exit_code": 2,
+    "wall_seconds": 38.7974,
+    "passed_before_abort": 117,
+    "errors_before_abort": 2,
+    "pytest_seconds": 37.91,
+    "budget_proof": false
+  },
+  "limits": {
+    "client_bytes": 2147483648,
+    "postgres_bytes": 2147483648,
+    "abort_working_bytes": 1879048192,
+    "abort_postgres_tmpfs_bytes": 1342177280,
+    "minimum_host_free_bytes": 85899345920
+  },
+  "peaks_bytes": {
+    "client_working": 1927962624,
+    "client_total_current": 2147250176,
+    "client_total_peak": 2147483648,
+    "postgres_working": 606560256,
+    "postgres_total_peak": 684466176,
+    "postgres_tmpfs": 345509888
+  },
+  "early_collection_sample": {
+    "seconds": 4.442,
+    "client": {
+      "current": 1744207872,
+      "peak_total": 1747546112,
+      "working": 1423884288,
+      "inactive_file": 320323584
+    },
+    "postgres": {
+      "current": 440066048,
+      "peak_total": 684466176,
+      "working": 419381248,
+      "inactive_file": 20684800
+    },
+    "postgres_tmpfs_used": 235065344,
+    "host_free": 143587241984
+  },
+  "measurement": "Working set is cgroup memory.current minus inactive_file; raw counters are retained too. The1.75GiB abort margin was conservative; the configured kernel limit remained2GiB. OOM event counters were not sampled.",
+  "collection": {
+    "workers": 8,
+    "counts": {
+      "gw0": 2382,
+      "gw1": 2382,
+      "gw2": 2382,
+      "gw3": 2382,
+      "gw4": 2382,
+      "gw5": 2382,
+      "gw6": 2382,
+      "gw7": 2382
+    },
+    "membership_sha256": "698686922e9299c831e5a1de2cdf55d2b673a8f79071ed3d2a7939d018dab6cc",
+    "same_membership": true,
+    "same_order": true
+  },
+  "cleanup": {
+    "complete": true,
+    "remaining_helpers": [],
+    "remaining_run_records": 0,
+    "test_runs_reaped": 0
+  },
+  "fixture_errors": "Two private-checker cases temporarily removed the configured CI service DSN through fixture teardown. The fixture now scopes removal to the actual loop call and restores test-harness configuration before cleanup; no local admin credentials file is fabricated.",
+  "trigger": "Do not repeat eight workers in a single2GiB client unchanged. First measure allocator/Arrow/thread retention without changing workload; if uncertain, test two2GiB clients with four workers each, deterministic whole-file partition after reviewed core selection, and exact disjoint-union membership verification.",
+  "raw": {
+    "/tmp/swingset-linux-core-c469b3aacb17.json": {
+      "sha256": "bc09b0ba57dbaaa5b964ad9f3bd19bb161d45bcd06f7542c56adf22e35b14670",
+      "bytes": 30369
+    },
+    "/tmp/swingset-linux-core-c469b3aacb17.log": {
+      "sha256": "fc8d6659ac29a55ee9bd27c5fe90fb6555a4164a7cb48e608fe6814fb8934aa9",
+      "bytes": 11073
+    }
+  }
+}

@@ -165,7 +165,6 @@ def test_a_watch_reset_during_a_request_is_not_undone(tmp_path):
     validators while acquire's request for it is in flight (two writers,
     D-0215). The fetch compares with the reset row, so the same body counts
     as changed and is queued for parse; the reset is not written over."""
-    import sqlite3
 
     clock = FakeClock()
     reset: list[bool] = []
@@ -176,12 +175,13 @@ def test_a_watch_reset_during_a_request_is_not_undone(tmp_path):
         if reset:
             # Another process resets the watch before this response lands.
             reset.clear()
-            other = sqlite3.connect(tmp_path / "state.sqlite")
+            other_database = open_database(tmp_path, lock=False)
+            other = other_database.connection
             other.execute(
-                "UPDATE watches SET body_sha256=NULL,fingerprint=NULL,etag=NULL,last_modified=NULL"
+                "UPDATE watches SET body_sha256 = NULL, fingerprint = NULL, etag = NULL, last_modified = NULL"
             )
             other.commit()
-            other.close()
+            other_database.close()
         return httpx.Response(200, content=BODY, headers={"ETag": '"one"'})
 
     with open_database(tmp_path) as db:
@@ -214,7 +214,7 @@ def test_a_watch_reset_during_a_request_is_not_undone(tmp_path):
             assert again.changed and not again.nonce_unchanged
             assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 2
             body, etag = db.connection.execute(
-                "SELECT body_sha256,etag FROM watches WHERE watch_id=?", (watch_id,)
+                "SELECT body_sha256, etag FROM watches WHERE watch_id = %s", (watch_id,)
             ).fetchone()
             assert body is not None and etag == '"one"'
         finally:
@@ -246,7 +246,9 @@ def test_repeated_registry_probe_miss_verifies_without_replacing_claim_evidence(
         run = db.start_run(clock.now())
         spec = REGISTRY_SOURCE.watch(1_000_000)
         upsert_watch(db.connection, spec, clock.now())
-        db.connection.execute("UPDATE watches SET notes='probe' WHERE watch_id=?", (spec.watch_id,))
+        db.connection.execute(
+            "UPDATE watches SET notes = 'probe' WHERE watch_id = %s", (spec.watch_id,)
+        )
         client = FetchClient(
             db.connection,
             cfg,
@@ -265,13 +267,13 @@ def test_repeated_registry_probe_miss_verifies_without_replacing_claim_evidence(
         assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 1
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM pending_work WHERE stage='parse'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'"
             ).fetchone()[0]
             == 1
         )
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM registry_verifications WHERE usable=1"
+                "SELECT COUNT(*) FROM registry_verifications WHERE usable = 1"
             ).fetchone()[0]
             == 0
         )
@@ -281,13 +283,14 @@ def test_repeated_registry_probe_miss_verifies_without_replacing_claim_evidence(
             db, Archive(tmp_path), WorkUnit("parse", "snapshot", first.snapshot_id), clock, run
         )
         checks = db.connection.execute(
-            "SELECT checked_at,outcome,usable,snapshot_id FROM registry_verifications ORDER BY verification_id"
+            "SELECT checked_at, outcome, usable, snapshot_id FROM registry_verifications ORDER BY "
+            "verification_id NULLS FIRST"
         ).fetchall()
         assert len(checks) == 2
         assert checks[0][0] < checks[1][0]
         assert [tuple(row[1:]) for row in checks] == [("not_found", 1, first.snapshot_id)] * 2
         observation = db.connection.execute(
-            "SELECT snapshot_id,scope_kind,scope_id FROM observations"
+            "SELECT snapshot_id, scope_kind, scope_id FROM observations"
         ).fetchone()
         assert tuple(observation) == (first.snapshot_id, "dancer", "1000000")
         client.close()
@@ -313,7 +316,9 @@ def test_registry_probe_304_without_valid_cached_body_creates_no_evidence(tmp_pa
         run = db.start_run(clock.now())
         spec = REGISTRY_SOURCE.watch(1_000_000)
         upsert_watch(db.connection, spec, clock.now())
-        db.connection.execute("UPDATE watches SET notes='probe' WHERE watch_id=?", (spec.watch_id,))
+        db.connection.execute(
+            "UPDATE watches SET notes = 'probe' WHERE watch_id = %s", (spec.watch_id,)
+        )
         archive = Archive(tmp_path)
         client = FetchClient(
             db.connection, cfg, clock, archive, transport=httpx.MockTransport(handler)
@@ -321,14 +326,14 @@ def test_registry_probe_304_without_valid_cached_body_creates_no_evidence(tmp_pa
         first = client.fetch(spec.watch_id, DancerPage(), run)
         blob = archive.blob_path(
             db.connection.execute(
-                "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (first.snapshot_id,)
+                "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (first.snapshot_id,)
             ).fetchone()[0]
         )
         if cached_body == "absent":
             blob.unlink()
         elif cached_body == "no_reference":
             db.connection.execute(
-                "UPDATE watches SET body_sha256=NULL WHERE watch_id=?", (spec.watch_id,)
+                "UPDATE watches SET body_sha256 = NULL WHERE watch_id = %s", (spec.watch_id,)
             )
         else:
             blob.write_bytes(b"not gzip")
@@ -339,16 +344,16 @@ def test_registry_probe_304_without_valid_cached_body_creates_no_evidence(tmp_pa
         assert conditional
         assert second.classification.outcome == Outcome.INVALID
         assert second.snapshot_id is None
-        assert db.connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 1
+        assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 1
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM pending_work WHERE stage='parse'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'"
             ).fetchone()[0]
             == 1
         )
         assert tuple(
             db.connection.execute(
-                "SELECT etag,last_modified FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT etag, last_modified FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()
         ) == (None, None)
 
@@ -363,7 +368,7 @@ def test_registry_probe_304_without_valid_cached_body_creates_no_evidence(tmp_pa
         retry_at = clock.now() + timedelta(minutes=15)
         assert (
             db.connection.execute(
-                "SELECT next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT next_check_at FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()[0]
             == retry_at.isoformat()
         )
@@ -371,10 +376,10 @@ def test_registry_probe_304_without_valid_cached_body_creates_no_evidence(tmp_pa
         third = client.fetch(spec.watch_id, DancerPage(), run)
         assert third.classification.outcome == Outcome.OK
         assert third.snapshot_id is not None
-        assert db.connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 2
+        assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 2
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM pending_work WHERE stage='parse'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'"
             ).fetchone()[0]
             == 2
         )
@@ -581,7 +586,14 @@ def test_redirect_destinations_have_their_own_robots_and_gate(tmp_path):
             ("other.test", "/robots.txt"),
             ("other.test", "/events"),
         ]
-        assert len(db.connection.execute("SELECT * FROM host_budget").fetchall()) == 2
+        assert (
+            len(
+                db.connection.execute(
+                    "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM host_budget"
+                ).fetchall()
+            )
+            == 2
+        )
         client.close()
 
 
@@ -618,7 +630,7 @@ def test_stop_after_completed_5xx_records_terminal_response(tmp_path):
         assert result.skipped is None
         assert result.classification.outcome == Outcome.SERVER_ERROR
         snapshot = db.connection.execute(
-            "SELECT classification,body_bytes FROM snapshots"
+            "SELECT classification, body_bytes FROM snapshots"
         ).fetchone()
         assert tuple(snapshot) == ("ServerError", len(b"server failed"))
         assert (
@@ -651,7 +663,7 @@ def test_deferred_robots_request_is_not_cached_as_failure(tmp_path):
         result = client.fetch(spec.watch_id, EventsPage(), run)
         assert result.skipped == "request budget"
         assert tuple(
-            db.connection.execute("SELECT robots_fetched_at,robots_status FROM hosts").fetchone()
+            db.connection.execute("SELECT robots_fetched_at, robots_status FROM hosts").fetchone()
         ) == (None, None)
         client.close()
 
@@ -697,7 +709,7 @@ def test_gzip_and_identity_bodies_archive_decoded_source_bytes(tmp_path, encodin
         )
         result = client.fetch(spec.watch_id, EventsPage(), run)
         body_hash = db.connection.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (result.snapshot_id,)
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (result.snapshot_id,)
         ).fetchone()[0]
         assert Archive(tmp_path).read_body(body_hash) == BODY
         client.close()
@@ -707,10 +719,11 @@ def test_gzip_and_identity_bodies_archive_decoded_source_bytes(tmp_path, encodin
     "encoding, body, reason",
     [
         ("br", b"\x0b\x02\x80hello\x03", "unsupported content encoding"),
-        ("zstd, gzip", gzip.compress(b"stacked"), "unsupported content encoding"),
+        ("zstd, gzip", gzip.compress(b"stacked", mtime=0), "unsupported content encoding"),
         ("zstd", b"<html>not zstd</html>", "undecodable compressed response"),
         ("zstd", _zstd(BODY)[:-8], "undecodable compressed response"),
     ],
+    ids=["brotli", "stacked_encoding", "mislabelled_zstd", "truncated_zstd"],
 )
 def test_a_body_httpx_left_encoded_is_refused_and_never_stored(tmp_path, encoding, body, reason):
     """The request counts and its grant is released; no snapshot or body is kept.
@@ -894,7 +907,7 @@ def test_a_failed_robots_read_disallows_until_the_hosts_backoff_not_a_day(tmp_pa
             assert calls == ["/robots.txt"] * 4
             status = 500 if failure == "500" else 599
             host = db.connection.execute(
-                "SELECT robots_status,robots_fetched_at,paused_until FROM hosts"
+                "SELECT robots_status, robots_fetched_at, paused_until FROM hosts"
             ).fetchone()
             assert host[0] == status
             retry = datetime.fromisoformat(host[1]) + timedelta(minutes=15)

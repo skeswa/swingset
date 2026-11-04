@@ -40,6 +40,7 @@ def main() -> None:
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--state", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--environment", choices=("dev", "production"), default="dev")
     parser.add_argument("--package", type=Path)
     parser.add_argument("--max-targets", type=int, default=200)
     parser.add_argument("--wall-seconds", type=int, default=2700)
@@ -55,7 +56,15 @@ def main() -> None:
     if args.command == "bootstrap":
         if args.checkpoint is None:
             parser.error("bootstrap requires --checkpoint")
-        bootstrap(args.checkpoint, args.state)
+        from swingset.cli import hub
+
+        bootstrap(
+            args.checkpoint,
+            args.state,
+            hub=hub(),
+            clock=SystemClock(),
+            environment=args.environment,
+        )
         print(json.dumps({"state": str(args.state)}))
     elif args.command == "catalog":
         targets = retained_catalog(args.repo) + (
@@ -125,7 +134,7 @@ def main() -> None:
                     )
                 with database.transaction() as conn:
                     conn.execute(
-                        "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+                        "UPDATE runs SET finished_at=%s,summary_json=%s WHERE run_id=%s",
                         (clock.now().isoformat(), json.dumps({"projected": processed}), run_id),
                     )
             elif args.command == "discover":

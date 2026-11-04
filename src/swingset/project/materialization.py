@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from swingset.model.schema import TABLES
+from swingset.state import engine
 from swingset.state.work import WorkUnit
+
+VERSION = 1
 
 if TYPE_CHECKING:
     from swingset.state.derivations import OutputRow, Selection
@@ -53,10 +55,10 @@ def moved_columns(unit: WorkUnit) -> Mapping[str, tuple[str, ...]]:
 
 
 def _rows(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     table: str,
     *,
-    where: str = "1",
+    where: str = "TRUE",
     parameters: tuple[Any, ...] = (),
     columns: Iterable[str] | None = None,
     exclude: Iterable[str] = (),
@@ -79,9 +81,12 @@ def _rows(
         yield OutputRow(table, key, payload)
 
 
-def _owned(conn: sqlite3.Connection, kind: str, identifier: str) -> Iterator[OutputRow]:
+def _owned(conn: engine.Connection, kind: str, identifier: str) -> Iterator[OutputRow]:
     tables = conn.execute(
-        "SELECT DISTINCT table_name FROM canonical_scope_rows WHERE scope_kind=? AND scope_id=? ORDER BY table_name",
+        (
+            "SELECT DISTINCT table_name FROM canonical_scope_rows WHERE scope_kind = %s AND scope_id = "
+            "%s ORDER BY table_name NULLS FIRST"
+        ),
         (kind, identifier),
     ).fetchall()
     for (table,) in tables:
@@ -89,9 +94,9 @@ def _owned(conn: sqlite3.Connection, kind: str, identifier: str) -> Iterator[Out
         query = (
             f"SELECT t.* FROM canonical_scope_rows c JOIN {table} t ON "
             + " AND ".join(
-                f"t.{key}=json_extract(c.record_key,'$[{index}]')" for index, key in enumerate(keys)
+                f"t.{key}::text=(c.record_key::json ->> {index})" for index, key in enumerate(keys)
             )
-            + " WHERE c.scope_kind=? AND c.scope_id=? AND c.table_name=? ORDER BY "
+            + " WHERE c.scope_kind=%s AND c.scope_id=%s AND c.table_name=%s ORDER BY "
             + ",".join(f"t.{key}" for key in keys)
         )
         yield from _rows(
@@ -103,7 +108,7 @@ def _owned(conn: sqlite3.Connection, kind: str, identifier: str) -> Iterator[Out
         )
 
 
-def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]:
+def output_rows(conn: engine.Connection, unit: WorkUnit) -> Iterator[OutputRow]:
     """Retain scoped semantic output, including nulls and explicit empty scopes.
 
     A partial payload owns only its listed columns. For example a year
@@ -112,17 +117,14 @@ def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]
     absence from this complete generation's declared scope.
     """
     if unit.stage == "link":
-        subject = (
-            "subject_id IN (SELECT entry_id FROM entries WHERE event_id=? "
-            "UNION SELECT judge_id FROM judges WHERE event_id=?)"
-        )
+        subject = "subject_id IN (SELECT entry_id FROM entries WHERE event_id=%s UNION SELECT judge_id FROM judges WHERE event_id=%s)"
         for table in ("identity_links", "link_candidates", "identity_link_resolutions"):
             yield from _rows(conn, table, where=subject, parameters=(unit.unit_id, unit.unit_id))
         for table in ("entries", "judges", "placements"):
             yield from _rows(
                 conn,
                 table,
-                where="event_id=?",
+                where="event_id=%s",
                 parameters=(unit.unit_id,),
                 columns=TABLES[table].owner_columns,
             )
@@ -134,17 +136,17 @@ def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]
             conn,
             "events",
             exclude=("coverage_tier",),
-            where="history_source!='[]' OR EXISTS (SELECT 1 FROM canonical_scope_rows c WHERE c.scope_kind='history' AND c.scope_id='all' AND c.table_name='events' AND c.record_key=json_array(events.event_id))",
+            where="history_source!='[]' OR EXISTS (SELECT 1 FROM canonical_scope_rows c WHERE c.scope_kind='history' AND c.scope_id='all' AND c.table_name='events' AND c.record_key=ops.compact_json(json_build_array(events.event_id::text)))",
         )
         yield from _rows(conn, "series")
     elif unit.unit_kind == "mapping":
         # The source's proposals, placeholder events included (plan F19).
         yield from _rows(
-            conn, "source_event_proposals", where="source=?", parameters=(unit.unit_id,)
+            conn, "source_event_proposals", where="source=%s", parameters=(unit.unit_id,)
         )
     elif unit.unit_kind == "resolution":
         # The event's map rows and its placeholder row.
-        yield from _rows(conn, "source_event_map", where="event_id=?", parameters=(unit.unit_id,))
+        yield from _rows(conn, "source_event_map", where="event_id=%s", parameters=(unit.unit_id,))
         yield from _owned(conn, "resolution", unit.unit_id)
     elif unit.unit_kind == "history":
         yield from _rows(conn, "coverage")
@@ -154,22 +156,22 @@ def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]
         # The year's coverage rows, its events' tiers and the association of
         # placements reported in it (plan F17).
         year = int(unit.unit_id)
-        yield from _rows(conn, "coverage", where="year=?", parameters=(year,))
+        yield from _rows(conn, "coverage", where="year=%s", parameters=(year,))
         yield from _rows(
-            conn, "events", columns=("coverage_tier",), where="year=?", parameters=(year,)
+            conn, "events", columns=("coverage_tier",), where="year=%s", parameters=(year,)
         )
         yield from _rows(
             conn,
             "registry_placements",
             columns=("event_id",),
-            where="substr(event_month,1,4)=?",
+            where="substr(event_month,1,4)=%s",
             parameters=(f"{year:04d}",),
         )
     elif unit.unit_kind == "source_index":
         yield from _rows(
             conn,
             "source_events",
-            where="EXISTS (SELECT 1 FROM source_event_scope_rows o WHERE o.scope_id=? AND o.source=source_events.source AND o.source_ref=source_events.source_ref)",
+            where="EXISTS (SELECT 1 FROM source_event_scope_rows o WHERE o.scope_id=%s AND o.source=source_events.source AND o.source_ref=source_events.source_ref)",
             parameters=(unit.unit_id,),
         )
     elif unit.unit_kind == "source_event":
@@ -181,20 +183,25 @@ def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]
 
 
 def helper_recipe(
-    conn: sqlite3.Connection, files: Mapping[str, bytes], stage: str
+    conn: engine.Connection, files: Mapping[str, bytes], stage: str
 ) -> dict[str, str] | None:
     """Identify explicit helper bundles before a runtime bundle has been accepted.
 
-    A runtime is accepted once `recipe/env` (or, for a bundle from before
-    D-0207, `recipe/runtime`) is. Without one there are no code scopes, so the
-    recipe needs no unit kind.
+    Accepted code scopes identify a captured runtime; before that, helper
+    bundles can name only the policy files they supply.
     """
     from hashlib import sha256
 
     from swingset.state.recipes import recipe_inputs
 
     accepted = recipe_inputs(conn, stage)
-    if "recipe/env" in accepted or "recipe/runtime" in accepted:
+    if (
+        "recipe/runtime" in accepted
+        or conn.execute(
+            "SELECT 1 AS _value_0 FROM accepted_inputs WHERE consumer = 'pipeline' AND input_name ILIKE 'recipe/code/%' LIMIT 1"
+        ).fetchone()
+        is not None
+    ):
         return None
     names = (
         {
@@ -213,7 +220,7 @@ def helper_recipe(
 
 
 def continuity_rows(
-    conn: sqlite3.Connection, selection: Selection | None, table: str
+    conn: engine.Connection, selection: Selection | None, table: str
 ) -> list[Mapping[str, Any]] | None:
     """Read immutable prior support; None means a legacy, uncaptured helper call."""
     if selection is None:
@@ -224,7 +231,7 @@ def continuity_rows(
     members = selection.dependency_sets.get(str(identifier))
     if members is None:
         row = conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (identifier,),
         ).fetchone()
         if row is None:
@@ -235,7 +242,7 @@ def continuity_rows(
 
 @contextmanager
 def materializing(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     *,
     now: datetime | str,
@@ -300,6 +307,6 @@ def materializing(
             moved=moved_columns(unit),
         )
         conn.execute(
-            "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+            "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
             (unit.stage, unit.unit_kind, unit.unit_id),
         )

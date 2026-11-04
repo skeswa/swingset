@@ -1,7 +1,6 @@
 """Reconstruction uses immutable output and exact published legacy values."""
 
 import json
-import sqlite3
 from collections import Counter
 from pathlib import Path
 
@@ -11,6 +10,7 @@ import pytest
 from test_h15_acceptance import drain_project
 from test_h15_acceptance import source_fixture as source_fixture
 
+from swingset import scratch_db
 from swingset.build.closure import hydrate, public_manifest, retain, select, validate
 from swingset.build.closure_manifest import ClosureError, canonical, digest
 from swingset.build.closure_rows import _legacy_matches, _put, reconstruct
@@ -46,7 +46,7 @@ def test_reconstruct_uses_pinned_rows_after_live_canonical_and_source_replacemen
         before = {name: list(rows.iter_table(name)) for name in rows.table_names()}
     assert before["entries"]
     assert all(row["wsdc_id"] is None for row in before["entries"])
-    f.conn.execute("UPDATE entries SET name_raw='Arrived after cutoff'")
+    f.conn.execute("UPDATE entries SET name_raw = 'Arrived after cutoff'")
     f.conn.execute("DELETE FROM observations")
     validate(f.conn, closure)
     with reconstruct(f.conn, closure, directory=tmp_path / "second", baseline=baseline) as rows:
@@ -108,15 +108,15 @@ def test_public_closure_commits_to_private_proof_without_disclosing_recipes(sour
         hydrate(f.conn, forged)
 
 
-def test_legacy_numeric_comparison_uses_exact_public_float_representation():
-    connection = sqlite3.connect(":memory:")
+def test_legacy_numeric_comparison_uses_exact_public_float_representation(tmp_path):
+    connection = scratch_db.connect(tmp_path / "baseline.duckdb")
     try:
-        connection.execute("CREATE TABLE baseline(table_name TEXT,record_key TEXT,payload TEXT)")
+        connection.execute("CREATE TABLE baseline (table_name TEXT, record_key TEXT, payload TEXT)")
         field = SCHEMAS["callback_marks"].field("mark_value")
         public_value = pa.scalar(4.2, type=field.type).as_py()
         assert public_value != 4.2
         connection.execute(
-            "INSERT INTO baseline VALUES (?,?,?)",
+            "INSERT INTO baseline VALUES (?, ?, ?)",
             ("callback_marks", "key", json.dumps({"mark_value": public_value})),
         )
         assert _legacy_matches(connection, "callback_marks", "key", {"mark_value": 4.2})
@@ -134,8 +134,7 @@ def test_selected_payload_loader_is_lazy_and_uses_retained_accepted_evidence(sou
     rounds = [item for item in expected if item["observation_kind"] == "round_sheet"]
     assert rounds
     statements = []
-    f.conn.set_trace_callback(statements.append)
-    try:
+    with f.conn.observing(lambda sql, params: statements.append(str(sql))):
         loader = observation_payload_loader(f.conn, manifest)
         assert statements == []
         assert list(loader("not-selected")) == []
@@ -147,8 +146,6 @@ def test_selected_payload_loader_is_lazy_and_uses_retained_accepted_evidence(sou
             assert list(loader(snapshot)) == [
                 item["payload_json"] for item in rounds if item["snapshot_id"] == snapshot
             ]
-    finally:
-        f.conn.set_trace_callback(None)
 
 
 def test_selection_decodes_shared_immutable_dependency_sets_once(source_fixture, monkeypatch):
@@ -174,7 +171,17 @@ def test_dependency_edge_must_name_the_actual_generation_scope(source_fixture):
 
     f = source_fixture
     drain_project(f)
-    rows = list(f.conn.execute("SELECT * FROM derivation_generations WHERE stage='project'"))
+    rows = list(
+        f.conn.execute(
+            "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+            "derivation_generations.unit_kind, derivation_generations.unit_id, "
+            "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+            "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+            "derivation_generations.output_digest, derivation_generations.row_count, "
+            "derivation_generations.created_at, derivation_generations.run_id FROM "
+            "derivation_generations WHERE stage = 'project'"
+        )
+    )
     year = next(row for row in rows if row["unit_kind"] == "year")
     base = next(row for row in rows if row["unit_kind"] == "inventory")
     malformed = [
@@ -186,29 +193,29 @@ def test_dependency_edge_must_name_the_actual_generation_scope(source_fixture):
     ]
     dependency = digest(malformed)
     f.conn.execute(
-        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
         (dependency, canonical(malformed)),
     )
     copied = dict(year)
     copied.update(generation_id="malformed-scope-edge", dependency_set_id=dependency)
     columns = list(copied)
     f.conn.execute(
-        f"INSERT INTO derivation_generations ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
+        f"INSERT INTO derivation_generations ({','.join(columns)}) VALUES ({','.join('%s' for _ in columns)})",
         tuple(copied.values()),
     )
     with pytest.raises(ClosureError, match="selected_dependency_scope_mismatch"):
         _Selection(f.conn, f.corpus.clock.now().isoformat()).add("malformed-scope-edge")
 
 
-def test_partial_ownership_overlay_requires_a_retained_structural_row():
-    conn = sqlite3.connect(":memory:")
+def test_partial_ownership_overlay_requires_a_retained_structural_row(tmp_path):
+    conn = scratch_db.connect(tmp_path / "rows.duckdb")
     try:
         conn.execute(
-            "CREATE TABLE rows(table_name TEXT,record_key TEXT,payload TEXT,PRIMARY KEY(table_name,record_key))"
+            "CREATE TABLE rows (table_name TEXT, record_key TEXT, payload TEXT, PRIMARY KEY (table_name, record_key))"
         )
         patch = {"entry_id": "entry", "wsdc_id": 123}
         assert not _put(conn, "entries", '["entry"]', patch, patch=True)
-        assert conn.execute("SELECT count(*) FROM rows").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM rows").fetchone()[0] == 0
         base = {
             "entry_id": "entry",
             "contest_id": "contest",

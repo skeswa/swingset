@@ -6,18 +6,18 @@ records service in the same transaction as its existing durable host debit.
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Collection, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit
 
 from swingset.config import Config
 from swingset.history.acquisition import is_phase_one_index
-from swingset.state.control_scopes import for_watch
+from swingset.state import engine
+from swingset.state.control_scopes import watch_scope
 from swingset.state.controls import ActionScope, matching_pauses
 from swingset.state.work import WorkUnit
 
@@ -82,25 +82,24 @@ def servicing(choice: WatchChoice, *, run_id: str) -> Iterator[None]:
 # A row waiting on a clock (a backoff, waiting for input, quarantined) does
 # not hold acquisition (D-0216, F9).
 _RUNNABLE_PARSE = (
-    "FROM pending_work p LEFT JOIN work_queue q "
-    "ON q.stage=p.stage AND q.unit_kind=p.unit_kind AND q.unit_id=p.unit_id "
-    "WHERE p.stage='parse' AND (q.state IS NULL OR q.state='leased' OR "
-    "(q.state='ready' AND (q.next_attempt_at IS NULL OR q.next_attempt_at<=:now)))"
+    "FROM pending_work p LEFT JOIN work_queue q ON q.stage=p.stage AND q.unit_kind=p.unit_kind "
+    "AND q.unit_id=p.unit_id WHERE p.stage='parse' AND (q.state IS NULL OR q.state='leased' OR "
+    "(q.state='ready' AND (q.next_attempt_at IS NULL OR q.next_attempt_at<=%(now)s)))"
 )
 
 
 def backpressure(
-    conn: sqlite3.Connection, config: Config, *, now: datetime | None = None
+    conn: engine.Connection, config: Config, *, now: datetime | None = None
 ) -> dict[str, Any]:
     """Whether pending parse work should hold acquisition.
 
     Only parse units derive could run now count, by items and by bytes;
     before schema 34 every pending parse row does.
     """
-    counts = dict(conn.execute("SELECT stage,count(*) FROM pending_work GROUP BY stage"))
+    counts = dict(conn.execute("SELECT stage, COUNT(*) FROM pending_work GROUP BY stage"))
     queued = (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='work_queue'"
+            "SELECT 1 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'work_queue') AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
         ).fetchone()
         is not None
     )
@@ -110,17 +109,18 @@ def backpressure(
         moment = {"now": at(now or datetime.now(UTC))}
         runnable = int(conn.execute("SELECT count(*) " + _RUNNABLE_PARSE, moment).fetchone()[0])
         size = conn.execute(
-            "SELECT coalesce(sum(size),0) FROM (SELECT s.body_sha256,max(s.body_bytes) AS size "
-            "FROM snapshots s JOIN (SELECT p.unit_id " + _RUNNABLE_PARSE + ") r "
+            (
+                "SELECT coalesce(sum(size),0) FROM (SELECT s.body_sha256,max(s.body_bytes) AS size FROM snapshots s JOIN (SELECT p.unit_id "
+            )
+            + _RUNNABLE_PARSE
+            + ") r "
             "ON r.unit_id=s.snapshot_id GROUP BY s.body_sha256)",
             moment,
         ).fetchone()[0]
     else:
         runnable = int(counts.get("parse", 0))
         size = conn.execute(
-            "SELECT coalesce(sum(size),0) FROM (SELECT s.body_sha256,max(s.body_bytes) AS size "
-            "FROM pending_work p JOIN snapshots s ON p.unit_id=s.snapshot_id "
-            "WHERE p.stage='parse' GROUP BY s.body_sha256)"
+            "SELECT COALESCE(CAST(SUM(size) AS BIGINT), 0) FROM (SELECT s.body_sha256, MAX(s.body_bytes) AS size FROM pending_work AS p JOIN snapshots AS s ON p.unit_id = s.snapshot_id WHERE p.stage = 'parse' GROUP BY s.body_sha256)"
         ).fetchone()[0]
     reasons = []
     if size >= config.scheduler.pending_parse_bytes:
@@ -150,10 +150,12 @@ def backpressure(
     }
 
 
-def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[str, Any]:
+def report(conn: engine.Connection, config: Config, *, now: datetime) -> dict[str, Any]:
     """Separate initial objectives from observed debits; never migrate a doctor read."""
     supported = (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='scheduler_requests'").fetchone()
+        conn.execute(
+            "SELECT 1 FROM pg_catalog.pg_class WHERE relkind='r' AND relname = 'scheduler_requests' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        ).fetchone()
         is not None
     )
     service = []
@@ -170,8 +172,9 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
                 ),
             }
             for host, category, requests, size, last in conn.execute(
-                "SELECT host,category,sum(day=?),sum(CASE WHEN day=? THEN body_bytes ELSE 0 END),max(issued_at) "
-                "FROM scheduler_requests GROUP BY host,category",
+                (
+                    "SELECT host, category, COUNT(*) FILTER (WHERE day = %s) AS requests_today, CAST(SUM(CASE WHEN day = %s THEN body_bytes ELSE 0 END) AS BIGINT) AS body_bytes_today, MAX(issued_at) AS last_issued_at FROM scheduler_requests GROUP BY host, category"
+                ),
                 (now.date().isoformat(), now.date().isoformat()),
             )
         ]
@@ -184,7 +187,7 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
         "observed_host_usage": [
             dict(row)
             for row in conn.execute(
-                "SELECT host,day,requests,bytes FROM host_budget WHERE day=? ORDER BY host",
+                "SELECT host, day, requests, bytes FROM host_budget WHERE day = %s ORDER BY host NULLS FIRST",
                 (now.date().isoformat(),),
             )
         ],
@@ -192,7 +195,8 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
         "observed_offline_attempts": [
             dict(row)
             for row in conn.execute(
-                "SELECT stage,unit_kind,attempts,last_served_at FROM scheduler_offline_service ORDER BY stage,unit_kind"
+                "SELECT stage, unit_kind, attempts, last_served_at FROM scheduler_offline_service ORDER BY "
+                "stage NULLS FIRST, unit_kind NULLS FIRST"
             )
         ]
         if supported
@@ -200,8 +204,9 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
         "recent_repair_reservation_runs": [
             dict(row)
             for row in conn.execute(
-                "SELECT run_id,count(*) AS issued_requests,max(issued_at) AS last_issued_at FROM scheduler_requests "
-                "WHERE pressure_reserved=1 GROUP BY run_id ORDER BY last_issued_at DESC LIMIT 20"
+                "SELECT run_id, COUNT(*) AS issued_requests, MAX(issued_at) AS last_issued_at FROM "
+                "scheduler_requests WHERE pressure_reserved = 1 GROUP BY run_id ORDER BY last_issued_at DESC "
+                "NULLS LAST LIMIT 20"
             )
         ]
         if supported
@@ -212,7 +217,7 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
 
 
 def request_denial(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     *,
     watch_id: str | None = None,
@@ -241,20 +246,20 @@ def request_denial(
     return None
 
 
-def request_permitted(conn: sqlite3.Connection, config: Config, **kwargs: Any) -> bool:
+def request_permitted(conn: engine.Connection, config: Config, **kwargs: Any) -> bool:
     return request_denial(conn, config, **kwargs) is None
 
 
-def _repair_capacity(conn: sqlite3.Connection, config: Config, run_id: str) -> bool:
+def _repair_capacity(conn: engine.Connection, config: Config, run_id: str) -> bool:
     used = conn.execute(
-        "SELECT count(*) FROM scheduler_requests WHERE run_id=? AND pressure_reserved=1",
+        "SELECT COUNT(*) FROM scheduler_requests WHERE run_id = %s AND pressure_reserved = 1",
         (run_id,),
     ).fetchone()[0]
     return bool(used < config.scheduler.repair_requests_per_cycle)
 
 
 def record_request(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     *,
     action_id: str,
@@ -267,8 +272,10 @@ def record_request(
         raise RuntimeError("scheduler request accounting requires the host debit transaction")
     service = _service.get()
     conn.execute(
-        "INSERT INTO scheduler_requests(action_id,host,day,category,work_key,run_id,repair,pressure_reserved,issued_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO scheduler_requests (action_id, host, day, category, work_key, run_id, repair, "
+            "pressure_reserved, issued_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             action_id,
             host,
@@ -278,9 +285,13 @@ def record_request(
             else ("identity" if source == "wsdc_registry" else "current"),
             service.choice.key if service else watch_id or source,
             service.run_id if service else None,
-            bool(service and service.choice.repair),
-            bool(
-                service and service.choice.repair and backpressure(conn, config, now=now)["active"]
+            int(bool(service and service.choice.repair)),
+            int(
+                bool(
+                    service
+                    and service.choice.repair
+                    and backpressure(conn, config, now=now)["active"]
+                )
             ),
             now.isoformat(),
         ),
@@ -296,7 +307,9 @@ def record_request(
     record_started(conn, config, watch_id=watch_id, host=host, now=now)
 
 
-def _choices(conn: sqlite3.Connection, config: Config, now: datetime) -> Iterator[WatchChoice]:
+def _choices(
+    conn: engine.Connection, config: Config, now: datetime
+) -> Iterator[tuple[WatchChoice, engine.Row]]:
     # Archive captures require the dispatcher's year/parent/capture offer. They
     # must not bypass that gate merely because a watch already exists.
     from swingset.history.origin_dispatch import available
@@ -307,9 +320,9 @@ def _choices(conn: sqlite3.Connection, config: Config, now: datetime) -> Iterato
         else set()
     )
     rows = conn.execute(
-        "SELECT w.*, EXISTS(SELECT 1 FROM snapshots s WHERE s.watch_id=w.watch_id) AS retained "
-        "FROM watches w WHERE state NOT IN ('sealed','retired') AND next_check_at IS NOT NULL "
-        "ORDER BY priority,next_check_at,watch_id",
+        (
+            "SELECT w.watch_id, w.source, w.kind, w.method, w.url, w.form, w.archive_url, w.parser, w.source_ref, w.state, w.next_check_at, w.last_checked_at, w.last_changed_at, w.unchanged_streak, w.etag, w.last_modified, w.body_sha256, w.paused_until, w.notes, w.fingerprint, w.extract_version, w.priority, w.created_by_snapshot_id, w.parent_watch_id, w.ever_ok, w.current_observation_snapshot_id, w.consecutive_404s, w.first_404_at, CAST(EXISTS(SELECT 1 FROM snapshots AS s WHERE s.watch_id = w.watch_id) AS INTEGER) AS retained, ARRAY(SELECT DISTINCT f.kind FROM findings f WHERE f.closed_at IS NULL AND (f.watch_id=w.watch_id OR f.snapshot_id=w.watch_id OR f.subject_id=w.watch_id)) AS control_kinds FROM watches AS w WHERE NOT state IN ('sealed', 'retired') AND NOT next_check_at IS NULL ORDER BY priority NULLS FIRST, next_check_at NULLS FIRST, watch_id NULLS FIRST"
+        ),
     )
     for row in rows:
         if row["watch_id"] in managed_origin:
@@ -344,25 +357,36 @@ def _choices(conn: sqlite3.Connection, config: Config, now: datetime) -> Iterato
         repair = (
             row["source"] == "wsdc_registry"
             and conn.execute(
-                "SELECT 1 FROM findings WHERE closed_at IS NULL AND kind='source_id_checked' "
-                "AND state='ready' AND (watch_id=? OR subject_id=?) LIMIT 1",
+                (
+                    "SELECT 1 FROM findings WHERE closed_at IS NULL AND kind = 'source_id_checked' AND state = "
+                    "'ready' AND (watch_id = %s OR subject_id = %s) LIMIT 1"
+                ),
                 (row["watch_id"], str(row["source_ref"] or "").removeprefix("wsdc:")),
             ).fetchone()
             is not None
         )
-        yield WatchChoice(
-            str(row["watch_id"]),
-            str(row["watch_id"]),
-            host,
-            category,
-            for_watch(conn, source=row["source"], watch_id=row["watch_id"], host=host),
-            datetime.fromisoformat(row["next_check_at"]),
-            repair=repair,
+        yield (
+            WatchChoice(
+                str(row["watch_id"]),
+                str(row["watch_id"]),
+                host,
+                category,
+                watch_scope(
+                    source=row["source"],
+                    page_kind=row["parser"],
+                    watch_kind=row["kind"],
+                    host=host,
+                    finding_kinds=row["control_kinds"],
+                ),
+                datetime.fromisoformat(row["next_check_at"]),
+                repair=repair,
+            ),
+            row,
         )
 
 
 def _delay(
-    conn: sqlite3.Connection, config: Config, choice: WatchChoice, now: datetime, pressure: bool
+    conn: engine.Connection, config: Config, choice: WatchChoice, now: datetime, pressure: bool
 ) -> float | None:
     if choice.category not in shares(choice.host):
         raise ValueError(f"unknown scheduling category: {choice.category}")
@@ -371,7 +395,7 @@ def _delay(
     if matching_pauses(conn, choice.scope, now=now) or (pressure and not choice.repair):
         return None
     budget = conn.execute(
-        "SELECT requests,bytes FROM host_budget WHERE host=? AND day=?",
+        "SELECT requests, bytes FROM host_budget WHERE host = %s AND day = %s",
         (choice.host, now.date().isoformat()),
     ).fetchone()
     policy = config.host(choice.host)
@@ -383,7 +407,7 @@ def _delay(
         return None
     delay = max(0.0, (choice.due_at - now).total_seconds())
     host = conn.execute(
-        "SELECT next_allowed_at,paused_until FROM hosts WHERE host=?", (choice.host,)
+        "SELECT next_allowed_at, paused_until FROM hosts WHERE host = %s", (choice.host,)
     ).fetchone()
     if host:
         if host[1] and datetime.fromisoformat(host[1]) > now:
@@ -394,7 +418,7 @@ def _delay(
 
 
 def _eligible(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     now: datetime,
     exclude: Collection[str],
@@ -404,8 +428,10 @@ def _eligible(
     from swingset.fetch.robots import blocked
 
     from .event_pressure import request_denial as expansion_denial
+    from .event_pressure import selection_denials
 
     host_decisions: dict[str, dict[str, Any]] = {}
+    delay_decisions: dict[tuple[str, ActionScope], float | None] = {}
     pressure = bool(backpressure(conn, config, now=now)["active"])
     if pressure and run_id is not None and not _repair_capacity(conn, config, run_id):
         return
@@ -414,7 +440,10 @@ def _eligible(
     # each skip re-ran this selection over every due watch (D-0242).
     unreadable = blocked(conn, now)
     seen = set(exclude)
-    for choice in (*extra_choices, *_choices(conn, config, now)):
+    ordinary = list(_choices(conn, config, now))
+    expansion = selection_denials(conn, config, [watch for _, watch in ordinary], now=now)
+    choices = [(choice, None) for choice in extra_choices] + ordinary
+    for choice, watch in choices:
         if choice.key in seen:
             continue
         seen.add(choice.key)
@@ -422,22 +451,33 @@ def _eligible(
             if (dropped := _robots_dropped.get()) is not None:
                 dropped[choice.host] = unreadable[choice.host]
             continue
-        if expansion_denial(
-            conn,
-            config,
-            watch_id=choice.watch_id,
-            host=choice.host,
-            now=now,
-            host_decisions=host_decisions,
+        if (
+            choice.watch_id in expansion
+            if watch is not None
+            else expansion_denial(
+                conn,
+                config,
+                watch_id=choice.watch_id,
+                host=choice.host,
+                now=now,
+                host_decisions=host_decisions,
+            )
         ):
             continue
-        delay = _delay(conn, config, choice, now, pressure)
-        if delay is not None:
-            yield choice, delay
+        # Host allowance, cooldown and matching controls are shared facts of
+        # this pinned selection. The watch's due time remains individual.
+        identity = (choice.host, choice.scope)
+        if identity not in delay_decisions:
+            delay_decisions[identity] = _delay(
+                conn, config, replace(choice, due_at=now), now, pressure
+            )
+        host_delay = delay_decisions[identity]
+        if host_delay is not None:
+            yield choice, max(host_delay, max(0.0, (choice.due_at - now).total_seconds()))
 
 
 def prepare_event_turns(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     *,
     now: datetime,
@@ -459,7 +499,7 @@ def prepare_event_turns(
 
 
 def next_watch(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     *,
     now: datetime,
@@ -467,6 +507,11 @@ def next_watch(
     extra_choices: Iterable[WatchChoice] = (),
     run_id: str | None = None,
 ) -> WatchChoice | None:
+    if not conn.in_transaction:
+        with conn.read_snapshot():
+            return next_watch(
+                conn, config, now=now, exclude=exclude, extra_choices=extra_choices, run_id=run_id
+            )
     candidates = [
         choice
         for choice, delay in _eligible(conn, config, now, exclude, extra_choices, run_id)
@@ -477,14 +522,14 @@ def next_watch(
     counts = {
         (str(host), str(category)): int(count)
         for host, category, count in conn.execute(
-            "SELECT host,category,count(*) FROM scheduler_requests WHERE day=? GROUP BY host,category",
+            "SELECT host, category, COUNT(*) FROM scheduler_requests WHERE day = %s GROUP BY host, category",
             (now.date().isoformat(),),
         )
     }
     services = {
         (str(host), str(category)): datetime.fromisoformat(at)
         for host, category, at in conn.execute(
-            "SELECT host,category,max(issued_at) FROM scheduler_requests GROUP BY host,category"
+            "SELECT host, category, MAX(issued_at) FROM scheduler_requests GROUP BY host, category"
         )
     }
     host_latest = {
@@ -516,7 +561,7 @@ def next_watch(
 
 
 def next_delay(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     *,
     now: datetime,
@@ -524,6 +569,11 @@ def next_delay(
     extra_choices: Iterable[WatchChoice] = (),
     run_id: str | None = None,
 ) -> float | None:
+    if not conn.in_transaction:
+        with conn.read_snapshot():
+            return next_delay(
+                conn, config, now=now, exclude=exclude, extra_choices=extra_choices, run_id=run_id
+            )
     return min(
         (delay for _, delay in _eligible(conn, config, now, exclude, extra_choices, run_id)),
         default=None,
@@ -531,7 +581,7 @@ def next_delay(
 
 
 def next_offline(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
@@ -542,7 +592,7 @@ def next_offline(
 
 
 def next_offline_batch(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
@@ -581,7 +631,7 @@ def next_offline_batch(
 
 
 def _next_offline(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
@@ -592,7 +642,7 @@ def _next_offline(
 
 
 def _next_offline_batch(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
@@ -611,7 +661,7 @@ def _next_offline_batch(
         kinds = {
             (str(row[0]), str(row[1]))
             for row in conn.execute(
-                "SELECT DISTINCT stage,unit_kind FROM pending_work WHERE stage='parse'"
+                "SELECT DISTINCT stage, unit_kind FROM pending_work WHERE stage = 'parse'"
             )
         }
         kinds.update(
@@ -622,7 +672,7 @@ def _next_offline_batch(
         service = {
             (row[0], row[1]): row[2]
             for row in conn.execute(
-                "SELECT stage,unit_kind,sequence FROM scheduler_offline_service"
+                "SELECT stage, unit_kind, sequence FROM scheduler_offline_service"
             )
         }
         stage_order = {"parse": 0, "project": 1, "link": 2}
@@ -651,12 +701,12 @@ def _next_offline_batch(
         ]
     else:
         groups = conn.execute(
-            "SELECT DISTINCT p.stage,p.unit_kind,coalesce(s.sequence,0) AS seq FROM pending_work p "
-            "LEFT JOIN scheduler_offline_service s ON p.stage=s.stage AND p.unit_kind=s.unit_kind "
-            "WHERE p.stage IN ('parse','project','link') ORDER BY seq,"
-            "CASE p.stage WHEN 'parse' THEN 0 WHEN 'project' THEN 1 ELSE 2 END,"
-            "CASE p.unit_kind WHEN 'mapping' THEN 0 WHEN 'resolution' THEN 1 "
-            "WHEN 'year' THEN 3 WHEN 'history' THEN 3 ELSE 2 END,p.unit_kind"
+            "SELECT DISTINCT p.stage, p.unit_kind, COALESCE(s.sequence, 0) AS seq FROM pending_work AS p "
+            "LEFT JOIN scheduler_offline_service AS s ON p.stage = s.stage AND p.unit_kind = s.unit_kind "
+            "WHERE p.stage IN ('parse', 'project', 'link') ORDER BY seq NULLS FIRST, CASE p.stage WHEN "
+            "'parse' THEN 0 WHEN 'project' THEN 1 ELSE 2 END NULLS FIRST, CASE p.unit_kind WHEN "
+            "'mapping' THEN 0 WHEN 'resolution' THEN 1 WHEN 'year' THEN 3 WHEN 'history' THEN 3 ELSE 2 "
+            "END NULLS FIRST, p.unit_kind NULLS FIRST"
         ).fetchall()
     for stage, kind, _ in groups:
 
@@ -688,10 +738,10 @@ def _next_offline_batch(
     return selected
 
 
-def record_offline_service(conn: sqlite3.Connection, unit: WorkUnit, *, now: datetime) -> None:
+def record_offline_service(conn: engine.Connection, unit: WorkUnit, *, now: datetime) -> None:
     conn.execute(
-        "INSERT INTO scheduler_offline_service(stage,unit_kind,attempts,last_served_at,sequence) "
-        "VALUES (?,?,1,?,(SELECT coalesce(max(sequence),0)+1 FROM scheduler_offline_service)) "
-        "ON CONFLICT(stage,unit_kind) DO UPDATE SET attempts=attempts+1,last_served_at=excluded.last_served_at,sequence=excluded.sequence",
+        (
+            "INSERT INTO scheduler_offline_service (stage, unit_kind, attempts, last_served_at, sequence) VALUES (%s, %s, 1, %s, (SELECT COALESCE(MAX(sequence), 0) + 1 FROM scheduler_offline_service)) ON CONFLICT(stage, unit_kind) DO UPDATE SET attempts = scheduler_offline_service.attempts + 1, last_served_at = excluded.last_served_at, sequence = excluded.sequence"
+        ),
         (unit.stage, unit.unit_kind, now.isoformat()),
     )

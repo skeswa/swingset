@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Callable
 
 from swingset.fetch.archive import Archive, canonical, digest
 from swingset.sources import get_page_kind
 from swingset.sources.base import ParseContext
+from swingset.state import engine
 from swingset.state.db import Database
 from swingset.state.observations import store_parse_result
 
@@ -23,16 +23,19 @@ from .generations import (
 from .removal import wdr_preserves_rows
 
 
-def complete_token(conn: sqlite3.Connection, snapshot_id: str, token: str | None) -> None:
+def complete_token(conn: engine.Connection, snapshot_id: str, token: str | None) -> None:
     if token is not None:
         conn.execute(
-            "DELETE FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=? AND enqueued_at=?",
+            (
+                "DELETE FROM pending_work WHERE stage = 'parse' AND unit_kind = 'snapshot' AND unit_id = %s "
+                "AND enqueued_at = %s"
+            ),
             (snapshot_id, token),
         )
 
 
 def source_materialized_for(
-    conn: sqlite3.Connection, unit_key: str, generation_id: str | None, fingerprint: str
+    conn: engine.Connection, unit_key: str, generation_id: str | None, fingerprint: str
 ) -> bool:
     """Whether a source generation is a parse of this unit's input fingerprint.
 
@@ -43,7 +46,7 @@ def source_materialized_for(
     if generation_id is None:
         return False
     row = conn.execute(
-        "SELECT input_fingerprint FROM source_generations WHERE generation_id=? AND unit_key=?",
+        "SELECT input_fingerprint FROM source_generations WHERE generation_id = %s AND unit_key = %s",
         (generation_id, unit_key),
     ).fetchone()
     if row is None:
@@ -53,13 +56,12 @@ def source_materialized_for(
     try:
         return (
             conn.execute(
-                "SELECT 1 FROM source_equivalences WHERE unit_key=? AND input_fingerprint=? "
-                "AND generation_id=?",
+                "SELECT 1 AS _value_0 FROM source_equivalences WHERE unit_key = %s AND input_fingerprint = %s AND generation_id = %s",
                 (unit_key, fingerprint, generation_id),
             ).fetchone()
             is not None
         )
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" in str(exc):
             return False
         raise
@@ -72,23 +74,39 @@ def admit_generation(
     *,
     now: str,
     run_id: str,
-    after_write: Callable[[sqlite3.Connection], None] | None = None,
+    after_write: Callable[[engine.Connection], None] | None = None,
 ) -> str:
     """Return accepted, shadow, paused, superseded, or the retained guard state.
 
     All checks, observation replacement, old/new scope invalidation, pointer
-    movement, and token-specific completion share one SQLite transaction.
+    movement, and token-specific completion share one Postgres transaction.
     The optional callback belongs to the same transaction (for cache/verification
     updates); exceptions roll back selection without losing the staged evidence.
     """
     with database.transaction() as conn:
         row = conn.execute(
-            "SELECT * FROM source_generations WHERE generation_id=?", (generation_id,)
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (generation_id,),
         ).fetchone()
         if row is None:
             raise ValueError("Missing staged generation")
         policy = conn.execute(
-            "SELECT * FROM admission_policies WHERE page_kind=?", (row["page_kind"],)
+            (
+                "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+                "admission_policies.mode, admission_policies.policy_revision, "
+                "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+                "admission_policies.reviewed_at FROM admission_policies WHERE page_kind = %s"
+            ),
+            (row["page_kind"],),
         ).fetchone()
         mode = "shadow" if policy is None else str(policy["mode"])
         if mode != "enforce":
@@ -109,7 +127,13 @@ def admit_generation(
             recipe.get("archive_url"),
         )
         unit = conn.execute(
-            "SELECT * FROM source_units WHERE unit_key=?", (row["unit_key"],)
+            (
+                "SELECT source_units.unit_key, source_units.watch_id, source_units.page_kind, "
+                "source_units.desired_fingerprint, source_units.accepted_generation_id, "
+                "source_units.legacy_snapshot_id, source_units.legacy_state FROM source_units WHERE unit_key "
+                "= %s"
+            ),
+            (row["unit_key"],),
         ).fetchone()
         if revoked_fingerprint(conn, str(row["unit_key"]), str(row["input_fingerprint"])):
             complete_token(conn, ctx.snapshot_id, attempt.work_token)
@@ -121,7 +145,7 @@ def admit_generation(
             # are not replayed, and the caller completes the work token.
             return "accepted"
         work = conn.execute(
-            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=?",
+            "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_kind = 'snapshot' AND unit_id = %s",
             (ctx.snapshot_id,),
         ).fetchone()
         current_token = None if work is None else work[0]
@@ -171,7 +195,9 @@ def admit_generation(
             bodies: set[str] = set()
             for item in manifest:
                 snapshot = conn.execute(
-                    "SELECT s.body_sha256,s.watch_id,s.url,s.via,w.kind,w.parser,COALESCE(s.observed_at,s.fetched_at) FROM snapshots s JOIN watches w USING(watch_id) WHERE snapshot_id=?",
+                    (
+                        "SELECT s.body_sha256, s.watch_id, s.url, s.via, w.kind, w.parser, COALESCE(s.observed_at, s.fetched_at) AS _value_6 FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE snapshot_id = %s"
+                    ),
                     (item["snapshot_id"],),
                 ).fetchone()
                 if snapshot is None or tuple(snapshot)[:3] != (
@@ -228,7 +254,11 @@ def admit_generation(
             preserve_history=row["removal_authority"] == "none",
         )
         conn.execute(
-            "UPDATE source_units SET accepted_generation_id=?,legacy_state=CASE WHEN legacy_state='legacy_unassessed' AND legacy_snapshot_id=? THEN 'assessed' ELSE legacy_state END WHERE unit_key=?",
+            (
+                "UPDATE source_units SET accepted_generation_id = %s, legacy_state = CASE WHEN legacy_state "
+                "= 'legacy_unassessed' AND legacy_snapshot_id = %s THEN 'assessed' ELSE legacy_state END "
+                "WHERE unit_key = %s"
+            ),
             (generation_id, ctx.snapshot_id, row["unit_key"]),
         )
         if after_write is not None:
@@ -238,7 +268,10 @@ def admit_generation(
         from swingset.state.event_progress import interpreted
 
         decision = conn.execute(
-            "SELECT decision_id FROM admission_decisions WHERE generation_id=? ORDER BY decision_id DESC LIMIT 1",
+            (
+                "SELECT decision_id FROM admission_decisions WHERE generation_id = %s ORDER BY decision_id "
+                "DESC NULLS LAST LIMIT 1"
+            ),
             (generation_id,),
         ).fetchone()
         interpreted(
@@ -255,11 +288,16 @@ def admit_generation(
 
 
 def _decide(
-    conn: sqlite3.Connection, generation: str, state: str, reason: str, now: str, revision: str
+    conn: engine.Connection, generation: str, state: str, reason: str, now: str, revision: str
 ) -> str:
-    conn.execute("UPDATE source_generations SET state=? WHERE generation_id=?", (state, generation))
     conn.execute(
-        "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) VALUES (?,?,?,?,?)",
+        "UPDATE source_generations SET state = %s WHERE generation_id = %s", (state, generation)
+    )
+    conn.execute(
+        (
+            "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+            "VALUES (%s, %s, %s, %s, %s)"
+        ),
         (generation, state, reason, now, revision),
     )
     return state
@@ -279,7 +317,17 @@ def revoke_generation(
         raise ValueError("Revocation requires explicit supporting evidence")
     with database.transaction() as conn:
         row = conn.execute(
-            "SELECT * FROM source_generations WHERE generation_id=?", (generation_id,)
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (generation_id,),
         ).fetchone()
         if row is None or row["state"] not in {"accepted", "revoked"}:
             raise ValueError("Only an accepted generation can be revoked")
@@ -288,17 +336,23 @@ def revoke_generation(
         recipe = json.loads(row["recipe_json"])
         ctx = ParseContext(**recipe["context"])
         unit = conn.execute(
-            "SELECT * FROM source_units WHERE unit_key=?", (row["unit_key"],)
+            (
+                "SELECT source_units.unit_key, source_units.watch_id, source_units.page_kind, "
+                "source_units.desired_fingerprint, source_units.accepted_generation_id, "
+                "source_units.legacy_snapshot_id, source_units.legacy_state FROM source_units WHERE unit_key "
+                "= %s"
+            ),
+            (row["unit_key"],),
         ).fetchone()
         scopes = tuple(
             WorkUnit("project", str(scope[0]), str(scope[1]))
             for scope in conn.execute(
-                "SELECT DISTINCT scope_kind,scope_id FROM observations WHERE watch_id=? AND snapshot_id=?",
+                "SELECT DISTINCT scope_kind, scope_id FROM observations WHERE watch_id = %s AND snapshot_id = %s",
                 (ctx.watch_id, ctx.snapshot_id),
             )
         )
         deleted = conn.execute(
-            "DELETE FROM observations WHERE watch_id=? AND snapshot_id=?",
+            "DELETE FROM observations WHERE watch_id = %s AND snapshot_id = %s",
             (ctx.watch_id, ctx.snapshot_id),
         ).rowcount
         _decide(conn, generation_id, "revoked", reason, now, "explicit_revocation")
@@ -307,7 +361,17 @@ def revoke_generation(
             prior = None
             while predecessor is not None:
                 candidate = conn.execute(
-                    "SELECT * FROM source_generations WHERE generation_id=?", (predecessor,)
+                    (
+                        "SELECT source_generations.generation_id, source_generations.unit_key, "
+                        "source_generations.page_kind, source_generations.contract_version, "
+                        "source_generations.input_fingerprint, source_generations.manifest_json, "
+                        "source_generations.recipe_json, source_generations.result_json, "
+                        "source_generations.report_json, source_generations.previous_generation_id, "
+                        "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                        "source_generations.state, source_generations.removal_authority FROM source_generations "
+                        "WHERE generation_id = %s"
+                    ),
+                    (predecessor,),
                 ).fetchone()
                 if candidate is None:
                     break
@@ -316,11 +380,14 @@ def revoke_generation(
                     break
                 predecessor = candidate["previous_generation_id"]
             conn.execute(
-                "UPDATE source_units SET accepted_generation_id=? WHERE unit_key=?",
+                "UPDATE source_units SET accepted_generation_id = %s WHERE unit_key = %s",
                 (None if prior is None else prior["generation_id"], row["unit_key"]),
             )
             conn.execute(
-                "UPDATE watches SET current_observation_snapshot_id=NULL WHERE watch_id=? AND current_observation_snapshot_id=?",
+                (
+                    "UPDATE watches SET current_observation_snapshot_id = NULL WHERE watch_id = %s AND "
+                    "current_observation_snapshot_id = %s"
+                ),
                 (ctx.watch_id, ctx.snapshot_id),
             )
             if prior is not None:

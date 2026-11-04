@@ -62,22 +62,29 @@ def record(database: Database, wsdc_id: int, outcome: str, now: datetime = NOW) 
     snap = snapshot_id(now, body_hash)
     run = "run_registry"
     connection.execute(
-        "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES (?,?,1)",
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES (%s, %s, 1) ON CONFLICT DO NOTHING",
         (run, now.isoformat()),
     )
     connection.execute(
-        "INSERT OR IGNORE INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) "
-        "VALUES (?,?,?,?,?,200,?,1,1,?,'OK')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_sha256, body_bytes, content_changed, run_id, classification) VALUES (%s, %s, %s, %s, "
+            "%s, 200, %s, 1, 1, %s, 'OK') ON CONFLICT DO NOTHING"
+        ),
         (snap, spec.watch_id, "POST", spec.url, now.isoformat(), body_hash, run),
     )
     payload = DancerLookup(
         "dancer_lookup", outcome, wsdc_id, wsdc_id if outcome == "found" else None
     )
     connection.execute(
-        "DELETE FROM observations WHERE scope_kind='dancer' AND scope_id=?", (str(wsdc_id),)
+        "DELETE FROM observations WHERE scope_kind = 'dancer' AND scope_id = %s", (str(wsdc_id),)
     )
     connection.execute(
-        "INSERT INTO observations VALUES (?,?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s)"
+        ),
         (
             observation_id(spec.watch_id, snap, payload.kind, 0),
             spec.watch_id,
@@ -94,9 +101,11 @@ def record(database: Database, wsdc_id: int, outcome: str, now: datetime = NOW) 
 
     if outcome in {"found", "not_found"}:
         connection.execute(
-            "INSERT INTO registry_verifications(watch_id,checked_at,http_status,body_sha256,"
-            "snapshot_id,extract_version,parser_version,outcome,usable,reason) "
-            "VALUES (?,?,200,?,?,?,?,?,1,'verified')",
+            (
+                "INSERT INTO registry_verifications (watch_id, checked_at, http_status, body_sha256, "
+                "snapshot_id, extract_version, parser_version, outcome, usable, reason) VALUES (%s, %s, 200, "
+                "%s, %s, %s, %s, %s, 1, 'verified')"
+            ),
             (
                 spec.watch_id,
                 now.isoformat(),
@@ -110,7 +119,9 @@ def record(database: Database, wsdc_id: int, outcome: str, now: datetime = NOW) 
 
 
 def cursor(database: Database, name: str) -> str | None:
-    row = database.connection.execute("SELECT value FROM cursors WHERE name=?", (name,)).fetchone()
+    row = database.connection.execute(
+        "SELECT value FROM cursors WHERE name = %s", (name,)
+    ).fetchone()
     return str(row[0]) if row else None
 
 
@@ -126,7 +137,7 @@ def due_registry_ids(database: Database) -> list[int]:
     refs = {
         str(row["watch_id"]): str(row["source_ref"])
         for row in database.connection.execute(
-            "SELECT watch_id,source_ref FROM watches WHERE source='wsdc_registry'"
+            "SELECT watch_id, source_ref FROM watches WHERE source = 'wsdc_registry'"
         )
     }
     return [int(refs[watch_id].removeprefix("wsdc:")) for watch_id in watch_ids]
@@ -157,14 +168,14 @@ def test_registry_sequence_keeps_other_host_in_its_existing_fairness_slot(tmp_pa
         )
         upsert_watch(database.connection, other, NOW)
         database.connection.execute(
-            "UPDATE watches SET priority=5,next_check_at=? WHERE watch_id=?",
+            "UPDATE watches SET priority = 5, next_check_at = %s WHERE watch_id = %s",
             (NOW.isoformat(), other.watch_id),
         )
         hash_order = [
             str(row[0])
             for row in database.connection.execute(
-                "SELECT watch_id FROM watches ORDER BY priority,next_check_at,"
-                "CASE kind WHEN 'round' THEN 1 ELSE 0 END,watch_id"
+                "SELECT watch_id FROM watches ORDER BY priority NULLS FIRST, next_check_at NULLS FIRST, CASE "
+                "kind WHEN 'round' THEN 1 ELSE 0 END NULLS FIRST, watch_id NULLS FIRST"
             )
         ]
         fair_slot = hash_order.index(other.watch_id)
@@ -173,7 +184,7 @@ def test_registry_sequence_keeps_other_host_in_its_existing_fairness_slot(tmp_pa
         registry_ids = [
             int(
                 database.connection.execute(
-                    "SELECT source_ref FROM watches WHERE watch_id=?", (watch_id,)
+                    "SELECT source_ref FROM watches WHERE watch_id = %s", (watch_id,)
                 ).fetchone()[0][5:]
             )
             for watch_id in ordered
@@ -215,7 +226,7 @@ def test_sweep_finishes_only_after_twenty_verified_trailing_misses(tmp_path: Pat
         assert cursor(database, "registry_sweep_misses") is None
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_due'"
             ).fetchone()[0]
             == sha
         )
@@ -268,7 +279,7 @@ def test_existing_dump_bound_is_lazily_cached_and_missing_blob_fails_closed(
     with open_database(tmp_path) as database:
         sha = archive_dump(database, tmp_path, [{"id": 25}])
         database.connection.execute(
-            "DELETE FROM meta WHERE key IN ('registry_sweep_bound_blob','registry_sweep_dump_bound')"
+            "DELETE FROM meta WHERE key IN ('registry_sweep_bound_blob', 'registry_sweep_dump_bound')"
         )
         seed_sweep(database, 1)
         record(database, 1, "not_found")
@@ -277,7 +288,7 @@ def test_existing_dump_bound_is_lazily_cached_and_missing_blob_fails_closed(
         assert cursor(database, "registry_sweep_next") == "2"
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_sweep_bound_blob'"
+                "SELECT value FROM meta WHERE key = 'registry_sweep_bound_blob'"
             ).fetchone()[0]
             == sha
         )
@@ -298,7 +309,7 @@ def test_replaced_high_id_miss_can_raise_local_found_bound(tmp_path: Path) -> No
             assert not advance_sweep(database, NOW)
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_sweep_local_bound'"
+                "SELECT value FROM meta WHERE key = 'registry_sweep_local_bound'"
             ).fetchone()[0]
             == "0"
         )
@@ -307,7 +318,7 @@ def test_replaced_high_id_miss_can_raise_local_found_bound(tmp_path: Path) -> No
             assert not advance_sweep(database, NOW)
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_sweep_local_bound'"
+                "SELECT value FROM meta WHERE key = 'registry_sweep_local_bound'"
             ).fetchone()[0]
             == "100"
         )
@@ -316,7 +327,7 @@ def test_replaced_high_id_miss_can_raise_local_found_bound(tmp_path: Path) -> No
 def test_reseed_clears_stale_completion_and_probe_bookkeeping(tmp_path: Path) -> None:
     with open_database(tmp_path) as database:
         database.connection.executemany(
-            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            "INSERT INTO cursors (name, value) VALUES (%s, %s)",
             (
                 ("registry_probe_cursor", "50"),
                 ("registry_probe_misses", "4"),
@@ -324,7 +335,7 @@ def test_reseed_clears_stale_completion_and_probe_bookkeeping(tmp_path: Path) ->
             ),
         )
         database.connection.executemany(
-            "INSERT INTO meta(key,value) VALUES (?,?)",
+            "INSERT INTO meta (key, value) VALUES (%s, %s)",
             (
                 ("registry_crosscheck_due", "old"),
                 ("registry_crosscheck_completed", "old"),
@@ -335,14 +346,13 @@ def test_reseed_clears_stale_completion_and_probe_bookkeeping(tmp_path: Path) ->
         assert cursor(database, "registry_sweep_misses") == "0"
         assert (
             database.connection.execute(
-                "SELECT COUNT(*) FROM cursors WHERE name LIKE 'registry_probe_%'"
+                "SELECT COUNT(*) FROM cursors WHERE name ILIKE 'registry_probe_%'"
             ).fetchone()[0]
             == 0
         )
         assert (
             database.connection.execute(
-                "SELECT COUNT(*) FROM meta WHERE key IN "
-                "('registry_crosscheck_due','registry_crosscheck_completed')"
+                "SELECT COUNT(*) FROM meta WHERE key IN ('registry_crosscheck_due', 'registry_crosscheck_completed')"
             ).fetchone()[0]
             == 0
         )
@@ -354,7 +364,7 @@ def test_new_dump_bound_clamps_restored_tail_misses_across_restart(tmp_path: Pat
         archive_dump(database, tmp_path, [{"id": 100}])
         seed_sweep(database, 120)
         database.connection.execute(
-            "UPDATE cursors SET value='19' WHERE name='registry_sweep_misses'"
+            "UPDATE cursors SET value = '19' WHERE name = 'registry_sweep_misses'"
         )
         archive_dump(database, tmp_path, [{"id": 115}])
     with open_database(state) as database:
@@ -394,32 +404,37 @@ def test_invalid_probe_result_never_counts_as_a_miss(tmp_path: Path) -> None:
 
 def test_trickle_schedules_at_most_one_hundred_stale_dancers_per_day(tmp_path: Path) -> None:
     with open_database(tmp_path) as database:
-        columns = database.connection.execute("PRAGMA table_info(dancers)").fetchall()
-        placeholders = ",".join("?" for _ in columns)
+        from swingset.state.postgres_schema import reference_manifest
+
+        columns = reference_manifest()["tables"]["dancers"]["columns"]
+        placeholders = ",".join("%s" for _ in columns)
         for wsdc_id in range(1, 102):
             values: list[object] = []
             for column in columns:
-                name, kind = str(column[1]), str(column[2])
+                name, kind = str(column["name"]), str(column["type"])
                 if name == "wsdc_id":
                     values.append(wsdc_id)
                 elif name == "registry_fetched_at":
                     values.append("2020-01-01T00:00:00+00:00")
-                elif int(column[3]) == 0:
+                elif int(column["notnull"]) == 0:
                     values.append(None)
                 elif "INT" in kind:
                     values.append(0)
                 else:
                     values.append("x")
-            database.connection.execute(f"INSERT INTO dancers VALUES ({placeholders})", values)
+            database.connection.execute(
+                f"INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, leader_required_level, leader_allowed_level, follower_required_level, follower_allowed_level, leader_highest_level, leader_highest_points, follower_highest_level, follower_highest_points, recent_year, registry_internal_id, registry_fetched_at, merged_into_wsdc_id, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ({placeholders})",
+                values,
+            )
         discover_registry(database, NOW)
         scheduled = database.connection.execute(
-            "SELECT COUNT(*) FROM watches WHERE notes='trickle'"
+            "SELECT COUNT(*) FROM watches WHERE notes = 'trickle'"
         ).fetchone()[0]
         assert scheduled == 100
         discover_registry(database, NOW + timedelta(hours=1))
         assert (
             database.connection.execute(
-                "SELECT COUNT(*) FROM watches WHERE notes='trickle'"
+                "SELECT COUNT(*) FROM watches WHERE notes = 'trickle'"
             ).fetchone()[0]
             == 100
         )
@@ -433,12 +448,12 @@ def test_crosscheck_is_manual_snapshot_and_replayable_from_blob(tmp_path: Path) 
         archive = Archive(database.state_dir)
         assert crosscheck(database, dump, archive, NOW, run) == 0
         row = database.connection.execute(
-            "SELECT w.source,s.via,s.body_sha256 FROM snapshots s JOIN watches w USING(watch_id)"
+            "SELECT w.source, s.via, s.body_sha256 FROM snapshots AS s JOIN watches AS w USING (watch_id)"
         ).fetchone()
         assert tuple(row)[:2] == ("crosscheck", "manual")
         assert (
             database.connection.execute(
-                "SELECT value FROM revisions WHERE name='snapshots'"
+                "SELECT value FROM revisions WHERE name = 'snapshots'"
             ).fetchone()[0]
             == 1
         )
@@ -461,7 +476,7 @@ def test_crosscheck_finding_is_a_build_input_and_survives_restore(tmp_path: Path
         assert data.tables["review_queue"][0]["kind"] == "registry_diff"
         body_hash = str(
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_blob'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_blob'"
             ).fetchone()[0]
         )
         create_checkpoint(
@@ -494,7 +509,7 @@ def test_crosscheck_accepts_mechstack_dancer_ids_only_in_full_dump_shape(tmp_pat
         run = database.start_run(NOW, dry_run=True)
         assert crosscheck(database, dump, Archive(database.state_dir), NOW, run) == 1
         finding = database.connection.execute(
-            "SELECT subject_id,evidence_json FROM findings WHERE kind='registry_diff'"
+            "SELECT subject_id, evidence_json FROM findings WHERE kind = 'registry_diff'"
         ).fetchone()
         assert finding[0] == "7"
         assert '"first_name":"Ada"' in finding[1]
@@ -518,7 +533,7 @@ def test_archive_only_records_dump_without_findings_then_sweep_runs_it_once(
         assert database.connection.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 0
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_due'"
             ).fetchone()
             is None
         )
@@ -534,7 +549,7 @@ def test_archive_only_records_dump_without_findings_then_sweep_runs_it_once(
         assert database.connection.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 1
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_completed'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_completed'"
             ).fetchone()[0]
             == sha
         )
@@ -569,13 +584,13 @@ def test_due_crosscheck_with_missing_blob_remains_due(tmp_path: Path) -> None:
     with open_database(tmp_path) as database:
         run = database.start_run(NOW, dry_run=True)
         database.connection.execute(
-            "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_due',?)", (digest,)
+            "INSERT INTO meta (key, value) VALUES ('registry_crosscheck_due', %s)", (digest,)
         )
         with pytest.raises(FileNotFoundError):
             run_saved_crosscheck_if_due(database, Archive(tmp_path), NOW, run)
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_due'"
             ).fetchone()[0]
             == digest
         )
@@ -608,7 +623,7 @@ def test_probe_requires_fresh_evidence_when_a_missing_number_is_later_issued(
 def test_legacy_probe_restarts_fresh_tail_without_counting_old_misses(tmp_path: Path) -> None:
     with open_database(tmp_path) as database:
         database.connection.executemany(
-            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            "INSERT INTO cursors (name, value) VALUES (%s, %s)",
             (("registry_probe_cursor", "1"), ("registry_probe_misses", "19")),
         )
         record(database, 1, "not_found", NOW - timedelta(days=7))
@@ -625,13 +640,13 @@ def test_probe_discovery_preserves_current_attempt_retry_delay(tmp_path: Path) -
         discover_registry(database, NOW)
         retry = NOW + timedelta(minutes=15)
         database.connection.execute(
-            "UPDATE watches SET last_checked_at=?,next_check_at=? WHERE source_ref='wsdc:1'",
+            "UPDATE watches SET last_checked_at = %s, next_check_at = %s WHERE source_ref = 'wsdc:1'",
             ((NOW + timedelta(seconds=1)).isoformat(), retry.isoformat()),
         )
         discover_registry(database, NOW + timedelta(minutes=1))
         assert (
             database.connection.execute(
-                "SELECT next_check_at FROM watches WHERE source_ref='wsdc:1'"
+                "SELECT next_check_at FROM watches WHERE source_ref = 'wsdc:1'"
             ).fetchone()[0]
             == retry.isoformat()
         )
@@ -641,7 +656,7 @@ def test_probe_does_not_accept_cached_response_at_exact_start_time(tmp_path: Pat
     with open_database(tmp_path) as database:
         record(database, 1, "not_found", NOW - timedelta(microseconds=1))
         database.connection.execute(
-            "UPDATE watches SET last_checked_at=?,next_check_at=? WHERE source_ref='wsdc:1'",
+            "UPDATE watches SET last_checked_at = %s, next_check_at = %s WHERE source_ref = 'wsdc:1'",
             (NOW.isoformat(), (NOW + timedelta(days=365)).isoformat()),
         )
         discover_registry(database, NOW)
@@ -649,7 +664,7 @@ def test_probe_does_not_accept_cached_response_at_exact_start_time(tmp_path: Pat
         assert cursor(database, "registry_probe_cursor") == "1"
         assert (
             database.connection.execute(
-                "SELECT next_check_at FROM watches WHERE source_ref='wsdc:1'"
+                "SELECT next_check_at FROM watches WHERE source_ref = 'wsdc:1'"
             ).fetchone()[0]
             == NOW.isoformat()
         )

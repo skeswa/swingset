@@ -94,7 +94,10 @@ def test_support_reads_accepted_source_generations_and_revocations(source_fixtur
 
     f = source_fixture
     parser = f.conn.execute(
-        "SELECT json_extract(recipe_json,'$.parser_version') FROM source_generations WHERE generation_id=?",
+        (
+            "SELECT JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'parser_version') FROM "
+            "source_generations WHERE generation_id = %s"
+        ),
         (f.generation,),
     ).fetchone()[0]
     support = SupportIndex(f.conn)
@@ -119,8 +122,10 @@ def test_support_matches_each_observation_against_the_accepted_generations(sourc
     f = source_fixture
     parser = str(
         f.conn.execute(
-            "SELECT json_extract(recipe_json,'$.parser_version') FROM source_generations "
-            "WHERE generation_id=?",
+            (
+                "SELECT JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'parser_version') FROM "
+                "source_generations WHERE generation_id = %s"
+            ),
             (f.generation,),
         ).fetchone()[0]
     )

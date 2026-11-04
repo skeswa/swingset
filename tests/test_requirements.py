@@ -17,7 +17,7 @@ NOW = datetime(2026, 9, 12, tzinfo=UTC)
 
 def prepare(db):
     db.connection.execute(
-        "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run',?,1)", (NOW.isoformat(),)
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', %s, 1)", (NOW.isoformat(),)
     )
 
 
@@ -31,16 +31,25 @@ def test_deleted_acquisition_row_is_recreated_from_retained_watch_without_repair
         assert scan(db, NOW, "run", limit=1) == 1
         original = dict(
             db.connection.execute(
-                "SELECT * FROM findings WHERE owner_kind='requirement'"
+                "SELECT findings.finding_id, findings.owner_kind, findings.owner_id, findings.kind, "
+                "findings.subject_kind, findings.subject_id, findings.watch_id, findings.snapshot_id, "
+                "findings.severity, findings.summary, findings.evidence_json, findings.suggested_override, "
+                "findings.opened_at, findings.run_id, findings.closed_at, findings.closed_by, "
+                "findings.policy_version, findings.desired_fingerprint, findings.state, findings.source, "
+                "findings.next_action, findings.blocking_reason, findings.next_eligible_at, "
+                "findings.attempt_count, findings.last_progress_at, findings.status_at FROM findings WHERE "
+                "owner_kind = 'requirement'"
             ).fetchone()
         )
         assert original["state"] == "ready"
-        db.connection.execute("DELETE FROM findings WHERE finding_id=?", (original["finding_id"],))
+        db.connection.execute(
+            "DELETE FROM findings WHERE finding_id = %s", (original["finding_id"],)
+        )
         scan(db, NOW, "run", limit=1)
         scan(db, NOW, "run", limit=1)
-        recovered = db.connection.execute("SELECT finding_id,state FROM findings").fetchone()
+        recovered = db.connection.execute("SELECT finding_id, state FROM findings").fetchone()
         assert tuple(recovered) == (original["finding_id"], "ready")
-        assert db.connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 0
 
 
 def test_lost_review_finding_rebuilds_from_accepted_owner_evidence(tmp_path):
@@ -85,16 +94,16 @@ def test_a_recreated_requirement_opens_at_its_creation_time(tmp_path):
         prepare(db)
         requirement = Requirement("round_observations", "old", "eepro", "ready", "fetch", {})
         key = reconcile_requirement(db.connection, requirement, NOW, "run")
-        db.connection.execute("DELETE FROM findings WHERE finding_id=?", (key,))
+        db.connection.execute("DELETE FROM findings WHERE finding_id = %s", (key,))
         db.connection.execute(
-            "INSERT INTO finding_support VALUES (?,?,0)",
+            "INSERT INTO finding_support (finding_id, payload_json, active) VALUES (%s, %s, 0)",
             (key, json.dumps({"opened_at": NOW.isoformat()})),
         )
         later = NOW + timedelta(hours=1)
         reconcile_requirement(db.connection, requirement, later, "run")
         assert (
             db.connection.execute(
-                "SELECT opened_at FROM findings WHERE finding_id=?", (key,)
+                "SELECT opened_at FROM findings WHERE finding_id = %s", (key,)
             ).fetchone()[0]
             == later.isoformat()
         )
@@ -106,7 +115,8 @@ def test_paused_requirements_have_no_percentage_and_doctor_stays_local(tmp_path,
         requirement = Requirement("round_observations", "old", "eepro", "ready", "fetch", {})
         key = reconcile_requirement(db.connection, requirement, NOW, "run")
         db.connection.execute(
-            "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason) VALUES ('source','eepro',NULL,'review')"
+            "INSERT INTO operator_pauses (scope_kind, scope_id, until_at, reason) VALUES ('source', "
+            "'eepro', NULL, 'review')"
         )
         report = inventory(db.connection, NOW + timedelta(days=1))
         assert report["stale"] and report["paused"] == 1
@@ -193,7 +203,7 @@ def test_scan_cursor_survives_restart_and_bounds_each_page(tmp_path):
         assert cursor
     with open_database(tmp_path) as db:
         assert scan(db, NOW, "run", limit=2) == 2
-        assert db.connection.execute("SELECT count(*) FROM findings").fetchone()[0] == 4
+        assert db.connection.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 4
         for _ in range(3):
             scan(db, NOW, "run", limit=2)
         assert not db.connection.execute("SELECT cursor FROM requirement_scan").fetchone()[0]
@@ -237,7 +247,8 @@ def test_no_progress_alert_uses_clock_and_pause_only_suppresses_eligible_alarm(t
         assert report["alerts"][0]["next_action"] == "fetch known URL"
         assert report["oldest_unresolved_age_seconds"] == 7200
         db.connection.execute(
-            "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason) VALUES ('all','all',NULL,'operator')"
+            "INSERT INTO operator_pauses (scope_kind, scope_id, until_at, reason) VALUES ('all', 'all', "
+            "NULL, 'operator')"
         )
         paused = inventory(db.connection, later)
         assert paused["alerts"] == []
@@ -254,7 +265,11 @@ def test_pipeline_lag_uses_fake_clock_and_keeps_ages_visible_while_paused(tmp_pa
         spec = WatchSpec("", "eepro", "round", "GET", "https://eepro.com/result", "eepro.round")
         upsert_watch(db.connection, spec, NOW)
         db.connection.execute(
-            "INSERT INTO pending_work VALUES ('project','event','old-event',?)", (NOW.isoformat(),)
+            (
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', "
+                "'event', 'old-event', %s)"
+            ),
+            (NOW.isoformat(),),
         )
         initial = inventory(db.connection, clock.now())["pipeline_lag"]
         assert initial["acquisition"]["oldest_lag_seconds"] == 0
@@ -270,15 +285,16 @@ def test_pipeline_lag_uses_fake_clock_and_keeps_ages_visible_while_paused(tmp_pa
         }
         assert all(row["next_action"] and row["oldest"] for row in delayed["alerts"])
         db.connection.execute(
-            "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason) VALUES ('all','all',NULL,'review')"
+            "INSERT INTO operator_pauses (scope_kind, scope_id, until_at, reason) VALUES ('all', 'all', "
+            "NULL, 'review')"
         )
         paused = inventory(db.connection, clock.now())["pipeline_lag"]
         assert paused["alerts"] == []
         assert paused["acquisition"]["oldest_lag_seconds"] == 7200
         assert paused["derivation"]["oldest_lag_seconds"] == 7200
         assert paused["acquisition"]["paused_overdue_watches"] == 1
-        assert db.connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 0
-        assert db.connection.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 1
+        assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 1
 
 
 def test_h11_worker_states_and_human_json_use_the_same_local_snapshot(tmp_path, capsys):
@@ -291,7 +307,7 @@ def test_h11_worker_states_and_human_json_use_the_same_local_snapshot(tmp_path, 
         clock_time = NOW + timedelta(seconds=1)
         assert inventory(db.connection, clock_time)["worker_state"] == "recent_unfinished_run"
         db.connection.execute(
-            "UPDATE runs SET finished_at=? WHERE run_id='run'", (clock_time.isoformat(),)
+            "UPDATE runs SET finished_at = %s WHERE run_id = 'run'", (clock_time.isoformat(),)
         )
         assert inventory(db.connection, clock_time)["worker_state"] == "idle"
         clock_time = NOW + timedelta(hours=2)
@@ -342,7 +358,11 @@ def test_artifact_gap_is_one_digest_and_corruption_is_visible(tmp_path):
         upsert_watch(db.connection, spec, NOW)
         for key in ("s1", "s2"):
             db.connection.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,?,200,?,23,1,'run','Ok')",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_sha256, body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+                    "%s, %s, 200, %s, 23, 1, 'run', 'Ok')"
+                ),
                 (key, spec.watch_id, spec.url, NOW.isoformat(), digest),
             )
         path = archive.blob_path(digest)
@@ -350,7 +370,7 @@ def test_artifact_gap_is_one_digest_and_corruption_is_visible(tmp_path):
         path.write_bytes(compressed[:10] + b"\x06" + compressed[11:])
         scan(db, NOW, "run")
         rows = db.connection.execute(
-            "SELECT state,subject_id,evidence_json FROM findings WHERE kind='archive_artifact'"
+            "SELECT state, subject_id, evidence_json FROM findings WHERE kind = 'archive_artifact'"
         ).fetchall()
         assert len(rows) == 1
         assert tuple(rows[0][:2]) == ("unavailable", digest)
@@ -359,7 +379,7 @@ def test_artifact_gap_is_one_digest_and_corruption_is_visible(tmp_path):
         scan(db, NOW + timedelta(hours=1), "run")
         assert (
             db.connection.execute(
-                "SELECT state FROM findings WHERE kind='archive_artifact'"
+                "SELECT state FROM findings WHERE kind = 'archive_artifact'"
             ).fetchone()[0]
             == "satisfied"
         )
@@ -372,12 +392,15 @@ def test_registry_occurrences_before_configured_history_start_are_out_of_scope(t
         seed(db.connection)
         prepare(db)
         db.connection.execute(
-            "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,series_name_raw,event_month,result,points,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (1,'leader','wcs','novice','series','Old event','2012-01','1',3,'registry','snapshot','1','t','t','run')"
+            "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+            "series_name_raw, event_month, result, points, source, snapshot_id, parser_version, "
+            "first_seen_at, last_seen_at, run_id) VALUES (1, 'leader', 'wcs', 'novice', 'series', 'Old "
+            "event', '2012-01', '1', 3, 'registry', 'snapshot', '1', 't', 't', 'run')"
         )
         scan(db, NOW, "run", history_start=date(2015, 1, 1))
         assert (
             db.connection.execute(
-                "SELECT state FROM findings WHERE kind='registry_event_association'"
+                "SELECT state FROM findings WHERE kind = 'registry_event_association'"
             ).fetchone()[0]
             == "out_of_scope"
         )
@@ -390,22 +413,29 @@ def test_finalist_requirement_retires_when_contest_is_no_longer_eligible(tmp_pat
         prepare(db)
         seed(db.connection)
         db.connection.execute(
-            "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('final','c1','final',1,'Final','relative_placement','{}',5,6,'final','test','snap','1','t','t','run')"
+            "INSERT INTO rounds (round_id, contest_id, round_type, round_index, name_raw, "
+            "scoring_method, callback_legend, judge_count, entry_count, source_round_ref, source, "
+            "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('final', 'c1', "
+            "'final', 1, 'Final', 'relative_placement', '{}', 5, 6, 'final', 'test', 'snap', '1', 't', "
+            "'t', 'run')"
         )
         entry(db.connection, "finalist", "c1", "7", "New Person")
         db.connection.execute(
-            "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,leader_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place','final','c1','event',6,'finalist','','test','snap','1','t','t','run')"
+            "INSERT INTO placements (placement_id, round_id, contest_id, event_id, place, "
+            "leader_entry_id, tally, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+            "run_id) VALUES ('place', 'final', 'c1', 'event', 6, 'finalist', '', 'test', 'snap', '1', "
+            "'t', 't', 'run')"
         )
         scan(db, NOW, "run")
         row = db.connection.execute(
-            "SELECT finding_id,state FROM findings WHERE kind='first_point_reconsideration'"
+            "SELECT finding_id, state FROM findings WHERE kind = 'first_point_reconsideration'"
         ).fetchone()
         assert row["state"] == "waiting_for_source"
-        db.connection.execute("UPDATE contests SET division='advanced' WHERE contest_id='c1'")
+        db.connection.execute("UPDATE contests SET division = 'advanced' WHERE contest_id = 'c1'")
         scan(db, NOW + timedelta(seconds=1), "run")
         assert (
             db.connection.execute(
-                "SELECT state FROM findings WHERE finding_id=?", (row["finding_id"],)
+                "SELECT state FROM findings WHERE finding_id = %s", (row["finding_id"],)
             ).fetchone()[0]
             == "out_of_scope"
         )

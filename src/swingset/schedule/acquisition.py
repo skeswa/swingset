@@ -9,7 +9,6 @@ eligible `acquisition_plan` rows (D-0218).
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -37,7 +36,7 @@ from swingset.schedule.registry import advance_sweep
 from swingset.schedule.watches import refresh_policy
 from swingset.sources import get_page_kind
 from swingset.sources.base import WatchSpec
-from swingset.state import guards
+from swingset.state import engine, guards
 from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ActionScope, ControlPaused, operation
@@ -59,7 +58,7 @@ def paused_hosts(database: Database, now: datetime) -> list[dict[str, Any]]:
     return [
         dict(row)
         for row in database.connection.execute(
-            "SELECT host,paused_until,pause_reason FROM hosts WHERE paused_until IS NOT NULL"
+            "SELECT host, paused_until, pause_reason FROM hosts WHERE NOT paused_until IS NULL"
         )
         if datetime.fromisoformat(row["paused_until"]) > now
     ]
@@ -313,7 +312,7 @@ class Acquisition:
             else:
                 assert choice.watch_id is not None
                 row = database.connection.execute(
-                    "SELECT parser,notes,url,archive_url FROM watches WHERE watch_id=?",
+                    "SELECT parser, notes, url, archive_url FROM watches WHERE watch_id = %s",
                     (choice.watch_id,),
                 ).fetchone()
                 result = self.client().fetch(
@@ -374,7 +373,7 @@ class Acquisition:
                     )
                 entry["held_until"] = held.expires_at
                 entry["failures"] = held.seen
-            except (sqlite3.Error, WriteDeadlineExceeded) as recorded:
+            except (engine.Error, WriteDeadlineExceeded) as recorded:
                 entry["guard_error"] = f"{type(recorded).__name__}: {recorded}"[:200]
         self.summary.setdefault("request_errors", []).append(entry)
         log("request_failed", **entry)
@@ -384,7 +383,7 @@ class Acquisition:
         try:
             with self.database.transaction() as conn:
                 guards.delete(conn, f"watch:{key}", guards.REQUEST_ERROR)
-        except (sqlite3.Error, WriteDeadlineExceeded):
+        except (engine.Error, WriteDeadlineExceeded):
             pass
 
 
@@ -396,7 +395,7 @@ def request_failures(summary: dict[str, Any]) -> bool:
 def _contended(exc: BaseException) -> bool:
     """A busy timeout or a publication fence: the request waits, uncounted."""
     message = str(exc).lower()
-    return isinstance(exc, sqlite3.DatabaseError) and (
+    return isinstance(exc, engine.DatabaseError) and (
         "locked" in message or "busy" in message or "active publication fences" in message
     )
 

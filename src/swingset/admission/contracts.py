@@ -23,6 +23,8 @@ from .accounting import Accounting
 from .kinds import contract, contract_version
 from .report import Coverage, Field, Guard, Report
 
+PARSE_CORE_VERSION = 1
+
 __all__ = ["contract_version", "declare", "evaluate", "inspect"]
 
 

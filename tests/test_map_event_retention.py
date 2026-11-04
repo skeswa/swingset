@@ -8,6 +8,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+from postgres_statements import assert_integrity
 
 from swingset.model.canonical import Event
 from swingset.project.map import project_map
@@ -21,15 +22,15 @@ NOW = "2026-09-13T00:00:00Z"
 
 def owners(conn, scope_kind):
     return conn.execute(
-        "SELECT count(*) FROM canonical_scope_rows WHERE scope_kind=?", (scope_kind,)
+        "SELECT COUNT(*) FROM canonical_scope_rows WHERE scope_kind = %s", (scope_kind,)
     ).fetchone()[0]
 
 
 def outputs(conn):
     """The mapping and resolution outputs, which replaced the map's."""
     units = conn.execute(
-        "SELECT stage,unit_kind,unit_id FROM derivation_scopes "
-        "WHERE stage='project' AND unit_kind IN ('mapping','resolution') ORDER BY 1,2,3"
+        "SELECT stage, unit_kind, unit_id FROM derivation_scopes WHERE stage = 'project' AND "
+        "unit_kind IN ('mapping', 'resolution') ORDER BY 1 NULLS FIRST, 2 NULLS FIRST, 3 NULLS FIRST"
     ).fetchall()
     return {tuple(unit): list(output_rows(conn, WorkUnit(*unit))) for unit in units}
 
@@ -38,7 +39,9 @@ def outputs(conn):
 def enriched_source_event(tmp_path):
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         event = Event(
             event_id="2024-07-saunaswing",
             series_id="saunaswing",
@@ -69,17 +72,20 @@ def enriched_source_event(tmp_path):
                 projected_at=NOW,
             )
             conn.execute(
-                "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,url,"
-                "snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-                "VALUES ('scoringdance','137','SaunaSwing','2024-07-01','2024-07-04',"
-                "'https://example.test/137','retained-round','1',?,?, 'test')",
+                (
+                    "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, url, "
+                    "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('scoringdance', "
+                    "'137', 'SaunaSwing', '2024-07-01', '2024-07-04', 'https://example.test/137', "
+                    "'retained-round', '1', %s, %s, 'test')"
+                ),
                 (NOW, NOW),
             )
             conn.execute(
-                "INSERT INTO source_events(source,source_ref,name_raw,url,snapshot_id,"
-                "parser_version,first_seen_at,last_seen_at,run_id) "
-                "VALUES ('scoringdance','109','Undated event','https://example.test/109',"
-                "'retained-undated','1',?,?,'test')",
+                (
+                    "INSERT INTO source_events (source, source_ref, name_raw, url, snapshot_id, parser_version, "
+                    "first_seen_at, last_seen_at, run_id) VALUES ('scoringdance', '109', 'Undated event', "
+                    "'https://example.test/109', 'retained-undated', '1', %s, %s, 'test')"
+                ),
                 (NOW, NOW),
             )
         bundle = SimpleNamespace(
@@ -92,26 +98,48 @@ def test_registry_enriched_self_match_retains_event_and_replays_identically(enri
     db, event, bundle = enriched_source_event
     conn = db.connection
     before = dict(
-        conn.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone()
+        conn.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (event.event_id,),
+        ).fetchone()
     )
     with db.transaction():
         assert project_map(conn, bundle, NOW, "test", 19)
     assert (
-        dict(conn.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone())
+        dict(
+            conn.execute(
+                (
+                    "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                    "events.end_date, events.city, events.region, events.country, events.website, "
+                    "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                    "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                    "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                    "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+                ),
+                (event.event_id,),
+            ).fetchone()
+        )
         == before
     )
-    assert conn.execute("SELECT event_id,match_confidence FROM source_event_map").fetchall()[0][
+    assert conn.execute("SELECT event_id, match_confidence FROM source_event_map").fetchall()[0][
         :
     ] == (event.event_id, 1.0)
     assert owners(conn, "unmatched_source_events") == 0
     assert owners(conn, "resolution") == 1
     output = outputs(conn)
-    generations = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
+    generations = conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0]
     with db.transaction():
         assert not project_map(conn, bundle, "2026-09-14T00:00:00Z", "test", 19)
     assert outputs(conn) == output
-    assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == generations
-    assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+    assert conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == generations
+    assert_integrity(conn)
 
 
 @pytest.mark.parametrize("owner", ["unmatched_source_events", "override_events"])
@@ -120,7 +148,7 @@ def test_mapping_to_another_target_retires_unreferenced_source_event(enriched_so
     conn = db.connection
     with db.transaction():
         conn.execute(
-            "UPDATE canonical_scope_rows SET scope_kind=? WHERE scope_kind='unmatched_source_events'",
+            "UPDATE canonical_scope_rows SET scope_kind = %s WHERE scope_kind = 'unmatched_source_events'",
             (owner,),
         )
         project_map(conn, bundle, NOW, "test", 19)
@@ -140,7 +168,9 @@ def test_mapping_to_another_target_retires_unreferenced_source_event(enriched_so
         assert project_map(conn, bundle, NOW, "test", 19)
     assert conn.execute("SELECT event_id FROM source_event_map").fetchone()[0] == target.event_id
     assert (
-        conn.execute("SELECT event_id FROM events WHERE event_id=?", (event.event_id,)).fetchone()
+        conn.execute(
+            "SELECT event_id FROM events WHERE event_id = %s", (event.event_id,)
+        ).fetchone()
         is None
     )
     assert owners(conn, "unmatched_source_events") == owners(conn, "override_events") == 0
@@ -149,10 +179,10 @@ def test_mapping_to_another_target_retires_unreferenced_source_event(enriched_so
     assert [
         tuple(row)
         for row in conn.execute(
-            "SELECT scope_id FROM canonical_scope_rows WHERE scope_kind='resolution'"
+            "SELECT scope_id FROM canonical_scope_rows WHERE scope_kind = 'resolution'"
         )
     ] == [(target.event_id,)]
-    assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+    assert_integrity(conn)
 
 
 def test_removed_override_can_keep_its_enriched_target_by_source_match(enriched_source_event):
@@ -160,13 +190,24 @@ def test_removed_override_can_keep_its_enriched_target_by_source_match(enriched_
     conn = db.connection
     with db.transaction():
         conn.execute(
-            "UPDATE canonical_scope_rows SET scope_kind='override_events' WHERE scope_kind='unmatched_source_events'"
+            "UPDATE canonical_scope_rows SET scope_kind = 'override_events' WHERE scope_kind = "
+            "'unmatched_source_events'"
         )
     with db.transaction():
         project_map(conn, bundle, NOW, "test", 19)
     assert conn.execute("SELECT event_id FROM source_event_map").fetchone()[0] == event.event_id
     assert (
-        conn.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone()
+        conn.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (event.event_id,),
+        ).fetchone()
         is not None
     )
     before = outputs(conn)
@@ -189,67 +230,115 @@ def test_generated_id_collision_preserves_inventory_and_registry_month(
     # The listing's July ID and dates differ from the registry reporting month.
     # Neither unknown status nor a non-overlapping date grants overwrite authority.
     conn.execute(
-        "UPDATE events SET series_id='wsdc-291',event_month='2024-08',"
-        "start_date='2024-07-20',end_date='2024-07-21',wsdc_status=?",
+        (
+            "UPDATE events SET series_id = 'wsdc-291', event_month = '2024-08', start_date = "
+            "'2024-07-20', end_date = '2024-07-21', wsdc_status = %s"
+        ),
         (status,),
     )
     if backing == "history_owner":
-        conn.execute("UPDATE events SET history_source='[]'")
+        conn.execute("UPDATE events SET history_source = '[]'")
         conn.execute(
-            "INSERT INTO canonical_scope_rows VALUES ('history','all','events',json_array(?))",
+            (
+                "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+                "('history', 'all', 'events', JSON_ARRAY(%s))"
+            ),
             (event.event_id,),
         )
     conn.execute(
-        "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,"
-        "leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,"
-        "leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,"
-        "recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,"
-        "first_seen_at,last_seen_at,run_id) VALUES (1,'Test','Dancer','test dancer',0,'leader',"
-        "'novice','novice','novice','novice','novice',1,'novice',0,2024,1,?,'wsdc_registry',"
-        "'registry','1',?,?,'test')",
+        (
+            "INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, "
+            "leader_required_level, leader_allowed_level, follower_required_level, "
+            "follower_allowed_level, leader_highest_level, leader_highest_points, "
+            "follower_highest_level, follower_highest_points, recent_year, registry_internal_id, "
+            "registry_fetched_at, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+            "run_id) VALUES (1, 'Test', 'Dancer', 'test dancer', 0, 'leader', 'novice', 'novice', "
+            "'novice', 'novice', 'novice', 1, 'novice', 0, 2024, 1, %s, 'wsdc_registry', 'registry', "
+            "'1', %s, %s, 'test')"
+        ),
         (NOW, NOW, NOW),
     )
     conn.execute(
-        "INSERT INTO registry_placements VALUES (1,'leader','wcs','novice','wsdc-291',"
-        "'SaunaSwing','2024-08-01',?,'1',1,'wsdc_registry','registry','1',?,?,'test')",
+        (
+            "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+            "series_name_raw, event_month, event_id, result, points, source, snapshot_id, "
+            "parser_version, first_seen_at, last_seen_at, run_id) VALUES (1, 'leader', 'wcs', 'novice', "
+            "'wsdc-291', 'SaunaSwing', '2024-08-01', %s, '1', 1, 'wsdc_registry', 'registry', '1', %s, "
+            "%s, 'test')"
+        ),
         (event.event_id, NOW, NOW),
     )
-    before = dict(conn.execute("SELECT * FROM events").fetchone())
+    before = dict(
+        conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events"
+        ).fetchone()
+    )
     with db.transaction():
         assert project_map(conn, bundle, NOW, "test", 19)
         finalize_history(conn, now=NOW)
-    assert dict(conn.execute("SELECT * FROM events").fetchone()) == before
+    assert (
+        dict(
+            conn.execute(
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events"
+            ).fetchone()
+        )
+        == before
+    )
     assert conn.execute("SELECT event_id FROM registry_placements").fetchone()[0] == event.event_id
     assert (
-        conn.execute("SELECT event_id FROM source_event_map WHERE source_ref='137'").fetchone()[0]
+        conn.execute("SELECT event_id FROM source_event_map WHERE source_ref = '137'").fetchone()[0]
         == event.event_id
     )
     assert conn.execute(
-        "SELECT 1 FROM canonical_scope_rows WHERE scope_kind='resolution' "
-        "AND scope_id=? AND record_key=json_array(?)",
+        (
+            "SELECT 1 FROM canonical_scope_rows WHERE scope_kind = 'resolution' AND scope_id = %s AND "
+            "record_key = ops.compact_json(json_build_array(%s::text))"
+        ),
         (event.event_id, event.event_id),
     ).fetchone()
     output = outputs(conn)
-    count = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
+    count = conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0]
     with db.transaction():
         assert not project_map(conn, bundle, "2026-09-14T00:00:00Z", "test", 19)
         finalize_history(conn, now="2026-09-14T00:00:00Z")
     assert outputs(conn) == output
-    assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == count
+    assert conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == count
     assert conn.execute("SELECT event_id FROM registry_placements").fetchone()[0] == event.event_id
-    assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+    assert_integrity(conn)
 
 
 def test_provisional_source_only_collision_still_refreshes_listing(enriched_source_event):
     db, event, bundle = enriched_source_event
     conn = db.connection
-    conn.execute("UPDATE events SET wsdc_status='unknown',history_source='[]',held='listed'")
     conn.execute(
-        "UPDATE source_events SET end_date='2024-07-05',snapshot_id='new-listing' WHERE source_ref='137'"
+        "UPDATE events SET wsdc_status = 'unknown', history_source = '[]', held = 'listed'"
+    )
+    conn.execute(
+        "UPDATE source_events SET end_date = '2024-07-05', snapshot_id = 'new-listing' WHERE source_ref = '137'"
     )
     with db.transaction():
         project_map(conn, bundle, NOW, "test", 19)
-    row = conn.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone()
+    row = conn.execute(
+        (
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+        ),
+        (event.event_id,),
+    ).fetchone()
     assert row["end_date"] == "2024-07-05"
     assert row["snapshot_id"] == "new-listing"
     assert row["source"] == "scoringdance"

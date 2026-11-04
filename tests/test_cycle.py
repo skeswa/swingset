@@ -117,21 +117,42 @@ def test_calendar_cycle_then_fully_quiet_cycle(tmp_path, overrides, calendar_con
     with open_database(tmp_path) as db:
         assert db.connection.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
         assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
-        first_row = dict(db.connection.execute("SELECT * FROM events").fetchone())
+        first_row = dict(
+            db.connection.execute(
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events"
+            ).fetchone()
+        )
     clock.sleep(1)
     second = ticks()
     assert second.checked == 0
     assert second.stages == []
     assert len(calls) == 2
     with open_database(tmp_path) as db:
-        assert dict(db.connection.execute("SELECT * FROM events").fetchone()) == first_row
+        assert (
+            dict(
+                db.connection.execute(
+                    "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                    "events.end_date, events.city, events.region, events.country, events.website, "
+                    "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                    "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                    "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                    "events.coverage_tier, events.history_source FROM events"
+                ).fetchone()
+            )
+            == first_row
+        )
 
 
 def test_operator_pause_does_not_prevent_input_acceptance(tmp_path, overrides):
     clock = FakeClock()
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO operator_pauses(scope_kind,scope_id,reason) VALUES ('all','all','test')"
+            "INSERT INTO operator_pauses (scope_kind, scope_id, reason) VALUES ('all', 'all', 'test')"
         )
 
     def forbidden(request):
@@ -170,21 +191,21 @@ def test_zero_budget_accepts_inputs_but_starts_no_network_or_stage(tmp_path, ove
     assert result.accepted_inputs
     with open_database(tmp_path) as db:
         saved = db.connection.execute(
-            "SELECT summary_json FROM runs WHERE run_id=?", (result["derive"]["run_id"],)
+            "SELECT summary_json FROM runs WHERE run_id = %s", (result["derive"]["run_id"],)
         ).fetchone()[0]
     assert '"stopped": true' in saved
 
 
 def test_existing_downstream_work_does_not_starve_collection(tmp_path, overrides, calendar_config):
-    import sqlite3
+    from swingset.state import engine
 
     clock = FakeClock()
 
     def handler(request):
-        with sqlite3.connect(f"file:{tmp_path / 'state.sqlite'}?mode=ro", uri=True) as conn:
+        with engine.connect(engine.resolve_dsn(tmp_path), read_only=True) as conn:
             assert (
                 conn.execute(
-                    "SELECT count(*) FROM pending_work WHERE stage='link' AND unit_id='missing'"
+                    "SELECT COUNT(*) FROM pending_work WHERE stage = 'link' AND unit_id = 'missing'"
                 ).fetchone()[0]
                 == 1
             )
@@ -196,7 +217,8 @@ def test_existing_downstream_work_does_not_starve_collection(tmp_path, overrides
 
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO pending_work VALUES ('link','event','missing','2026-01-01T00:00:00Z')"
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+            "'missing', '2026-01-01T00:00:00Z')"
         )
     result = run_round(
         tmp_path,
@@ -255,7 +277,13 @@ def test_a_blocked_parse_waits_retries_on_its_clock_and_a_repeat_is_not_a_failur
     # A first parse failure is a failure, as before.
     assert first["failed"] and first["waiting_repeats"] == 0
     with open_database(tmp_path) as db:
-        (row,) = db.connection.execute("SELECT * FROM work_queue").fetchall()
+        (row,) = db.connection.execute(
+            "SELECT work_queue.stage, work_queue.unit_kind, work_queue.unit_id, work_queue.partition, "
+            "work_queue.state, work_queue.attempts, work_queue.error_class, "
+            "work_queue.input_fingerprint, work_queue.lease_owner, work_queue.lease_until, "
+            "work_queue.next_attempt_at, work_queue.last_reason, work_queue.last_error, "
+            "work_queue.enqueued_at, work_queue.updated_at, work_queue.quarantined_at FROM work_queue"
+        ).fetchall()
     assert (row["state"], row["attempts"], row["error_class"]) == (
         "waiting_input",
         1,
@@ -275,7 +303,13 @@ def test_a_blocked_parse_waits_retries_on_its_clock_and_a_repeat_is_not_a_failur
     assert second["waiting_repeats"] == 1
     assert not second["failed"]
     with open_database(tmp_path) as db:
-        row = db.connection.execute("SELECT * FROM work_queue").fetchone()
+        row = db.connection.execute(
+            "SELECT work_queue.stage, work_queue.unit_kind, work_queue.unit_id, work_queue.partition, "
+            "work_queue.state, work_queue.attempts, work_queue.error_class, "
+            "work_queue.input_fingerprint, work_queue.lease_owner, work_queue.lease_until, "
+            "work_queue.next_attempt_at, work_queue.last_reason, work_queue.last_error, "
+            "work_queue.enqueued_at, work_queue.updated_at, work_queue.quarantined_at FROM work_queue"
+        ).fetchone()
     assert (row["state"], row["attempts"]) == ("waiting_input", 2)
     assert row["next_attempt_at"] == queue.at(clock.now() + timedelta(hours=48))
 
@@ -301,7 +335,7 @@ def test_a_cycle_drains_the_neighbours_of_a_quarantined_poison_unit(
         derivations.complete(
             database.connection, selection, rows=(), now=clock.now(), run_id=run_id
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     def forbidden(_request):
         raise AssertionError("no source is enabled")

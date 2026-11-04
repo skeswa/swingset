@@ -1,25 +1,23 @@
 import json
-import sqlite3
+
+from postgres_statements import empty_connections as empty_connections
 
 from swingset.history.aliases import alias_proposals
 
 
-def test_alias_packet_groups_editions_preserves_raw_rows_and_never_accepts(tmp_path):
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    conn.executescript("""
-        CREATE TABLE findings(finding_id,subject_id,evidence_json,snapshot_id,kind,owner_kind,closed_at);
-        CREATE TABLE registry_placements(series_id,series_name_raw,event_month,snapshot_id);
-        CREATE TABLE observations(observation_id,payload_json,snapshot_id,watch_id,scope_kind,parser_version,seq);
-        CREATE TABLE snapshots(snapshot_id,url,archive_url,captured_at,fetched_at,body_sha256,observed_at);
-        CREATE TABLE watches(watch_id,source);
-        CREATE TABLE source_events(name_raw,start_date,end_date,location_raw,url,source,snapshot_id,parser_version);
-    """)
+def test_alias_packet_groups_editions_preserves_raw_rows_and_never_accepts(
+    tmp_path, empty_connections
+):
+    conn = empty_connections()
+
+    conn.execute(
+        "CREATE TABLE findings (finding_id TEXT, subject_id TEXT, evidence_json TEXT, snapshot_id TEXT, kind TEXT, owner_kind TEXT, closed_at TEXT); CREATE TABLE registry_placements (series_id TEXT, series_name_raw TEXT, event_month TEXT, snapshot_id TEXT); CREATE TABLE observations (observation_id TEXT, payload_json TEXT, snapshot_id TEXT, watch_id TEXT, scope_kind TEXT, parser_version TEXT, seq BIGINT); CREATE TABLE snapshots (snapshot_id TEXT, url TEXT, archive_url TEXT, captured_at TEXT, fetched_at TEXT, body_sha256 TEXT, observed_at TEXT); CREATE TABLE watches (watch_id TEXT, source TEXT); CREATE TABLE source_events (name_raw TEXT, start_date TEXT, end_date TEXT, location_raw TEXT, url TEXT, source TEXT, snapshot_id TEXT, parser_version TEXT)"
+    )
     conn.execute("INSERT INTO watches VALUES ('watch','wsdc_calendar')")
     for year, name in [(2019, "Summer Swing 2019"), (2020, "SUMMER SWING 2020")]:
         snap = f"snapshot-{year}"
         conn.execute(
-            "INSERT INTO snapshots VALUES (?,?,?,?,?,?,?)",
+            "INSERT INTO snapshots VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (
                 snap,
                 "https://example.org/events/",
@@ -31,7 +29,7 @@ def test_alias_packet_groups_editions_preserves_raw_rows_and_never_accepts(tmp_p
             ),
         )
         conn.execute(
-            "INSERT INTO findings VALUES (?,?,?,?,?,?,NULL)",
+            "INSERT INTO findings VALUES (%s,%s,%s,%s,%s,%s,NULL)",
             (
                 str(year),
                 f"{year}-07:summer-swing",
@@ -48,15 +46,15 @@ def test_alias_packet_groups_editions_preserves_raw_rows_and_never_accepts(tmp_p
             "location_raw": "Printed city",
         }
         conn.execute(
-            "INSERT INTO observations VALUES (?,?,?,?,?,?,?)",
+            "INSERT INTO observations VALUES (%s,%s,%s,%s,%s,%s,%s)",
             (str(year), json.dumps(raw), snap, "watch", "calendar", "6", 0),
         )
         conn.execute(
-            "INSERT INTO registry_placements VALUES (?,?,?,?)",
+            "INSERT INTO registry_placements VALUES (%s,%s,%s,%s)",
             ("wsdc-good", "Summer Swing Championships", f"{year}-07", snap),
         )
         conn.execute(
-            "INSERT INTO registry_placements VALUES (?,?,?,?)",
+            "INSERT INTO registry_placements VALUES (%s,%s,%s,%s)",
             ("wsdc-other", "Summer Swing Championships", f"{year}-02", snap),
         )
     before = conn.total_changes

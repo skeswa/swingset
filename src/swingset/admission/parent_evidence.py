@@ -20,7 +20,7 @@ def parent_support(session: Session, *, source: str, generation_id: str) -> dict
     }
     try:
         rows = session.read(
-            "SELECT recipe_json FROM source_generations WHERE generation_id=?",
+            "SELECT recipe_json FROM source_generations WHERE generation_id=%s",
             (generation_id,),
             ("recipe_json",),
             cap=1,
@@ -31,7 +31,7 @@ def parent_support(session: Session, *, source: str, generation_id: str) -> dict
         if context["source"] != source:
             return {**result, "usable": False, "reason": "parent_source_mismatch"}
         snapshots = session.read(
-            "SELECT method,url,form FROM snapshots WHERE snapshot_id=?",
+            "SELECT method,url,form FROM snapshots WHERE snapshot_id=%s",
             (context["snapshot_id"],),
             ("method", "url", "form"),
             cap=1,
@@ -39,7 +39,7 @@ def parent_support(session: Session, *, source: str, generation_id: str) -> dict
         if not snapshots:
             return {**result, "usable": False, "reason": "parent_snapshot_missing"}
         decisions = session.read(
-            "SELECT decision_id FROM admission_decisions WHERE generation_id=? AND state='accepted' AND (julianday(decided_at)<=julianday(?) OR julianday(decided_at) IS NULL) ORDER BY decision_id LIMIT 1",
+            "SELECT decision_id FROM admission_decisions WHERE generation_id=%s AND state='accepted' AND (ops.try_timestamp(decided_at)<=ops.try_timestamp(%s) OR ops.try_timestamp(decided_at) IS NULL) ORDER BY decision_id LIMIT 1",
             (generation_id, session.cutoff.isoformat()),
             ("decision_id",),
             cap=1,

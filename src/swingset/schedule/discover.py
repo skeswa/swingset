@@ -47,7 +47,7 @@ def discover(database: Database, bundle: InputBundle, now: datetime) -> int:
                     # New archived/active watches get their first fetch now; dormant waits.
                     refresh_policy(conn, bundle.config, spec.watch_id, now, jitter=0)
                     conn.execute(
-                        "UPDATE watches SET next_check_at=? WHERE watch_id=? AND state NOT IN ('dormant','gone')",
+                        "UPDATE watches SET next_check_at = %s WHERE watch_id = %s AND NOT state IN ('dormant', 'gone')",
                         (now.isoformat(), spec.watch_id),
                     )
     return created

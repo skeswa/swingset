@@ -30,10 +30,24 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 
 ## SQLite schema
 
-One file, WAL mode, `foreign_keys = ON`, schema versioned by numbered
-SQL migrations under `state/migrations/`. Names match the published
-tables where a table is published. The [schema history](schema-history.md) lists
-what each numbered migration changes and links to its exact SQL.
+The original SQLite format used one WAL file with foreign keys enabled. Its
+numbered migrations now live in the [historical test fixture](../../tests/fixtures/legacy_sqlite37/README.md#sql-migrations);
+the [schema history](schema-history.md) lists their changes. The Postgres port
+starts at schema 37 under `state/postgres_migrations/`, with explicit owner
+migrations and names matching published tables. A worker open never migrates.
+The [namespace map](../plans/postgres-migration/2-schema.md#todays-141-tables-by-namespace)
+locates the logical table names below. The destination also has
+`ops.environment_identity`, with a fresh database UUID and `dev` or
+`production` identity. Worker credentials cannot change it.
+
+History backup rules live in
+[`history_catalog.py`](../../src/swingset/state/history_catalog.py).
+Observation contexts without an approved immutable source counterpart stay
+in history; restoring their rows does not approve the legacy evidence.
+In particular, pending parse tokens for snapshots with retained bodies keep
+their exact `enqueued_at`, because it enters source-generation identity.
+Other hints and leases reset; the [backup contract](../plans/postgres-migration/4-hosting.md#backups-and-recovery)
+defines the audits before and after reconstruction.
 
 Internal tables:
 
@@ -203,6 +217,12 @@ Deleting a hint cannot hide unfinished work. `accepted_inputs` identifies the
 captured inputs available to consumers. Output revisions describe changed
 data, never whether another stage ran.
 
+Removing an optional input records its absence with the empty-content digest.
+Those named absence tokens remain part of the accepted pipeline input map;
+the current bundle's member list cannot reconstruct them. The
+[history row rules](../plans/postgres-migration/4-hosting.md#backups-and-recovery)
+preserve that semantic map during restore.
+
 At the start of a tick or command, read config, overrides, vocabularies, implementation versions,
 and the exact runtime artifact into a validated immutable input bundle. The
 bundle also carries `policy/retention.json`, the retention limits in force as
@@ -224,9 +244,10 @@ already processed under the previous bundle.
 | Changed input                                                                                                   | Work enqueued in the same transaction                                                                                               |
 | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | New snapshot                                                                                                    | Parse that snapshot                                                                                                                 |
-| `recipe/env`: interpreter, installed distributions, pyproject's `[project]` table                               | Parse every retained snapshot; queue every project and link unit as a hint; identical output keeps its generation                   |
-| A kind's extract or parse code scope, even with unchanged version labels                                        | As that kind's `EXTRACT_VERSION` or `PARSER_VERSION` change below                                                                   |
-| A project, link or build code scope                                                                             | Queue that kind's project units, or every link unit, as hints; build none. Identical output keeps its generation                    |
+| Audit `recipe/env`: interpreter, installed distributions, project metadata                                      | No work; releases wait for verification                                                                                             |
+| A kind's declared extract or parse version                                                                      | As that kind's `EXTRACT_VERSION` or `PARSER_VERSION` change below                                                                   |
+| A project or link declared version; build closure bytes                                                         | Queue that kind's project units, or every link unit, as hints; build none. Identical output keeps its generation                    |
+| Audit code closure digest                                                                                       | No work; releases wait for verification                                                                                             |
 | `EXTRACT_VERSION` for a page kind                                                                               | Parse every archived snapshot of that kind, re-extracting before parsing; invalidate the watch's cached extract fingerprint version |
 | `PARSER_VERSION` for a page kind                                                                                | Parse every archived snapshot of that kind from its stored extract                                                                  |
 | Successful parse changing current observations                                                                  | Project their old and new scopes; calendar or index changes enqueue every source's mapping unit                                     |
@@ -706,8 +727,7 @@ Each selection binds its scope, recipe, ordered dependencies, and context.
 The input bundle keeps every package file, SQL schemas and package data
 included, plus project lock inputs, interpreter identity and installed
 dependency manifest digests. Installed RECORD hashes identify dependencies;
-they do not audit every installed binary. Manual version labels remain
-descriptive. Relevant override and policy inputs join each stage's recipe;
+they do not audit every installed binary. Declared transform versions determine code recipe identity (D-0264). Relevant override and policy inputs join each stage's recipe;
 scheduler allocations do not.
 
 A recipe names code by scope, not the whole package
@@ -726,12 +746,21 @@ the entries:
 | `recipe/code/link`                | `link.service`, `link.persistence`                                                                                                                                                                     |
 | `recipe/code/build`               | `build.service`, `build.generations`                                                                                                                                                                   |
 
-`recipe/env` digests `environment.json` and `project.json`, pyproject's
-`[project]` table; the whole `pyproject.toml` and `uv.lock` are kept in the
-bundle but a `[tool.*]` edit or a dev-dependency bump changes no recipe. A
-project unit's recipe is its kind's project scope, `recipe/env`,
-`policy/history_start` and its overrides; link and build likewise. A parse
-recipe is `recipe/env`, `policy/history_start` and the kind's two scopes.
+For newly captured bundles, `recipes/scopes.json` also records declared
+versions, read by AST from the captured entry modules. Extract uses
+`EXTRACT_VERSION`; parse uses `PARSER_VERSION`, the kind's contract version
+and `PARSE_CORE_VERSION`; project uses `PROJECTOR_VERSION` and entry-module
+`VERSION` constants; link uses `LINKER_VERSION` and persistence `VERSION`.
+Build keeps its closure digest. The pipeline accepts these version digests
+under the existing `recipe/code/*` names. Policy and override digests stay
+in each recipe. `recipe/env` leaves the recipe.
+
+The `audit` consumer accepts the closure digests and `recipe/env` (the exact
+interpreter, installed distributions and project metadata). An audit change
+queues no domain work. The release loop waits for a complete clean graph
+verification receipt for the accepted audit and versions. Legacy captured
+bundles retain their byte identities for replay.
+
 Every package path is in a scope or in `EXCLUDED`, with a reason; a test
 enforces this. The dispatch tables `sources/registry.py` (kind to adapter) and
 `admission/kinds.py` (kind to contract module and version) are dispatch: the
@@ -739,11 +768,9 @@ walk stops at them, a scope that reaches one holds the digest of its code with
 the table values blanked (`<path>#code`), so a lookup edit re-runs those
 scopes, and each kind's entries name the modules the tables resolve
 ([D-0261](../../journal/decisions/0261-dispatch-tables-are-in-no-scope-and-each-kind-names-its-contract.md)).
-So a new source registration changes only its own kinds' scopes, an edit to one
-kind's contract module re-parses only the kinds it lists (the three round kinds
-share `round_contract.py`, the four listing kinds `listing_contract.py`), and an
-edit to the shared core (`contracts.py`, `accounting.py`) re-parses every kind
-and re-projects nothing. Adapters do not import admission: `@declared` marks a
+A new source registration adds its own kinds' scopes. A contract version bump
+re-parses its kind; a `PARSE_CORE_VERSION` bump re-parses every kind. Code edits
+without a declared bump change audit digests and require verification. Adapters do not import admission: `@declared` marks a
 parse and `contracts.declare` attaches the declaration where admission parses.
 A bundle captured before scopes still yields the package-wide
 `recipe/runtime`; after the first scoped bundle that input stays at the
@@ -754,10 +781,9 @@ each other, so each project and link scope holds 176 files and the build
 scope 187. The scheduler, the loops and acquisition (`schedule/release_steps.py`,
 `loops/`, `fetch/client.py`, `history/backfill.py`, `schedule/fairness.py`
 and the like) are in no scope: an edit there re-runs nothing. `versions()` and
-`repository_identity()` live in `versions.py` for that reason. An edit inside a shared module re-runs every project and
-link unit; identical output keeps its generation (below), so this costs CPU,
-not generations. Parse scopes hold 34 to 43 files, and a non-parser change
-re-queues no parse. A shallow entry adds its own bytes and its packages'
+`repository_identity()` live in `versions.py` for that reason. A shared-module edit changes the audit of every project and
+link scope. Verification checks stored outputs and dependency sets on copies;
+the edit itself queues no domain work. Parse scopes hold 34 to 43 files. A shallow entry adds its own bytes and its packages'
 `__init__`, not its imports or data files; tests pin which of its imports
 fall outside its scope. A parse _retry_ still keys on `version/repository`,
 so any deploy re-opens blocked parse attempts without re-parsing others.
@@ -944,7 +970,7 @@ its own id, with or without a building row, finishes storing it inline. `cycle_p
 `derivation_building`. The maintain loop counts building rows, and the
 watchdog's `[building-orphans]` names any not advanced for 24 hours.
 
-`recipe_inputs` fails closed: once `recipe/env` is accepted, a project, link
+`recipe_inputs` fails closed: once a scoped runtime is accepted, a project, link
 or build unit whose code scope is not accepted raises `RecipeScopeMissing`.
 Offline selection then skips that kind only, names it in the derive record's
 `readiness_errors` and fails the tick; the other kinds keep running.

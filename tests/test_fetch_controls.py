@@ -1,6 +1,5 @@
 """Request pauses drain through evidence retention and survive exceptional I/O."""
 
-import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -17,6 +16,7 @@ from swingset.schedule.derive import derive_one
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.sources.wsdc_calendar import EventsPage
+from swingset.state import engine
 from swingset.state.controls import Selector, change_control, status
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit
@@ -147,10 +147,10 @@ def test_pause_after_redirect_blocks_next_actual_host_request(fetched, target):
         assert fetcher.fetch(fetched.spec.watch_id, EventsPage(), fetched.run).skipped == "operator"
         assert seen == ["https://example.test/robots.txt", "https://example.test/events"]
         assert fetched.db.connection.execute(
-            "SELECT SUM(requests),SUM(bytes) FROM host_budget"
+            "SELECT SUM(requests) AS requests, SUM(bytes) AS bytes FROM host_budget"
         ).fetchone()[:] == (2, 8)
         assert not fetched.db.connection.execute(
-            "SELECT 1 FROM host_budget WHERE host='other.test'"
+            "SELECT 1 FROM host_budget WHERE host = 'other.test'"
         ).fetchone()
         assert report(fetched)["state"] == "paused" and not fetcher.gate.inflight
     finally:
@@ -182,7 +182,7 @@ def test_host_pause_is_scoped_and_does_not_gate_retained_parse(fetched):
         assert not derived.failed and derived.reason is None
         assert (
             fetched.db.connection.execute(
-                "SELECT COUNT(*) FROM observations WHERE snapshot_id=?", (result.snapshot_id,)
+                "SELECT COUNT(*) FROM observations WHERE snapshot_id = %s", (result.snapshot_id,)
             ).fetchone()[0]
             > 0
         )
@@ -216,14 +216,14 @@ def test_unexpected_request_error_releases_admission_and_keeps_actual_debit(
             fetcher.fetch(fetched.spec.watch_id, EventsPage(), fetched.run)
         assert not fetcher.gate.inflight
         assert not fetched.db.connection.execute(
-            "SELECT 1 FROM execution_admissions WHERE state!='settled'"
+            "SELECT 1 FROM execution_admissions WHERE state <> 'settled'"
         ).fetchone()
-        assert fetched.db.connection.execute("SELECT requests,bytes FROM host_budget").fetchone()[
+        assert fetched.db.connection.execute("SELECT requests, bytes FROM host_budget").fetchone()[
             :
         ] == (1, len(BODY) if failure == "classification" else 0)
         assert (
             fetched.db.connection.execute(
-                "SELECT outcome FROM execution_admissions WHERE action_kind='request'"
+                "SELECT outcome FROM execution_admissions WHERE action_kind = 'request'"
             ).fetchone()[0]
             == "Invalid"
         )
@@ -233,50 +233,73 @@ def test_unexpected_request_error_releases_admission_and_keeps_actual_debit(
 
 @pytest.mark.parametrize("committed", [False, True])
 def test_request_admission_commit_failure_cleans_up_without_http(fetched, monkeypatch, committed):
-    class FailingCommit(sqlite3.Connection):
-        fail = True
+    import psycopg
 
-        def commit(self):
-            if (
-                self.fail
-                and self.execute(
-                    "SELECT 1 FROM execution_admissions WHERE action_kind='request' AND state='active'"
-                ).fetchone()
-            ):
-                self.fail = False
-                if committed:
-                    super().commit()
-                raise sqlite3.OperationalError("simulated admission commit failure")
-            super().commit()
+    from swingset.state.db import open_database
 
-    conn = sqlite3.connect(
-        fetched.db.state_dir / "state.sqlite", isolation_level=None, factory=FailingCommit
-    )
-    conn.row_factory = sqlite3.Row
+    conn = fetched.db.connection
+    original = psycopg.Connection.commit
+    armed = True
+
+    def fail_once(self):
+        nonlocal armed
+        if (
+            self is conn
+            and armed
+            and self.execute(
+                "SELECT 1 FROM execution_admissions WHERE action_kind='request' AND state='active'"
+            ).fetchone()
+        ):
+            armed = False
+            if committed:
+                original(self)
+                self.close()
+                raise psycopg.OperationalError("injected lost commit acknowledgement")
+            # A real deferred FK rejection proves the debit/admission never committed.
+            self.execute(
+                "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
+                "VALUES(1,'injected commit rejection','2026-01-01')"
+            )
+        return original(self)
+
+    monkeypatch.setattr(psycopg.Connection, "commit", fail_once)
     fetcher = client(
         fetched, lambda _: pytest.fail("commit failure must precede HTTP"), connection=conn
     )
     monkeypatch.setattr(fetcher.robots, "policy", lambda *_: RobotsPolicy(True))
     try:
-        with pytest.raises(sqlite3.OperationalError, match="commit failure"):
+        expected = engine.CommitUncertain if committed else engine.IntegrityError
+        with pytest.raises(expected):
             fetcher.fetch(fetched.spec.watch_id, EventsPage(), fetched.run)
-        assert not fetcher.gate.inflight and not conn.in_transaction
-        if committed:
-            assert conn.execute("SELECT requests,bytes FROM host_budget").fetchone()[:] == (1, 0)
-            assert (
-                conn.execute(
-                    "SELECT outcome FROM execution_admissions WHERE action_kind='request'"
-                ).fetchone()[0]
-                == "not_issued"
-            )
-        else:
-            assert not conn.execute("SELECT 1 FROM host_budget").fetchone()
-        assert not conn.execute(
-            "SELECT 1 FROM execution_admissions WHERE state!='settled'"
-        ).fetchone()
+        assert not fetcher.gate.inflight
+        assert conn.closed if committed else not conn.in_transaction
+        with open_database(fetched.db.state_dir, lock=False, read_only=True) as inspection:
+            saved = inspection.connection
+            if committed:
+                assert saved.execute("SELECT requests,bytes FROM host_budget").fetchone()[:] == (
+                    1,
+                    0,
+                )
+                row = saved.execute(
+                    "SELECT state,outcome FROM execution_admissions WHERE action_kind='request'"
+                ).fetchone()
+                assert tuple(row) == ("active", None)
+            else:
+                assert saved.execute("SELECT count(*) FROM host_budget").fetchone()[0] == 0
+                assert (
+                    saved.execute(
+                        "SELECT count(*) FROM execution_admissions WHERE action_kind='request'"
+                    ).fetchone()[0]
+                    == 0
+                )
+                assert (
+                    saved.execute(
+                        "SELECT count(*) FROM execution_admissions WHERE state<>'settled'"
+                    ).fetchone()[0]
+                    == 0
+                )
     finally:
         fetcher.close()
-        conn.close()
 
 
 def test_transport_retry_does_not_recharge_previous_response_bytes(fetched, monkeypatch):
@@ -293,12 +316,12 @@ def test_transport_retry_does_not_recharge_previous_response_bytes(fetched, monk
     try:
         result = fetcher.fetch(fetched.spec.watch_id, EventsPage(), fetched.run)
         assert result.snapshot_id is None and len(calls) == 4
-        assert fetched.db.connection.execute("SELECT requests,bytes FROM host_budget").fetchone()[
+        assert fetched.db.connection.execute("SELECT requests, bytes FROM host_budget").fetchone()[
             :
         ] == (4, len(b"server error"))
         assert not fetcher.gate.inflight
         assert not fetched.db.connection.execute(
-            "SELECT 1 FROM execution_admissions WHERE state!='settled'"
+            "SELECT 1 FROM execution_admissions WHERE state <> 'settled'"
         ).fetchone()
     finally:
         fetcher.close()

@@ -1,0 +1,54 @@
+{
+  "exact_iterations": 20,
+  "expected_incomplete_fixture": true,
+  "fixture_sha256": "c9d436990f83c8f687659584c4825c9bf7577774bd547836072ffc61fdb743a5",
+  "format": "swingset-timeout-memo-validation-v1",
+  "measured_runtime_source_hashes": {
+    "src/swingset/schedule/event_pressure.py": "da24fbabe9f77171d7ced3246d2afefa5124c3996417c7e62436fddfeb0656de",
+    "src/swingset/state/control_scopes.py": "c71ddc97d8b9ed459d99a83c714ef2e404609aa6dd73e37cdeb8bdfb4d5aec7c",
+    "src/swingset/state/db.py": "58525020df1c27936f9d5c54128ed91bcfa0cf1f96d104e1570aa6b71bce3ee8",
+    "src/swingset/state/engine/connection.py": "3d4343dbeccfa3de809d4458dfad28c373bcf90dee182d1b829456933b24c180",
+    "src/swingset/state/write_deadline.py": "33124bb89b27331c19324603913961d6e0704485d1acfd449e20b2cd9bbcbd04"
+  },
+  "native_contracts": {
+    "checks": [
+      "original rollback/lock/commit uncertainty",
+      "exact deadline/ms reuse retains per-statement clock checks",
+      "raw savepoint rollback and same-deadline new transaction reapply real server GUCs",
+      "bound set_config invalidates timeout state",
+      "bound search_path changes and rollback/commit invalidate native planner relations"
+    ],
+    "deselected": [
+      "test_pipeline_fixtures_run_armed_with_zero_undeclared_reads"
+    ],
+    "passed": 68,
+    "seconds": 16.71
+  },
+  "original600_iteration_coverage_unchanged": true,
+  "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+  "prior_controlled_receipt_sha256": "e325f111ad1728f2ba61afcf58c20c6a437070aa9fe30140fccc742435e771a9",
+  "protocol": "No pipeline protocol or timeout limit change.",
+  "recorded_at": "2026-11-05T02:16:46.243187+00:00",
+  "runtime_counts": {
+    "deadline_setting_statements": 1907,
+    "driver_execute_calls": 12015
+  },
+  "runtime_phase_seconds": {
+    "call": 2.3225079588592052,
+    "setup": 0.12753895903006196,
+    "teardown": 0.0074768331833183765
+  },
+  "runtime_wall_seconds": 2.6425759592093527,
+  "unchanged30ms_proof": {
+    "all_passed": true,
+    "node": "tests/test_write_deadline.py::test_timed_out_derivation_backs_off_while_independent_output_commits",
+    "seconds": [
+      0.95,
+      0.9,
+      0.85,
+      0.85
+    ],
+    "simultaneous_independent_processes": 4,
+    "test_file_sha256": "cf688f827444cf2d22e5611cb97ed0c03191b05e09fefcf93fbd3d50ece8bf5a"
+  }
+}

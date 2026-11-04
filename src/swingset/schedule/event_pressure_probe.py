@@ -1,13 +1,12 @@
 """Bounded, read-only evidence checks for conservative scheduling observations.
 
-The caller owns the SQLite snapshot and observation fences. Exhaustion is
+The caller owns the Postgres snapshot and observation fences. Exhaustion is
 unknown, never completion. No SQL/filesystem hard deadline is claimed.
 """
 
 from __future__ import annotations
 
 import json
-import sqlite3
 import time as time
 from datetime import datetime
 from typing import Any
@@ -15,6 +14,7 @@ from typing import Any
 from swingset.admission.evidence_budget import Budget, _Unknown
 from swingset.admission.evidence_budget import Limits as Limits
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 from .event_evidence import (
     admission_reason,
@@ -30,7 +30,7 @@ _DEFAULT_LIMITS = Limits()
 
 
 class _Probe(Budget):
-    def __init__(self, conn: sqlite3.Connection, archive: Archive, limits: Limits):
+    def __init__(self, conn: engine.Connection, archive: Archive, limits: Limits):
         super().__init__(conn, archive, limits)
         self.generations: dict[str, tuple[bool, set[str]]] = {}
         self.unsupported: set[str] = set()
@@ -54,7 +54,19 @@ class _Probe(Budget):
             "state",
         )
         rows = self.read(
-            "SELECT * FROM source_generations WHERE generation_id=?", (identifier,), columns, cap=1
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (identifier,),
+            columns,
+            cap=1,
         )
         if not rows:
             self.reasons["source_generation_missing"] += 1
@@ -84,7 +96,7 @@ class _Probe(Budget):
             for member in manifest:
                 self.tick()
                 rows = self.read(
-                    "SELECT watch_id,url,body_sha256,snapshot_id FROM snapshots WHERE snapshot_id=?",
+                    "SELECT watch_id, url, body_sha256, snapshot_id FROM snapshots WHERE snapshot_id = %s",
                     (member["snapshot_id"],),
                     ("watch_id", "url", "body_sha256", "snapshot_id"),
                     cap=1,
@@ -116,7 +128,10 @@ class _Probe(Budget):
         if request_id(page) != row["request_id"]:
             raise ValueError("request identity changed")
         watches = self.read(
-            "SELECT watch_id FROM source_event_member_watches WHERE enumeration_id=? AND request_id=? ORDER BY watch_id",
+            (
+                "SELECT watch_id FROM source_event_member_watches WHERE enumeration_id = %s AND request_id = "
+                "%s ORDER BY watch_id NULLS FIRST"
+            ),
             (row["enumeration_id"], row["request_id"]),
             ("watch_id",),
             cap=self.limits.candidates,
@@ -127,7 +142,10 @@ class _Probe(Budget):
         acquired: set[str] = set()
         for watch in watches:
             snapshots = self.read(
-                "SELECT snapshot_id,method,url,form,classification,body_sha256 FROM snapshots WHERE watch_id=? ORDER BY fetched_at DESC,snapshot_id DESC",
+                (
+                    "SELECT snapshot_id, method, url, form, classification, body_sha256 FROM snapshots WHERE "
+                    "watch_id = %s ORDER BY fetched_at DESC NULLS LAST, snapshot_id DESC NULLS LAST"
+                ),
                 (watch["watch_id"],),
                 ("snapshot_id", "method", "url", "form", "classification", "body_sha256"),
                 cap=self.limits.candidates,
@@ -152,7 +170,9 @@ class _Probe(Budget):
         unsupported = False
         for watch in watches:
             candidates = self.read(
-                "SELECT g.generation_id FROM source_units u JOIN source_generations g USING(unit_key) WHERE u.watch_id=? AND EXISTS(SELECT 1 FROM admission_decisions d WHERE d.generation_id=g.generation_id AND d.state='accepted') ORDER BY g.created_at DESC,g.generation_id DESC",
+                (
+                    "SELECT g.generation_id FROM source_units AS u JOIN source_generations AS g USING (unit_key) WHERE u.watch_id = %s AND EXISTS(SELECT 1 AS _value_0 FROM admission_decisions AS d WHERE d.generation_id = g.generation_id AND d.state = 'accepted') ORDER BY g.created_at DESC NULLS LAST, g.generation_id DESC NULLS LAST"
+                ),
                 (watch["watch_id"],),
                 ("generation_id",),
                 cap=self.limits.candidates,
@@ -167,7 +187,7 @@ class _Probe(Budget):
 
 
 def probe(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     *,
     enumeration_id: str,
@@ -215,14 +235,17 @@ def probe(
         "pagination": "unknown",
     }
     if not conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE name='source_event_enumerations'"
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'source_event_enumerations' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
     ).fetchone():
         result["reasons"] = {"event_inventory_schema_unavailable": 1}
         return result
     evidence = _Probe(conn, archive, limits)
     try:
         rows = evidence.read(
-            "SELECT source,source_ref,parent_support_json,pagination FROM source_event_enumerations WHERE enumeration_id=?",
+            (
+                "SELECT source, source_ref, parent_support_json, pagination FROM source_event_enumerations "
+                "WHERE enumeration_id = %s"
+            ),
             (enumeration_id,),
             ("source", "source_ref", "parent_support_json", "pagination"),
             cap=1,
@@ -259,7 +282,11 @@ def probe(
     # Cursor scanning has its own fixed-size allowance so exhausted verification
     # cannot repeatedly trap a large parent or member. No large JSON is returned.
     members = conn.execute(
-        "SELECT CASE WHEN length(CAST(request_id AS BLOB))<=256 THEN request_id END AS request_id FROM source_event_enumeration_members WHERE enumeration_id=? AND request_id>? ORDER BY request_id LIMIT ?",
+        (
+            "SELECT CASE WHEN octet_length(request_id::text) <= 256 THEN request_id END AS request_id "
+            "FROM source_event_enumeration_members WHERE enumeration_id = %s AND request_id > %s ORDER "
+            "BY request_id NULLS FIRST LIMIT %s"
+        ),
         (enumeration_id, after_request_id or "", limits.members + 1),
     ).fetchall()
     result["end_of_enumeration"] = len(members) <= limits.members
@@ -273,7 +300,7 @@ def probe(
         try:
             evidence.tick()
             page_rows = evidence.read(
-                "SELECT request_json FROM source_event_enumeration_members WHERE enumeration_id=? AND request_id=?",
+                "SELECT request_json FROM source_event_enumeration_members WHERE enumeration_id = %s AND request_id = %s",
                 (enumeration_id, member["request_id"]),
                 ("request_json",),
                 cap=1,

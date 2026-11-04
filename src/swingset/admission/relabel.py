@@ -27,7 +27,6 @@ This module is an operator command, outside every recipe scope
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
@@ -35,7 +34,7 @@ from typing import Any
 
 from swingset.model.observations import encode_payload
 from swingset.sources.base import ParseContext, ParseResult
-from swingset.state import body_packs
+from swingset.state import body_packs, engine
 from swingset.state.db import Database
 from swingset.state.observations import store_parse_result
 
@@ -60,16 +59,16 @@ class Drift:
     accepted: tuple[str, str, str]
 
 
-def _units(conn: sqlite3.Connection, kinds: Iterable[str] | None) -> Iterator[dict[str, Any]]:
+def _units(conn: engine.Connection, kinds: Iterable[str] | None) -> Iterator[dict[str, Any]]:
     wanted = sorted(set(kinds or ()))
     query = (
-        "SELECT u.unit_key,u.page_kind,u.watch_id,g.generation_id,g.recipe_json,"
-        "g.removal_authority,w.current_observation_snapshot_id "
-        "FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id "
-        "JOIN watches w ON w.watch_id=u.watch_id WHERE g.state='accepted'"
+        "SELECT u.unit_key, u.page_kind, u.watch_id, g.generation_id, g.recipe_json, "
+        "g.removal_authority, w.current_observation_snapshot_id FROM source_units AS u JOIN "
+        "source_generations AS g ON g.generation_id = u.accepted_generation_id JOIN watches AS w ON "
+        "w.watch_id = u.watch_id WHERE g.state = 'accepted'"
     )
     if wanted:
-        query += f" AND u.page_kind IN ({','.join('?' for _ in wanted)})"
+        query += f" AND u.page_kind IN ({','.join('%s' for _ in wanted)})"
     query += " ORDER BY u.page_kind,u.unit_key"
     names = (
         "unit_key",
@@ -84,14 +83,14 @@ def _units(conn: sqlite3.Connection, kinds: Iterable[str] | None) -> Iterator[di
         yield dict(zip(names, values, strict=True))
 
 
-def _result(conn: sqlite3.Connection, generation_id: str) -> ParseResult:
+def _result(conn: engine.Connection, generation_id: str) -> ParseResult:
     body = body_packs.source_body(conn, generation_id)
     if body is None:
         raise ValueError(f"source generation {generation_id} has no row")
     return deserialize_result(body.result_json)
 
 
-def _classify(conn: sqlite3.Connection, row: Mapping[str, Any]) -> tuple[Drift, Any]:
+def _classify(conn: engine.Connection, row: Mapping[str, Any]) -> tuple[Drift, Any]:
     recipe = json.loads(str(row["recipe_json"]))
     snapshot = str(recipe["context"]["snapshot_id"])
     accepted = (snapshot, str(recipe["extract_version"]), str(recipe["parser_version"]))
@@ -99,9 +98,11 @@ def _classify(conn: sqlite3.Connection, row: Mapping[str, Any]) -> tuple[Drift, 
     # `store_parse_result` compares them (`preserve_history`).
     by_snapshot = row["removal_authority"] == "none"
     stored = conn.execute(
-        "SELECT kind,scope_kind,scope_id,seq,payload_json,snapshot_id,"
-        "CAST(extract_version AS TEXT),CAST(parser_version AS TEXT) FROM observations "
-        "WHERE watch_id=?" + (" AND snapshot_id=?" if by_snapshot else "") + " ORDER BY seq",
+        (
+            "SELECT kind, scope_kind, scope_id, seq, payload_json, snapshot_id, CAST(extract_version AS TEXT) AS _value_6, CAST(parser_version AS TEXT) AS _value_7 FROM observations WHERE watch_id = %s"
+        )
+        + (" AND snapshot_id=%s" if by_snapshot else "")
+        + " ORDER BY seq",
         (row["watch_id"], snapshot) if by_snapshot else (row["watch_id"],),
     ).fetchall()
     labels = tuple(sorted({(str(item[5]), str(item[6]), str(item[7])) for item in stored}))
@@ -137,7 +138,7 @@ def _classify(conn: sqlite3.Connection, row: Mapping[str, Any]) -> tuple[Drift, 
     return drift, (recipe, result, by_snapshot)
 
 
-def drift(conn: sqlite3.Connection, *, kinds: Iterable[str] | None = None) -> list[Drift]:
+def drift(conn: engine.Connection, *, kinds: Iterable[str] | None = None) -> list[Drift]:
     """Every source unit with an accepted generation, classified (read only)."""
     return [_classify(conn, row)[0] for row in _units(conn, kinds)]
 
@@ -187,10 +188,12 @@ def relabel(
     for row in _units(conn, kinds):
         with database.transaction() as tx:
             current = tx.execute(
-                "SELECT g.recipe_json,g.removal_authority,w.current_observation_snapshot_id "
-                "FROM source_units u JOIN source_generations g "
-                "ON g.generation_id=u.accepted_generation_id JOIN watches w ON w.watch_id=u.watch_id "
-                "WHERE u.unit_key=? AND g.generation_id=? AND g.state='accepted'",
+                (
+                    "SELECT g.recipe_json, g.removal_authority, w.current_observation_snapshot_id FROM "
+                    "source_units AS u JOIN source_generations AS g ON g.generation_id = "
+                    "u.accepted_generation_id JOIN watches AS w ON w.watch_id = u.watch_id WHERE u.unit_key = %s "
+                    "AND g.generation_id = %s AND g.state = 'accepted'"
+                ),
                 (row["unit_key"], row["generation_id"]),
             ).fetchone()
             if current is None:

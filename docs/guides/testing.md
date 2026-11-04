@@ -1,9 +1,45 @@
 # Run the tests that protect the pipeline
 
-Run `uv run pytest -q` for the core suite. It selects the reviewed tests for
+On `postgres-migration`, run `mise run test` for the core suite.
+Use `mise run test -- <pytest arguments>` for the commands below.
+The warm native Postgres service gives each test a private database, while
+pure parser tests start no service. `mise run test-watch -- <selector>`
+reruns a focused selection after edits.
+
+The bookmark's default `test` and `check` commands first run the unchanged
+30 ms deadline recovery case in one isolated process. After its passing
+receipt and cleanup checks, four native Linux clients with four workers each
+run the rest of the core. Each client has a 2 GiB RAM-plus-swap limit.
+Measured file costs put expensive files first while keeping each file on one
+worker. Every phase reports the complete selection; their assignments and
+executions must cover it exactly once. The 180-second wall budget includes
+both phases, service setup, verification and cleanup; phase totals add work
+across workers.
+See the [local outcome](../../journal/investigations/2026/stage-1-implementation-2026-11-04.md).
+
+The ordinary core reuses a separate durable physical-test service, prepared
+by `mise run dev` and validated on every run. Its fresh-instance database
+inventory must match before and after the run; unexpected databases retain
+their owner records and block reuse. Native lifecycle fault tests, full runs
+and CI keep their fresh physical clusters.
+
+Explicit selectors and worker flags run natively. Focused runs and
+`--full-suite` stay serial unless you supply worker flags; for the full
+Postgres check use `mise run test -- --full-suite -n 4 --dist=loadfile
+--no-loadscope-reorder --max-worker-restart=0`. `SWINGSET_FAST_CORE=0` selects
+the native core path for diagnosis. CI runs four native workers inside its
+AMD64 test image.
+
+CI's host supplies a separate durable Postgres service for physical-space
+and large backup fixtures. They serialize with a session advisory lease
+and one 600-second coordination deadline. Waiting clients poll without
+holding a transaction snapshot, so they cannot pin a peer's cleanup horizon.
+Application deadlines and each case's memory and data assertions stay unchanged.
+
+Run `uv run pytest -q` for the core suite outside that bookmark. It selects the reviewed tests for
 data loss, recovery, publication, identity, source parsing and pipeline
-integration. The goal is fewer than five minutes on the development Mac,
-without parallel pytest workers. CI uses this same default command.
+integration. That original command is serial. The current development
+target is three minutes; bookmark CI uses `swingset.dev.commands check`.
 
 On 2026-09-18, **989 core cases passed in 2 minutes 54 seconds wall time** on
 the development Mac; 2,039 extended cases were deselected. The
@@ -42,8 +78,13 @@ declared safe to delete.
 Prefer the core run and the files you changed while iterating. Run
 `--full-suite` as a final or important check: before a commit or handoff, or
 when a change touches crash recovery, migrations, backup and restore,
-publication, or another area listed under the extended suite below. A full run
-takes about ten minutes and writes about 15 GiB of temp.
+publication, or another area listed under the extended suite below. Before the
+Postgres port, a full run took about ten minutes and wrote about 15 GiB of temp.
+The bookmark's native Postgres full run passed 4,147 cases in 22 minutes
+44 seconds and needs about 30 GiB of scratch. Keep the 80 GiB free-disk floor;
+see the source-bound checks in the
+[local outcome](../../journal/investigations/2026/stage-1-implementation-2026-11-04.md).
+The core's 180-second budget is separate.
 
 An explicit file, directory or node ID bypasses the default selection. In
 particular, explicitly selecting the crash file without `-m core` includes the

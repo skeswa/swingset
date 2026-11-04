@@ -1,0 +1,28 @@
+{
+  "format": "swingset-linux-rss-metric-v1",
+  "image": "sha256:7f3ae98a9c1521c36f740bb88b7e43fbded024438a49d0530d235becea111761",
+  "kernel_cap_bytes": 536870912,
+  "seconds": 0.4553292919881642,
+  "program_sha256": "50ad4288688bae60c434ba59f1ec2aee9039fd947ca80f177061daa04128c48a",
+  "result": {
+    "parent_allocated_mib": 200,
+    "parent_rusage_bytes": 220966912,
+    "children": [
+      {
+        "allocated_mib": 10,
+        "rusage_bytes": 220835840,
+        "vmhwm_bytes": 21323776,
+        "vmrss_bytes": 21323776
+      },
+      {
+        "allocated_mib": 160,
+        "rusage_bytes": 220966912,
+        "vmhwm_bytes": 178642944,
+        "vmrss_bytes": 178642944
+      }
+    ]
+  },
+  "timestamp": "2026-11-05T03:20:12.804419+00:00",
+  "conclusion": "Linux ru_maxrss includes pre-exec parent memory; VmHWM measures the new client address space and still detects a real 160 MiB allocation.",
+  "limit_bytes": 134217728
+}

@@ -1,0 +1,133 @@
+{
+  "operation": "stage1_read_only_preflight",
+  "timestamp": "2026-11-04T22:21:39.592194+00:00",
+  "server": "rhuidean",
+  "exit_code": 0,
+  "checks": {
+    "disk": {
+      "command": [
+        "df",
+        "-B1",
+        "/var/lib/docker"
+      ],
+      "exit_code": 0,
+      "output": "Filesystem        1B-blocks        Used    Available Use% Mounted on\n/dev/sda2      983347249152 30072532992 903247892480   4% /",
+      "sha256": "93cb3a234961181d4afcb17a52be8a8a654a1d7ceda5c035536b0a153416688c"
+    },
+    "inodes": {
+      "command": [
+        "df",
+        "-i",
+        "/var/lib/docker"
+      ],
+      "exit_code": 0,
+      "output": "Filesystem       Inodes  IUsed    IFree IUse% Mounted on\n/dev/sda2      61054976 556331 60498645    1% /",
+      "sha256": "78a00a96789c778f531faca1e9ef2bc0aa1b3d3ea40e4e140f92b6a1b5c7fd15"
+    },
+    "filesystem": {
+      "command": [
+        "findmnt",
+        "-T",
+        "/var/lib/docker",
+        "-no",
+        "FSTYPE"
+      ],
+      "exit_code": 0,
+      "output": "ext4",
+      "sha256": "6ce5812ab98bf775dc5690c73950250f9e9503a8c769101cc35a666e9a767082"
+    },
+    "memory": {
+      "command": [
+        "free",
+        "-b"
+      ],
+      "exit_code": 0,
+      "output": "total        used        free      shared  buff/cache   available\nMem:     67513298944  2968133632 53677584384    42758144 11601305600 64545165312\nSwap:     8589930496           0  8589930496",
+      "sha256": "2e99fcae22364530afca494c9a20b301a6335b3764aa58da4d99eb0c475c2aec"
+    },
+    "services": {
+      "command": [
+        "docker",
+        "ps",
+        "--format",
+        "{{.Image}}"
+      ],
+      "exit_code": 0,
+      "output": "rustfs/rustfs:latest\nredis:7\npostgres:17\ndokploy/dokploy:v0.30.6\npostgres:16\nredis:7\ntraefik:v3.6.1",
+      "sha256": "76928c27f0490c591b23cf995259483643426ffe08f18dc99153f16797b0d47d"
+    },
+    "network": {
+      "command": [
+        "docker",
+        "network",
+        "inspect",
+        "dokploy-network",
+        "--format",
+        "{{.Driver}} {{.Attachable}} {{.Internal}}"
+      ],
+      "exit_code": 0,
+      "output": "overlay true false",
+      "sha256": "f92796daf40387604efa4c33e82157fedeaa4145a00eca18ada14f76a3b6542c"
+    },
+    "postgres_ports": {
+      "command": [
+        "docker",
+        "service",
+        "inspect",
+        "infra-postgres-1oj9lb",
+        "--format",
+        "{{json .Endpoint.Ports}}"
+      ],
+      "exit_code": 0,
+      "output": "null",
+      "sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    "postgres_version": {
+      "command": [
+        "docker",
+        "exec",
+        "infra-postgres-1oj9lb.1.ox2oq46zcgz5ehva6xpyt9fd5",
+        "psql",
+        "-X",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-Atc",
+        "SELECT version(); SELECT datname,datcollate,datctype FROM pg_database ORDER BY datname; SELECT extname,extversion FROM pg_extension ORDER BY extname;"
+      ],
+      "exit_code": 0,
+      "output": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit\npostgres|en_US.utf8|en_US.utf8\ntemplate0|en_US.utf8|en_US.utf8\ntemplate1|en_US.utf8|en_US.utf8\nplpgsql|1.0",
+      "sha256": "5d6563867cbc88a1b5bbaf65f7fea601197f61b5372118bef825683592a883a8"
+    },
+    "image": {
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "postgres:17",
+        "--format",
+        "{{json .RepoDigests}}"
+      ],
+      "exit_code": 0,
+      "output": "[\"postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675\"]",
+      "sha256": "320e418214c8360888aa5ac1e84bd2d5eadbc170a2a74a39856bf4a7e78acfa4"
+    }
+  },
+  "local": {
+    "architecture": "arm64",
+    "disk_free_gib_before": 134,
+    "docker_context": "orbstack",
+    "sleep_inhibited": true,
+    "other_test_containers_stopped": 13,
+    "volumes_removed": 0
+  },
+  "findings": {
+    "space_budget_gb": 420,
+    "space_pass": true,
+    "filesystem_reflinks": false,
+    "scratch_strategy": "separate_postgres_database_or_full_copy",
+    "api_authentication": "DokployCLI authenticated HTTPS read succeeded",
+    "production_modified": false
+  }
+}

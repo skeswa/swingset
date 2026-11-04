@@ -146,8 +146,12 @@ flowchart LR
      recovery, rebuild and verification run records. New generated rows
      referenced by those records are listed too. Backup 2 cannot contain
      its own later registration; reconstruct that record from its checked
-     manifest. Preserve every other restored history value and id. Test
-     each allowed transition; blanket exclusions for operational tables
+     manifest. Include the class list's exact mutable anchor fields, such as
+     a scope's selected generation and signature or a source unit's accepted
+     pointer, when the normal rebuild advances them. Preserve every other
+     restored history value and every original key. The initial audit still
+     compares all fields exactly before workers run. Test each allowed
+     transition; blanket exclusions for operational tables
      are forbidden.
 
      A missing history row at the initial check means the backup left it

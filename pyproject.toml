@@ -19,13 +19,22 @@ dependencies = [
   "nameparser>=1.1",
   "huggingface-hub>=0.34",
   "pypdf>=6.18.1",
+  "psycopg[binary]>=3.2,<4",
+  "boto3>=1.40,<2",
 ]
 
 [project.scripts]
 swingset = "swingset.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "respx>=0.22", "ruff>=0.12", "mypy>=1.17"]
+dev = [
+  "pytest>=8",
+  "respx>=0.22",
+  "ruff>=0.12",
+  "mypy>=1.17",
+  "watchfiles>=1.1,<2",
+  "pytest-xdist==3.8.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/swingset"]
@@ -56,5 +65,13 @@ strict = true
 files = ["src/swingset"]
 
 [[tool.mypy.overrides]]
-module = ["protego.*", "nameparser.*", "selectolax.*", "pyarrow.*", "scipy.*"]
+module = [
+  "protego.*",
+  "nameparser.*",
+  "selectolax.*",
+  "pyarrow.*",
+  "scipy.*",
+  "boto3.*",
+  "botocore.*",
+]
 ignore_missing_imports = true

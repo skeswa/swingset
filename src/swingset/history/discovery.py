@@ -44,7 +44,8 @@ def discover_calendar(
     targets = {target.target_id: target for target in load_catalog(catalog_path)}
     before = len(targets)
     for row in database.connection.execute(
-        "SELECT url,timestamp,digest,cdx_query_id FROM archive_captures WHERE source='wsdc_calendar' AND status=200 ORDER BY timestamp,url"
+        "SELECT url, timestamp, digest, cdx_query_id FROM archive_captures WHERE source = "
+        "'wsdc_calendar' AND status = 200 ORDER BY timestamp NULLS FIRST, url NULLS FIRST"
     ):
         url = urlsplit(row[0])
         if url.query or url.path not in CALENDAR_PATHS:

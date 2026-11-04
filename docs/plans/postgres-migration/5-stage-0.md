@@ -12,8 +12,12 @@ results still match what the new code gives, and releases wait until it
 is clean. A difference means the author bumps that transform's version, and
 only its units re-run.
 
-Status: design, 2026-10-19; the owner chose this lighter shape ("B") after
-a review of the cost of the fuller proof system. Not started. Decision:
+Status: implemented locally on `postgres-migration`; Gate 0 passed with
+stage 1 on 2026-11-05. The sampled graph verified all 6,498 units and re-key
+left every unit current
+([outcome](../../../journal/investigations/2026/stage-1-implementation-2026-11-04.md)).
+The owner chose this lighter shape ("B") after reviewing the fuller proof
+system's cost. Decision:
 [D-0264](../../../journal/decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md).
 Words in **bold** are in the [glossary](glossary.md).
 
@@ -238,6 +242,35 @@ import ([6. Stage 1](6-stage-1.md)), a verify of the ported code is clean,
 and a re-key leaves every unit current with nothing queued. The full-size
 rehearsal is in the dry run. `test_recipe_scoping.py` still proves every
 package file is in a scope or excluded.
+
+## Local commands
+
+These commands are for the port's frozen import, never production SQLite.
+Verification reads the checkpoint and writes only independent scratch copies.
+Use the same captured config, overrides, code and runtime for both commands.
+Re-keying owns the state-exclusive lock, which holds every loop out.
+
+```sh
+swingset verify-derivations --state /scratch/import \
+  --checkpoint /scratch/import --processes 2 \
+  --receipt /scratch/import/verification/receipt.json
+swingset rekey --state /scratch/import \
+  --receipt /scratch/import/verification/receipt.json
+```
+
+Pass `--config` and `--overrides` when using nondefault paths.
+`--scopes project/event,link` restricts verification; a scoped receipt must
+cover every audit scope changed since the last trusted context. An environment
+change requires the whole graph. `--bumped-transforms` explicitly excludes
+transforms from re-keying even if their output compares equal.
+The graph verifier writes an incomplete receipt before launching shards;
+`rekey` writes its result to `state/rekey/receipt.json` unless `--output`
+is supplied. Both commands return nonzero when incomplete.
+If a legacy import lacks retained version evidence for a transform, re-keying
+excludes it conservatively. A legacy closure digest alone cannot prove a
+version bump; after its work drains, run a second clean verify to release.
+The existing weekly sample, without `--checkpoint`, keeps its old behavior
+and cannot authorize release or re-keying.
 
 ## Deferred, unless a measurement says otherwise
 

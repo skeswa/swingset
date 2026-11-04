@@ -71,7 +71,14 @@ def test_successful_identical_check_renews_freshness_without_moving_provenance(
     with open_database(tmp_path) as db:
         lookup = Lookup(db, clock, found=found)
         first = lookup.fetch()
-        original = tuple(db.connection.execute("SELECT * FROM observations").fetchall())
+        original = tuple(
+            db.connection.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations"
+            ).fetchall()
+        )
         initial = usable_verification(db.connection, lookup.spec.watch_id)
         assert initial["outcome"] == ("found" if found else "not_found")
         clock.sleep(86400)
@@ -82,7 +89,17 @@ def test_successful_identical_check_renews_freshness_without_moving_provenance(
         latest = usable_verification(db.connection, lookup.spec.watch_id)
         assert latest["checked_at"] > initial["checked_at"]
         assert latest["snapshot_id"] == first.snapshot_id
-        assert tuple(db.connection.execute("SELECT * FROM observations").fetchall()) == original
+        assert (
+            tuple(
+                db.connection.execute(
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations"
+                ).fetchall()
+            )
+            == original
+        )
         assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 1
         lookup.client.close()
 
@@ -97,7 +114,18 @@ def test_damaged_cached_evidence_retains_recovery_digest_and_does_not_renew(tmp_
         first = lookup.fetch()
         initial = usable_verification(db.connection, lookup.spec.watch_id)["checked_at"]
         snapshot = db.connection.execute(
-            "SELECT * FROM snapshots WHERE snapshot_id=?", (first.snapshot_id,)
+            (
+                "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                "snapshots.extract_recipe_sha256 FROM snapshots WHERE snapshot_id = %s"
+            ),
+            (first.snapshot_id,),
         ).fetchone()
         artifact = (
             lookup.archive.blob_path(snapshot["body_sha256"])
@@ -115,7 +143,13 @@ def test_damaged_cached_evidence_retains_recovery_digest_and_does_not_renew(tmp_
         lookup.status = 304
         lookup.fetch()
         failed = db.connection.execute(
-            "SELECT * FROM registry_verifications ORDER BY verification_id DESC LIMIT 1"
+            "SELECT registry_verifications.verification_id, registry_verifications.watch_id, "
+            "registry_verifications.checked_at, registry_verifications.http_status, "
+            "registry_verifications.body_sha256, registry_verifications.snapshot_id, "
+            "registry_verifications.extract_version, registry_verifications.parser_version, "
+            "registry_verifications.outcome, registry_verifications.usable, "
+            "registry_verifications.reason FROM registry_verifications ORDER BY verification_id DESC "
+            "NULLS LAST LIMIT 1"
         ).fetchone()
         assert failed["usable"] == 0
         assert failed["reason"] == (
@@ -135,7 +169,7 @@ def test_failed_checks_do_not_renew_and_do_not_strand_probe_for_a_year(tmp_path,
         old = usable_verification(db.connection, lookup.spec.watch_id)["checked_at"]
         clock.sleep(7 * 86400)
         db.connection.executemany(
-            "INSERT OR REPLACE INTO cursors(name,value) VALUES (?,?)",
+            "INSERT INTO cursors (name,value) VALUES (%s,%s) ON CONFLICT(name) DO UPDATE SET value=EXCLUDED.value",
             (
                 ("registry_probe_cursor", "1000000"),
                 ("registry_probe_started_at", clock.now().isoformat()),
@@ -156,14 +190,14 @@ def test_failed_checks_do_not_renew_and_do_not_strand_probe_for_a_year(tmp_path,
         advance_sweep(db, clock.now())
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
             ).fetchone()[0]
             == "1000000"
         )
         assert usable_verification(db.connection, lookup.spec.watch_id)["checked_at"] == old
         assert (
             db.connection.execute(
-                "SELECT next_check_at FROM watches WHERE watch_id=?", (lookup.spec.watch_id,)
+                "SELECT next_check_at FROM watches WHERE watch_id = %s", (lookup.spec.watch_id,)
             ).fetchone()[0]
             == (clock.now() + timedelta(minutes=15)).isoformat()
         )
@@ -178,7 +212,7 @@ def test_identical_miss_finishes_finite_probe_using_new_check_time(tmp_path):
         clock.sleep(7 * 86400)
         started = clock.now()
         db.connection.executemany(
-            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            "INSERT INTO cursors (name, value) VALUES (%s, %s)",
             (
                 ("registry_probe_cursor", "1000000"),
                 ("registry_probe_started_at", started.isoformat()),
@@ -190,7 +224,7 @@ def test_identical_miss_finishes_finite_probe_using_new_check_time(tmp_path):
         advance_sweep(db, clock.now())
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
             ).fetchone()
             is None
         )
@@ -208,9 +242,9 @@ def test_recovery_never_uses_migration_time_or_attempt_clock(tmp_path):
         lookup.fetch()
         checked_at = usable_verification(db.connection, lookup.spec.watch_id)["checked_at"]
         db.connection.execute("DELETE FROM registry_verifications")
-        db.connection.execute("DELETE FROM meta WHERE key='registry_verification_migrated'")
+        db.connection.execute("DELETE FROM meta WHERE key = 'registry_verification_migrated'")
         clock.sleep(400 * 86400)
-        db.connection.execute("UPDATE watches SET last_checked_at=?", (clock.now().isoformat(),))
+        db.connection.execute("UPDATE watches SET last_checked_at = %s", (clock.now().isoformat(),))
         recover_registry_verifications(db)
         assert usable_verification(db.connection, lookup.spec.watch_id)["checked_at"] == checked_at
         recover_registry_verifications(db)
@@ -237,20 +271,20 @@ def test_refreshed_stale_profile_rotates_despite_unchanged_claim_timestamp(tmp_p
         discover_registry(db, clock.now())
         assert (
             db.connection.execute(
-                "SELECT notes FROM watches WHERE watch_id=?", (lookup.spec.watch_id,)
+                "SELECT notes FROM watches WHERE watch_id = %s", (lookup.spec.watch_id,)
             ).fetchone()[0]
             == "trickle"
         )
         original = db.connection.execute("SELECT registry_fetched_at FROM dancers").fetchone()[0]
         lookup.fetch()
         db.connection.execute(
-            "UPDATE watches SET notes='' WHERE watch_id=?", (lookup.spec.watch_id,)
+            "UPDATE watches SET notes = '' WHERE watch_id = %s", (lookup.spec.watch_id,)
         )
         clock.sleep(86400)
         discover_registry(db, clock.now())
         assert (
             db.connection.execute(
-                "SELECT notes FROM watches WHERE watch_id=?", (lookup.spec.watch_id,)
+                "SELECT notes FROM watches WHERE watch_id = %s", (lookup.spec.watch_id,)
             ).fetchone()[0]
             == ""
         )
@@ -267,13 +301,13 @@ def test_restored_probe_with_failed_attempt_and_annual_clock_gets_bounded_retry(
         discover_registry(db, clock.now())
         clock.sleep(1)
         db.connection.execute(
-            "UPDATE watches SET last_checked_at=?,next_check_at=? WHERE source_ref='wsdc:1'",
+            "UPDATE watches SET last_checked_at = %s, next_check_at = %s WHERE source_ref = 'wsdc:1'",
             (clock.now().isoformat(), (clock.now() + timedelta(days=365)).isoformat()),
         )
         discover_registry(db, clock.now())
         assert (
             db.connection.execute(
-                "SELECT next_check_at FROM watches WHERE source_ref='wsdc:1'"
+                "SELECT next_check_at FROM watches WHERE source_ref = 'wsdc:1'"
             ).fetchone()[0]
             == (clock.now() + timedelta(minutes=15)).isoformat()
         )
@@ -307,9 +341,17 @@ def test_cycle_finishes_repeated_probe_without_any_parse_work(tmp_path):
                 transport=transport,
             )
         completed = db.connection.execute(
-            "SELECT value FROM cursors WHERE name='registry_probe_last_completed_at'"
+            "SELECT value FROM cursors WHERE name = 'registry_probe_last_completed_at'"
         ).fetchone()[0]
-        observations = [tuple(row) for row in db.connection.execute("SELECT * FROM observations")]
+        observations = [
+            tuple(row)
+            for row in db.connection.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations"
+            )
+        ]
         clock.sleep(7 * 86400)
         summary = run_round(
             db, config_dir=config_dir, overrides_dir=overrides_dir, clock=clock, transport=transport
@@ -319,18 +361,24 @@ def test_cycle_finishes_repeated_probe_without_any_parse_work(tmp_path):
         assert "parse" not in summary.stages
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
             ).fetchone()
             is None
         )
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_last_completed_at'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_last_completed_at'"
             ).fetchone()[0]
             > completed
         )
         assert [
-            tuple(row) for row in db.connection.execute("SELECT * FROM observations")
+            tuple(row)
+            for row in db.connection.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations"
+            )
         ] == observations
 
 
@@ -343,39 +391,65 @@ def test_recovery_and_parse_completion_use_bounded_indexes(tmp_path, snapshot_in
     with open_database(tmp_path) as db:
         if not snapshot_indexes:
             # Recovery also runs while upgrading v1, before the later FK indexes.
-            db.connection.execute("DROP INDEX observations_snapshot_id_fk_idx")
-            db.connection.execute("DROP INDEX registry_verifications_snapshot_id_fk_idx")
+            from helpers.corruption import corruption_connection
+
+            with corruption_connection(db.connection) as owner:
+                owner.execute("DROP INDEX evidence.observations_snapshot_id_fk_idx")
+                owner.execute("DROP INDEX evidence.registry_verifications_snapshot_id_fk_idx")
         lookup = Lookup(db, clock)
         result = lookup.fetch()
         db.connection.execute("DELETE FROM registry_verifications")
-        db.connection.execute("DELETE FROM meta WHERE key='registry_verification_migrated'")
+        db.connection.execute("DELETE FROM meta WHERE key = 'registry_verification_migrated'")
         statements = []
-        db.connection.set_trace_callback(statements.append)
-        try:
+        with db.connection.observing(
+            lambda query, parameters: statements.append((query, parameters))
+        ):
             recover_registry_verifications(db)
             finish_interpretation(db.connection, lookup.archive, result.snapshot_id)
-        finally:
-            db.connection.set_trace_callback(None)
         observation_queries = [
-            query
-            for query in statements
-            if query.startswith("SELECT kind,payload_json FROM observations")
+            (query, parameters)
+            for query, parameters in statements
+            if query.startswith("SELECT kind, payload_json FROM observations")
         ]
         verification_queries = [
-            query
-            for query in statements
-            if query.startswith("SELECT verification_id,body_sha256 FROM registry_verifications")
+            (query, parameters)
+            for query, parameters in statements
+            if query.startswith("SELECT verification_id, body_sha256 FROM registry_verifications")
         ]
         assert len(observation_queries) == 2
         assert len(verification_queries) == 1
-        for query in observation_queries + verification_queries:
-            table = "observations" if "FROM observations " in query else "registry_verifications"
-            plan = [row[3] for row in db.connection.execute("EXPLAIN QUERY PLAN " + query)]
-            assert any(
-                f"SEARCH {table} USING INDEX" in step
-                and ("watch_id=?" in step or "snapshot_id=?" in step)
-                for step in plan
-            ), plan
-            assert not any(f"SCAN {table}" in step for step in plan)
+
+        def nodes(node):
+            yield node
+            for child in node.get("Plans", []):
+                yield from nodes(child)
+
+        with db.connection.read_snapshot():
+            # This tiny fixture checks index eligibility. PostgreSQL may prefer
+            # a sequential scan of one row; forcing its alternative proves that
+            # the query's actual predicates support a bounded index lookup.
+            db.connection.execute("SET LOCAL enable_seqscan=off")
+            for query, parameters in observation_queries + verification_queries:
+                table = (
+                    "observations" if "FROM observations " in query else "registry_verifications"
+                )
+                plan = db.connection.execute(
+                    "EXPLAIN (FORMAT JSON) " + query, parameters
+                ).fetchone()[0][0]["Plan"]
+                tree = list(nodes(plan))
+                assert any(
+                    node.get("Relation Name") == table
+                    and node["Node Type"] in {"Index Scan", "Index Only Scan", "Bitmap Heap Scan"}
+                    for node in tree
+                ), plan
+                assert any(
+                    "watch_id" in node.get("Index Cond", "")
+                    or "snapshot_id" in node.get("Index Cond", "")
+                    for node in tree
+                ), plan
+                assert not any(
+                    node.get("Relation Name") == table and node["Node Type"] == "Seq Scan"
+                    for node in tree
+                ), plan
         assert usable_verification(db.connection, lookup.spec.watch_id)["outcome"] == "not_found"
         lookup.client.close()

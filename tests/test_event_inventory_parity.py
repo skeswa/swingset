@@ -1,14 +1,15 @@
 """Doctor uses normalized request evidence, with honest finite-budget results."""
 
 import json
-import sqlite3
 from unittest.mock import Mock
 
 import pytest
 from build.test_event_page_evidence import aggregate
+from helpers.state_digest import state_digest
 from test_admission import BODY
 from test_event_enumerations import admit_parent, child, finish_bootstrap, view
 from test_event_enumerations import event as event
+from test_event_pressure_probe import fault_update
 
 from swingset.admission.page_evidence import Limits
 from swingset.fetch.archive import Archive
@@ -30,7 +31,10 @@ def read(f, *, limits=None):
             limits=limits or Limits(),
         )
         assert f.conn.total_changes == before
-        assert f.conn.in_transaction and f.conn.execute("PRAGMA query_only").fetchone()[0] == 1
+        assert (
+            f.conn.in_transaction
+            and f.conn.execute("SHOW transaction_read_only").fetchone()[0] == "on"
+        )
         json.dumps(result)
         return result
 
@@ -70,7 +74,7 @@ def test_aggregate_generation_on_other_anchor_interprets_each_member_and_report_
     contexts, generation = aggregate(f)
     finish_bootstrap(f)
     assert not f.conn.execute(
-        "SELECT 1 FROM source_units WHERE watch_id=?", (contexts[1].watch_id,)
+        "SELECT 1 FROM source_units WHERE watch_id = %s", (contexts[1].watch_id,)
     ).fetchone()
     result = read(f)
     assert result["listed_pages"] == result["acquired_pages"] == result["interpreted_pages"] == 2
@@ -95,7 +99,7 @@ def test_corrupt_aggregate_member_invalidates_interpretation_without_losing_acqu
     assert read(f)["interpreted_pages"] == 2
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
     )
     f.archive.extract_path(manifest[1]["extract_sha256"]).write_bytes(b"{}")
@@ -113,7 +117,7 @@ def test_parent_failure_cannot_be_hidden_by_valid_alias_page(event):
     assert read(f)["known_pages_accounted_for"] is True
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (parent,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (parent,)
         ).fetchone()[0]
     )
     f.archive.blob_path(manifest[0]["body_sha256"]).unlink()
@@ -174,8 +178,7 @@ def test_rehashed_request_identity_still_cannot_change_pinned_enumeration(event)
     f = event
     admit_parent(f, ["one.htm"])
     finish_bootstrap(f)
-    f.conn.execute("DROP TRIGGER event_enumeration_member_no_update")
-    f.conn.execute("UPDATE source_event_enumeration_members SET request_json='{}'")
+    fault_update(f, "UPDATE source_event_enumeration_members SET request_json = '{}'")
     result = read(f)
     assert result["listed_pages"] is result["acquired_pages"] is result["interpreted_pages"] is None
     assert "event_enumeration_evidence_invalid" in result["blockers"]
@@ -186,13 +189,13 @@ def test_query_only_snapshot_required_without_silently_changing_caller(event):
     admit_parent(f, ["one.htm"])
     finish_bootstrap(f)
     assert not f.conn.in_transaction
-    assert f.conn.execute("PRAGMA query_only").fetchone()[0] == 0
+    assert f.conn.execute("SHOW transaction_read_only").fetchone()[0] == "off"
     with pytest.raises(ValueError, match="query-only"):
         inventory(
             f.conn, f.archive, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now()
         )
     assert not f.conn.in_transaction
-    assert f.conn.execute("PRAGMA query_only").fetchone()[0] == 0
+    assert f.conn.execute("SHOW transaction_read_only").fetchone()[0] == "off"
 
 
 def test_inventory_never_reads_whole_artifacts_or_recovers_or_writes(event, monkeypatch):
@@ -200,31 +203,22 @@ def test_inventory_never_reads_whole_artifacts_or_recovers_or_writes(event, monk
     admit_parent(f, ["one.htm"])
     child(f, "one.htm")
     finish_bootstrap(f)
-    before = list(f.conn.iterdump())
+    before = state_digest(f.conn)
     monkeypatch.setattr(Archive, "read_body", Mock(side_effect=AssertionError("whole body")))
     monkeypatch.setattr(Archive, "read_extract", Mock(side_effect=AssertionError("whole extract")))
     with f.db.transaction(immediate=False):
-        f.conn.set_authorizer(
-            lambda action, *args: (
-                sqlite3.SQLITE_OK
-                if action
-                in (
-                    sqlite3.SQLITE_SELECT,
-                    sqlite3.SQLITE_READ,
-                    sqlite3.SQLITE_FUNCTION,
-                    sqlite3.SQLITE_PRAGMA,
-                )
-                else sqlite3.SQLITE_DENY
-            )
-        )
-        try:
+        assert f.conn.read_only_snapshot
+        statements = []
+        with f.conn.observing(lambda query, params: statements.append(str(query))):
             result = inventory(
                 f.conn, f.archive, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now()
             )
-        finally:
-            f.conn.set_authorizer(None)
+        assert statements and all(
+            query.lstrip().split(None, 1)[0].upper() in {"SELECT", "WITH", "SHOW"}
+            for query in statements
+        )
     assert result["interpreted_pages"] == 1
-    assert list(f.conn.iterdump()) == before
+    assert state_digest(f.conn) == before
 
 
 def test_parent_after_cutoff_retains_fallback_reason_in_event_blockers(event):
@@ -234,10 +228,11 @@ def test_parent_after_cutoff_retains_fallback_reason_in_event_blockers(event):
     parent = admit_parent(f, ["one.htm"])
     child(f, "one.htm")
     finish_bootstrap(f)
-    f.conn.execute("DROP TRIGGER source_generation_immutable")
-    f.conn.execute(
-        "UPDATE source_generations SET created_at=? WHERE generation_id=?",
-        ((f.corpus.clock.now() + timedelta(days=1)).isoformat(), parent),
+    fault_update(
+        f,
+        "UPDATE source_generations SET created_at = %s WHERE generation_id = %s",
+        (f.corpus.clock.now() + timedelta(days=1)).isoformat(),
+        parent,
     )
     result = read(f)
     unsupported = next(row for row in result["parent_support"] if row["generation_id"] == parent)
@@ -268,7 +263,10 @@ def test_latest_response_uses_aware_cutoff_and_unknown_times_are_unassessed(even
         else observed_at
     )
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at=?,classification='ServerError',http_status=503 WHERE snapshot_id=?",
+        (
+            "UPDATE snapshots SET fetched_at = %s, classification = 'ServerError', http_status = 503 "
+            "WHERE snapshot_id = %s"
+        ),
         (value, response.snapshot_id),
     )
     result = read(f)

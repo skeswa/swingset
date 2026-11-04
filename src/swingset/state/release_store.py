@@ -10,9 +10,10 @@ writes rows; the build and the collector decide when.
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import astuple, dataclass, fields
 from typing import Literal
+
+from swingset.state import engine
 
 PartitionState = Literal["built", "withheld"]
 
@@ -60,31 +61,30 @@ def _columns(kind: type) -> tuple[str, ...]:
     return tuple(field.name for field in fields(kind))
 
 
-def get[T: Row](conn: sqlite3.Connection, kind: type[T], key: str) -> T | None:
+def get[T: Row](conn: engine.Connection, kind: type[T], key: str) -> T | None:
     table, primary = _TABLES[kind]
     row = conn.execute(
-        f"SELECT {','.join(_columns(kind))} FROM {table} WHERE {primary}=?", (key,)
+        f"SELECT {','.join(_columns(kind))} FROM {table} WHERE {primary}=%s", (key,)
     ).fetchone()
     return None if row is None else kind(*row)
 
 
-def upsert(conn: sqlite3.Connection, row: Row) -> None:
+def upsert(conn: engine.Connection, row: Row) -> None:
     table, primary = _TABLES[type(row)]
     columns = _columns(type(row))
     updates = ",".join(f"{name}=excluded.{name}" for name in columns if name != primary)
     conn.execute(
-        f"INSERT INTO {table}({','.join(columns)}) VALUES ({','.join('?' * len(columns))}) "
-        f"ON CONFLICT({primary}) DO UPDATE SET {updates}",
+        f"INSERT INTO {table}({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))}) ON CONFLICT({primary}) DO UPDATE SET {updates}",
         astuple(row),
     )
 
 
-def delete(conn: sqlite3.Connection, kind: type[Row], key: str) -> bool:
+def delete(conn: engine.Connection, kind: type[Row], key: str) -> bool:
     table, primary = _TABLES[kind]
-    return conn.execute(f"DELETE FROM {table} WHERE {primary}=?", (key,)).rowcount > 0
+    return conn.execute(f"DELETE FROM {table} WHERE {primary}=%s", (key,)).rowcount > 0
 
 
-def all_rows[T: Row](conn: sqlite3.Connection, kind: type[T]) -> list[T]:
+def all_rows[T: Row](conn: engine.Connection, kind: type[T]) -> list[T]:
     table, primary = _TABLES[kind]
     return [
         kind(*row)
@@ -94,7 +94,7 @@ def all_rows[T: Row](conn: sqlite3.Connection, kind: type[T]) -> list[T]:
     ]
 
 
-def withheld(conn: sqlite3.Connection) -> list[PartitionRow]:
+def withheld(conn: engine.Connection) -> list[PartitionRow]:
     """Every withheld partition, in partition order."""
     columns = ",".join(_columns(PartitionRow))
     return [
@@ -105,13 +105,15 @@ def withheld(conn: sqlite3.Connection) -> list[PartitionRow]:
     ]
 
 
-def counts(conn: sqlite3.Connection) -> dict[str, int]:
+def counts(conn: engine.Connection) -> dict[str, int]:
     """Partitions by state, withheld partitions by reason, artifacts and manifests."""
     result: dict[str, int] = {"built": 0, "withheld": 0}
-    for state, n in conn.execute("SELECT state,count(*) FROM release_partitions GROUP BY state"):
+    for state, n in conn.execute(
+        "SELECT state, COUNT(*) AS _value_1 FROM release_partitions GROUP BY state"
+    ):
         result[str(state)] = int(n)
     for reason, n in conn.execute(
-        "SELECT reason,count(*) FROM release_partitions WHERE state='withheld' GROUP BY reason"
+        "SELECT reason, COUNT(*) AS _value_1 FROM release_partitions WHERE state = 'withheld' GROUP BY reason"
     ):
         result[f"withheld:{reason}"] = int(n)
     for name, table in (("artifacts", "release_artifacts"), ("manifests", "release_manifests")):

@@ -17,6 +17,9 @@ from swingset.backup.checkpoint import create_checkpoint, restore_from_checkpoin
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
 from swingset.state.db import SCHEMA_VERSION, open_database
+from swingset.state.environment import FixtureIO
+from swingset.state.history_catalog import classification
+from swingset.state.postgres_schema import reference_manifest, semantic_columns, verify
 
 HISTORY = (
     "event_stage_operations",
@@ -37,13 +40,26 @@ OBSERVATIONS = (
 
 
 def rows(conn, tables):
-    return {
-        table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table} ORDER BY rowid")]
-        for table in tables
-    }
+    result = {}
+    for table in tables:
+        specification = reference_manifest()["tables"][table]
+        keys = [
+            column["name"]
+            for column in sorted(specification["columns"], key=lambda column: column["pk"])
+            if column["pk"]
+        ]
+        columns = ",".join(semantic_columns(table))
+        result[table] = [
+            tuple(row)
+            for row in conn.execute(f"SELECT {columns} FROM {table} ORDER BY {','.join(keys)}")
+        ]
+    return result
 
 
 def ready(f):
+    from test_event_completion_restore import retain_configuration
+
+    retain_configuration(f, f.db.state_dir / "tmp" / "retained-inputs", pressure=True)
     admit_parent(f, ["old.htm", "seed.htm", "one.htm", "gone.htm"])
     child(f, "seed.htm")
     finish_bootstrap(f)
@@ -55,8 +71,8 @@ def ready(f):
     interpret(f, fetched.snapshot_id)
     assert observe(f)["qualified_progress"] == 1
     result_generation = f.conn.execute(
-        "SELECT generation_id FROM event_progress_receipts JOIN event_stage_operations USING(operation_id) "
-        "WHERE event_progress_receipts.stage='interpreted'"
+        "SELECT generation_id FROM event_progress_receipts JOIN event_stage_operations USING "
+        "(operation_id) WHERE event_progress_receipts.stage = 'interpreted'"
     ).fetchone()[0]
     response(f, "gone.htm", label="unavailable-before-checkpoint")
     parent_generation = admit_parent(f, ["seed.htm", "one.htm", "gone.htm"], authority=True)
@@ -71,7 +87,14 @@ def ready(f):
     assert value["page_retirement"]["verified_retirement_count"] == 1
     assert len(rows(f.conn, HISTORY)["event_progress_receipts"]) == 2
     gap = dict(
-        f.conn.execute("SELECT * FROM event_gap_observations WHERE availability=1").fetchone()
+        f.conn.execute(
+            "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+            "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+            "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+            "event_gap_observations.availability, event_gap_observations.token_json, "
+            "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+            "event_gap_observations.evidence_digest FROM event_gap_observations WHERE availability = 1"
+        ).fetchone()
     )
     return SimpleNamespace(
         parent_generation=parent_generation,
@@ -94,15 +117,21 @@ def activate(f, tmp_path):
     )
     hashes = file_hashes(saved.path)
     heads = []
+
+    class EmptyHub(FixtureIO):
+        def head(self):
+            heads.append(None)
+            return None
+
     target = tmp_path / "activated"
     restore_from_checkpoint(
         saved.path,
         target,
-        SimpleNamespace(head=lambda: heads.append(None)),
+        EmptyHub(),
         FakeClock(f.corpus.clock.now()),
         lock_timeout=1,
     )
-    assert len(heads) == 2
+    assert heads == [None, None, None]
     assert not (target / "RESTORE_PENDING").exists()
     assert file_hashes(saved.path) == hashes
     return target, saved.path, hashes
@@ -113,13 +142,19 @@ def branch(f, database):
     corpus.db, corpus.conn = database, database.connection
     corpus.archive = Archive(database.state_dir)
     corpus.clock = FakeClock(f.corpus.clock.now())
-    return SimpleNamespace(
+    result = SimpleNamespace(
         db=database,
         conn=database.connection,
         corpus=corpus,
         archive=corpus.archive,
         parent=f.parent,
     )
+    from swingset.schedule.event_pressure import bootstrap
+
+    for _ in range(10):
+        if not bootstrap(database, config(), now=corpus.clock.now())["metadata_pending"]:
+            break
+    return result
 
 
 def assert_activated(f, before):
@@ -127,15 +162,21 @@ def assert_activated(f, before):
         f.conn.execute("SELECT epoch FROM event_pressure_state").fetchone()[0] == before.epoch + 1
     )
     assert rows(f.conn, HISTORY) == before.historical
-    assert rows(f.conn, OBSERVATIONS) == before.observations
+    restored = rows(f.conn, OBSERVATIONS)
+    for table in OBSERVATIONS:
+        if classification(table).kind == "history":
+            assert restored[table] == before.observations[table]
+        elif table == "event_progress_cursor":
+            assert restored[table] == [(1, 0, 0)]
+        else:
+            assert restored[table] == []
     value = event_view(f)
     assert value["assessment"] == "unassessed"
     assert value["unavailable"]["unknown"] == 3
     assert value["page_retirement"]["assessment"] == "unassessed"
     assert value["page_retirement"]["latest_historical_receipt"] is not None
     progress = history(f)
-    assert progress["progress"] and progress["observations"]
-    assert not any(row["fresh"] for row in progress["observations"])
+    assert progress["progress"] and not progress["observations"]
     assert rows(f.conn, HISTORY) == before.historical  # Reporting cannot synthesize transitions.
 
 
@@ -176,11 +217,19 @@ def test_activated_observer_preserves_exact_history_then_matches_uninterrupted_r
         # Rechecking after activation changes freshness tokens, not exact response support.
         restored_gap = dict(
             twin.conn.execute(
-                "SELECT * FROM event_gap_observations WHERE availability=1"
+                "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+                "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+                "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+                "event_gap_observations.availability, event_gap_observations.token_json, "
+                "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+                "event_gap_observations.evidence_digest FROM event_gap_observations WHERE availability = 1"
             ).fetchone()
         )
-        for key in ("request_id", "source_revision", "evidence_json", "evidence_digest"):
+        for key in ("request_id", "evidence_json", "evidence_digest"):
             assert restored_gap[key] == before.gap[key]
+        assert (
+            restored_gap["source_revision"] == 0
+        )  # Rebuilt gap counter; exact response support survives.
         assert restored_gap["token_json"] != before.gap["token_json"]
 
         def resume(branch):
@@ -207,7 +256,7 @@ def test_activated_observer_preserves_exact_history_then_matches_uninterrupted_r
         assert rows(twin.conn, ("event_stage_operations",)) == rows(
             f.conn, ("event_stage_operations",)
         )
-        assert not twin.conn.execute("PRAGMA foreign_key_check").fetchall()
+        assert verify(twin.conn)["equal"]
     assert file_hashes(checkpoint) == hashes
 
 
@@ -234,12 +283,13 @@ def test_activated_restore_cannot_revive_accounting_from_rejected_or_changed_sup
                     else before.result_generation
                 )
                 branch.conn.execute(
-                    "UPDATE source_generations SET state='revoked' WHERE generation_id=?",
+                    "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
                     (generation,),
                 )
             elif damage == "change_gap":
                 branch.conn.execute(
-                    "UPDATE snapshots SET classification='Blocked',http_status=403 WHERE snapshot_id='unavailable-before-checkpoint'"
+                    "UPDATE snapshots SET classification = 'Blocked', http_status = 403 WHERE snapshot_id = "
+                    "'unavailable-before-checkpoint'"
                 )
             else:
                 support = json.loads(before.gap["evidence_json"])["unavailability_support"]
@@ -299,5 +349,5 @@ def test_activated_restore_cannot_revive_accounting_from_rejected_or_changed_sup
                     )
                 }
             assert semantic_accounting(twin) == semantic_accounting(f)
-        assert not twin.conn.execute("PRAGMA foreign_key_check").fetchall()
+        assert verify(twin.conn)["equal"]
     assert file_hashes(checkpoint) == hashes

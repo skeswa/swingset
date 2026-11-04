@@ -112,10 +112,10 @@ def _plan(tick: Tick) -> None:
             summary["projection_pending_error"] = f"{type(exc).__name__}: {exc}"[:200]
         rows: list[PlanRow] = []
         for (year,) in conn.execute(
-            "SELECT DISTINCT year FROM events WHERE year IS NOT NULL ORDER BY year"
+            "SELECT DISTINCT year FROM events WHERE NOT year IS NULL ORDER BY year NULLS FIRST"
         ).fetchall():
             accepted = conn.execute(
-                "SELECT inventory_digest FROM history_acceptance WHERE year=?", (year,)
+                "SELECT inventory_digest FROM history_acceptance WHERE year = %s", (year,)
             ).fetchone()
             rows.append(
                 PlanRow(

@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from postgres_statements import empty_connections as empty_connections
 from test_event_enumerations import admit_parent, child, finish_bootstrap
 from test_event_enumerations import event as event
 from test_h16_acceptance import candidate_tables
@@ -17,7 +18,17 @@ from swingset.build.schema import SCHEMAS
 
 def support(f, identifier):
     row = f.conn.execute(
-        "SELECT * FROM source_generations WHERE generation_id=?", (identifier,)
+        (
+            "SELECT source_generations.generation_id, source_generations.unit_key, "
+            "source_generations.page_kind, source_generations.contract_version, "
+            "source_generations.input_fingerprint, source_generations.manifest_json, "
+            "source_generations.recipe_json, source_generations.result_json, "
+            "source_generations.report_json, source_generations.previous_generation_id, "
+            "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+            "source_generations.state, source_generations.removal_authority FROM source_generations "
+            "WHERE generation_id = %s"
+        ),
+        (identifier,),
     ).fetchone()
     recipe = json.loads(row["recipe_json"])
     return [
@@ -95,23 +106,24 @@ def test_changed_pinned_support_rejected(event, mutation):
     witness = captured(f)
     if mutation == "revocation":
         f.conn.execute(
-            "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (parent,)
+            "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (parent,)
         )
     elif mutation == "policy":
-        f.conn.execute("UPDATE admission_policies SET contract_version='other'")
+        f.conn.execute("UPDATE admission_policies SET contract_version = 'other'")
     elif mutation == "snapshot":
-        f.conn.execute("UPDATE snapshots SET body_sha256=?", ("0" * 64,))
+        f.conn.execute("UPDATE snapshots SET body_sha256 = %s", ("0" * 64,))
     else:
-        f.conn.execute("DROP TRIGGER event_enumeration_member_no_update")
-        f.conn.execute("UPDATE source_event_enumeration_members SET request_json='{}'")
+        from helpers.corruption import corruption_connection
+
+        with corruption_connection(f.conn) as owner:
+            owner.execute("UPDATE source_event_enumeration_members SET request_json='{}'")
     with pytest.raises(ClosureError, match="event_coverage_support_changed"):
         event_coverage.validate(f.conn, witness, selected_support=())
 
 
-def test_no_inventory_schema_preserves_legacy_manifest_format(tmp_path):
-    import sqlite3
+def test_no_inventory_schema_preserves_legacy_manifest_format(tmp_path, empty_connections):
 
-    with sqlite3.connect(":memory:") as conn:
+    with empty_connections() as conn:
         assert (
             event_coverage.capture(conn, cutoff="2026-01-01T00:00:00+00:00", selected_support=())
             is None
@@ -176,11 +188,16 @@ def test_actual_build_binds_witness_and_reuses_only_matching_enumeration(release
     ):
         closure.validate(f.conn, public)
         row = next(entry for entry in private["event_coverage"]["entries"] if entry["members"])
-        f.conn.execute("DROP TRIGGER event_enumeration_member_no_update")
-        f.conn.execute(
-            "UPDATE source_event_enumeration_members SET support_json='[]' WHERE enumeration_id=?",
-            (row["enumeration_id"],),
-        )
+        from helpers.corruption import corruption_connection
+
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE source_event_enumeration_members SET support_json='[]' WHERE enumeration_id=%s",
+                (row["enumeration_id"],),
+            )
+        # Represent the adversarial writer's mutation in this connection's proof
+        # lifetime without granting the worker permission to disable a trigger.
+        f.conn.execute("UPDATE meta SET value=value WHERE FALSE")
         with pytest.raises(ClosureError):
             closure.validate(f.conn, public)
 
@@ -274,7 +291,9 @@ def test_shared_parent_is_verified_once_within_bounded_capture_only(event):
     for _ in range(50):
         assert reader.parent(parent, cutoff) == first
     assert reader.bytes == consumed
-    f.conn.execute("UPDATE source_generations SET state='revoked' WHERE generation_id=?", (parent,))
+    f.conn.execute(
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (parent,)
+    )
     with pytest.raises(ValueError):
         event_coverage._Reader(f.conn).parent(parent, cutoff)
 
@@ -369,7 +388,7 @@ def test_unmatched_selected_snapshot_cannot_gain_membership_behind_cached_proof(
     before = readset.fingerprint(f.conn)
     assert before is not None
     f.conn.execute(
-        "UPDATE snapshots SET url=? WHERE snapshot_id=?",
+        "UPDATE snapshots SET url = %s WHERE snapshot_id = %s",
         (f.parent.url + "one.htm", context.snapshot_id),
     )
     assert readset.fingerprint(f.conn) != before

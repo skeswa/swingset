@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
@@ -13,6 +12,7 @@ from swingset.admission.support import interpretation_support
 from swingset.fetch.wayback import Capture
 from swingset.history.platform import PlannedPage
 from swingset.sources.records import RoundSheet
+from swingset.state import engine
 from swingset.state.attempts import eligible, latest_attempt
 from swingset.state.work import WorkUnit
 from swingset.state.work_fingerprints import input_fingerprint
@@ -26,10 +26,19 @@ class CaptureState:
 
 
 def capture_state(
-    conn: sqlite3.Connection, page: PlannedPage, capture: Capture, *, now: datetime | None = None
+    conn: engine.Connection, page: PlannedPage, capture: Capture, *, now: datetime | None = None
 ) -> CaptureState:
     snapshots = conn.execute(
-        "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE w.source=? AND w.parser=? AND s.url=? AND (s.archive_url=? OR s.requested_archive_url=?) ORDER BY s.fetched_at DESC,s.snapshot_id DESC",
+        (
+            "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+            "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+            "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+            "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+            "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256 FROM "
+            "snapshots AS s JOIN watches AS w USING (watch_id) WHERE w.source = %s AND w.parser = %s AND "
+            "s.url = %s AND (s.archive_url = %s OR s.requested_archive_url = %s) ORDER BY s.fetched_at "
+            "DESC NULLS LAST, s.snapshot_id DESC NULLS LAST"
+        ),
         (
             page.page.source,
             page.page.page_kind,
@@ -47,9 +56,9 @@ def capture_state(
 
 
 def snapshot_state(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     page: PlannedPage,
-    snapshot: sqlite3.Row,
+    snapshot: engine.Row,
     *,
     now: datetime | None = None,
 ) -> CaptureState:
@@ -57,7 +66,7 @@ def snapshot_state(
     identifier = str(snapshot["snapshot_id"])
     unit = WorkUnit("parse", "snapshot", identifier)
     if conn.execute(
-        "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=?",
+        "SELECT 1 AS _value_0 FROM pending_work WHERE stage = 'parse' AND unit_kind = 'snapshot' AND unit_id = %s",
         (identifier,),
     ).fetchone():
         attempt = latest_attempt(conn, unit)
@@ -69,7 +78,13 @@ def snapshot_state(
         return CaptureState("incomplete", "extraction_or_parse_failed", identifier)
     if snapshot["parse_status"] not in {"ok", "empty"}:
         generation = conn.execute(
-            "SELECT g.state,g.report_json FROM source_units u JOIN source_generations g USING(unit_key) JOIN admission_policies p ON p.page_kind=g.page_kind AND p.contract_version=g.contract_version WHERE u.watch_id=? AND json_extract(g.recipe_json,'$.context.snapshot_id')=? ORDER BY g.created_at DESC,g.generation_id DESC LIMIT 1",
+            (
+                "SELECT g.state, g.report_json FROM source_units AS u JOIN source_generations AS g USING "
+                "(unit_key) JOIN admission_policies AS p ON p.page_kind = g.page_kind AND p.contract_version "
+                "= g.contract_version WHERE u.watch_id = %s AND JSON_EXTRACT_PATH_TEXT(CAST(g.recipe_json AS "
+                "JSON), 'context', 'snapshot_id') = %s ORDER BY g.created_at DESC NULLS LAST, "
+                "g.generation_id DESC NULLS LAST LIMIT 1"
+            ),
             (snapshot["watch_id"], identifier),
         ).fetchone()
         # H7 preserves the transport's pending status when it declines promotion.
@@ -89,7 +104,11 @@ def snapshot_state(
     if not support["usable"]:
         return CaptureState("incomplete", "interpretation_not_admitted", identifier)
     generation = conn.execute(
-        "SELECT g.result_json,g.report_json FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id WHERE u.watch_id=? AND json_extract(g.recipe_json,'$.context.snapshot_id')=?",
+        (
+            "SELECT g.result_json, g.report_json FROM source_units AS u JOIN source_generations AS g ON "
+            "g.generation_id = u.accepted_generation_id WHERE u.watch_id = %s AND "
+            "JSON_EXTRACT_PATH_TEXT(CAST(g.recipe_json AS JSON), 'context', 'snapshot_id') = %s"
+        ),
         (snapshot["watch_id"], identifier),
     ).fetchone()
     if generation is None:
@@ -107,7 +126,7 @@ def snapshot_state(
         ):
             return CaptureState("incomplete", "round_table_empty", identifier)
     if conn.execute(
-        "SELECT 1 FROM contests WHERE source=? AND snapshot_id=? AND parse_status='unsupported' LIMIT 1",
+        "SELECT 1 AS _value_0 FROM contests WHERE source = %s AND snapshot_id = %s AND parse_status = 'unsupported' LIMIT 1",
         (page.page.source, identifier),
     ).fetchone():
         return CaptureState("incomplete", "scoring_layout_unsupported", identifier)
@@ -115,7 +134,7 @@ def snapshot_state(
         if (
             child.kind == "round"
             and not conn.execute(
-                "SELECT 1 FROM archive_captures WHERE source=? AND url=? AND status=200 LIMIT 1",
+                "SELECT 1 AS _value_0 FROM archive_captures WHERE source = %s AND url = %s AND status = 200 LIMIT 1",
                 (child.source, child.url),
             ).fetchone()
         ):
@@ -124,7 +143,7 @@ def snapshot_state(
 
 
 def next_capture(
-    conn: sqlite3.Connection, page: PlannedPage, *, now: datetime | None = None
+    conn: engine.Connection, page: PlannedPage, *, now: datetime | None = None
 ) -> tuple[Capture | None, str]:
     """At most the preferred three distinct bodies; retained success is never fetched again."""
     outcomes = [(capture, capture_state(conn, page, capture, now=now)) for capture in page.captures]

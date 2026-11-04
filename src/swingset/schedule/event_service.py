@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from hashlib import sha256
 from typing import Any
 
+from swingset.state import engine
 
-def _policies(conn: sqlite3.Connection, table: str, identifiers: set[str]) -> dict[str, Any]:
+
+def _policies(conn: engine.Connection, table: str, identifiers: set[str]) -> dict[str, Any]:
     result: dict[str, Any] = {key: {"status": "missing", "policy": None} for key in identifiers}
     for key, raw in conn.execute(
-        f"SELECT digest,policy_json FROM {table} WHERE digest IN (SELECT value FROM json_each(?))",
+        f"SELECT digest,policy_json FROM {table} WHERE digest IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb))",
         (json.dumps(sorted(identifiers)),),
     ):
         try:
@@ -29,7 +30,7 @@ def _policies(conn: sqlite3.Connection, table: str, identifiers: set[str]) -> di
 
 
 def report(
-    conn: sqlite3.Connection, *, source: str, source_ref: str, limit: int = 20
+    conn: engine.Connection, *, source: str, source_ref: str, limit: int = 20
 ) -> dict[str, Any]:
     """Use one caller-owned read snapshot; bound details, retain receipt totals.
 
@@ -40,7 +41,12 @@ def report(
     """
     if type(limit) is not int or not 1 <= limit <= 100:
         raise ValueError("event service history limit must be an integer from 1 to 100")
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
+    }
     supported = {
         "scheduler_event_requests",
         "scheduler_event_turns",
@@ -76,8 +82,11 @@ def report(
     if not supported:
         return {**result, "reason": "event_service_schema_unavailable"}
     params = (source, source_ref)
-    selected = "FROM scheduler_event_requests e JOIN scheduler_requests r USING(action_id) WHERE e.source=? AND e.source_ref=?"
-    total = int(conn.execute("SELECT count(*) " + selected, params).fetchone()[0])
+    selected = (
+        "FROM scheduler_event_requests e JOIN scheduler_requests r USING(action_id) WHERE "
+        "e.source=%s AND e.source_ref=%s"
+    )
+    total = int(conn.execute("SELECT COUNT(*) AS _value_0 " + selected, params).fetchone()[0])
     hosts = [
         dict(row)
         for row in conn.execute(
@@ -90,7 +99,11 @@ def report(
     turns = [
         dict(row)
         for row in conn.execute(
-            "SELECT host AS selected_host,category,owner_key,position,used,target_requests,policy_digest,enrolled_at,last_issued_at FROM scheduler_event_turns WHERE source=? AND source_ref=? ORDER BY host,category,position",
+            (
+                "SELECT host AS selected_host, category, owner_key, position, used, target_requests, "
+                "policy_digest, enrolled_at, last_issued_at FROM scheduler_event_turns WHERE source = %s AND "
+                "source_ref = %s ORDER BY host NULLS FIRST, category NULLS FIRST, position NULLS FIRST"
+            ),
             params,
         )
     ]
@@ -113,14 +126,18 @@ def report(
     recent = [
         dict(row)
         for row in conn.execute(
-            "SELECT e.action_id,e.selected_host,e.category,e.enumeration_id,e.turn_position,e.policy_digest AS turn_policy_digest,e.reason AS selection_reason,r.host AS actual_host,r.work_key,r.issued_at,r.body_bytes AS recorded_body_bytes"
+            (
+                "SELECT e.action_id,e.selected_host,e.category,e.enumeration_id,e.turn_position,e.policy_digest AS turn_policy_digest,e.reason AS selection_reason,r.host AS actual_host,r.work_key,r.issued_at,r.body_bytes AS recorded_body_bytes"
+            )
             + capacity_fields
             + execution_fields
             + " FROM scheduler_event_requests e JOIN scheduler_requests r USING(action_id) "
             + capacity_join
             + " "
             + execution_join
-            + " WHERE e.source=? AND e.source_ref=? ORDER BY julianday(r.issued_at) DESC,r.issued_at DESC,e.action_id DESC LIMIT ?",
+            + (
+                " WHERE e.source=%s AND e.source_ref=%s ORDER BY ops.try_timestamp(r.issued_at) DESC,r.issued_at DESC,e.action_id DESC LIMIT %s"
+            ),
             (*params, limit),
         )
     ]
@@ -143,7 +160,13 @@ def report(
         [
             dict(row)
             for row in conn.execute(
-                "SELECT c.selected_host,c.lane,c.purpose,c.reason,count(*) AS issued_requests FROM scheduler_event_requests e JOIN scheduler_capacity_requests c USING(action_id) WHERE e.source=? AND e.source_ref=? GROUP BY c.selected_host,c.lane,c.purpose,c.reason ORDER BY c.selected_host,c.lane,c.purpose,c.reason",
+                (
+                    "SELECT c.selected_host, c.lane, c.purpose, c.reason, COUNT(*) AS issued_requests FROM "
+                    "scheduler_event_requests AS e JOIN scheduler_capacity_requests AS c USING (action_id) WHERE "
+                    "e.source = %s AND e.source_ref = %s GROUP BY c.selected_host, c.lane, c.purpose, c.reason "
+                    "ORDER BY c.selected_host NULLS FIRST, c.lane NULLS FIRST, c.purpose NULLS FIRST, c.reason "
+                    "NULLS FIRST"
+                ),
                 params,
             )
         ]

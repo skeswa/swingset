@@ -23,7 +23,7 @@ def insert(conn, table, **values):
     )
     values = {**provenance, **values}
     conn.execute(
-        f"INSERT INTO {table} ({','.join(values)}) VALUES ({','.join('?' for _ in values)})",
+        f"INSERT INTO {table} ({','.join(values)}) VALUES ({','.join('%s' for _ in values)})",
         tuple(values.values()),
     )
 
@@ -169,7 +169,7 @@ def test_recent_unlinked_final_shortens_weekly_probe_wait_but_never_below_daily(
     with open_database(tmp_path) as db:
         finalist(db.connection)
         db.connection.executemany(
-            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            "INSERT INTO cursors (name, value) VALUES (%s, %s)",
             (
                 ("registry_probe_next_at", (NOW + timedelta(days=6)).isoformat()),
                 ("registry_probe_last_completed_at", NOW.isoformat()),
@@ -178,19 +178,21 @@ def test_recent_unlinked_final_shortens_weekly_probe_wait_but_never_below_daily(
         discover_registry(db, NOW + timedelta(hours=23))
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
             ).fetchone()
             is None
         )
         discover_registry(db, NOW + timedelta(days=1))
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
             ).fetchone()[0]
             == "1"
         )
         assert (
-            db.connection.execute("SELECT COUNT(*) FROM watches WHERE notes='probe'").fetchone()[0]
+            db.connection.execute("SELECT COUNT(*) FROM watches WHERE notes = 'probe'").fetchone()[
+                0
+            ]
             == 20
         )
 
@@ -200,7 +202,7 @@ def test_old_unlinked_final_keeps_weekly_discovery_and_retains_result(tmp_path):
         finalist(db.connection, age=31)
         due = NOW + timedelta(days=6)
         db.connection.executemany(
-            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            "INSERT INTO cursors (name, value) VALUES (%s, %s)",
             (
                 ("registry_probe_next_at", due.isoformat()),
                 ("registry_probe_last_completed_at", (NOW - timedelta(days=1)).isoformat()),
@@ -209,13 +211,13 @@ def test_old_unlinked_final_keeps_weekly_discovery_and_retains_result(tmp_path):
         discover_registry(db, NOW)
         assert (
             db.connection.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+                "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
             ).fetchone()
             is None
         )
         discover_registry(db, due)
         assert db.connection.execute(
-            "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
+            "SELECT value FROM cursors WHERE name = 'registry_probe_cursor'"
         ).fetchone()
         assert db.connection.execute("SELECT COUNT(*) FROM placements").fetchone()[0] == 1
 
@@ -231,25 +233,25 @@ def test_confirmation_refresh_tracks_all_pending_events_and_stops_after_posting(
         spec = SOURCE.watch(1)
         upsert_watch(conn, spec, NOW)
         conn.execute(
-            "UPDATE watches SET notes='confirmation:newer' WHERE watch_id=?", (spec.watch_id,)
+            "UPDATE watches SET notes = 'confirmation:newer' WHERE watch_id = %s", (spec.watch_id,)
         )
         posted(conn, "newer")
         assert pending_confirmation_events(conn, 1, NOW) == ["older"]
         refresh_policy(conn, config, spec.watch_id, NOW, jitter=0)
         assert (
             conn.execute(
-                "SELECT next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT next_check_at FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()[0]
             == (NOW + timedelta(days=1)).isoformat()
         )
         posted(conn, "older", result="5")
         assert pending_confirmation_events(conn, 1, NOW) == ["older"]
-        conn.execute("UPDATE registry_placements SET result='6' WHERE event_id='older'")
+        conn.execute("UPDATE registry_placements SET result = '6' WHERE event_id = 'older'")
         assert pending_confirmation_events(conn, 1, NOW) == []
         refresh_policy(conn, config, spec.watch_id, NOW, jitter=0)
         assert (
             conn.execute(
-                "SELECT next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT next_check_at FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()[0]
             == (NOW + timedelta(days=365)).isoformat()
         )

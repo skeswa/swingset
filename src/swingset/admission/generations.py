@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
@@ -19,6 +18,7 @@ from swingset.sources.base import (
     WatchSpec,
 )
 from swingset.sources.phase_one import PHASE1_KINDS
+from swingset.state import engine
 
 from .removal import wdr_preserves_rows
 from .report import Guard, Report
@@ -37,7 +37,7 @@ class AttemptInputs:
 
 
 def parse_recipe_names(kind: str) -> frozenset[str]:
-    """A page kind's parse recipe: environment, history start and its two code scopes.
+    """A page kind's parse recipe: history start and its two declared code scopes.
 
     `recipe/runtime` is the package-wide identity of bundles captured before
     D-0207; after the first scoped bundle it stays at the absent-input digest.
@@ -46,7 +46,6 @@ def parse_recipe_names(kind: str) -> frozenset[str]:
     """
     return frozenset(
         {
-            "recipe/env",
             "recipe/runtime",
             "policy/history_start",
             f"recipe/code/extract/{kind}",
@@ -60,7 +59,7 @@ def parse_input_names(kind: str) -> frozenset[str]:
     return parse_recipe_names(kind) | {f"version/extract/{kind}", f"version/parser/{kind}"}
 
 
-def parse_inputs(conn: sqlite3.Connection, kind: str) -> tuple[tuple[str, str, str], ...]:
+def parse_inputs(conn: engine.Connection, kind: str) -> tuple[tuple[str, str, str], ...]:
     """Accepted inputs one page kind's parse depends on, as (consumer, name, digest).
 
     Source-generation recipes and admission currency use these instead of every
@@ -71,22 +70,25 @@ def parse_inputs(conn: sqlite3.Connection, kind: str) -> tuple[tuple[str, str, s
     return tuple(
         ("pipeline", str(name), str(value))
         for name, value in conn.execute(
-            "SELECT input_name,digest FROM accepted_inputs WHERE consumer='pipeline' "
-            "ORDER BY input_name"
+            "SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'pipeline' ORDER BY "
+            "input_name NULLS FIRST"
         )
         if name in selected
     )
 
 
 def begin_attempt(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     ctx: ParseContext,
     extract_version: int | str,
     parser_version: int | str,
 ) -> AttemptInputs:
     """Call before extraction: requeued work and changed recipes remain visible."""
     row = conn.execute(
-        "SELECT s.via,w.kind,w.source,w.parser,w.archive_url FROM snapshots s JOIN watches w USING(watch_id) WHERE snapshot_id=?",
+        (
+            "SELECT s.via, w.kind, w.source, w.parser, w.archive_url FROM snapshots AS s JOIN watches AS "
+            "w USING (watch_id) WHERE snapshot_id = %s"
+        ),
         (ctx.snapshot_id,),
     ).fetchone()
     if row is None:
@@ -95,10 +97,10 @@ def begin_attempt(
         f"{ctx.watch_id}/{ctx.snapshot_id}" if _independent_capture(*row[:4]) else ctx.watch_id
     )
     prior = conn.execute(
-        "SELECT accepted_generation_id FROM source_units WHERE unit_key=?", (unit_key,)
+        "SELECT accepted_generation_id FROM source_units WHERE unit_key = %s", (unit_key,)
     ).fetchone()
     work = conn.execute(
-        "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=?",
+        "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_kind = 'snapshot' AND unit_id = %s",
         (ctx.snapshot_id,),
     ).fetchone()
     return AttemptInputs(
@@ -122,7 +124,7 @@ def _independent_capture(via: str, kind: str, source: str, parser: str) -> bool:
     )
 
 
-def selected_snapshot(conn: sqlite3.Connection, watch_id: str, snapshot_id: str) -> bool:
+def selected_snapshot(conn: engine.Connection, watch_id: str, snapshot_id: str) -> bool:
     """Select an explicitly requested archive capture, or the latest origin body.
 
     Memento capture time is historical evidence, not the order in which an
@@ -130,9 +132,10 @@ def selected_snapshot(conn: sqlite3.Connection, watch_id: str, snapshot_id: str)
     compete by fetch time. Phase-one listing captures remain independent.
     """
     snapshot = conn.execute(
-        "SELECT s.via,w.kind,w.source,w.parser,w.archive_url,s.body_sha256 "
-        "FROM snapshots s JOIN watches w USING(watch_id) "
-        "WHERE s.watch_id=? AND s.snapshot_id=?",
+        (
+            "SELECT s.via, w.kind, w.source, w.parser, w.archive_url, s.body_sha256 FROM snapshots AS s "
+            "JOIN watches AS w USING (watch_id) WHERE s.watch_id = %s AND s.snapshot_id = %s"
+        ),
         (watch_id, snapshot_id),
     ).fetchone()
     if snapshot is None or snapshot[5] is None:
@@ -143,25 +146,31 @@ def selected_snapshot(conn: sqlite3.Connection, watch_id: str, snapshot_id: str)
         return False
     if snapshot[4]:
         row = conn.execute(
-            "SELECT snapshot_id FROM snapshots WHERE watch_id=? AND via='wayback' "
-            "AND body_sha256 IS NOT NULL AND (requested_archive_url=? OR archive_url=?) "
-            "ORDER BY fetched_at DESC,snapshot_id DESC LIMIT 1",
+            (
+                "SELECT snapshot_id FROM snapshots WHERE watch_id = %s AND via = 'wayback' AND NOT "
+                "body_sha256 IS NULL AND (requested_archive_url = %s OR archive_url = %s) ORDER BY "
+                "fetched_at DESC NULLS LAST, snapshot_id DESC NULLS LAST LIMIT 1"
+            ),
             (watch_id, snapshot[4], snapshot[4]),
         ).fetchone()
     else:
         row = conn.execute(
-            "SELECT snapshot_id FROM snapshots WHERE watch_id=? AND body_sha256 IS NOT NULL "
-            "ORDER BY COALESCE(observed_at,fetched_at) DESC,snapshot_id DESC LIMIT 1",
+            (
+                "SELECT snapshot_id FROM snapshots WHERE watch_id = %s AND NOT body_sha256 IS NULL ORDER BY "
+                "COALESCE(observed_at, fetched_at) DESC NULLS LAST, snapshot_id DESC NULLS LAST LIMIT 1"
+            ),
             (watch_id,),
         ).fetchone()
     return row is not None and row[0] == snapshot_id
 
 
-def current_snapshot(conn: sqlite3.Connection, attempt: AttemptInputs) -> bool:
+def current_snapshot(conn: engine.Connection, attempt: AttemptInputs) -> bool:
     context = attempt.context
     watch = conn.execute(
-        "SELECT w.source,w.parser,w.source_ref,w.url,w.archive_url,w.kind,s.via "
-        "FROM watches w JOIN snapshots s USING(watch_id) WHERE w.watch_id=? AND s.snapshot_id=?",
+        (
+            "SELECT w.source, w.parser, w.source_ref, w.url, w.archive_url, w.kind, s.via FROM watches "
+            "AS w JOIN snapshots AS s USING (watch_id) WHERE w.watch_id = %s AND s.snapshot_id = %s"
+        ),
         (context.watch_id, context.snapshot_id),
     ).fetchone()
     if watch is None or tuple(watch[:4]) != (
@@ -195,7 +204,7 @@ BLOCKED = frozenset({"needs_review", "waiting_for_inputs"})
 
 
 def stage_generation(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     attempt: AttemptInputs,
     extract_sha256: str | None,
@@ -220,8 +229,32 @@ def stage_generation(
     ).generation_id
 
 
+def generation_identity(
+    *,
+    unit_key: str,
+    fingerprint: str,
+    report: dict[str, Any],
+    result_json: str,
+    previous: str | None,
+    work_token: str | None,
+) -> str:
+    """The immutable source generation identity, shared with import witnesses."""
+    return "gen_" + digest(
+        canonical(
+            {
+                "unit": unit_key,
+                "fingerprint": fingerprint,
+                "report": report,
+                "result": result_json,
+                "previous": previous,
+                "work_token": work_token,
+            }
+        )
+    )
+
+
 def stage(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     attempt: AttemptInputs,
     extract_sha256: str | None,
@@ -239,7 +272,17 @@ def stage(
             report, guards=(*report.guards, wdr_preserves_rows(conn, ctx.watch_id, result))
         )
     snapshot = conn.execute(
-        "SELECT * FROM snapshots WHERE snapshot_id=? AND watch_id=?",
+        (
+            "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+            "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+            "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+            "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+            "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+            "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+            "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+            "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+            "snapshots.extract_recipe_sha256 FROM snapshots WHERE snapshot_id = %s AND watch_id = %s"
+        ),
         (ctx.snapshot_id, ctx.watch_id),
     ).fetchone()
     if snapshot is None:
@@ -296,15 +339,14 @@ def stage(
         recipe["archive_url"] = attempt.archive_url
     fingerprint = digest(canonical({"manifest": manifest, "recipe": recipe}))
     result_json = serialize_result(result)
-    evidence = {
-        "unit": attempt.unit_key,
-        "fingerprint": fingerprint,
-        "report": report.as_dict(),
-        "result": result_json,
-        "previous": attempt.previous_generation_id,
-        "work_token": attempt.work_token,
-    }
-    identifier = "gen_" + digest(canonical(evidence))
+    identifier = generation_identity(
+        unit_key=attempt.unit_key,
+        fingerprint=fingerprint,
+        report=report.as_dict(),
+        result_json=result_json,
+        previous=attempt.previous_generation_id,
+        work_token=attempt.work_token,
+    )
     kept = _cutoff(
         conn,
         attempt,
@@ -317,9 +359,10 @@ def stage(
     if kept is not None:
         if kept[1] != fingerprint:
             conn.execute(
-                "INSERT INTO source_equivalences(unit_key,input_fingerprint,generation_id,"
-                "recipe_json,work_token,created_at,run_id) VALUES (?,?,?,?,?,?,?) "
-                "ON CONFLICT DO NOTHING",
+                (
+                    "INSERT INTO source_equivalences (unit_key, input_fingerprint, generation_id, recipe_json, "
+                    "work_token, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
+                ),
                 (
                     attempt.unit_key,
                     fingerprint,
@@ -331,25 +374,31 @@ def stage(
                 ),
             )
         conn.execute(
-            "UPDATE source_units SET desired_fingerprint=? WHERE unit_key=?",
+            "UPDATE source_units SET desired_fingerprint = %s WHERE unit_key = %s",
             (fingerprint, attempt.unit_key),
         )
         return Staged(kept[0], kept[2])
     conn.execute(
-        "INSERT INTO source_units(unit_key,watch_id,page_kind) VALUES (?,?,?) ON CONFLICT(unit_key) DO NOTHING",
+        (
+            "INSERT INTO source_units (unit_key, watch_id, page_kind) VALUES (%s, %s, %s) ON CONFLICT(unit_key) DO NOTHING"
+        ),
         (attempt.unit_key, ctx.watch_id, ctx.kind),
     )
     if current_snapshot(conn, attempt) and parse_inputs(conn, ctx.kind) == attempt.accepted_inputs:
         conn.execute(
-            "UPDATE source_units SET desired_fingerprint=? WHERE unit_key=?",
+            "UPDATE source_units SET desired_fingerprint = %s WHERE unit_key = %s",
             (fingerprint, attempt.unit_key),
         )
     conn.execute(
-        "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) VALUES (?,?,?) ON CONFLICT(page_kind) DO NOTHING",
+        (
+            "INSERT INTO admission_policies (page_kind, contract_version, policy_revision) VALUES (%s, %s, %s) ON CONFLICT(page_kind) DO NOTHING"
+        ),
         (ctx.kind, report.contract_version, "shadow:" + report.contract_version),
     )
     conn.execute(
-        "INSERT INTO source_generations(generation_id,unit_key,page_kind,contract_version,input_fingerprint,manifest_json,recipe_json,result_json,report_json,previous_generation_id,work_token,created_at,run_id,state,removal_authority) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(generation_id) DO NOTHING",
+        (
+            "INSERT INTO source_generations (generation_id, unit_key, page_kind, contract_version, input_fingerprint, manifest_json, recipe_json, result_json, report_json, previous_generation_id, work_token, created_at, run_id, state, removal_authority) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(generation_id) DO NOTHING"
+        ),
         (
             identifier,
             attempt.unit_key,
@@ -372,7 +421,7 @@ def stage(
 
 
 def _cutoff(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     attempt: AttemptInputs,
     *,
     fingerprint: str,
@@ -397,13 +446,13 @@ def _cutoff(
     if (
         not cutoff.enabled()
         or conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='source_equivalences'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'source_equivalences') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is None
     ):
         return None
     unit = conn.execute(
-        "SELECT accepted_generation_id,desired_fingerprint FROM source_units WHERE unit_key=?",
+        "SELECT accepted_generation_id, desired_fingerprint FROM source_units WHERE unit_key = %s",
         (attempt.unit_key,),
     ).fetchone()
     if unit is None:
@@ -414,27 +463,19 @@ def _cutoff(
     )
     same = (manifest_json, result_json, report_json, contract_version)
     policy = conn.execute(
-        "SELECT mode,contract_version,reviewed_report_digest FROM admission_policies "
-        "WHERE page_kind=?",
+        "SELECT mode, contract_version, reviewed_report_digest FROM admission_policies WHERE page_kind = %s",
         (attempt.context.kind,),
     ).fetchone()
     blocked: str | None = None
     kept = None
     if unit[0] is not None:
         kept = conn.execute(
-            f"SELECT {columns} FROM source_generations g "
-            "WHERE g.generation_id=? AND g.unit_key=? AND g.state='accepted'",
+            f"SELECT {columns} FROM source_generations g WHERE g.generation_id=%s AND g.unit_key=%s AND g.state='accepted'",
             (unit[0], attempt.unit_key),
         ).fetchone()
     elif policy is not None and policy[0] == "shadow" and unit[1] is not None:
         kept = conn.execute(
-            f"SELECT {columns} FROM source_generations g WHERE g.unit_key=? "
-            "AND NOT EXISTS (SELECT 1 FROM admission_decisions d "
-            "WHERE d.generation_id=g.generation_id) "
-            "AND (g.input_fingerprint=? OR EXISTS (SELECT 1 FROM source_equivalences e "
-            "WHERE e.unit_key=g.unit_key AND e.input_fingerprint=? "
-            "AND e.generation_id=g.generation_id)) "
-            "ORDER BY g.created_at DESC,g.generation_id DESC LIMIT 1",
+            f"SELECT {columns} FROM source_generations g WHERE g.unit_key=%s AND NOT EXISTS (SELECT 1 FROM admission_decisions d WHERE d.generation_id=g.generation_id) AND (g.input_fingerprint=%s OR EXISTS (SELECT 1 FROM source_equivalences e WHERE e.unit_key=g.unit_key AND e.input_fingerprint=%s AND e.generation_id=g.generation_id)) ORDER BY g.created_at DESC,g.generation_id DESC LIMIT 1",
             (attempt.unit_key, unit[1], unit[1]),
         ).fetchone()
     if (kept is None or tuple(kept)[2:] != same) and policy is not None and policy[0] == "enforce":
@@ -450,8 +491,7 @@ def _cutoff(
             else None
         )
         newest = conn.execute(
-            f"SELECT {columns},g.state FROM source_generations g WHERE g.unit_key=? "
-            "ORDER BY g.created_at DESC,g.generation_id DESC LIMIT 1",
+            f"SELECT {columns},g.state FROM source_generations g WHERE g.unit_key=%s ORDER BY g.created_at DESC,g.generation_id DESC LIMIT 1",
             (attempt.unit_key,),
         ).fetchone()
         if expected is not None and newest is not None and newest[6] == expected:
@@ -468,7 +508,7 @@ def _cutoff(
     return str(kept[0]), str(kept[1]), blocked
 
 
-def revoked_fingerprint(conn: sqlite3.Connection, unit_key: str, fingerprint: str) -> bool:
+def revoked_fingerprint(conn: engine.Connection, unit_key: str, fingerprint: str) -> bool:
     """Whether parse inputs with this fingerprint belong to a revoked generation.
 
     They do when a revoked generation was staged for them, or when a parse
@@ -476,22 +516,23 @@ def revoked_fingerprint(conn: sqlite3.Connection, unit_key: str, fingerprint: st
     Before schema 33 there are no equivalences.
     """
     if conn.execute(
-        "SELECT 1 FROM source_generations WHERE unit_key=? AND input_fingerprint=? "
-        "AND state='revoked' LIMIT 1",
+        (
+            "SELECT 1 AS _value_0 FROM source_generations WHERE unit_key = %s AND input_fingerprint = %s AND state = 'revoked' LIMIT 1"
+        ),
         (unit_key, fingerprint),
     ).fetchone():
         return True
     try:
         return (
             conn.execute(
-                "SELECT 1 FROM source_equivalences e JOIN source_generations g "
-                "ON g.generation_id=e.generation_id AND g.unit_key=e.unit_key "
-                "WHERE e.unit_key=? AND e.input_fingerprint=? AND g.state='revoked' LIMIT 1",
+                (
+                    "SELECT 1 AS _value_0 FROM source_equivalences AS e JOIN source_generations AS g ON g.generation_id = e.generation_id AND g.unit_key = e.unit_key WHERE e.unit_key = %s AND e.input_fingerprint = %s AND g.state = 'revoked' LIMIT 1"
+                ),
                 (unit_key, fingerprint),
             ).fetchone()
             is not None
         )
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" in str(exc):
             return False
         raise

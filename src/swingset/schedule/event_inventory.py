@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any
@@ -13,6 +12,7 @@ from swingset.admission.evidence_budget import BudgetExceeded
 from swingset.admission.page_evidence import FORMAT, Limits, Session
 from swingset.admission.parent_evidence import parent_support
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 from .event_evidence import request, timestamp
 from .event_gaps import accounted
@@ -62,7 +62,9 @@ class _Evidence:
             # the aware cutoff after parsing: SQLite accepts naive/invalid
             # calendar values that cannot certify a latest response here.
             candidates = self.session.read(
-                "SELECT snapshot_id,watch_id,method,url,form,fetched_at,classification FROM snapshots WHERE watch_id IN (SELECT value FROM json_each(?)) ORDER BY julianday(fetched_at) DESC,snapshot_id DESC",
+                (
+                    "SELECT snapshot_id, watch_id, method, url, form, fetched_at, classification FROM snapshots WHERE watch_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(fetched_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, snapshot_id DESC NULLS LAST"
+                ),
                 (json.dumps(sorted(set(declared) | evidence_watches)),),
                 (
                     "snapshot_id",
@@ -153,7 +155,7 @@ class _Evidence:
 
 
 def inventory(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     *,
     source: str,
@@ -172,7 +174,9 @@ def inventory(
     if archive.recovery is not None:
         raise ValueError("inventory requires a read-only Archive without recovery")
     if (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='source_event_inventory'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'source_event_inventory' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is None
     ):
         return {
@@ -217,7 +221,7 @@ def inventory(
     }
     try:
         entries = session.read(
-            "SELECT enumeration_id,first_known_at FROM source_event_inventory WHERE source=? AND source_ref=?",
+            "SELECT enumeration_id, first_known_at FROM source_event_inventory WHERE source = %s AND source_ref = %s",
             (source, source_ref),
             ("enumeration_id", "first_known_at"),
             cap=1,
@@ -234,7 +238,7 @@ def inventory(
                 0, (now - datetime.fromisoformat(first)).total_seconds()
             )
         mapping = session.read(
-            "SELECT event_id FROM source_event_map WHERE source=? AND source_ref=?",
+            "SELECT event_id FROM source_event_map WHERE source = %s AND source_ref = %s",
             (source, source_ref),
             ("event_id",),
             cap=1,
@@ -254,7 +258,10 @@ def inventory(
             limit=ENUMERATION_MEMBERS,
         )
         headers = session.read(
-            "SELECT predecessor_id,membership_digest,pagination,pagination_reason,added_json,removed_json,parent_support_json FROM source_event_enumerations WHERE enumeration_id=?",
+            (
+                "SELECT predecessor_id, membership_digest, pagination, pagination_reason, added_json, "
+                "removed_json, parent_support_json FROM source_event_enumerations WHERE enumeration_id = %s"
+            ),
             (entry["enumeration_id"],),
             (
                 "predecessor_id",

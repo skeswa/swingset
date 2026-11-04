@@ -5,6 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from test_postgres_schema import fresh_database as fresh_database
 
 from swingset.admission.contracts import declare, evaluate, inspect
 from swingset.admission.generations import begin_attempt, stage_generation
@@ -47,7 +48,11 @@ class Corpus:
         now = self.clock.now().isoformat()
         sha = self.archive.store_body(body)
         self.conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification,via) VALUES (?,?,'GET',?,?,200,?,?,1,?,'Ok',?)",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_sha256, body_bytes, content_changed, run_id, classification, via) VALUES (%s, %s, "
+                "'GET', %s, %s, 200, %s, %s, 1, %s, 'Ok', %s)"
+            ),
             (name, spec.watch_id, spec.url, now, sha, len(body), self.run, via),
         )
         enqueue(self.conn, (WorkUnit("parse", "snapshot", name),), enqueued_at=now)
@@ -87,7 +92,7 @@ class Corpus:
                 evidence="Synthetic fixture inspected in this offline acceptance test",
             )
             kind = self.conn.execute(
-                "SELECT page_kind FROM source_generations WHERE generation_id=?", (generation,)
+                "SELECT page_kind FROM source_generations WHERE generation_id = %s", (generation,)
             ).fetchone()[0]
             activate_contract(self.conn, kind, receipt)
 
@@ -116,7 +121,7 @@ def test_shadow_retains_report_and_never_selects_output(tmp_path):
         )
         assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 1
         stored = db.connection.execute(
-            "SELECT manifest_json,result_json FROM source_generations"
+            "SELECT manifest_json, result_json FROM source_generations"
         ).fetchone()
         assert json.loads(stored[0])[0]["snapshot_id"] == "one"
         assert len(json.loads(stored[1])["observations"]) == 1
@@ -141,9 +146,21 @@ def test_critical_guard_blocks_complete_looking_replacement(tmp_path, failure):
         first, _ = c.stage(c.snapshot("one"))
         c.review(first)
         assert c.admit(first) == "accepted"
-        old_rows = tuple(tuple(r) for r in c.conn.execute("SELECT * FROM observations"))
+        old_rows = tuple(
+            tuple(r)
+            for r in c.conn.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations"
+            )
+        )
         old_work = tuple(
-            tuple(r) for r in c.conn.execute("SELECT * FROM pending_work WHERE stage='project'")
+            tuple(r)
+            for r in c.conn.execute(
+                "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                "pending_work.enqueued_at FROM pending_work WHERE stage = 'project'"
+            )
         )
 
         def change(report):
@@ -185,10 +202,25 @@ def test_critical_guard_blocks_complete_looking_replacement(tmp_path, failure):
         )
         assert c.admit(second) in {"waiting_for_inputs", "needs_review"}
         assert report.failures
-        assert tuple(tuple(r) for r in c.conn.execute("SELECT * FROM observations")) == old_rows
         assert (
             tuple(
-                tuple(r) for r in c.conn.execute("SELECT * FROM pending_work WHERE stage='project'")
+                tuple(r)
+                for r in c.conn.execute(
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations"
+                )
+            )
+            == old_rows
+        )
+        assert (
+            tuple(
+                tuple(r)
+                for r in c.conn.execute(
+                    "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                    "pending_work.enqueued_at FROM pending_work WHERE stage = 'project'"
+                )
             )
             == old_work
         )
@@ -196,7 +228,7 @@ def test_critical_guard_blocks_complete_looking_replacement(tmp_path, failure):
             c.conn.execute("SELECT accepted_generation_id FROM source_units").fetchone()[0] == first
         )
         assert c.conn.execute(
-            "SELECT report_json FROM source_generations WHERE generation_id=?", (second,)
+            "SELECT report_json FROM source_generations WHERE generation_id = %s", (second,)
         ).fetchone()
 
 
@@ -209,7 +241,7 @@ def test_admission_crash_rolls_back_pointer_observations_and_work(tmp_path):
         next_body = BODY.replace(b"Alice", b"Corrected")
         second, _ = c.stage(c.snapshot("two", next_body), body=next_body)
         before = {
-            table: tuple(tuple(r) for r in c.conn.execute("SELECT * FROM " + table))
+            table: tuple(tuple(r) for r in c.conn.execute(" SELECT * FROM " + table))
             for table in ("observations", "source_units", "pending_work", "revisions")
         }
 
@@ -219,10 +251,10 @@ def test_admission_crash_rolls_back_pointer_observations_and_work(tmp_path):
         with pytest.raises(RuntimeError, match="interruption"):
             c.admit(second, after_write=crash)
         for table, rows in before.items():
-            assert tuple(tuple(r) for r in c.conn.execute("SELECT * FROM " + table)) == rows
+            assert tuple(tuple(r) for r in c.conn.execute(" SELECT * FROM " + table)) == rows
         assert (
             c.conn.execute(
-                "SELECT state FROM source_generations WHERE generation_id=?", (second,)
+                "SELECT state FROM source_generations WHERE generation_id = %s", (second,)
             ).fetchone()[0]
             == "staged"
         )
@@ -243,7 +275,7 @@ def test_admission_crash_rolls_back_pointer_observations_and_work(tmp_path):
         )
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM pending_work WHERE stage='parse'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'"
             ).fetchone()[0]
             == 0
         )
@@ -264,7 +296,7 @@ def test_an_input_outside_the_kinds_parse_recipe_does_not_supersede(tmp_path):
         generation, _ = c.stage(ctx)
         c.review(generation)
         c.conn.executemany(
-            "INSERT INTO accepted_inputs VALUES ('pipeline',?,'new-digest')",
+            "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, 'new-digest')",
             (
                 ("manual_extract",),
                 ("overrides/event_aliases.csv",),
@@ -285,7 +317,7 @@ def test_changed_desired_input_cannot_clear_new_work(tmp_path, change):
         c.review(generation)
         if change == "input":
             c.conn.execute(
-                "INSERT INTO accepted_inputs VALUES ('pipeline',?,'new-digest')",
+                "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, 'new-digest')",
                 (f"recipe/code/parse/{ctx.kind}",),
             )
         elif change == "work":
@@ -294,11 +326,26 @@ def test_changed_desired_input_cannot_clear_new_work(tmp_path, change):
             )
         else:
             c.snapshot("two", BODY + b"\n")
-        pending = tuple(tuple(r) for r in c.conn.execute("SELECT * FROM pending_work"))
+        pending = tuple(
+            tuple(r)
+            for r in c.conn.execute(
+                "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                "pending_work.enqueued_at FROM pending_work"
+            )
+        )
         assert c.admit(generation) == "superseded"
         if change == "snapshot":
             pending = tuple(r for r in pending if r[2] != "one")
-        assert tuple(tuple(r) for r in c.conn.execute("SELECT * FROM pending_work")) == pending
+        assert (
+            tuple(
+                tuple(r)
+                for r in c.conn.execute(
+                    "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                    "pending_work.enqueued_at FROM pending_work"
+                )
+            )
+            == pending
+        )
         assert c.conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 0
 
 
@@ -315,7 +362,13 @@ def test_authoritative_round_removal_is_scoped_to_its_watch(tmp_path):
         rows = tuple(
             tuple(r)
             for r in c.conn.execute(
-                "SELECT * FROM observations WHERE watch_id=?", (other.watch_id,)
+                (
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations WHERE watch_id = %s"
+                ),
+                (other.watch_id,),
             )
         )
         smaller = BODY.replace(
@@ -333,14 +386,20 @@ def test_authoritative_round_removal_is_scoped_to_its_watch(tmp_path):
         assert (
             "Carol"
             not in c.conn.execute(
-                "SELECT payload_json FROM observations WHERE watch_id=?", (c.spec.watch_id,)
+                "SELECT payload_json FROM observations WHERE watch_id = %s", (c.spec.watch_id,)
             ).fetchone()[0]
         )
         assert (
             tuple(
                 tuple(r)
                 for r in c.conn.execute(
-                    "SELECT * FROM observations WHERE watch_id=?", (other.watch_id,)
+                    (
+                        "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                        "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                        "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                        "observations WHERE watch_id = %s"
+                    ),
+                    (other.watch_id,),
                 )
             )
             == rows
@@ -391,20 +450,20 @@ def test_pipeline_enforcement_uses_staged_guards(tmp_path):
         assert not attempt.failed
         assert (
             c.conn.execute(
-                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
+                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
                 (c.spec.watch_id,),
             ).fetchone()[0]
             == "one"
         )
         assert (
             c.conn.execute(
-                "SELECT state FROM source_generations WHERE generation_id!=?", (first,)
+                "SELECT state FROM source_generations WHERE generation_id <> %s", (first,)
             ).fetchone()[0]
             == "needs_review"
         )
         assert (
             c.conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE kind='admission_blocked'"
+                "SELECT COUNT(*) FROM findings WHERE kind = 'admission_blocked'"
             ).fetchone()[0]
             == 1
         )
@@ -442,19 +501,19 @@ def test_phase_one_archive_staging_has_independent_snapshot_scopes(tmp_path):
         assert c.admit(first) == c.admit(second) == "shadow"
         assert (
             c.conn.execute(
-                "SELECT COUNT(*) FROM source_units WHERE accepted_generation_id IS NOT NULL"
+                "SELECT COUNT(*) FROM source_units WHERE NOT accepted_generation_id IS NULL"
             ).fetchone()[0]
             == 0
         )
         newer_desired = c.conn.execute(
-            "SELECT desired_fingerprint FROM source_units WHERE unit_key=?",
+            "SELECT desired_fingerprint FROM source_units WHERE unit_key = %s",
             (f"{spec.watch_id}/new-capture",),
         ).fetchone()[0]
         enqueue(c.conn, (WorkUnit("parse", "snapshot", "old-capture"),), enqueued_at="2099-01-01")
         c.stage(first_ctx, body=first_body)
         assert (
             c.conn.execute(
-                "SELECT desired_fingerprint FROM source_units WHERE unit_key=?",
+                "SELECT desired_fingerprint FROM source_units WHERE unit_key = %s",
                 (f"{spec.watch_id}/new-capture",),
             ).fetchone()[0]
             == newer_desired
@@ -462,7 +521,7 @@ def test_phase_one_archive_staging_has_independent_snapshot_scopes(tmp_path):
 
 
 def test_artifact_loss_and_immutable_staging_preserve_prior_selection(tmp_path):
-    import sqlite3
+    from swingset.state import engine
 
     with open_database(tmp_path) as db:
         c = Corpus(db)
@@ -471,12 +530,13 @@ def test_artifact_loss_and_immutable_staging_preserve_prior_selection(tmp_path):
         assert c.admit(first) == "accepted"
         changed = BODY + b"\n"
         second, _ = c.stage(c.snapshot("two", changed), body=changed)
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+        with pytest.raises(engine.IntegrityError, match="immutable"):
             c.conn.execute(
-                "UPDATE source_generations SET report_json='{}' WHERE generation_id=?", (second,)
+                "UPDATE source_generations SET report_json = '{}' WHERE generation_id = %s",
+                (second,),
             )
         sha = c.conn.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id='two'"
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = 'two'"
         ).fetchone()[0]
         c.archive.blob_path(sha).unlink()
         assert c.admit(second) == "needs_review"
@@ -485,7 +545,7 @@ def test_artifact_loss_and_immutable_staging_preserve_prior_selection(tmp_path):
         )
         assert (
             c.conn.execute(
-                "SELECT reason FROM admission_decisions WHERE generation_id=? ORDER BY decision_id DESC",
+                "SELECT reason FROM admission_decisions WHERE generation_id = %s ORDER BY decision_id DESC NULLS LAST",
                 (second,),
             )
             .fetchone()[0]
@@ -497,7 +557,7 @@ def _labels(conn):
     return sorted(
         tuple(row)
         for row in conn.execute(
-            "SELECT DISTINCT snapshot_id,parser_version,extract_version FROM observations"
+            "SELECT DISTINCT snapshot_id, parser_version, extract_version FROM observations"
         )
     )
 
@@ -550,7 +610,7 @@ def test_readmission_with_equal_payload_rewrites_observation_labels(tmp_path, mo
         # Before relabelling, the old generation no longer counts under the new contract.
         assert _build_support(c.conn, "one", parser) == "legacy_unassessed"
         revision = c.conn.execute(
-            "SELECT value FROM revisions WHERE name='observations'"
+            "SELECT value FROM revisions WHERE name = 'observations'"
         ).fetchone()[0]
         assert c.admit(second) == "accepted"
         assert _labels(c.conn) == [("one", parser, new_extract)]
@@ -558,13 +618,21 @@ def test_readmission_with_equal_payload_rewrites_observation_labels(tmp_path, mo
             payloads
         )
         assert (
-            c.conn.execute("SELECT value FROM revisions WHERE name='observations'").fetchone()[0]
+            c.conn.execute("SELECT value FROM revisions WHERE name = 'observations'").fetchone()[0]
             == revision + 1
         )
         assert _build_support(c.conn, "one", parser) == "accepted"
 
         # The same payload under the same labels is still a no-op.
-        before = tuple(tuple(row) for row in c.conn.execute("SELECT * FROM observations"))
+        before = tuple(
+            tuple(row)
+            for row in c.conn.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations"
+            )
+        )
         queued = c.conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
         with c.db.transaction():
             store_parse_result(
@@ -576,10 +644,21 @@ def test_readmission_with_equal_payload_rewrites_observation_labels(tmp_path, mo
                 parsed_at=c.clock.now().isoformat(),
                 run_id=c.run,
             )
-        assert tuple(tuple(row) for row in c.conn.execute("SELECT * FROM observations")) == before
+        assert (
+            tuple(
+                tuple(row)
+                for row in c.conn.execute(
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations"
+                )
+            )
+            == before
+        )
         assert c.conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == queued
         assert (
-            c.conn.execute("SELECT value FROM revisions WHERE name='observations'").fetchone()[0]
+            c.conn.execute("SELECT value FROM revisions WHERE name = 'observations'").fetchone()[0]
             == revision + 1
         )
 
@@ -605,7 +684,7 @@ def test_relabel_stores_an_accepted_result_again_when_only_labels_lag(tmp_path, 
         payloads = [row[0] for row in c.conn.execute("SELECT payload_json FROM observations")]
         # The rows an older parser left behind: same payload, older labels.
         with c.db.transaction():
-            c.conn.execute("UPDATE observations SET parser_version='0',extract_version='0'")
+            c.conn.execute("UPDATE observations SET parser_version = '0', extract_version = '0'")
             c.conn.execute("DELETE FROM pending_work")
         assert _build_support(c.conn, "one", "0") == "legacy_unassessed"
         [found] = relabel.drift(c.conn)
@@ -616,7 +695,7 @@ def test_relabel_stores_an_accepted_result_again_when_only_labels_lag(tmp_path, 
         )
         assert relabel.drift(c.conn, kinds=["scoringdance.event"]) == []
         revision = c.conn.execute(
-            "SELECT value FROM revisions WHERE name='observations'"
+            "SELECT value FROM revisions WHERE name = 'observations'"
         ).fetchone()[0]
 
     # The list opens read-only and writes nothing.
@@ -637,16 +716,16 @@ def test_relabel_stores_an_accepted_result_again_when_only_labels_lag(tmp_path, 
         assert _build_support(conn, "one", parser) == "accepted"
         # Its project scopes are queued for derive, and observers see the change.
         assert (
-            conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='project'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage = 'project'").fetchone()[0]
             > 0
         )
         assert (
-            conn.execute("SELECT value FROM revisions WHERE name='observations'").fetchone()[0]
+            conn.execute("SELECT value FROM revisions WHERE name = 'observations'").fetchone()[0]
             == revision + 1
         )
         summary = json.loads(
             conn.execute(
-                "SELECT summary_json FROM runs WHERE summary_json LIKE '%relabel%'"
+                "SELECT summary_json FROM runs WHERE summary_json ILIKE '%relabel%'"
             ).fetchone()[0]
         )
         assert summary["total"] == 1 and summary["by"] == "test"
@@ -654,45 +733,125 @@ def test_relabel_stores_an_accepted_result_again_when_only_labels_lag(tmp_path, 
         # A changed payload is not a label: only a parse may change it.
         with db.transaction():
             conn.execute(
-                "UPDATE observations SET payload_json=json_set(payload_json,'$.x',1),"
-                "parser_version='0'"
+                "UPDATE observations SET payload_json = jsonb_set(payload_json::jsonb, '{x}', '1'::jsonb)::text, parser_version = '0'"
             )
-        before = tuple(tuple(row) for row in conn.execute("SELECT * FROM observations"))
+        before = tuple(
+            tuple(row)
+            for row in conn.execute(
+                "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                "observations"
+            )
+        )
         assert [item.state for item in relabel.drift(conn)] == [relabel.PAYLOAD]
         result = relabel.relabel(db, now="2026-10-14T00:00:00+00:00", run_id=c.run)
         assert result == {"rewritten": {}, "total": 0, "skipped": {"payload": 1}}
-        assert tuple(tuple(row) for row in conn.execute("SELECT * FROM observations")) == before
-
-
-def test_v1_bootstrap_is_unassessed_without_granted_authority(tmp_path, monkeypatch):
-    import swingset.state.db as state_db
-    from swingset.state.observations import store_parse_result
-
-    monkeypatch.setattr(state_db, "SCHEMA_VERSION", 7)
-    with open_database(tmp_path) as db:
-        c = Corpus(db)
-        ctx = c.snapshot("legacy")
-        result = c.page.parse(c.page.extract(BODY), ctx)
-        store_parse_result(
-            c.conn,
-            ctx,
-            result,
-            extract_version=c.page.EXTRACT_VERSION,
-            parser_version=c.page.PARSER_VERSION,
-            parsed_at=ctx.fetched_at,
-            run_id=c.run,
+        assert (
+            tuple(
+                tuple(row)
+                for row in conn.execute(
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations"
+                )
+            )
+            == before
         )
-        original = tuple(tuple(r) for r in c.conn.execute("SELECT * FROM observations"))
-    monkeypatch.setattr(state_db, "SCHEMA_VERSION", 9)
-    with open_database(tmp_path) as db:
+
+
+def test_v1_bootstrap_is_unassessed_without_granted_authority(tmp_path, fresh_database):
+    """A restored schema-37 legacy observation gains no admission authority."""
+    import hashlib
+    import sqlite3 as legacy_sqlite
+
+    from swingset.model.ids import observation_id
+    from swingset.model.observations import encode_payload
+    from swingset.state import postgres_import
+
+    state = tmp_path / "legacy"
+    state.mkdir()
+    source = state / "state.sqlite"
+    archive = Archive(state)
+    page = RoundPage()
+    spec = WatchSpec(
+        "",
+        "eepro",
+        "round",
+        "GET",
+        "https://eepro.com/results/test/final.htm",
+        page.kind,
+        source_ref="eepro:test",
+    )
+    at = "2026-01-01T00:00:00+00:00"
+    ctx = ParseContext(
+        "legacy", spec.watch_id, spec.url, spec.source, spec.parser, spec.source_ref, at
+    )
+    parsed = page.parse(page.extract(BODY), ctx)
+    with legacy_sqlite.connect(source) as reference:
+        reference.executescript(Path("tests/fixtures/postgres/schema37.sql").read_text())
+        reference.execute("PRAGMA user_version=37")
+        reference.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('legacy-run',?,1)", (at,)
+        )
+        reference.execute(
+            "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES (?,?,?,'GET',?,?,?,'live')",
+            (spec.watch_id, spec.source, spec.kind, spec.url, spec.parser, spec.source_ref),
+        )
+        reference.execute(
+            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification,parse_status,parsed_at,extract_version,parser_version) VALUES ('legacy',?,'GET',?,?,200,?,?,1,'legacy-run','Ok','parsed',?,?,?)",
+            (
+                spec.watch_id,
+                spec.url,
+                at,
+                archive.store_body(BODY),
+                len(BODY),
+                at,
+                str(page.EXTRACT_VERSION),
+                str(page.PARSER_VERSION),
+            ),
+        )
+        for seq, observation in enumerate(parsed.observations):
+            reference.execute(
+                "INSERT INTO observations VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (
+                    observation_id(spec.watch_id, "legacy", observation.kind, seq),
+                    spec.watch_id,
+                    "legacy",
+                    observation.kind,
+                    observation.scope.kind,
+                    observation.scope.ref,
+                    seq,
+                    str(page.EXTRACT_VERSION),
+                    str(page.PARSER_VERSION),
+                    encode_payload(observation.payload),
+                ),
+            )
+        reference.execute(
+            "INSERT INTO source_units(unit_key,watch_id,page_kind,legacy_snapshot_id,legacy_state) VALUES (?,?,?,'legacy','legacy_unassessed')",
+            (spec.watch_id, spec.watch_id, spec.parser),
+        )
+        original = tuple(reference.execute("SELECT * FROM observations ORDER BY observation_id"))
+    service, name, destination = fresh_database
+    receipt = postgres_import.load(
+        source, destination, expected_sha256=hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+    assert receipt["complete"]
+    with __import__("psycopg").connect(
+        service.dsn(name, role="worker"), autocommit=True
+    ) as restored:
         assert tuple(
-            db.connection.execute(
-                "SELECT legacy_state,legacy_snapshot_id,accepted_generation_id FROM source_units"
+            restored.execute(
+                "SELECT legacy_state,legacy_snapshot_id,accepted_generation_id FROM evidence.source_units"
             ).fetchone()
         ) == ("legacy_unassessed", "legacy", None)
-        assert db.connection.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 0
         assert (
-            tuple(tuple(r) for r in db.connection.execute("SELECT * FROM observations")) == original
+            restored.execute("SELECT count(*) FROM evidence.source_generations").fetchone()[0] == 0
+        )
+        assert (
+            tuple(restored.execute("SELECT * FROM evidence.observations ORDER BY observation_id"))
+            == original
         )
 
 
@@ -1069,7 +1228,10 @@ def test_new_lookup_does_not_relabel_retained_legacy_history_as_assessed(tmp_pat
         body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
         old = c.snapshot("legacy", body, spec=spec)
         c.conn.execute(
-            "INSERT INTO source_units(unit_key,watch_id,page_kind,legacy_snapshot_id,legacy_state) VALUES (?,?,?,'legacy','legacy_unassessed')",
+            (
+                "INSERT INTO source_units (unit_key, watch_id, page_kind, legacy_snapshot_id, legacy_state) "
+                "VALUES (%s, %s, %s, 'legacy', 'legacy_unassessed')"
+            ),
             (spec.watch_id, spec.watch_id, spec.parser),
         )
         new_body = body + b"\n"
@@ -1078,7 +1240,7 @@ def test_new_lookup_does_not_relabel_retained_legacy_history_as_assessed(tmp_pat
         assert c.admit(newer) == "accepted"
         assert (
             c.conn.execute(
-                "SELECT legacy_state FROM source_units WHERE unit_key=?", (old.watch_id,)
+                "SELECT legacy_state FROM source_units WHERE unit_key = %s", (old.watch_id,)
             ).fetchone()[0]
             == "legacy_unassessed"
         )
@@ -1111,7 +1273,7 @@ def test_wdr_non_authoritative_replacement_cannot_drop_or_change_retained_rows(t
         assert c.admit(first) == "accepted"
         prior = tuple(
             c.conn.execute(
-                "SELECT observation_id,payload_json FROM observations ORDER BY observation_id"
+                "SELECT observation_id, payload_json FROM observations ORDER BY observation_id NULLS FIRST"
             )
         )
         for i, mutation in enumerate(("drop", "change")):
@@ -1132,13 +1294,16 @@ def test_wdr_non_authoritative_replacement_cannot_drop_or_change_retained_rows(t
             assert not attempt.failed
             staged = json.loads(
                 c.conn.execute(
-                    "SELECT report_json FROM source_generations WHERE generation_id=?",
+                    "SELECT report_json FROM source_generations WHERE generation_id = %s",
                     (generation,),
                 ).fetchone()[0]
             )
             assert "non_authoritative_row_loss" in staged["failures"]
             finding = c.conn.execute(
-                "SELECT summary,evidence_json FROM findings WHERE owner_kind='admission' AND owner_id=? AND closed_at IS NULL",
+                (
+                    "SELECT summary, evidence_json FROM findings WHERE owner_kind = 'admission' AND owner_id = "
+                    "%s AND closed_at IS NULL"
+                ),
                 (c.spec.watch_id,),
             ).fetchone()
             assert (
@@ -1149,14 +1314,14 @@ def test_wdr_non_authoritative_replacement_cannot_drop_or_change_retained_rows(t
             assert (
                 tuple(
                     c.conn.execute(
-                        "SELECT observation_id,payload_json FROM observations ORDER BY observation_id"
+                        "SELECT observation_id, payload_json FROM observations ORDER BY observation_id NULLS FIRST"
                     )
                 )
                 == prior
             )
         assert (
             c.conn.execute(
-                "SELECT accepted_generation_id FROM source_units WHERE unit_key=?",
+                "SELECT accepted_generation_id FROM source_units WHERE unit_key = %s",
                 (c.spec.watch_id,),
             ).fetchone()[0]
             == first
@@ -1208,7 +1373,10 @@ def test_public_admission_reason_codes_never_include_dynamic_exception_details(t
         c = Corpus(db)
         generation, _ = c.stage(c.snapshot("one"))
         c.conn.execute(
-            "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) VALUES (?,'needs_review',?,'2026-09-13','test')",
+            (
+                "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+                "VALUES (%s, 'needs_review', %s, '2026-09-13', 'test')"
+            ),
             (
                 generation,
                 "manifest_artifact_invalid:private /archive/person-name/body.json",
@@ -1222,10 +1390,16 @@ def _rows(conn, sql):
 
 
 def _runtime(conn, value):
-    conn.execute(
-        "INSERT INTO accepted_inputs(consumer,input_name,digest) VALUES ('pipeline','recipe/env',?) "
-        "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
-        (value,),
+    # A semantic recipe change exercises cutoff; byte/runtime audit changes
+    # no longer enter parse fingerprints (D-0264).
+    conn.executemany(
+        (
+            "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, %s) ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
+        ),
+        [
+            (f"recipe/code/parse/{parser}", value)
+            for (parser,) in conn.execute("SELECT DISTINCT parser FROM watches")
+        ],
     )
 
 
@@ -1239,10 +1413,16 @@ def test_identical_reparse_under_changed_runtime_cuts_off_to_accepted_generation
         c.review(first)
         assert c.admit(first) == "accepted"
         before = {
-            table: _rows(c.conn, "SELECT * FROM " + table)
+            table: _rows(c.conn, " SELECT * FROM " + table)
             for table in ("observations", "revisions", "admission_decisions")
         }
-        project = _rows(c.conn, "SELECT * FROM pending_work WHERE stage!='parse'")
+        project = _rows(
+            c.conn,
+            (
+                "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                "pending_work.enqueued_at FROM pending_work WHERE stage <> 'parse'"
+            ),
+        )
         _runtime(c.conn, "runtime-2")
         enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
         attempt = parse_snapshot(
@@ -1251,25 +1431,34 @@ def test_identical_reparse_under_changed_runtime_cuts_off_to_accepted_generation
         assert not attempt.failed and attempt.selection is None
         assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 1
         equivalences = _rows(
-            c.conn, "SELECT unit_key,input_fingerprint,generation_id FROM source_equivalences"
+            c.conn, "SELECT unit_key, input_fingerprint, generation_id FROM source_equivalences"
         )
         assert len(equivalences) == 1 and equivalences[0][2] == first
         unit = c.conn.execute(
-            "SELECT accepted_generation_id,desired_fingerprint FROM source_units"
+            "SELECT accepted_generation_id, desired_fingerprint FROM source_units"
         ).fetchone()
         assert tuple(unit) == (first, equivalences[0][1])
         assert source_materialized_for(c.conn, equivalences[0][0], first, unit[1])
         assert (
             c.conn.execute(
-                "SELECT state FROM source_generations WHERE generation_id=?", (first,)
+                "SELECT state FROM source_generations WHERE generation_id = %s", (first,)
             ).fetchone()[0]
             == "accepted"
         )
         for table, rows in before.items():
-            assert _rows(c.conn, "SELECT * FROM " + table) == rows, table
-        assert _rows(c.conn, "SELECT * FROM pending_work WHERE stage!='parse'") == project
+            assert _rows(c.conn, " SELECT * FROM " + table) == rows, table
         assert (
-            c.conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='parse'").fetchone()[0]
+            _rows(
+                c.conn,
+                (
+                    "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                    "pending_work.enqueued_at FROM pending_work WHERE stage <> 'parse'"
+                ),
+            )
+            == project
+        )
+        assert (
+            c.conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'").fetchone()[0]
             == 0
         )
         # A repeat of the same fingerprint adds nothing.
@@ -1399,7 +1588,8 @@ def test_revocation_after_a_cutoff_also_revokes_the_equivalent_inputs(tmp_path):
         revoked = [tuple(row) for row in c.conn.execute(revoked_evidence(c.conn))]
         assert [row[1] for row in revoked] == [
             c.conn.execute(
-                "SELECT input_fingerprint FROM source_generations WHERE generation_id=?", (first,)
+                "SELECT input_fingerprint FROM source_generations WHERE generation_id = %s",
+                (first,),
             ).fetchone()[0]
         ]
         # The build's copy reads the same query, capped at 128 rows.
@@ -1413,13 +1603,24 @@ def test_revocation_after_a_cutoff_also_revokes_the_equivalent_inputs(tmp_path):
         assert again != first
         assert (
             c.conn.execute(
-                "SELECT input_fingerprint FROM source_generations WHERE generation_id=?", (again,)
+                "SELECT input_fingerprint FROM source_generations WHERE generation_id = %s",
+                (again,),
             ).fetchone()[0]
             == equivalent
         )
         value = decode_generation(
             c.conn.execute(
-                "SELECT * FROM source_generations WHERE generation_id=?", (again,)
+                (
+                    "SELECT source_generations.generation_id, source_generations.unit_key, "
+                    "source_generations.page_kind, source_generations.contract_version, "
+                    "source_generations.input_fingerprint, source_generations.manifest_json, "
+                    "source_generations.recipe_json, source_generations.result_json, "
+                    "source_generations.report_json, source_generations.previous_generation_id, "
+                    "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                    "source_generations.state, source_generations.removal_authority FROM source_generations "
+                    "WHERE generation_id = %s"
+                ),
+                (again,),
             ).fetchone(),
             again,
         )
@@ -1439,13 +1640,14 @@ def _relabeled_equivalence(c, monkeypatch, ctx, revoked_id):
     enqueue(c.conn, (WorkUnit("parse", "snapshot", ctx.snapshot_id),), enqueued_at="2099-01-03")
     other, _ = c.stage(ctx)
     row = c.conn.execute(
-        "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations "
-        "WHERE generation_id=?",
+        "SELECT unit_key, input_fingerprint, recipe_json FROM source_generations WHERE generation_id = %s",
         (other,),
     ).fetchone()
     c.conn.execute(
-        "INSERT INTO source_equivalences(unit_key,input_fingerprint,generation_id,recipe_json,"
-        "work_token,created_at,run_id) VALUES (?,?,?,?,NULL,?,?)",
+        (
+            "INSERT INTO source_equivalences (unit_key, input_fingerprint, generation_id, recipe_json, "
+            "work_token, created_at, run_id) VALUES (%s, %s, %s, %s, NULL, %s, %s)"
+        ),
         (*tuple(row)[:2], revoked_id, row[2], c.clock.now().isoformat(), c.run),
     )
     return other
@@ -1492,7 +1694,17 @@ def test_equivalences_do_not_spend_the_revoked_evidence_budgets(tmp_path, monkey
         )
         template = dict(
             c.conn.execute(
-                "SELECT * FROM source_generations WHERE generation_id=?", (first,)
+                (
+                    "SELECT source_generations.generation_id, source_generations.unit_key, "
+                    "source_generations.page_kind, source_generations.contract_version, "
+                    "source_generations.input_fingerprint, source_generations.manifest_json, "
+                    "source_generations.recipe_json, source_generations.result_json, "
+                    "source_generations.report_json, source_generations.previous_generation_id, "
+                    "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                    "source_generations.state, source_generations.removal_authority FROM source_generations "
+                    "WHERE generation_id = %s"
+                ),
+                (first,),
             ).fetchone()
         )
 
@@ -1504,16 +1716,17 @@ def test_equivalences_do_not_spend_the_revoked_evidence_budgets(tmp_path, monkey
                     "input_fingerprint": f"copy-{index}",
                 }
                 c.conn.execute(
-                    f"INSERT INTO source_generations({','.join(row)}) "
-                    f"VALUES ({','.join('?' * len(row))})",
+                    f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join(['%s'] * len(row))})",
                     tuple(row.values()),
                 )
                 for deploy in range(7):
                     recipe = json.loads(template["recipe_json"])
                     recipe["accepted_inputs"] = {"recipe/env": f"deploy-{deploy}"}
                     c.conn.execute(
-                        "INSERT INTO source_equivalences(unit_key,input_fingerprint,generation_id,"
-                        "recipe_json,work_token,created_at,run_id) VALUES (?,?,?,?,NULL,?,?)",
+                        (
+                            "INSERT INTO source_equivalences (unit_key, input_fingerprint, generation_id, recipe_json, "
+                            "work_token, created_at, run_id) VALUES (%s, %s, %s, %s, NULL, %s, %s)"
+                        ),
                         (
                             template["unit_key"],
                             f"copy-{index}-{deploy}",
@@ -1599,22 +1812,41 @@ def test_a_held_unit_that_parses_identically_keeps_its_generation(
         unit = _held_unit(c, monkeypatch, failure)
         first = _parse(db, c, unit)
         assert not first.failed and first.selection == state
-        held = _rows(c.conn, "SELECT generation_id FROM source_generations WHERE state!='accepted'")
+        held = _rows(
+            c.conn, "SELECT generation_id FROM source_generations WHERE state <> 'accepted'"
+        )
         assert len(held) == 1
-        decisions = _rows(c.conn, "SELECT * FROM admission_decisions")
+        decisions = _rows(
+            c.conn,
+            (
+                "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                "admission_decisions.policy_revision FROM admission_decisions"
+            ),
+        )
         _runtime(c.conn, "runtime-2")
         enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
         again = _parse(db, c, unit)
         assert not again.failed and again.selection == state
         assert (
-            _rows(c.conn, "SELECT generation_id FROM source_generations WHERE state!='accepted'")
+            _rows(c.conn, "SELECT generation_id FROM source_generations WHERE state <> 'accepted'")
             == held
         )
         assert _rows(c.conn, "SELECT generation_id FROM source_equivalences") == held
-        assert _rows(c.conn, "SELECT * FROM admission_decisions") == decisions
+        assert (
+            _rows(
+                c.conn,
+                (
+                    "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                    "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                    "admission_decisions.policy_revision FROM admission_decisions"
+                ),
+            )
+            == decisions
+        )
         # The work token is completed as a fresh held parse's would be.
         assert not c.conn.execute(
-            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id='other'"
+            "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = 'other'"
         ).fetchone()
         # A repeat at the same fingerprint (a retry) is held too.
         enqueue(c.conn, (unit,), enqueued_at="2099-01-02")
@@ -1635,7 +1867,7 @@ def test_a_held_repeat_that_admission_would_decide_differently_is_staged(tmp_pat
     with open_database(tmp_path) as db:
         c = Corpus(db)
         unit = _held_unit(c, monkeypatch, "artifact_missing")
-        c.conn.execute("UPDATE admission_policies SET reviewed_report_digest=NULL")
+        c.conn.execute("UPDATE admission_policies SET reviewed_report_digest = NULL")
         assert _parse(db, c, unit).selection == "needs_review"
         _runtime(c.conn, "runtime-2")
         enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
@@ -1643,11 +1875,11 @@ def test_a_held_repeat_that_admission_would_decide_differently_is_staged(tmp_pat
         assert _parse(db, c, unit).selection == "needs_review"
         assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 1
         policy = c.conn.execute(
-            "SELECT reviewed_report_digest FROM admission_policies WHERE page_kind=?",
+            "SELECT reviewed_report_digest FROM admission_policies WHERE page_kind = %s",
             (c.spec.parser,),
         ).fetchone()
         assert policy[0] is None
-        c.conn.execute("UPDATE admission_policies SET reviewed_report_digest='reviewed'")
+        c.conn.execute("UPDATE admission_policies SET reviewed_report_digest = 'reviewed'")
         _runtime(c.conn, "runtime-3")
         enqueue(c.conn, (unit,), enqueued_at="2099-01-02")
         assert _parse(db, c, unit).selection == "waiting_for_inputs"
@@ -1738,24 +1970,26 @@ def test_a_generation_current_through_an_equivalence_is_decided_on_its_merits(tm
         assert c.stage(ctx, body=body)[0] == first
         desired = c.conn.execute("SELECT desired_fingerprint FROM source_units").fetchone()[0]
         own = c.conn.execute(
-            "SELECT input_fingerprint FROM source_generations WHERE generation_id=?", (first,)
+            "SELECT input_fingerprint FROM source_generations WHERE generation_id = %s", (first,)
         ).fetchone()[0]
         assert desired != own
         # The runtime goes back and the kind becomes enforced: the generation
         # is a parse of the desired inputs through its equivalence, so it is
         # decided on its merits, not superseded.
-        c.conn.execute("DELETE FROM accepted_inputs WHERE input_name='recipe/env'")
+        c.conn.execute("DELETE FROM accepted_inputs WHERE input_name ILIKE 'recipe/code/parse/%'")
         token = c.conn.execute(
-            "SELECT work_token FROM source_generations WHERE generation_id=?", (first,)
+            "SELECT work_token FROM source_generations WHERE generation_id = %s", (first,)
         ).fetchone()[0]
         c.conn.execute(
-            "INSERT INTO pending_work VALUES ('parse','snapshot','capture',?) "
-            "ON CONFLICT DO UPDATE SET enqueued_at=excluded.enqueued_at",
+            (
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+                "'snapshot', 'capture', %s) ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET enqueued_at = excluded.enqueued_at"
+            ),
             (token,),
         )
         c.conn.execute(
-            "UPDATE admission_policies SET mode='enforce',policy_revision='enforced' "
-            "WHERE page_kind='swingdancecouncil.events'"
+            "UPDATE admission_policies SET mode = 'enforce', policy_revision = 'enforced' WHERE "
+            "page_kind = 'swingdancecouncil.events'"
         )
         assert c.admit(first) not in {"superseded", "shadow"}
 
@@ -1763,7 +1997,8 @@ def test_a_generation_current_through_an_equivalence_is_decided_on_its_merits(tm
 def _snapshot_status(conn, snapshot_id):
     return tuple(
         conn.execute(
-            "SELECT parse_status,extract_status FROM snapshots WHERE snapshot_id=?", (snapshot_id,)
+            "SELECT parse_status, extract_status FROM snapshots WHERE snapshot_id = %s",
+            (snapshot_id,),
         ).fetchone()
     )
 
@@ -1787,7 +2022,7 @@ def test_a_repaired_parse_that_cuts_off_restores_the_snapshot_status(tmp_path, m
         # The registry is ORDERED_EXTRACT: every attempt extracts from the body.
         assert not _parse(db, c, unit).failed
         first, token = c.conn.execute(
-            "SELECT generation_id,work_token FROM source_generations"
+            "SELECT generation_id, work_token FROM source_generations"
         ).fetchone()
         c.review(first)
         enqueue(c.conn, (unit,), enqueued_at=token)
@@ -1805,7 +2040,8 @@ def test_a_repaired_parse_that_cuts_off_restores_the_snapshot_status(tmp_path, m
 
         def usable():
             return _rows(
-                c.conn, "SELECT usable,reason FROM registry_verifications ORDER BY verification_id"
+                c.conn,
+                "SELECT usable, reason FROM registry_verifications ORDER BY verification_id NULLS FIRST",
             )
 
         assert usable() == ((1, "verified"),)
@@ -1830,7 +2066,7 @@ def test_a_repaired_parse_that_cuts_off_restores_the_snapshot_status(tmp_path, m
         # Cut off: the failure's generation and the accepted one, no third.
         assert (
             c.conn.execute(
-                "SELECT COUNT(*) FROM source_generations WHERE state='accepted'"
+                "SELECT COUNT(*) FROM source_generations WHERE state = 'accepted'"
             ).fetchone()[0]
             == 1
         )
@@ -1908,7 +2144,7 @@ def test_an_ordered_json_extract_is_parsed_fresh_so_a_reparse_cuts_off(tmp_path)
         unit = WorkUnit("parse", "snapshot", "found")
         assert not _parse(db, c, unit).failed
         first, token = c.conn.execute(
-            "SELECT generation_id,work_token FROM source_generations"
+            "SELECT generation_id, work_token FROM source_generations"
         ).fetchone()
         c.review(first)
         enqueue(c.conn, (unit,), enqueued_at=token)
@@ -2021,7 +2257,9 @@ def test_calendar_captures_admit_and_a_live_capture_keeps_archived_rows(tmp_path
         c.review(old)
         assert c.admit(old) == c.admit(live) == "accepted"
         scopes = dict(
-            c.conn.execute("SELECT snapshot_id,scope_id FROM observations ORDER BY snapshot_id")
+            c.conn.execute(
+                "SELECT snapshot_id, scope_id FROM observations ORDER BY snapshot_id NULLS FIRST"
+            )
         )
         assert scopes == {"capture": "wsdc-history", "live-1": "wsdc"}
         assert _build_support(c.conn, "capture", 7) == "accepted"
@@ -2029,7 +2267,9 @@ def test_calendar_captures_admit_and_a_live_capture_keeps_archived_rows(tmp_path
         newer, _ = c.stage(c.snapshot("live-2", second, spec=spec), body=second)
         assert c.admit(newer) == "accepted"
         assert dict(
-            c.conn.execute("SELECT snapshot_id,scope_id FROM observations ORDER BY snapshot_id")
+            c.conn.execute(
+                "SELECT snapshot_id, scope_id FROM observations ORDER BY snapshot_id NULLS FIRST"
+            )
         ) == {"capture": "wsdc-history", "live-2": "wsdc"}
 
 

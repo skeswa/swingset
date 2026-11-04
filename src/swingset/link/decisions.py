@@ -7,9 +7,9 @@ adds storage-backed source continuity checks for current and baseline records.
 from __future__ import annotations
 
 import json
-import sqlite3
 from types import MappingProxyType
 
+from swingset.state import engine
 from swingset.state.identity_journal import JournalToken, active_decisions, token
 from swingset.state.identity_references import ReferenceBinding, SourceReference
 
@@ -28,13 +28,15 @@ class DecisionResolver:
     Callers recheck the journal token before selecting output.
     """
 
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: engine.Connection):
         journal = token(conn)
         decisions = active_decisions(conn)
         self.conn = conn
         migrations: dict[str, list[tuple[str, tuple[str, ...], str, str]]] = {}
         for row in conn.execute(
-            "SELECT migration_id,from_ref_id,to_ref_ids_json,status,evidence FROM identity_reference_migrations WHERE migration_id NOT IN (SELECT supersedes FROM identity_reference_migrations WHERE supersedes IS NOT NULL)"
+            "SELECT migration_id, from_ref_id, to_ref_ids_json, status, evidence FROM "
+            "identity_reference_migrations WHERE NOT migration_id IN (SELECT supersedes FROM "
+            "identity_reference_migrations WHERE NOT supersedes IS NULL)"
         ):
             migrations.setdefault(str(row[1]), []).append(
                 (str(row[0]), tuple(json.loads(row[2])), str(row[3]), str(row[4]))
@@ -54,7 +56,8 @@ class DecisionResolver:
         return tuple(
             str(row[0])
             for row in self.conn.execute(
-                "SELECT ref_id FROM identity_reference_bindings WHERE subject_id=?", (subject_id,)
+                "SELECT ref_id FROM identity_reference_bindings WHERE subject_id = %s",
+                (subject_id,),
             )
         )
 
@@ -69,7 +72,7 @@ class DecisionResolver:
             not bindings
             and subject_id is not None
             and self.conn.execute(
-                "SELECT 1 FROM identity_reference_bindings WHERE subject_kind=? AND subject_id=? LIMIT 1",
+                "SELECT 1 AS _value_0 FROM identity_reference_bindings WHERE subject_kind = %s AND subject_id = %s LIMIT 1",
                 (subject_kind, subject_id),
             ).fetchone()
         ):
@@ -91,28 +94,31 @@ class DecisionResolver:
                 if not ambiguous and (reachable & current_ids or len(reachable) > 1):
                     continue
                 old_subjects = self.conn.execute(
-                    "SELECT subject_kind,subject_id FROM identity_reference_bindings WHERE ref_id=?",
+                    "SELECT subject_kind, subject_id FROM identity_reference_bindings WHERE ref_id = %s",
                     (old_ref,),
                 ).fetchall()
                 if not old_subjects or all(row[0] != binding.subject_kind for row in old_subjects):
                     continue
                 if any(
                     self.conn.execute(
-                        "SELECT 1 FROM entries WHERE entry_id=? UNION ALL SELECT 1 FROM judges WHERE judge_id=?",
+                        "SELECT 1 AS _value_0 FROM entries WHERE entry_id = %s UNION ALL SELECT 1 AS _value_0 FROM judges WHERE judge_id = %s",
                         (row[1], row[1]),
                     ).fetchone()
                     for row in old_subjects
                 ):
                     continue
                 prior = self.conn.execute(
-                    "SELECT r.reason FROM identity_reference_bindings b JOIN identity_link_resolutions r USING(subject_kind,subject_id) WHERE b.ref_id=?",
+                    (
+                        "SELECT r.reason FROM identity_reference_bindings AS b JOIN identity_link_resolutions AS r "
+                        "USING (subject_kind, subject_id) WHERE b.ref_id = %s"
+                    ),
                     (binding.reference.ref_id,),
                 ).fetchall()
                 if prior and all("orphaned_source_reference" not in str(row[0]) for row in prior):
                     continue
                 return "orphaned_source_reference_requires_migration"
             older = self.conn.execute(
-                "SELECT DISTINCT semantic_hash FROM identity_reference_bindings WHERE ref_id=?",
+                "SELECT DISTINCT semantic_hash FROM identity_reference_bindings WHERE ref_id = %s",
                 (binding.reference.ref_id,),
             ).fetchall()
             if any(str(row[0]) != binding.semantic_hash for row in older):
@@ -133,7 +139,7 @@ class DecisionResolver:
                 if not approved:
                     return "source_row_replacement_requires_reference_migration"
             previous = self.conn.execute(
-                "SELECT DISTINCT ref_id FROM identity_reference_bindings WHERE subject_kind=? AND subject_id=?",
+                "SELECT DISTINCT ref_id FROM identity_reference_bindings WHERE subject_kind = %s AND subject_id = %s",
                 (binding.subject_kind, binding.subject_id),
             ).fetchall()
             current_ids = {b.reference.ref_id for b in bindings}
@@ -170,7 +176,7 @@ class DecisionResolver:
 
 
 def retain_resolution(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     kind: str,
     identifier: str,
     resolution: DecisionResolution,
@@ -181,20 +187,28 @@ def retain_resolution(
 ) -> None:
     values = (kind, identifier, *resolution_columns(resolution, state=state, reason=reason), now)
     conn.execute(
-        "INSERT INTO identity_link_resolutions VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(subject_kind,subject_id) DO UPDATE SET ref_ids_json=excluded.ref_ids_json,decision_ids_json=excluded.decision_ids_json,policy_version=excluded.policy_version,journal_digest=excluded.journal_digest,journal_generation=excluded.journal_generation,state=excluded.state,reason=excluded.reason,asserted_at=excluded.asserted_at",
+        (
+            "INSERT INTO identity_link_resolutions (subject_kind, subject_id, ref_ids_json, decision_ids_json, policy_version, journal_digest, journal_generation, state, reason, asserted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(subject_kind, subject_id) DO UPDATE SET ref_ids_json = excluded.ref_ids_json, decision_ids_json = excluded.decision_ids_json, policy_version = excluded.policy_version, journal_digest = excluded.journal_digest, journal_generation = excluded.journal_generation, state = excluded.state, reason = excluded.reason, asserted_at = excluded.asserted_at"
+        ),
         values,
     )
     cursor = conn.execute(
-        "SELECT * FROM identity_links WHERE subject_kind=? AND subject_id=?", (kind, identifier)
+        (
+            "SELECT identity_links.link_id, identity_links.subject_kind, identity_links.subject_id, "
+            "identity_links.wsdc_id, identity_links.method, identity_links.status, "
+            "identity_links.confidence, identity_links.constraints_applied, identity_links.asserted_at, "
+            "identity_links.run_id, identity_links.linker_version FROM identity_links WHERE subject_kind "
+            "= %s AND subject_id = %s"
+        ),
+        (kind, identifier),
     )
     row = cursor.fetchone()
-    assertion = (
-        {}
-        if row is None
-        else dict(zip((field[0] for field in cursor.description), row, strict=True))
-    )
+    assertion = {} if row is None else dict(row)
     conn.execute(
-        "INSERT INTO identity_link_history(subject_kind,subject_id,state,assertion_json,resolution_json,recorded_at) VALUES (?,?,?,?,?,?)",
+        (
+            "INSERT INTO identity_link_history (subject_kind, subject_id, state, assertion_json, "
+            "resolution_json, recorded_at) VALUES (%s, %s, %s, %s, %s, %s)"
+        ),
         (
             kind,
             identifier,

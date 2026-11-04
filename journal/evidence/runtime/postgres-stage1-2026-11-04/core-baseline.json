@@ -1,0 +1,122 @@
+{
+  "format": "swingset-core-performance-baseline-v1",
+  "timestamp": "2026-11-05T02:26:59.710672+00:00",
+  "entry_point": "mise run test",
+  "forwarded_arguments": [
+    "--durations=50"
+  ],
+  "selection": "complete reviewed default core; no explicit paths or --full-suite",
+  "executor": {
+    "platform": "native macOS ARM64",
+    "python": "3.12.16",
+    "workers": 4,
+    "distribution": "loadfile",
+    "loadscope_reorder": false,
+    "max_worker_restart": 0
+  },
+  "result": {
+    "pytest_exit_code": 1,
+    "failed": 20,
+    "passed": 2334,
+    "selected": 2354,
+    "pytest_seconds": 723.72,
+    "phases": {
+      "call": 2248.4074,
+      "collection": 1.6492,
+      "parallel_phase_totals": true,
+      "setup": 542.2655,
+      "teardown": 24.5054,
+      "wall": 723.8713,
+      "workers": 4
+    },
+    "budget_seconds": 180,
+    "budget_passed": false
+  },
+  "logs": {
+    "/tmp/swingset-stage1-core-final2.log": {
+      "sha256": "3faaf2744ac6f2506d5d45221f21d973d6d6ac41e4061275f205468005f02636",
+      "bytes": 101018
+    },
+    "/tmp/swingset-stage1-core-final2-phases.json": {
+      "sha256": "bc0e8b8a29fc8052df6e4863e329a3086a309101fe33ea95b32a76547bdd4b2e",
+      "bytes": 145
+    }
+  },
+  "slowest_reported": [
+    {
+      "seconds": 256.24,
+      "phase": "call",
+      "node": "tests/test_read_sets.py::test_pipeline_fixtures_run_armed_with_zero_undeclared_reads"
+    },
+    {
+      "seconds": 100.78,
+      "phase": "call",
+      "node": "tests/test_event_completion_cohort.py::test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh"
+    },
+    {
+      "seconds": 38.44,
+      "phase": "call",
+      "node": "tests/test_dcn_live.py::test_archived_dcn_results_run_end_to_end"
+    },
+    {
+      "seconds": 37.53,
+      "phase": "call",
+      "node": "tests/test_scoring_pipeline.py::test_archived_scoringdance_event_runs_end_to_end"
+    },
+    {
+      "seconds": 26.3,
+      "phase": "call",
+      "node": "tests/backup/test_transport.py::test_the_collector_removes_a_segment_no_kept_set_names_and_squashes"
+    }
+  ],
+  "provenance": {
+    "runtime_start_sha256": null,
+    "reason": "No runtime source hash was captured at the start of this run; none is inferred from later files.",
+    "session_coordination": "Runtime source edits were held during the run. CPU isolation held through the failed180-second budget; after it was already exceeded, bounded image builds and DEV checks resumed. The full723.72-second wall is therefore not a wholly isolated benchmark."
+  },
+  "controlled_twenty_iteration_probe": {
+    "receipt_sha256": "feb9c338dd1ab64414e53db7d6a6180db45a7040406b410e9f30142c2515ca9d",
+    "source_stable": true,
+    "iterations": 20,
+    "results": [
+      {
+        "transport": "host",
+        "seconds": 3.065242209006101,
+        "phase_durations": {
+          "call": 2.7699096659198403,
+          "setup": 0.11835266603156924,
+          "teardown": 0.0076921246945858
+        },
+        "counts": {
+          "deadline_setting_statements": 7596,
+          "driver_execute_calls": 17704
+        },
+        "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+        "connection_source_sha256": "588b00043fb1104def1354f621385687a09f9bbbcb9c17fc39456c6417d2febf",
+        "fixed_dependencies_sha256": "f736efb6d9983eee8b3087f70e9077f8409e436e8977f97248353e1985f2b169",
+        "uv_lock_sha256": "71b9cc76361a910cbd1d9c1f3b1854d4d96407d092ba9eddf3b53054f340ce0f",
+        "raw": "/tmp/swingset-stage1-transport-0c7510492a-host.json"
+      },
+      {
+        "transport": "linux",
+        "seconds": 1.6507570289541036,
+        "phase_durations": {
+          "call": 1.2736097879242152,
+          "setup": 0.05903112702071667,
+          "teardown": 0.0050013778964057565
+        },
+        "counts": {
+          "deadline_setting_statements": 7596,
+          "driver_execute_calls": 17704
+        },
+        "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+        "connection_source_sha256": "588b00043fb1104def1354f621385687a09f9bbbcb9c17fc39456c6417d2febf",
+        "fixed_dependencies_sha256": "f736efb6d9983eee8b3087f70e9077f8409e436e8977f97248353e1985f2b169",
+        "uv_lock_sha256": "71b9cc76361a910cbd1d9c1f3b1854d4d96407d092ba9eddf3b53054f340ce0f",
+        "raw": "/tmp/swingset-stage1-transport-0c7510492a-linux.json"
+      }
+    ],
+    "scope": "Same unchanged fixture and source in both processes; full600-iteration regression remains unchanged. Linux runs native ARM64 next to Postgres. This comparison also changes OS and environment identity handling, so it is not a pure network-latency measurement."
+  },
+  "trigger": "The complete4-worker core and its256.24-second armed subprocess exceed180seconds. After measured SQL/deadline remedies, test one complete unchanged Linux8 run under2GiB client/2GiB Postgres caps before changing the default executor. Preserve every selected case and nested subprocess assertions."
+}

@@ -23,7 +23,16 @@ def setup(db):
     identifier, binding = prepared(db.connection)
     for number in (100, 101):
         db.connection.execute(
-            "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,'Alex','Lee','alex lee',0,'leader','novice','advanced','novice','advanced','novice',1,'novice',1,2026,?,'t','test','snapshot','1','t','t','run_a')",
+            (
+                "INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, "
+                "leader_required_level, leader_allowed_level, follower_required_level, "
+                "follower_allowed_level, leader_highest_level, leader_highest_points, "
+                "follower_highest_level, follower_highest_points, recent_year, registry_internal_id, "
+                "registry_fetched_at, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                "run_id) VALUES (%s, 'Alex', 'Lee', 'alex lee', 0, 'leader', 'novice', 'advanced', 'novice', "
+                "'advanced', 'novice', 1, 'novice', 1, 2026, %s, 't', 'test', 'snapshot', '1', 't', 't', "
+                "'run_a')"
+            ),
             (number, number),
         )
     return identifier, binding
@@ -42,13 +51,13 @@ def run(db, event=EVENT):
 
 def set_printed_id(db, number):
     row = db.connection.execute(
-        "SELECT observation_id,payload_json FROM observations WHERE snapshot_id='snapshot'"
+        "SELECT observation_id, payload_json FROM observations WHERE snapshot_id = 'snapshot'"
     ).fetchone()
     payload = json.loads(row[1])
     cell = payload["tables"][0]["rows"][0]["cells"][1]
     cell["attributes"] = [["data-wsdc", str(number)]] if number is not None else []
     db.connection.execute(
-        "UPDATE observations SET payload_json=? WHERE observation_id=?",
+        "UPDATE observations SET payload_json = %s WHERE observation_id = %s",
         (json.dumps(payload), row[0]),
     )
 
@@ -56,7 +65,8 @@ def set_printed_id(db, number):
 def linked(db, identifier):
     return tuple(
         db.connection.execute(
-            "SELECT wsdc_id,method,status FROM identity_links WHERE subject_id=?", (identifier,)
+            "SELECT wsdc_id, method, status FROM identity_links WHERE subject_id = %s",
+            (identifier,),
         ).fetchone()
     )
 
@@ -64,7 +74,7 @@ def linked(db, identifier):
 def test_an_unchanged_rerun_appends_no_identity_history(tmp_path):
     def history(db):
         return db.connection.execute(
-            "SELECT state FROM identity_link_history WHERE subject_id=? ORDER BY history_id",
+            "SELECT state FROM identity_link_history WHERE subject_id = %s ORDER BY history_id NULLS FIRST",
             (identifier,),
         ).fetchall()
 
@@ -74,16 +84,52 @@ def test_an_unchanged_rerun_appends_no_identity_history(tmp_path):
         accept(db, positive)
         run(db)
         before = history(db)
-        link = tuple(db.connection.execute("SELECT * FROM identity_links").fetchall())
-        candidates = tuple(db.connection.execute("SELECT * FROM link_candidates").fetchall())
+        link = tuple(
+            db.connection.execute(
+                "SELECT identity_links.link_id, identity_links.subject_kind, identity_links.subject_id, "
+                "identity_links.wsdc_id, identity_links.method, identity_links.status, "
+                "identity_links.confidence, identity_links.constraints_applied, identity_links.asserted_at, "
+                "identity_links.run_id, identity_links.linker_version FROM identity_links"
+            ).fetchall()
+        )
+        candidates = tuple(
+            db.connection.execute(
+                "SELECT link_candidates.subject_kind, link_candidates.subject_id, link_candidates.wsdc_id, "
+                "link_candidates.score, link_candidates.name_similarity, link_candidates.name_rarity, "
+                "link_candidates.division_ok, link_candidates.role_ok, link_candidates.recency_ok, "
+                "link_candidates.geography, link_candidates.bib_reuse, link_candidates.registry_confirms, "
+                "link_candidates.source_id_confirms, link_candidates.rank, link_candidates.chosen, "
+                "link_candidates.run_id FROM link_candidates"
+            ).fetchall()
+        )
         CLOCK.sleep(60)
         run(db)
         # Nothing changed: no superseded/accepted pair, and the rows keep the
         # run that asserted them (D-0209).
         assert history(db) == before
-        assert tuple(db.connection.execute("SELECT * FROM identity_links").fetchall()) == link
         assert (
-            tuple(db.connection.execute("SELECT * FROM link_candidates").fetchall()) == candidates
+            tuple(
+                db.connection.execute(
+                    "SELECT identity_links.link_id, identity_links.subject_kind, identity_links.subject_id, "
+                    "identity_links.wsdc_id, identity_links.method, identity_links.status, "
+                    "identity_links.confidence, identity_links.constraints_applied, identity_links.asserted_at, "
+                    "identity_links.run_id, identity_links.linker_version FROM identity_links"
+                ).fetchall()
+            )
+            == link
+        )
+        assert (
+            tuple(
+                db.connection.execute(
+                    "SELECT link_candidates.subject_kind, link_candidates.subject_id, link_candidates.wsdc_id, "
+                    "link_candidates.score, link_candidates.name_similarity, link_candidates.name_rarity, "
+                    "link_candidates.division_ok, link_candidates.role_ok, link_candidates.recency_ok, "
+                    "link_candidates.geography, link_candidates.bib_reuse, link_candidates.registry_confirms, "
+                    "link_candidates.source_id_confirms, link_candidates.rank, link_candidates.chosen, "
+                    "link_candidates.run_id FROM link_candidates"
+                ).fetchall()
+            )
+            == candidates
         )
         hold = decision(binding, "hold_unlinked", "NONE", "hold", positive.decision_id)
         accept(db, positive, hold)
@@ -94,15 +140,16 @@ def test_an_unchanged_rerun_appends_no_identity_history(tmp_path):
 def test_a_changed_resolution_alone_is_rewritten(tmp_path):
     def resolution(db):
         return db.connection.execute(
-            "SELECT decision_ids_json,journal_generation FROM identity_link_resolutions "
-            "WHERE subject_id=?",
+            "SELECT decision_ids_json, journal_generation FROM identity_link_resolutions WHERE subject_id = %s",
             (identifier,),
         ).fetchone()
 
     def history(db):
         return db.connection.execute(
-            "SELECT state,resolution_json FROM identity_link_history WHERE subject_id=? "
-            "ORDER BY history_id",
+            (
+                "SELECT state, resolution_json FROM identity_link_history WHERE subject_id = %s ORDER BY "
+                "history_id NULLS FIRST"
+            ),
             (identifier,),
         ).fetchall()
 
@@ -132,9 +179,10 @@ def test_a_resolution_row_or_history_head_that_drifted_is_rewritten(tmp_path):
     def resolution(db):
         return tuple(
             db.connection.execute(
-                "SELECT ref_ids_json,decision_ids_json,policy_version,journal_digest,"
-                "journal_generation,state,reason FROM identity_link_resolutions "
-                "WHERE subject_id=?",
+                (
+                    "SELECT ref_ids_json, decision_ids_json, policy_version, journal_digest, journal_generation, "
+                    "state, reason FROM identity_link_resolutions WHERE subject_id = %s"
+                ),
                 (identifier,),
             ).fetchone()
         )
@@ -142,8 +190,10 @@ def test_a_resolution_row_or_history_head_that_drifted_is_rewritten(tmp_path):
     def head(db):
         return tuple(
             db.connection.execute(
-                "SELECT state,resolution_json FROM identity_link_history "
-                "WHERE subject_id=? ORDER BY history_id DESC LIMIT 1",
+                (
+                    "SELECT state, resolution_json FROM identity_link_history WHERE subject_id = %s ORDER BY "
+                    "history_id DESC NULLS LAST LIMIT 1"
+                ),
                 (identifier,),
             ).fetchone()
         )
@@ -154,7 +204,7 @@ def test_a_resolution_row_or_history_head_that_drifted_is_rewritten(tmp_path):
         run(db)
         expected, current = resolution(db), head(db)
         db.connection.execute(
-            "UPDATE identity_link_resolutions SET reason='drifted' WHERE subject_id=?",
+            "UPDATE identity_link_resolutions SET reason = 'drifted' WHERE subject_id = %s",
             (identifier,),
         )
         CLOCK.sleep(60)
@@ -164,10 +214,12 @@ def test_a_resolution_row_or_history_head_that_drifted_is_rewritten(tmp_path):
         recorded = json.loads(current[1])
         drifted = json.dumps({**recorded, "migrations": ["unrecorded"]}, sort_keys=True)
         db.connection.execute(
-            "INSERT INTO identity_link_history(subject_kind,subject_id,state,assertion_json,"
-            "resolution_json,recorded_at) SELECT subject_kind,subject_id,state,assertion_json,"
-            "?,recorded_at FROM identity_link_history WHERE subject_id=? "
-            "ORDER BY history_id DESC LIMIT 1",
+            (
+                "INSERT INTO identity_link_history (subject_kind, subject_id, state, assertion_json, "
+                "resolution_json, recorded_at) SELECT subject_kind, subject_id, state, assertion_json, %s, "
+                "recorded_at FROM identity_link_history WHERE subject_id = %s ORDER BY history_id DESC NULLS "
+                "LAST LIMIT 1"
+            ),
             (drifted, identifier),
         )
         CLOCK.sleep(60)
@@ -181,22 +233,25 @@ def test_a_changed_link_row_alone_is_rewritten(tmp_path, monkeypatch):
 
     def history(db):
         return db.connection.execute(
-            "SELECT state,assertion_json FROM identity_link_history WHERE subject_id=? "
-            "ORDER BY history_id",
+            (
+                "SELECT state, assertion_json FROM identity_link_history WHERE subject_id = %s ORDER BY "
+                "history_id NULLS FIRST"
+            ),
             (identifier,),
         ).fetchall()
 
     def version(db):
         return db.connection.execute(
-            "SELECT linker_version FROM identity_links WHERE subject_id=?", (identifier,)
+            "SELECT linker_version FROM identity_links WHERE subject_id = %s", (identifier,)
         ).fetchone()[0]
 
     def deploy(db, digest):
         # A code change in the link scope: same inputs, a new recipe.
         with db.transaction() as conn:
             conn.execute(
-                "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/code/link',?) "
-                "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+                (
+                    "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', 'recipe/code/link', %s) ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
+                ),
                 (digest,),
             )
 
@@ -218,7 +273,7 @@ def test_a_changed_link_row_alone_is_rewritten(tmp_path, monkeypatch):
         # A link row that drifted from the history head is rewritten.
         before = history(db)
         db.connection.execute(
-            "UPDATE identity_links SET confidence=0.5 WHERE subject_id=?", (identifier,)
+            "UPDATE identity_links SET confidence = 0.5 WHERE subject_id = %s", (identifier,)
         )
         deploy(db, "code-3")
         run(db)
@@ -226,14 +281,18 @@ def test_a_changed_link_row_alone_is_rewritten(tmp_path, monkeypatch):
         assert json.loads(history(db)[-1][1])["confidence"] != 0.5
         # So is a history head whose assertion no longer names the link row.
         head = db.connection.execute(
-            "SELECT subject_kind,state,assertion_json,resolution_json,recorded_at "
-            "FROM identity_link_history WHERE subject_id=? ORDER BY history_id DESC LIMIT 1",
+            (
+                "SELECT subject_kind, state, assertion_json, resolution_json, recorded_at FROM "
+                "identity_link_history WHERE subject_id = %s ORDER BY history_id DESC NULLS LAST LIMIT 1"
+            ),
             (identifier,),
         ).fetchone()
         stale = {**json.loads(head[2]), "linker_version": "9"}
         db.connection.execute(
-            "INSERT INTO identity_link_history(subject_kind,subject_id,state,assertion_json,"
-            "resolution_json,recorded_at) VALUES (?,?,?,?,?,?)",
+            (
+                "INSERT INTO identity_link_history (subject_kind, subject_id, state, assertion_json, "
+                "resolution_json, recorded_at) VALUES (%s, %s, %s, %s, %s, %s)"
+            ),
             (head[0], identifier, head[1], json.dumps(stale, sort_keys=True), head[3], head[4]),
         )
         before = history(db)
@@ -251,14 +310,12 @@ def test_an_unchanged_subject_still_restores_its_entry_columns(tmp_path):
         run(db)
         history = db.connection.execute("SELECT COUNT(*) FROM identity_link_history").fetchone()
         db.connection.execute(
-            "UPDATE entries SET wsdc_id=NULL,link_status='unmatched',link_confidence=0 "
-            "WHERE entry_id=?",
+            "UPDATE entries SET wsdc_id = NULL, link_status = 'unmatched', link_confidence = 0 WHERE entry_id = %s",
             (identifier,),
         )
         with db.transaction() as conn:
             conn.execute(
-                "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/code/link','code-2') "
-                "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest"
+                "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', 'recipe/code/link', 'code-2') ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
             )
         CLOCK.sleep(60)
         run(db)
@@ -270,7 +327,7 @@ def test_an_unchanged_subject_still_restores_its_entry_columns(tmp_path):
         )
         assert tuple(
             db.connection.execute(
-                "SELECT wsdc_id,link_status FROM entries WHERE entry_id=?", (identifier,)
+                "SELECT wsdc_id, link_status FROM entries WHERE entry_id = %s", (identifier,)
             ).fetchone()
         ) == (100, "confirmed")
 
@@ -280,8 +337,7 @@ def test_changed_candidates_alone_are_rewritten(tmp_path):
         return [
             tuple(row)
             for row in db.connection.execute(
-                "SELECT wsdc_id,score,rank,chosen FROM link_candidates WHERE subject_id=? "
-                "ORDER BY rank",
+                "SELECT wsdc_id, score, rank, chosen FROM link_candidates WHERE subject_id = %s ORDER BY rank NULLS FIRST",
                 (identifier,),
             )
         ]
@@ -294,8 +350,8 @@ def test_changed_candidates_alone_are_rewritten(tmp_path):
         # A registry change lowers the other candidate's score; the reviewed
         # link and its resolution stay as they were (D-0209).
         db.connection.execute(
-            "UPDATE dancers SET last_name='Leeson',name_norm='alex leeson',recent_year=2019 "
-            "WHERE wsdc_id=101"
+            "UPDATE dancers SET last_name = 'Leeson', name_norm = 'alex leeson', recent_year = 2019 "
+            "WHERE wsdc_id = 101"
         )
         bump_revision(db.connection, "dancers")
         CLOCK.sleep(60)
@@ -322,7 +378,10 @@ def test_hold_requires_explicit_supersession_and_retains_history(tmp_path):
         run(db)
         assert linked(db, identifier) == (101, "manual", "confirmed")
         history = db.connection.execute(
-            "SELECT state,resolution_json FROM identity_link_history WHERE subject_id=? ORDER BY history_id",
+            (
+                "SELECT state, resolution_json FROM identity_link_history WHERE subject_id = %s ORDER BY "
+                "history_id NULLS FIRST"
+            ),
             (identifier,),
         ).fetchall()
         assert [r[0] for r in history] == [
@@ -342,30 +401,57 @@ def test_negative_applies_to_every_route_but_retains_candidate_evidence(tmp_path
         accept(db, decision(binding))
         if route == "registry_placement":
             contest = db.connection.execute(
-                "SELECT contest_id FROM entries WHERE entry_id=?", (identifier,)
+                "SELECT contest_id FROM entries WHERE entry_id = %s", (identifier,)
             ).fetchone()[0]
             round_id = db.connection.execute(
-                "SELECT round_id FROM rounds WHERE contest_id=?", (contest,)
+                "SELECT round_id FROM rounds WHERE contest_id = %s", (contest,)
             ).fetchone()[0]
             db.connection.execute(
-                "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,leader_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place',?,?,?,1,?,'','eepro','snapshot','1','t','t','run_a')",
+                (
+                    "INSERT INTO placements (placement_id, round_id, contest_id, event_id, place, "
+                    "leader_entry_id, tally, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                    "run_id) VALUES ('place', %s, %s, %s, 1, %s, '', 'eepro', 'snapshot', '1', 't', 't', 'run_a')"
+                ),
                 (round_id, contest, EVENT, identifier),
             )
             db.connection.execute(
-                "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,series_name_raw,event_month,event_id,result,points,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (100,'leader','wcs','novice','slug-summer-hummer','Summer Hummer','2026-08',?,'1',1,'test','snapshot','1','t','t','run_a')",
+                (
+                    "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+                    "series_name_raw, event_month, event_id, result, points, source, snapshot_id, "
+                    "parser_version, first_seen_at, last_seen_at, run_id) VALUES (100, 'leader', 'wcs', "
+                    "'novice', 'slug-summer-hummer', 'Summer Hummer', '2026-08', %s, '1', 1, 'test', 'snapshot', "
+                    "'1', 't', 't', 'run_a')"
+                ),
                 (EVENT,),
             )
         if route == "bib_reuse":
             # A second spelling/round with the same original bib must share restrictions.
-            columns = [r[1] for r in db.connection.execute("PRAGMA table_info(entries)")]
+            from swingset.state.schema_catalog import columns as column_names
+
+            columns = list(column_names(db.connection, "entries"))
             row = list(
                 db.connection.execute(
-                    "SELECT * FROM entries WHERE entry_id=?", (identifier,)
+                    (
+                        "SELECT entries.entry_id, entries.contest_id, entries.event_id, entries.role, entries.bib, "
+                        "entries.name_raw, entries.name_norm, entries.partner_name_raw, entries.city_raw, "
+                        "entries.country_raw, entries.wsdc_id, entries.link_status, entries.link_confidence, "
+                        "entries.partner_entry_id, entries.rounds_danced, entries.best_round, entries.source, "
+                        "entries.snapshot_id, entries.parser_version, entries.first_seen_at, entries.last_seen_at, "
+                        "entries.run_id FROM entries WHERE entry_id = %s"
+                    ),
+                    (identifier,),
                 ).fetchone()
             )
             row[columns.index("entry_id")] = "duplicate"
             db.connection.execute(
-                "INSERT INTO entries VALUES (" + ",".join("?" for _ in row) + ")", row
+                (
+                    "INSERT INTO entries ("
+                    + ",".join(columns)
+                    + ") VALUES ("
+                    + ",".join("%s" for _ in row)
+                    + ")"
+                ),
+                row,
             )
         if route == "source_id":
             set_printed_id(db, 100)
@@ -373,7 +459,7 @@ def test_negative_applies_to_every_route_but_retains_candidate_evidence(tmp_path
         assert linked(db, identifier)[0] != 100
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM link_candidates WHERE subject_id=? AND wsdc_id=100",
+                "SELECT COUNT(*) FROM link_candidates WHERE subject_id = %s AND wsdc_id = 100",
                 (identifier,),
             ).fetchone()[0]
             == 1
@@ -381,7 +467,10 @@ def test_negative_applies_to_every_route_but_retains_candidate_evidence(tmp_path
         if route in {"source_id", "registry_placement"}:
             assert linked(db, identifier)[0] is None
             evidence = db.connection.execute(
-                "SELECT evidence_json FROM findings WHERE kind='identity_decision' AND subject_id=? AND closed_at IS NULL",
+                (
+                    "SELECT evidence_json FROM findings WHERE kind = 'identity_decision' AND subject_id = %s AND "
+                    "closed_at IS NULL"
+                ),
                 (identifier,),
             ).fetchone()
             assert "new_evidence_conflicts_with_pair_restriction" in evidence[0]
@@ -415,24 +504,49 @@ def test_event_remap_preserves_rejection_and_baseline_locator(tmp_path):
         identifier, binding = setup(db)
         accept(db, decision(binding))
         run(db)
-        cursor = db.connection.execute("SELECT * FROM entries WHERE entry_id=?", (identifier,))
+        cursor = db.connection.execute(
+            (
+                "SELECT entries.entry_id, entries.contest_id, entries.event_id, entries.role, entries.bib, "
+                "entries.name_raw, entries.name_norm, entries.partner_name_raw, entries.city_raw, "
+                "entries.country_raw, entries.wsdc_id, entries.link_status, entries.link_confidence, "
+                "entries.partner_entry_id, entries.rounds_danced, entries.best_round, entries.source, "
+                "entries.snapshot_id, entries.parser_version, entries.first_seen_at, entries.last_seen_at, "
+                "entries.run_id FROM entries WHERE entry_id = %s"
+            ),
+            (identifier,),
+        )
         baseline = dict(zip((r[0] for r in cursor.description), cursor.fetchone(), strict=True))
         contest = db.connection.execute(
-            "SELECT name_raw FROM contests WHERE contest_id=?", (baseline["contest_id"],)
+            "SELECT name_raw FROM contests WHERE contest_id = %s", (baseline["contest_id"],)
         ).fetchone()[0]
         from swingset.project.contests import project_event
         from swingset.project.writer import Projection, replace_scope
 
         new_event = "2026-08-remapped-series"
-        cursor = db.connection.execute("SELECT * FROM events WHERE event_id=?", (EVENT,))
+        cursor = db.connection.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (EVENT,),
+        )
         event = list(cursor.fetchone())
         event[0] = new_event
         db.connection.execute(
-            "INSERT INTO events VALUES (" + ",".join("?" for _ in event) + ")", event
+            "INSERT INTO events ("
+            + ",".join(field.name for field in cursor.description)
+            + ") VALUES ("
+            + ",".join("%s" for _ in event)
+            + ")",
+            event,
         )
         with db.transaction() as conn:
             conn.execute(
-                "UPDATE source_event_map SET event_id=? WHERE event_id=?", (new_event, EVENT)
+                "UPDATE source_event_map SET event_id = %s WHERE event_id = %s", (new_event, EVENT)
             )
             replace_scope(
                 conn,
@@ -464,7 +578,7 @@ def test_event_remap_preserves_rejection_and_baseline_locator(tmp_path):
         assert not DecisionResolver(db.connection).resolve((binding.reference,)).allows(100)
         assert (
             db.connection.execute(
-                "SELECT state FROM identity_link_resolutions WHERE subject_id=?", (identifier,)
+                "SELECT state FROM identity_link_resolutions WHERE subject_id = %s", (identifier,)
             ).fetchone()[0]
             == "superseded"
         )
@@ -530,7 +644,7 @@ def test_source_row_replacement_and_missing_reference_withhold(tmp_path):
         # merely mocking a different reader under identical inputs would be a
         # nondeterministic materialization, which H15 must reject.
         db.connection.execute(
-            "DELETE FROM observations WHERE snapshot_id=?", (binding.snapshot_id,)
+            "DELETE FROM observations WHERE snapshot_id = %s", (binding.snapshot_id,)
         )
         run(db)
         assert linked(db, identifier)[0] is None
@@ -571,11 +685,11 @@ def test_concurrent_acceptance_cannot_restore_old_link_or_clear_relink_work(tmp_
         with patch.object(persistence, "complete", side_effect=interleave):
             assert run(db) is False
         assert db.connection.execute(
-            "SELECT 1 FROM pending_work WHERE stage='link' AND unit_id=?", (EVENT,)
+            "SELECT 1 FROM pending_work WHERE stage = 'link' AND unit_id = %s", (EVENT,)
         ).fetchone()
         assert (
             db.connection.execute(
-                "SELECT journal_generation FROM identity_link_resolutions WHERE subject_id=?",
+                "SELECT journal_generation FROM identity_link_resolutions WHERE subject_id = %s",
                 (identifier,),
             ).fetchone()[0]
             < token(db.connection).generation
@@ -583,7 +697,7 @@ def test_concurrent_acceptance_cannot_restore_old_link_or_clear_relink_work(tmp_
         run(db)
         assert linked(db, identifier)[0] != 100
         assert not db.connection.execute(
-            "SELECT 1 FROM pending_work WHERE stage='link' AND unit_id=?", (EVENT,)
+            "SELECT 1 FROM pending_work WHERE stage = 'link' AND unit_id = %s", (EVENT,)
         ).fetchone()
 
 
@@ -591,12 +705,12 @@ def test_named_judge_without_wsdc_number_remains_named_and_unmatched(tmp_path):
     with open_database(tmp_path) as db:
         setup(db)
         run(db)
-        row = db.connection.execute("SELECT judge_id,name_raw,wsdc_id FROM judges").fetchone()
+        row = db.connection.execute("SELECT judge_id, name_raw, wsdc_id FROM judges").fetchone()
         assert tuple(row[1:]) == ("Jane Doe", None)
         assert linked(db, row[0]) == (None, "none", "unmatched")
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM link_candidates WHERE subject_kind='judge'"
+                "SELECT COUNT(*) FROM link_candidates WHERE subject_kind = 'judge'"
             ).fetchone()[0]
             == 0
         )
@@ -628,7 +742,10 @@ def test_reviewed_positives_cannot_claim_distinct_bibs_in_one_contest(tmp_path):
             projected_at=NOW,
         )
         ids = [
-            r[0] for r in db.connection.execute("SELECT entry_id FROM entries ORDER BY entry_id")
+            r[0]
+            for r in db.connection.execute(
+                "SELECT entry_id FROM entries ORDER BY entry_id NULLS FIRST"
+            )
         ]
         assert len(ids) == 2
         refs = [ReferenceReader(db.connection).for_subject("entry", key)[0] for key in ids]
@@ -643,7 +760,7 @@ def test_reviewed_positives_cannot_claim_distinct_bibs_in_one_contest(tmp_path):
         assert all(linked(db, key)[0] is None for key in ids)
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM findings WHERE kind='identity_decision' AND closed_at IS NULL"
+                "SELECT COUNT(*) FROM findings WHERE kind = 'identity_decision' AND closed_at IS NULL"
             ).fetchone()[0]
             == 2
         )
@@ -803,7 +920,10 @@ def test_separate_source_names_with_pair_bibs_keep_role_ownership(tmp_path):
             parser="scoringdance.round",
         )
         db.connection.execute(
-            "INSERT INTO source_event_map VALUES ('scoringdance','scoringdance:event',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('scoringdance', 'scoringdance:event', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         replace_scope(
@@ -815,7 +935,7 @@ def test_separate_source_names_with_pair_bibs_keep_role_ownership(tmp_path):
             projected_at=NOW,
         )
         for identifier, role, bib in db.connection.execute(
-            "SELECT entry_id,role,bib FROM entries WHERE snapshot_id='pair-snapshot'"
+            "SELECT entry_id, role, bib FROM entries WHERE snapshot_id = 'pair-snapshot'"
         ):
             refs = ReferenceReader(db.connection).for_subject("entry", identifier)
             assert len(refs) == 1

@@ -31,23 +31,28 @@ NOW = "2026-09-13T06:00:00+00:00"
 
 
 def _bundle(*decisions):
+    from swingset.fetch.archive import canonical, digest
+
     journal = encode_journal(decisions)
+    files = {
+        "overrides/identity_overrides.csv": journal,
+        "overrides/suppressions.csv": b"wsdc_id,name_norm,reason,date\n",
+        "versions.json": b'{"repository":"correction-fixture"}',
+        "config/hosts.toml": b"",
+        "config/sources.toml": b"history_start=2010-01-01\n",
+    }
     return InputBundle(
-        sha256(journal).hexdigest(),
+        digest(canonical({name: digest(body) for name, body in files.items()})),
         Path("unused"),
-        {
-            "overrides/identity_overrides.csv": journal,
-            "overrides/suppressions.csv": b"wsdc_id,reason\n",
-            "versions.json": b'{"repository":"correction-fixture"}',
-        },
+        files,
         Config({}, {}),
     )
 
 
-def _published_fixture(database, clock):
+def _published_fixture(database, clock, *, runtime_bundle=None):
     conn = database.connection
     seed(conn)
-    conn.execute("UPDATE events SET event_month='2026-08'")
+    conn.execute("UPDATE events SET event_month = '2026-08'")
     page = RoundPage()
     url = "https://eepro.com/results/summerhummer2026/jjfinals.html"
     body = Path(
@@ -63,11 +68,14 @@ def _published_fixture(database, clock):
         if isinstance(row.payload, RoundSheet)
         and row.payload.contest_name_raw == "Jack & Jill Advanced"
     )
-    conn.execute("UPDATE source_event_map SET source_ref=?", (sheet.source_event_ref,))
+    conn.execute("UPDATE source_event_map SET source_ref = %s", (sheet.source_event_ref,))
     add(conn, "watch", "snapshot", sheet, NOW, source_ref=sheet.source_event_ref)
-    conn.execute("UPDATE watches SET url=? WHERE watch_id='watch'", (url,))
+    conn.execute("UPDATE watches SET url = %s WHERE watch_id = 'watch'", (url,))
     conn.execute(
-        "UPDATE snapshots SET url=?,body_sha256=?,body_bytes=?,parser_version='1',parse_status='parsed' WHERE snapshot_id='snapshot'",
+        (
+            "UPDATE snapshots SET url = %s, body_sha256 = %s, body_bytes = %s, parser_version = '1', "
+            "parse_status = 'parsed' WHERE snapshot_id = 'snapshot'"
+        ),
         (url, Archive(database.state_dir).store_body(body), len(body)),
     )
     prelim_url = "https://eepro.com/results/summerhummer2026/jjprelims.html"
@@ -87,9 +95,12 @@ def _published_fixture(database, clock):
         and row.payload.contest_name_raw == "Jack & Jill Leader Advanced"
     )
     add(conn, "prelim-watch", "prelim-snapshot", prelim, NOW, source_ref=prelim.source_event_ref)
-    conn.execute("UPDATE watches SET url=? WHERE watch_id='prelim-watch'", (prelim_url,))
+    conn.execute("UPDATE watches SET url = %s WHERE watch_id = 'prelim-watch'", (prelim_url,))
     conn.execute(
-        "UPDATE snapshots SET url=?,body_sha256=?,body_bytes=?,parser_version='1',parse_status='parsed' WHERE snapshot_id='prelim-snapshot'",
+        (
+            "UPDATE snapshots SET url = %s, body_sha256 = %s, body_bytes = %s, parser_version = '1', "
+            "parse_status = 'parsed' WHERE snapshot_id = 'prelim-snapshot'"
+        ),
         (prelim_url, Archive(database.state_dir).store_body(prelim_body), len(prelim_body)),
     )
     replace_scope(
@@ -101,27 +112,72 @@ def _published_fixture(database, clock):
         projected_at=NOW,
     )
     entry = conn.execute(
-        "SELECT e.entry_id,e.name_raw FROM entries e JOIN placements p ON p.leader_entry_id=e.entry_id ORDER BY e.entry_id LIMIT 1"
+        "SELECT e.entry_id, e.name_raw FROM entries AS e JOIN placements AS p ON p.leader_entry_id = "
+        "e.entry_id ORDER BY e.entry_id NULLS FIRST LIMIT 1"
     ).fetchone()
     identifier = entry["entry_id"]
     binding = references_for_subject(conn, "entry", identifier)[0]
     positive = decision(binding, "same_person")
     bundle = _bundle(positive)
+    if runtime_bundle is not None:
+        # Synthetic publication rows can share an already accepted runtime;
+        # preserve its complete recipes while adding this baseline decision.
+        bundle = replace(
+            bundle,
+            files={
+                **runtime_bundle.files,
+                **{
+                    name: body
+                    for name, body in bundle.files.items()
+                    if name.startswith("overrides/")
+                },
+            },
+        )
+    from swingset.fetch.archive import canonical, digest, durable_write
+
+    bundle = replace(
+        bundle,
+        digest=digest(canonical({name: digest(body) for name, body in bundle.files.items()})),
+    )
+    path = database.state_dir / "inputs" / bundle.digest
+    for name, body in bundle.files.items():
+        durable_write(path / name, body)
+    durable_write(
+        path / "manifest.json",
+        canonical({name: digest(body) for name, body in bundle.files.items()}),
+    )
+    bundle = replace(bundle, path=path)
     accept(database, bundle, clock)
     conn.execute(
-        "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (100,?,'Fixture','fixture',0,'leader','advanced','advanced','novice','novice','advanced',10,'novice',0,2026,100,?,'wsdc_registry','snapshot','1',?,?,'run_a')",
+        (
+            "INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, "
+            "leader_required_level, leader_allowed_level, follower_required_level, "
+            "follower_allowed_level, leader_highest_level, leader_highest_points, "
+            "follower_highest_level, follower_highest_points, recent_year, registry_internal_id, "
+            "registry_fetched_at, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+            "run_id) VALUES (100, %s, 'Fixture', 'fixture', 0, 'leader', 'advanced', 'advanced', "
+            "'novice', 'novice', 'advanced', 10, 'novice', 0, 2026, 100, %s, 'wsdc_registry', "
+            "'snapshot', '1', %s, %s, 'run_a')"
+        ),
         (entry["name_raw"], NOW, NOW, NOW),
     )
     conn.execute(
-        "UPDATE entries SET wsdc_id=100,link_status='confirmed',link_confidence=1 WHERE entry_id=?",
+        "UPDATE entries SET wsdc_id = 100, link_status = 'confirmed', link_confidence = 1 WHERE entry_id = %s",
         (identifier,),
     )
     conn.execute(
-        "INSERT INTO identity_links VALUES ('link','entry',?,100,'manual','confirmed',1,'[]',?,'run_a','1')",
+        (
+            "INSERT INTO identity_links (link_id, subject_kind, subject_id, wsdc_id, method, status, "
+            "confidence, constraints_applied, asserted_at, run_id, linker_version) VALUES ('link', "
+            "'entry', %s, 100, 'manual', 'confirmed', 1, '[]', %s, 'run_a', '1')"
+        ),
         (identifier, NOW),
     )
     conn.execute(
-        "UPDATE placements SET leader_wsdc_id=100,registry_points_leader=10,registry_confirmed=1,points_matches_expected=1 WHERE leader_entry_id=?",
+        (
+            "UPDATE placements SET leader_wsdc_id = 100, registry_points_leader = 10, registry_confirmed "
+            "= 1, points_matches_expected = 1 WHERE leader_entry_id = %s"
+        ),
         (identifier,),
     )
     materialize_seeded_outputs(database, now=NOW, run_id="run_a")
@@ -164,28 +220,51 @@ def test_correction_only_revokes_journal_identity_while_unrelated_parse_remains_
         accept(database, bundle, clock)
         # New current-state evidence and output must never enter a baseline correction.
         conn.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES ('unrelated','eepro','round','GET','https://example.test/unrelated','eepro.round','live')"
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES "
+            "('unrelated', 'eepro', 'round', 'GET', 'https://example.test/unrelated', 'eepro.round', "
+            "'live')"
         )
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification,parse_status) VALUES ('new-snapshot','unrelated','GET','https://example.test/unrelated',?,200,0,1,'run_a','Ok','failed')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification, parse_status) VALUES ('new-snapshot', "
+                "'unrelated', 'GET', 'https://example.test/unrelated', %s, 200, 0, 1, 'run_a', 'Ok', "
+                "'failed')"
+            ),
             (NOW,),
         )
-        event = dict(conn.execute("SELECT * FROM events WHERE event_id=?", (EVENT,)).fetchone())
+        event = dict(
+            conn.execute(
+                (
+                    "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                    "events.end_date, events.city, events.region, events.country, events.website, "
+                    "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                    "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                    "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                    "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+                ),
+                (EVENT,),
+            ).fetchone()
+        )
         event.update(
             event_id="new-current-event", snapshot_id="new-snapshot", name="Current-only event"
         )
         conn.execute(
-            "INSERT INTO events("
+            "INSERT INTO events ("
             + ",".join(event)
             + ") VALUES ("
-            + ",".join("?" for _ in event)
+            + ",".join("%s" for _ in event)
             + ")",
             tuple(event.values()),
         )
         enqueue(conn, (WorkUnit("parse", "snapshot", "new-snapshot"),), enqueued_at=NOW)
         pending = [
             tuple(row)
-            for row in conn.execute("SELECT * FROM pending_work ORDER BY stage,unit_kind,unit_id")
+            for row in conn.execute(
+                "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                "pending_work.enqueued_at FROM pending_work ORDER BY stage NULLS FIRST, unit_kind NULLS "
+                "FIRST, unit_id NULLS FIRST"
+            )
         ]
         ordinary = build_release(database, bundle, clock, "run_a")
         import pyarrow.parquet as pq
@@ -247,18 +326,22 @@ def test_correction_only_revokes_journal_identity_while_unrelated_parse_remains_
         assert manifest["release_policy"]["pending_work"]["parse"] == 1
         assert [
             tuple(row)
-            for row in conn.execute("SELECT * FROM pending_work ORDER BY stage,unit_kind,unit_id")
+            for row in conn.execute(
+                "SELECT pending_work.stage, pending_work.unit_kind, pending_work.unit_id, "
+                "pending_work.enqueued_at FROM pending_work ORDER BY stage NULLS FIRST, unit_kind NULLS "
+                "FIRST, unit_id NULLS FIRST"
+            )
         ] == pending
         assert (
             conn.execute(
-                "SELECT parse_status FROM snapshots WHERE snapshot_id='new-snapshot'"
+                "SELECT parse_status FROM snapshots WHERE snapshot_id = 'new-snapshot'"
             ).fetchone()[0]
             == "failed"
         )
         assert (
-            conn.execute("SELECT wsdc_id FROM entries WHERE entry_id=?", (identifier,)).fetchone()[
-                0
-            ]
+            conn.execute(
+                "SELECT wsdc_id FROM entries WHERE entry_id = %s", (identifier,)
+            ).fetchone()[0]
             == 100
         )
         assert "PRIVATE reviewer" not in json.dumps(manifest)
@@ -316,14 +399,29 @@ def test_correction_suppression_scrubs_streamed_history_and_keeps_structural_key
         _, first_entry, _, first_decision = _published_fixture(database, clock)
         conn = database.connection
         second = conn.execute(
-            "SELECT e.entry_id,e.name_raw FROM entries e JOIN placements p ON p.leader_entry_id=e.entry_id WHERE e.entry_id<>? ORDER BY e.entry_id LIMIT 1",
+            (
+                "SELECT e.entry_id, e.name_raw FROM entries AS e JOIN placements AS p ON p.leader_entry_id = "
+                "e.entry_id WHERE e.entry_id <> %s ORDER BY e.entry_id NULLS FIRST LIMIT 1"
+            ),
             (first_entry,),
         ).fetchone()
         second_binding = references_for_subject(conn, "entry", second["entry_id"])[0]
         second_decision = decision(second_binding, "same_person", "101", "second-person")
         bundle = _bundle(first_decision, second_decision)
         accept(database, bundle, clock)
-        dancer = dict(conn.execute("SELECT * FROM dancers WHERE wsdc_id=100").fetchone())
+        dancer = dict(
+            conn.execute(
+                "SELECT dancers.wsdc_id, dancers.first_name, dancers.last_name, dancers.name_norm, "
+                "dancers.is_pro, dancers.primary_role, dancers.leader_required_level, "
+                "dancers.leader_allowed_level, dancers.follower_required_level, "
+                "dancers.follower_allowed_level, dancers.leader_highest_level, "
+                "dancers.leader_highest_points, dancers.follower_highest_level, "
+                "dancers.follower_highest_points, dancers.recent_year, dancers.registry_internal_id, "
+                "dancers.registry_fetched_at, dancers.merged_into_wsdc_id, dancers.source, "
+                "dancers.snapshot_id, dancers.parser_version, dancers.first_seen_at, dancers.last_seen_at, "
+                "dancers.run_id FROM dancers WHERE wsdc_id = 100"
+            ).fetchone()
+        )
         dancer.update(
             wsdc_id=101,
             registry_internal_id=101,
@@ -331,29 +429,36 @@ def test_correction_suppression_scrubs_streamed_history_and_keeps_structural_key
             name_norm=second["name_raw"].casefold(),
         )
         conn.execute(
-            "INSERT INTO dancers("
+            "INSERT INTO dancers ("
             + ",".join(dancer)
             + ") VALUES ("
-            + ",".join("?" for _ in dancer)
+            + ",".join("%s" for _ in dancer)
             + ")",
             tuple(dancer.values()),
         )
         conn.execute(
-            "UPDATE entries SET wsdc_id=101,link_status='confirmed',link_confidence=1 WHERE entry_id=?",
+            "UPDATE entries SET wsdc_id = 101, link_status = 'confirmed', link_confidence = 1 WHERE entry_id = %s",
             (second["entry_id"],),
         )
         conn.execute(
-            "INSERT INTO identity_links VALUES ('second-link','entry',?,101,'manual','confirmed',1,'[]',?,'run_a','1')",
+            (
+                "INSERT INTO identity_links (link_id, subject_kind, subject_id, wsdc_id, method, status, "
+                "confidence, constraints_applied, asserted_at, run_id, linker_version) VALUES "
+                "('second-link', 'entry', %s, 101, 'manual', 'confirmed', 1, '[]', %s, 'run_a', '1')"
+            ),
             (second["entry_id"], NOW),
         )
         conn.execute(
-            "UPDATE placements SET leader_wsdc_id=101,registry_points_leader=10,registry_confirmed=1,points_matches_expected=1 WHERE leader_entry_id=?",
+            (
+                "UPDATE placements SET leader_wsdc_id = 101, registry_points_leader = 10, registry_confirmed "
+                "= 1, points_matches_expected = 1 WHERE leader_entry_id = %s"
+            ),
             (second["entry_id"],),
         )
         names = [
             row[0]
             for row in conn.execute(
-                "SELECT name_raw FROM entries WHERE entry_id IN (?,?)",
+                "SELECT name_raw FROM entries WHERE entry_id IN (%s, %s)",
                 (first_entry, second["entry_id"]),
             )
         ]

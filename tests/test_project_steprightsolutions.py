@@ -1,4 +1,3 @@
-import sqlite3
 from dataclasses import replace
 from pathlib import Path
 from typing import cast
@@ -26,6 +25,7 @@ from swingset.sources.steprightsolutions.records import (
     StepRightIndexRow,
     StepRightRoundSheet,
 )
+from swingset.state import engine
 from swingset.state.db import open_database
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sources" / "steprightsolutions"
@@ -34,7 +34,7 @@ SOURCE_REF = "steprightsolutions:example2010"
 
 
 def add_observation(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     watch: str,
     snapshot: str,
@@ -52,19 +52,26 @@ def add_observation(
         else f"http://steprightsolutions.com/events/example2010/round/{watch}"
     )
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) "
-        "VALUES (?,?,?,'GET',?,?,?,'live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+            "(%s, %s, %s, 'GET', %s, %s, %s, 'live')"
+        ),
         (watch, source, kind, url, kind, source_ref),
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-        "body_bytes,content_changed,run_id,classification) "
-        "VALUES (?,?,'GET',?,?,200,1,1,'run_a','Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 1, "
+            "1, 'run_a', 'Ok')"
+        ),
         (snapshot, watch, url, fetched_at),
     )
     conn.execute(
-        "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,"
-        "seq,extract_version,parser_version,payload_json) VALUES (?,?,?,?,?,?,0,'1','2',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, %s, "
+            "%s, 0, '1', '2', %s)"
+        ),
         (
             f"obs-{snapshot}",
             watch,
@@ -123,7 +130,9 @@ def test_index_year_stays_date_less_and_detail_adds_exact_dates_without_losing_l
     )
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-17',0)")
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-17', 0)"
+        )
         add_observation(
             conn,
             watch="index",
@@ -136,7 +145,7 @@ def test_index_year_stays_date_less_and_detail_adds_exact_dates_without_losing_l
         )
         project_source_index(conn, "steprightsolutions", "2026-09-17", "run_a")
         first = conn.execute(
-            "SELECT name_raw,start_date,end_date,location_raw,url FROM source_events"
+            "SELECT name_raw, start_date, end_date, location_raw, url FROM source_events"
         ).fetchone()
         assert tuple(first) == (
             "Example Open",
@@ -158,7 +167,7 @@ def test_index_year_stays_date_less_and_detail_adds_exact_dates_without_losing_l
         )
         project_source_index(conn, SOURCE_REF, "2026-09-17", "run_a")
         merged = conn.execute(
-            "SELECT name_raw,start_date,end_date,location_raw,url FROM source_events"
+            "SELECT name_raw, start_date, end_date, location_raw, url FROM source_events"
         ).fetchone()
         assert tuple(merged) == (
             "Example Open 2010",
@@ -179,10 +188,14 @@ def test_round_projection_withholds_prelim_semantics_and_does_not_cross_page_mer
     )
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-17',0)")
         conn.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
-            "VALUES ('steprightsolutions',?,?,'override',1)",
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-17', 0)"
+        )
+        conn.execute(
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('steprightsolutions', %s, %s, 'override', 1)"
+            ),
             (SOURCE_REF, EVENT),
         )
         add_observation(
@@ -253,10 +266,14 @@ def test_real_round_legends_use_supported_judge_evidence_only(tmp_path: Path) ->
     final = parse_round("real-srs-round508-20260917.html", "508")
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-17',0)")
         conn.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
-            "VALUES ('steprightsolutions',?,?,'override',1)",
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-17', 0)"
+        )
+        conn.execute(
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('steprightsolutions', %s, %s, 'override', 1)"
+            ),
             (SOURCE_REF, EVENT),
         )
         add_observation(
@@ -308,10 +325,14 @@ def test_mixed_sources_share_common_contest_and_round_reconciliation(tmp_path: P
     )
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-17',0)")
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-17', 0)"
+        )
         conn.executemany(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
-            "VALUES (?,?,?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES (%s, %s, %s, 'override', 1)"
+            ),
             (
                 ("steprightsolutions", SOURCE_REF, EVENT),
                 ("eepro", eepro_ref, EVENT),

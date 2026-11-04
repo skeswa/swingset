@@ -134,15 +134,18 @@ class Observer:
             return
         with db.transaction(immediate=False):
             last, high = conn.execute(
-                "SELECT last_rowid,high_water FROM event_timing_cursor"
+                "SELECT last_rowid, high_water FROM event_timing_cursor"
             ).fetchone()
             if last >= high:
                 last = 0
                 high = conn.execute(
-                    "SELECT coalesce(max(rowid),0) FROM source_event_inventory"
+                    "SELECT COALESCE(MAX(rowid), 0) AS _value_0 FROM source_event_inventory"
                 ).fetchone()[0]
             rows = conn.execute(
-                "SELECT rowid,source,source_ref,enumeration_id FROM source_event_inventory WHERE rowid>? AND rowid<=? ORDER BY rowid LIMIT 8",
+                (
+                    "SELECT rowid, source, source_ref, enumeration_id FROM source_event_inventory WHERE rowid > "
+                    "%s AND rowid <= %s ORDER BY rowid NULLS FIRST LIMIT 8"
+                ),
                 (last, high),
             ).fetchall()
             session = Session(conn, Archive(db.state_dir), cutoff=now, now=now, limits=Limits())
@@ -161,7 +164,7 @@ class Observer:
                         limit=32,
                     )
                     parents = session.read(
-                        "SELECT parent_support_json FROM source_event_enumerations WHERE enumeration_id=?",
+                        "SELECT parent_support_json FROM source_event_enumerations WHERE enumeration_id = %s",
                         (row["enumeration_id"],),
                         ("parent_support_json",),
                         cap=1,
@@ -182,7 +185,11 @@ class Observer:
                         if proof["acquired"] or proof["unavailable"]:
                             continue
                         watches = session.read(
-                            "SELECT w.watch_id,w.source,w.method,w.url,w.form FROM source_event_member_watches m JOIN watches w USING(watch_id) WHERE m.enumeration_id=? AND m.request_id=? ORDER BY w.watch_id",
+                            (
+                                "SELECT w.watch_id, w.source, w.method, w.url, w.form FROM source_event_member_watches AS m "
+                                "JOIN watches AS w USING (watch_id) WHERE m.enumeration_id = %s AND m.request_id = %s ORDER "
+                                "BY w.watch_id NULLS FIRST"
+                            ),
                             (row["enumeration_id"], page["request_id"]),
                             ("watch_id", "source", "method", "url", "form"),
                             cap=32,
@@ -213,7 +220,9 @@ class Observer:
                     subject["reason"] = str(exc)
                 self.subjects.append(subject)
         with db.transaction():
-            conn.execute("UPDATE event_timing_cursor SET last_rowid=?,high_water=?", (last, high))
+            conn.execute(
+                "UPDATE event_timing_cursor SET last_rowid = %s, high_water = %s", (last, high)
+            )
         for subject in self.subjects:
             subject["recorder"] = Recorder(
                 db,
@@ -283,18 +292,26 @@ class Observer:
                 assessment = union(assessments, deadline=self.deadline)
             owner = (subject["source"], subject["source_ref"])
             service = conn.execute(
-                "SELECT e.rowid,r.action_id,r.issued_at FROM scheduler_event_requests e "
-                "JOIN scheduler_requests r USING(action_id) WHERE e.source=? AND e.source_ref=? "
-                "ORDER BY e.rowid DESC LIMIT 1",
+                (
+                    "SELECT e.rowid, r.action_id, r.issued_at FROM scheduler_event_requests AS e JOIN "
+                    "scheduler_requests AS r USING (action_id) WHERE e.source = %s AND e.source_ref = %s ORDER "
+                    "BY e.rowid DESC NULLS LAST LIMIT 1"
+                ),
                 owner,
             ).fetchone()
             progress = conn.execute(
-                "SELECT p.receipt_id,o.occurred_at FROM event_progress_receipts p JOIN event_stage_operations o USING(operation_id) WHERE p.source=? AND p.source_ref=? ORDER BY p.receipt_id DESC LIMIT 1",
+                (
+                    "SELECT p.receipt_id, o.occurred_at FROM event_progress_receipts AS p JOIN "
+                    "event_stage_operations AS o USING (operation_id) WHERE p.source = %s AND p.source_ref = %s "
+                    "ORDER BY p.receipt_id DESC NULLS LAST LIMIT 1"
+                ),
                 owner,
             ).fetchone()
             unresolved = (
                 conn.execute(
-                    "SELECT 1 FROM event_stage_operations o WHERE o.source=? AND o.operation_id>max(?,(SELECT coalesce(max(operation_id),0) FROM event_progress_receipts WHERE source=? AND source_ref=?)) AND (o.stage='interpreted' OR EXISTS(SELECT 1 FROM source_event_enumeration_members m WHERE m.enumeration_id=? AND m.request_id=o.request_id) OR EXISTS(SELECT 1 FROM watches w WHERE w.watch_id=o.watch_id AND w.source_ref=?) OR EXISTS(SELECT 1 FROM source_event_member_watches m WHERE m.enumeration_id=? AND m.watch_id=o.watch_id)) LIMIT 1",
+                    (
+                        "SELECT 1 AS _value_0 FROM event_stage_operations AS o WHERE o.source = %s AND o.operation_id > GREATEST(%s, (SELECT COALESCE(MAX(operation_id), 0) AS _value_0 FROM event_progress_receipts WHERE source = %s AND source_ref = %s)) AND (o.stage = 'interpreted' OR EXISTS(SELECT 1 AS _value_0 FROM source_event_enumeration_members AS m WHERE m.enumeration_id = %s AND m.request_id = o.request_id) OR EXISTS(SELECT 1 AS _value_0 FROM watches AS w WHERE w.watch_id = o.watch_id AND w.source_ref = %s) OR EXISTS(SELECT 1 AS _value_0 FROM source_event_member_watches AS m WHERE m.enumeration_id = %s AND m.watch_id = o.watch_id)) LIMIT 1"
+                    ),
                     (
                         subject["source"],
                         recorder.row["operation_origin"],

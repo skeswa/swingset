@@ -1,7 +1,6 @@
 """Publication holds persist during remote I/O without weakening H10 sealing."""
 
 import json
-import sqlite3
 from datetime import UTC, datetime
 
 import pytest
@@ -9,6 +8,7 @@ from test_safety import changed_journal
 from test_safety import release as release
 
 from swingset.publish.service import PublishError, publish, reconcile
+from swingset.state import engine
 from swingset.state.controls import Selector, change_control, recover_admissions, status
 
 
@@ -36,23 +36,29 @@ def current_status(database):
 def test_automatic_commit_held_without_rejecting_valid_candidate(release, selector):
     database, _, _, _, hub, candidate = release
     control(database, selector)
-    result = publish(database.state_dir, candidate.path, hub)
+    result = publish(database.state_dir, candidate.path, hub, connection=database.connection)
     assert result.state == "held" and hub.calls == 0
     assert "private operator note" not in result.reason
-    assert (candidate.path / "PUBLISHING").exists()
+    assert not (candidate.path / "PUBLISHING").exists()
     assert not (candidate.path / "REJECTED").exists()
     assert (
         database.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
     )
     control(database, selector, paused=False)
-    assert reconcile(database.state_dir, hub, dry_run=False).state == "published"
+    assert (
+        publish(database.state_dir, candidate.path, hub, connection=database.connection).state
+        == "published"
+    )
     assert hub.calls == 1
 
 
 def test_host_pause_allows_postfetch_publication(release):
     database, _, _, _, hub, candidate = release
     control(database, Selector("host", "eepro.com"))
-    assert publish(database.state_dir, candidate.path, hub).state == "published"
+    assert (
+        publish(database.state_dir, candidate.path, hub, connection=database.connection).state
+        == "published"
+    )
     assert hub.calls == 1
 
 
@@ -71,7 +77,7 @@ def test_hold_does_not_hide_invalid_candidate_or_current_inputs(release, change)
     else:
         (overrides / "identity_overrides.csv").write_text("invalid journal")
     with pytest.raises(PublishError):
-        publish(database.state_dir, candidate.path, hub)
+        publish(database.state_dir, candidate.path, hub, connection=database.connection)
     assert (candidate.path / "REJECTED").exists() and hub.calls == 0
     assert not database.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
 
@@ -85,35 +91,52 @@ def test_pause_persists_in_flight_while_semantic_writes_are_fenced(release):
         result = control(database, Selector("all", "all"))
         assert result["persisted"] and result["state"] == "pausing"
         assert result["draining_attempts"][0]["candidate_id"] == candidate.path.name
-        # This connection can reserve SQLite writes; only unsafe semantics are
-        # fenced. The old network-long BEGIN IMMEDIATE blocked even the pause.
-        with sqlite3.connect(database.state_dir / "state.sqlite", timeout=0) as other:
-            other.execute("BEGIN IMMEDIATE")
+        # A separate native C writer is available during remote I/O; only
+        # unsafe semantics are fenced, so the control pause remains writable.
+        with engine.connect(engine.resolve_dsn(database.state_dir), timeout=0) as other:
+            other.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+            from swingset.state.engine.locks import acquire_writer
+
+            acquire_writer(other)
             statements = [
-                "UPDATE meta SET value='unsafe' WHERE key='input_bundle_hash'",
-                "INSERT INTO admission_policies(page_kind,contract_version,mode,policy_revision) VALUES ('unsafe','1','enforce','unsafe')",
-                "INSERT INTO identity_decisions VALUES ('unsafe','eepro','event','contest','round','participant','42','same_person','evidence','reason','author','2026-09-13',NULL,'{}','sha','digest','now')",
+                "UPDATE meta SET value = 'unsafe' WHERE key = 'input_bundle_hash'",
+                (
+                    "INSERT INTO admission_policies (page_kind, contract_version, mode, policy_revision) VALUES "
+                    "('unsafe', '1', 'enforce', 'unsafe')"
+                ),
+                (
+                    "INSERT INTO identity_decisions (decision_id, source, source_event, contest, round, "
+                    "participant, wsdc_id, decision, evidence, reason, author, date, supersedes, row_json, "
+                    "row_sha256, accepted_digest, accepted_at) VALUES ('unsafe', 'eepro', 'event', 'contest', "
+                    "'round', 'participant', '42', 'same_person', 'evidence', 'reason', 'author', '2026-09-13', "
+                    "NULL, '{}', 'sha', 'digest', 'now')"
+                ),
             ]
             for statement in statements:
-                with pytest.raises(sqlite3.IntegrityError, match="publication"):
-                    other.execute(statement)
+                with pytest.raises(engine.IntegrityError, match="publication"):
+                    with other.transaction():
+                        other.execute(statement)
             # A partitioned candidate's fence is narrow: derivation work the
             # loops write is not what its check reads (WP10).
             other.execute(
-                "INSERT INTO pending_work VALUES ('parse','snapshot','safe','2026-09-13')"
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+                "'snapshot', 'safe', '2026-09-13')"
             )
             other.rollback()
         observed.append(True)
         return real_create(**kwargs)
 
     hub.create_commit = commit
-    assert publish(database.state_dir, candidate.path, hub).state == "published"
+    assert (
+        publish(database.state_dir, candidate.path, hub, connection=database.connection).state
+        == "published"
+    )
     assert observed == [True]
     after = current_status(database)
     assert after["state"] == "paused" and not after["draining_attempts"]
-    assert database.connection.execute("SELECT state,outcome FROM execution_admissions").fetchone()[
-        :
-    ] == ("settled", "published")
+    assert database.connection.execute(
+        "SELECT state, outcome FROM execution_admissions"
+    ).fetchone()[:] == ("settled", "published")
 
 
 def test_uncertain_landed_request_recovers_despite_pause_and_new_journal(release):
@@ -127,11 +150,14 @@ def test_uncertain_landed_request_recovers_despite_pause_and_new_journal(release
 
     hub.create_commit = commit
     with pytest.raises(ConnectionError):
-        publish(database.state_dir, candidate.path, hub)
+        publish(database.state_dir, candidate.path, hub, connection=database.connection)
     state = current_status(database)
     assert state["state"] == "pausing" and state["draining_attempts"][0]["state"] == "uncertain"
     changed_journal(database, config, overrides, clock)
-    assert reconcile(database.state_dir, hub, dry_run=False).state == "recovered"
+    assert (
+        reconcile(database.state_dir, hub, dry_run=False, connection=database.connection).state
+        == "recovered"
+    )
     assert hub.calls == 1 and current_status(database)["state"] == "paused"
     assert json.loads((candidate.path / "PUBLISHED").read_bytes())["latency_is_upper_bound"]
 
@@ -146,16 +172,22 @@ def test_uncertain_unlanded_request_settles_but_pause_holds_retry(release):
 
     hub.create_commit = offline
     with pytest.raises(ConnectionError):
-        publish(database.state_dir, candidate.path, hub)
+        publish(database.state_dir, candidate.path, hub, connection=database.connection)
     hub.create_commit = original
-    assert reconcile(database.state_dir, hub, dry_run=False).state == "held"
+    assert (
+        reconcile(database.state_dir, hub, dry_run=False, connection=database.connection).state
+        == "held"
+    )
     assert hub.calls == 0 and current_status(database)["state"] == "paused"
-    assert database.connection.execute("SELECT state,outcome FROM execution_admissions").fetchone()[
-        :
-    ] == ("settled", "not_landed")
+    assert database.connection.execute(
+        "SELECT state, outcome FROM execution_admissions"
+    ).fetchone()[:] == ("settled", "not_landed")
     assert not (candidate.path / "REJECTED").exists()
     control(database, Selector("kind", "parse_failure"), paused=False)
-    assert reconcile(database.state_dir, hub, dry_run=False).state == "published"
+    assert (
+        reconcile(database.state_dir, hub, dry_run=False, connection=database.connection).state
+        == "published"
+    )
     assert (
         database.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 2
     )
@@ -166,7 +198,10 @@ def test_unrecovered_active_request_is_not_cleared_by_old_head(release):
     original = hub.create_commit
 
     def inflight(**kwargs):
-        assert reconcile(database.state_dir, hub, dry_run=False).state == "draining"
+        assert (
+            reconcile(database.state_dir, hub, dry_run=False, connection=database.connection).state
+            == "draining"
+        )
         assert (
             database.connection.execute("SELECT state FROM execution_admissions").fetchone()[0]
             == "active"
@@ -174,7 +209,10 @@ def test_unrecovered_active_request_is_not_cleared_by_old_head(release):
         return original(**kwargs)
 
     hub.create_commit = inflight
-    assert publish(database.state_dir, candidate.path, hub).state == "published"
+    assert (
+        publish(database.state_dir, candidate.path, hub, connection=database.connection).state
+        == "published"
+    )
     assert hub.calls == 1
 
 
@@ -186,14 +224,17 @@ def test_restart_recovery_keeps_publication_uncertain_until_reconciled(release):
 
     hub.create_commit = interrupted
     with pytest.raises(ConnectionError):
-        publish(database.state_dir, candidate.path, hub)
+        publish(database.state_dir, candidate.path, hub, connection=database.connection)
     # Model death before the exception handler persisted its uncertain outcome.
-    database.connection.execute("UPDATE execution_admissions SET state='active',outcome=NULL")
+    database.connection.execute("UPDATE execution_admissions SET state = 'active', outcome = NULL")
     control(database, Selector("all", "all"))
     with database.transaction():
         assert recover_admissions(database.connection, now=datetime.now(UTC)) == 1
     assert current_status(database)["draining_attempts"][0]["state"] == "uncertain"
-    assert reconcile(database.state_dir, hub, dry_run=False).state == "held"
+    assert (
+        reconcile(database.state_dir, hub, dry_run=False, connection=database.connection).state
+        == "held"
+    )
     assert current_status(database)["state"] == "paused" and hub.calls == 0
 
 
@@ -214,30 +255,42 @@ def test_process_death_retains_active_pause_drain_until_recovery(release):
         "hub.create_commit=lambda **kwargs:(print('reserved',flush=True),sys.stdin.read())[1]; "
         "publish(Path(sys.argv[1]),Path(sys.argv[2]),hub)"
     )
-    child = subprocess.Popen(
-        [sys.executable, "-c", code, str(database.state_dir), str(candidate.path)],
-        env=environment,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    try:
-        assert child.stdout.readline().strip() == "reserved"
-        assert control(database, Selector("all", "all"))["state"] == "pausing"
-        child.kill()
-        child.wait(timeout=5)
-        assert current_status(database)["draining_attempts"][0]["state"] == "active"
-        with database.transaction():
-            assert recover_admissions(database.connection, now=datetime.now(UTC)) == 1
-        assert current_status(database)["draining_attempts"][0]["state"] == "uncertain"
-        assert reconcile(database.state_dir, hub, dry_run=False).state == "held"
-        assert current_status(database)["state"] == "paused"
-        assert hub.calls == 0 and not (candidate.path / "REJECTED").exists()
-    finally:
-        if child.poll() is None:
+    from helpers.loop_ticks import released
+
+    with released(database):
+        child = subprocess.Popen(
+            [sys.executable, "-c", code, str(database.state_dir), str(candidate.path)],
+            env=environment,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            ready = child.stdout.readline().strip()
+            assert ready == "reserved", (
+                ready,
+                child.stderr.read() if child.poll() is not None else "",
+            )
+            assert control(database, Selector("all", "all"))["state"] == "pausing"
             child.kill()
-        child.communicate(timeout=5)
+            child.wait(timeout=5)
+            assert current_status(database)["draining_attempts"][0]["state"] == "active"
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate(timeout=5)
+    with database.transaction():
+        assert recover_admissions(database.connection, now=datetime.now(UTC)) == 1
+    assert current_status(database)["draining_attempts"][0]["state"] == "uncertain"
+    assert (candidate.path / "PUBLISHING").exists()
+    assert (
+        reconcile(database.state_dir, hub, dry_run=False, connection=database.connection).state
+        == "held"
+    )
+    assert (candidate.path / "PUBLISHING").exists()
+    assert current_status(database)["state"] == "paused"
+    assert hub.calls == 0 and not (candidate.path / "REJECTED").exists()
 
 
 def test_the_release_loop_publishes_through_a_hub(tmp_path, monkeypatch):
@@ -296,18 +349,18 @@ def test_the_release_loop_publishes_through_a_hub(tmp_path, monkeypatch):
     assert dry["candidate_id"] and "publication" not in dry and hub.calls == 1
     with open_database(state, lock=False) as database:
         assert database.connection.execute(
-            "SELECT state,outcome FROM execution_admissions WHERE action_kind='publication_narrow'"
+            "SELECT state, outcome FROM execution_admissions WHERE action_kind = 'publication_narrow'"
         ).fetchone()[:] == ("settled", "published")
         assert (
             database.connection.execute(
-                "SELECT dry_run FROM runs WHERE run_id=?", (published["run_id"],)
+                "SELECT dry_run FROM runs WHERE run_id = %s", (published["run_id"],)
             ).fetchone()[0]
             == 0
         )
 
 
 def test_a_publication_waits_out_a_busy_writer_at_admission_and_settle(release):
-    """A loop's write can hold SQLite past the old 5 s busy timeout; the
+    """A loop's native C write can outlast the old 5 s busy timeout; the
     publication's admission and its settle after the upload wait as any
     writer does (F7), so the fence never stays up for want of a retry.
     The connection's timeout is asserted; the writers hold a second each,
@@ -318,11 +371,13 @@ def test_a_publication_waits_out_a_busy_writer_at_admission_and_settle(release):
     from swingset.publish.safety import _connection
 
     database, _, _, _, hub, candidate = release
-    path = database.state_dir / "state.sqlite"
+    dsn = engine.resolve_dsn(database.state_dir)
     probe = _connection(database.state_dir)
     assert probe is not None
     try:
-        assert probe.execute("PRAGMA busy_timeout").fetchone()[0] >= 70000
+        assert probe.execute(
+            "SELECT current_setting('lock_timeout')::interval >= interval '70 seconds'"
+        ).fetchone()[0]
     finally:
         probe.close()
     holders: list[threading.Thread] = []
@@ -331,9 +386,12 @@ def test_a_publication_waits_out_a_busy_writer_at_admission_and_settle(release):
         started = threading.Event()
 
         def hold() -> None:
-            other = sqlite3.connect(path, isolation_level=None)
+            other = engine.connect(dsn)
             try:
-                other.execute("BEGIN IMMEDIATE")
+                other.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+                from swingset.state.engine.locks import acquire_writer
+
+                acquire_writer(other)
                 started.set()
                 time.sleep(seconds)
                 other.execute("COMMIT")
@@ -355,7 +413,7 @@ def test_a_publication_waits_out_a_busy_writer_at_admission_and_settle(release):
     hub.create_commit = create_commit
     busy()  # the admission meets a busy writer
     try:
-        result = publish(database.state_dir, candidate.path, hub)
+        result = publish(database.state_dir, candidate.path, hub, connection=database.connection)
     finally:
         for thread in holders:
             thread.join()
@@ -363,7 +421,7 @@ def test_a_publication_waits_out_a_busy_writer_at_admission_and_settle(release):
     assert len(holders) == 2
     assert (
         database.connection.execute(
-            "SELECT count(*) FROM execution_admissions WHERE state<>'settled'"
+            "SELECT COUNT(*) FROM execution_admissions WHERE state <> 'settled'"
         ).fetchone()[0]
         == 0
     )

@@ -27,27 +27,29 @@ def _extract_calls(tmp_path, monkeypatch, name, digests, *, other=None):
         unit, body_sha, run = seed_snapshot(db, clock, "retained", FIXTURE)
         for index, value in enumerate(digests):
             db.connection.execute(
-                "INSERT INTO accepted_inputs VALUES ('pipeline',?,?) "
-                "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+                (
+                    "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, %s) ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
+                ),
                 (name, value),
             )
             if other is not None:
                 db.connection.execute(
-                    "INSERT INTO accepted_inputs VALUES ('pipeline',?,?) "
-                    "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+                    (
+                        "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, %s) ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
+                    ),
                     (other, f"other-{index}"),
                 )
             enqueue(db.connection, (unit,), enqueued_at=clock.now().isoformat())
             assert not parse.parse_snapshot(db, Archive(tmp_path), unit, clock, run).failed
             assert (
                 db.connection.execute(
-                    "SELECT extract_recipe_sha256 FROM snapshots WHERE snapshot_id=?",
+                    "SELECT extract_recipe_sha256 FROM snapshots WHERE snapshot_id = %s",
                     (unit.unit_id,),
                 ).fetchone()[0]
                 == value
             )
         row = db.connection.execute(
-            "SELECT body_sha256,extract_version,parser_version FROM snapshots WHERE snapshot_id=?",
+            "SELECT body_sha256, extract_version, parser_version FROM snapshots WHERE snapshot_id = %s",
             (unit.unit_id,),
         ).fetchone()
         assert tuple(row) == (

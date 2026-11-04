@@ -1,13 +1,14 @@
 """Shared insertion and transport cannot bypass the historical acquisition gates."""
 
-import sqlite3
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 
 import httpx
 import pytest
+from psycopg import sql
 from test_admission import Corpus
+from test_event_pressure_probe import fault_update
 from test_platform_backfill import EVENT, accept
 from test_platform_backfill import fixture as fixture
 
@@ -19,6 +20,7 @@ from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.sources.eepro.adapter import AutoIndexPage
 from swingset.sources.wsdc_calendar import EventsPage
+from swingset.state import engine
 
 
 def reviewed_index(fixture):
@@ -87,7 +89,7 @@ def test_phase_two_index_label_still_gets_priority_six(fixture):
     upsert_watch(fixture.conn, target, fixture.clock.now())
     assert tuple(
         fixture.conn.execute(
-            "SELECT state,priority FROM watches WHERE watch_id=?", (target.watch_id,)
+            "SELECT state, priority FROM watches WHERE watch_id = %s", (target.watch_id,)
         ).fetchone()
     ) == ("backfill", 6)
 
@@ -96,21 +98,30 @@ def test_insert_and_priority_change_roll_back_without_touching_outer_transaction
     reviewed_index(fixture)
     accept(fixture)
     target = spec()
-    fixture.conn.execute(
-        f"CREATE TEMP TRIGGER fail_priority BEFORE UPDATE OF priority ON watches WHEN NEW.watch_id='{target.watch_id}' BEGIN SELECT RAISE(ABORT,'offline priority crash'); END"
+    fault_update(
+        fixture,
+        "CREATE FUNCTION ops.fail_priority() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.watch_id=TG_ARGV[0] THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='offline priority crash'; END IF; RETURN NEW; END $$",
+    )
+    fault_update(
+        fixture,
+        sql.SQL(
+            "CREATE TRIGGER fail_priority BEFORE UPDATE OF priority ON watches FOR EACH ROW EXECUTE FUNCTION ops.fail_priority({})"
+        ).format(sql.Literal(target.watch_id)),
     )
     with fixture.db.transaction():
-        fixture.conn.execute("INSERT INTO meta VALUES ('outer_sentinel','retained')")
-        with pytest.raises(sqlite3.IntegrityError, match="offline priority crash"):
+        fixture.conn.execute("INSERT INTO meta (key, value) VALUES ('outer_sentinel', 'retained')")
+        with pytest.raises(engine.IntegrityError, match="SQLSTATE 23514"):
             upsert_watch(fixture.conn, target, fixture.clock.now())
         assert (
             fixture.conn.execute(
-                "SELECT 1 FROM watches WHERE watch_id=?", (target.watch_id,)
+                "SELECT 1 FROM watches WHERE watch_id = %s", (target.watch_id,)
             ).fetchone()
             is None
         )
         assert (
-            fixture.conn.execute("SELECT value FROM meta WHERE key='outer_sentinel'").fetchone()[0]
+            fixture.conn.execute("SELECT value FROM meta WHERE key = 'outer_sentinel'").fetchone()[
+                0
+            ]
             == "retained"
         )
 
@@ -120,11 +131,11 @@ def test_insert_and_priority_change_roll_back_without_touching_outer_transaction
     [
         ("DELETE FROM history_acceptance", "history_year_unaccepted"),
         (
-            "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'",
+            "UPDATE admission_policies SET mode = 'paused' WHERE page_kind = 'eepro.autoindex'",
             "history_contract_not_enforced",
         ),
         (
-            "UPDATE admission_policies SET contract_version='stale' WHERE page_kind='eepro.autoindex'",
+            "UPDATE admission_policies SET contract_version = 'stale' WHERE page_kind = 'eepro.autoindex'",
             "history_contract_review_stale",
         ),
     ],
@@ -157,7 +168,7 @@ def test_policy_or_year_changed_after_insertion_stops_before_robots_and_budget(
     [
         ("DELETE FROM history_acceptance", "history_year_unaccepted"),
         (
-            "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'",
+            "UPDATE admission_policies SET mode = 'paused' WHERE page_kind = 'eepro.autoindex'",
             "history_contract_not_enforced",
         ),
     ],
@@ -172,7 +183,10 @@ def test_invalidation_during_host_wait_prevents_http_and_request_charge(
     archive = Archive(fixture.db.state_dir)
     sha = archive.store_body(b"User-agent: *\nAllow: /\n")
     fixture.conn.execute(
-        "INSERT INTO hosts(host,next_allowed_at,robots_sha256,robots_status,robots_fetched_at) VALUES ('web.archive.org',?,?,200,?)",
+        (
+            "INSERT INTO hosts (host, next_allowed_at, robots_sha256, robots_status, robots_fetched_at) "
+            "VALUES ('web.archive.org', %s, %s, 200, %s)"
+        ),
         (
             (fixture.clock.now() + timedelta(seconds=10)).isoformat(),
             sha,
@@ -210,7 +224,10 @@ def test_policy_invalidation_on_redirect_stops_before_next_hop(fixture):
     archive = Archive(fixture.db.state_dir)
     sha = archive.store_body(b"User-agent: *\nAllow: /\n")
     fixture.conn.execute(
-        "INSERT INTO hosts(host,robots_sha256,robots_status,robots_fetched_at) VALUES ('web.archive.org',?,200,?)",
+        (
+            "INSERT INTO hosts (host, robots_sha256, robots_status, robots_fetched_at) VALUES "
+            "('web.archive.org', %s, 200, %s)"
+        ),
         (sha, fixture.clock.now().isoformat()),
     )
     calls = []
@@ -218,7 +235,7 @@ def test_policy_invalidation_on_redirect_stops_before_next_hop(fixture):
     def handler(request):
         calls.append(str(request.url))
         fixture.conn.execute(
-            "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'"
+            "UPDATE admission_policies SET mode = 'paused' WHERE page_kind = 'eepro.autoindex'"
         )
         return httpx.Response(
             302, headers={"location": target.archive_url.replace("201905", "201906")}
@@ -252,7 +269,7 @@ def test_true_phase_one_still_fetches_without_year_or_scoring_policy(fixture):
     upsert_watch(fixture.conn, target, fixture.clock.now())
     assert (
         fixture.conn.execute(
-            "SELECT priority FROM watches WHERE watch_id=?", (target.watch_id,)
+            "SELECT priority FROM watches WHERE watch_id = %s", (target.watch_id,)
         ).fetchone()[0]
         == 2
     )
@@ -292,7 +309,7 @@ def test_capture_scheduler_keeps_phase_two_at_priority_six_even_with_index_label
         assert schedule_capture(fixture.conn, target, now=fixture.clock.now())
     assert tuple(
         fixture.conn.execute(
-            "SELECT state,priority FROM watches WHERE watch_id=?", (target.watch_id,)
+            "SELECT state, priority FROM watches WHERE watch_id = %s", (target.watch_id,)
         ).fetchone()
     ) == ("backfill", 6)
 
@@ -310,17 +327,18 @@ def test_phase_two_index_label_can_retry_next_distinct_capture_without_lowering_
         failed_snapshot(fixture, target.watch_id, CAPTURES[0], 1)
         assert retry_capture(fixture.conn, target.watch_id, now=fixture.clock.now())
     selected = fixture.conn.execute(
-        "SELECT archive_url,state,priority FROM watches WHERE watch_id=?", (target.watch_id,)
+        "SELECT archive_url, state, priority FROM watches WHERE watch_id = %s", (target.watch_id,)
     ).fetchone()
     assert tuple(selected) == (CAPTURES[1].archive_url, "backfill", 6)
     fixture.conn.execute(
-        "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'"
+        "UPDATE admission_policies SET mode = 'paused' WHERE page_kind = 'eepro.autoindex'"
     )
     with fixture.db.transaction():
         assert not retry_capture(fixture.conn, target.watch_id, now=fixture.clock.now())
     assert tuple(
         fixture.conn.execute(
-            "SELECT archive_url,state,priority FROM watches WHERE watch_id=?", (target.watch_id,)
+            "SELECT archive_url, state, priority FROM watches WHERE watch_id = %s",
+            (target.watch_id,),
         ).fetchone()
     ) == tuple(selected)
 
@@ -343,7 +361,7 @@ def test_phase_one_capture_keeps_priority_two_and_does_not_use_sheet_retry(fixtu
         assert not retry_capture(fixture.conn, target.watch_id, now=fixture.clock.now())
     assert (
         fixture.conn.execute(
-            "SELECT priority FROM watches WHERE watch_id=?", (target.watch_id,)
+            "SELECT priority FROM watches WHERE watch_id = %s", (target.watch_id,)
         ).fetchone()[0]
         == 2
     )

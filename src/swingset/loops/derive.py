@@ -9,7 +9,6 @@ a release that is behind. It counts `release_lag` and keeps the guard
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -20,7 +19,7 @@ from swingset.fetch.archive import Archive
 from swingset.log import log
 from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, Tick, note_skip, publication_active
 from swingset.schedule.offline import Offline, registry_crosscheck
-from swingset.state import derivations, queue, rwlock
+from swingset.state import derivations, engine, queue, rwlock
 from swingset.state.control_scopes import for_unit, unit_allowed
 from swingset.state.controls import ControlPaused, matching_pauses
 from swingset.state.db import SCHEMA_VERSION
@@ -44,9 +43,7 @@ LAG_STAGES = frozenset({"parse", "link"})
 CAPACITY_SKIPS = frozenset({"heavy_busy"})
 
 
-def release_lag(
-    conn: sqlite3.Connection, config: Config, *, now: datetime
-) -> dict[str, Any] | None:
+def release_lag(conn: engine.Connection, config: Config, *, now: datetime) -> dict[str, Any] | None:
     """Whether release is behind, and whether derive holds project units for it.
 
     Release is behind when a build is due (none admitted within the build
@@ -73,24 +70,26 @@ def release_lag(
         if build_deferred_for_interval(conn, config, now=now):
             return None
         row = conn.execute(
-            "SELECT last_progress_at FROM loop_state WHERE loop='release'"
+            "SELECT last_progress_at FROM loop_state WHERE loop = 'release'"
         ).fetchone()
         if row is None:
             return None
         completed = conn.execute(
-            "SELECT MAX(settled_at) FROM execution_admissions "
-            "WHERE action_kind='build' AND outcome='completed'"
+            "SELECT MAX(settled_at) AS _value_0 FROM execution_admissions WHERE action_kind = 'build' AND outcome = 'completed'"
         ).fetchone()[0]
-        first = conn.execute("SELECT MIN(started_at) FROM runs WHERE loop='release'").fetchone()[0]
+        first = conn.execute(
+            "SELECT MIN(started_at) AS _value_0 FROM runs WHERE loop = 'release'"
+        ).fetchone()[0]
         recent = [
             str(value[0]) if value[0] is not None else None
             for value in conn.execute(
-                "SELECT json_extract(summary_json,'$.skipped') FROM runs WHERE loop='release' "
-                "AND finished_at > ? AND json_valid(summary_json) ORDER BY finished_at DESC",
+                (
+                    "SELECT JSON_EXTRACT_PATH_TEXT(CAST(summary_json AS JSON), 'skipped') AS _value_0 FROM runs WHERE loop = 'release' AND finished_at > %s AND PG_INPUT_IS_VALID(summary_json, 'json') ORDER BY finished_at DESC NULLS LAST"
+                ),
                 ((now - timedelta(seconds=interval)).isoformat(),),
             )
         ]
-    except sqlite3.Error:
+    except engine.Error:
         return None
     marks = [str(value) for value in (row[0], completed) if value]
     since_text = max(marks, key=_moment) if marks else first
@@ -190,7 +189,7 @@ def run(tick: Tick) -> None:
     note_skip(tick, RELEASE_LAG, skipped=engaged)
     heavy: rwlock.Held | None = None
     try:
-        heavy = rwlock.heavy_shared(database.state_dir)
+        heavy = rwlock.heavy_shared(database.state_dir, connection=database.connection)
     except rwlock.LockBusy:
         tick.counters["heavy_deferred"] += 1
         summary["heavy_deferred"] = True
@@ -208,13 +207,13 @@ def run(tick: Tick) -> None:
 HELD_EXAMPLES = 20
 
 
-def held_units(conn: sqlite3.Connection, now: datetime) -> dict[str, object]:
+def held_units(conn: engine.Connection, now: datetime) -> dict[str, object]:
     """How many unfinished units an operator pause holds, with a few named.
 
     Walking every unfinished unit costs seconds on production, so it runs
     only while a pause exists, and names at most `HELD_EXAMPLES`.
     """
-    if not conn.execute("SELECT 1 FROM operator_pauses LIMIT 1").fetchone():
+    if not conn.execute("SELECT 1 AS _value_0 FROM operator_pauses LIMIT 1").fetchone():
         return {"count": 0, "units": []}
     count = 0
     named: list[dict[str, object]] = []

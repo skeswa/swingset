@@ -8,7 +8,6 @@ import gzip
 import hashlib
 import json
 import re
-import sqlite3
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,7 +18,7 @@ from test_h15_acceptance import source_fixture as source_fixture
 from test_release_closure_rows import baseline_events
 
 from swingset.build import partitions
-from swingset.state import derivations, objects, output_packs, retention
+from swingset.state import derivations, engine, objects, output_packs, retention
 from swingset.state.attempts import SupersededWorkError
 from swingset.state.db import Database, open_database
 from swingset.state.output_packs import GenerationUnavailable
@@ -33,11 +32,13 @@ def canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def empty_set(conn: sqlite3.Connection) -> str:
+def empty_set(conn: engine.Connection) -> str:
     identifier = hashlib.sha256(b"[]").hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-        "VALUES (?,'[]')",
+        (
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, '[]') "
+            "ON CONFLICT DO NOTHING"
+        ),
         (identifier,),
     )
     return identifier
@@ -63,18 +64,30 @@ def write(
             if stored is not None and ordinal >= stored:
                 continue
             sha = hashlib.sha256(text.encode()).hexdigest()
-            conn.execute("INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (sha, text))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (sha, text),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (generation_id, ordinal, table, key, sha),
             )
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-            "VALUES (?,?,?,?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+                "%s, %s) ON CONFLICT DO NOTHING"
+            ),
             (*scope, NOW.isoformat()),
         )
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,'{}',?,NULL,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, '{}', %s, NULL, %s, %s, %s, %s)"
+            ),
             (
                 generation_id,
                 *scope,
@@ -88,8 +101,10 @@ def write(
         )
         if point:
             conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=? "
-                "WHERE stage=? AND unit_kind=? AND unit_id=?",
+                (
+                    "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = %s AND unit_kind "
+                    "= %s AND unit_id = %s"
+                ),
                 (generation_id, *scope),
             )
     return output.hexdigest(), len(rows)
@@ -102,27 +117,31 @@ def evict(database: Database, generation_id: str) -> None:
     with database.transaction():
         output_packs.pack(conn, objects.store_for(conn), generation_id, now=NOW)
         conn.execute(
-            "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
-            "VALUES (1,'test',?)",
+            "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, 'test', %s)",
             (stamp,),
         )
-        conn.execute("DELETE FROM derivation_row_refs WHERE generation_id=?", (generation_id,))
-        conn.execute("INSERT INTO derivation_evicted VALUES (?,?)", (generation_id, stamp))
+        conn.execute("DELETE FROM derivation_row_refs WHERE generation_id = %s", (generation_id,))
+        conn.execute(
+            "INSERT INTO derivation_evicted (generation_id, evicted_at) VALUES (%s, %s)",
+            (generation_id, stamp),
+        )
         conn.execute("DELETE FROM storage_eviction_authority")
 
 
-def refs(conn: sqlite3.Connection, generation_id: str) -> list[tuple[object, ...]]:
+def refs(conn: engine.Connection, generation_id: str) -> list[tuple[object, ...]]:
     return [
         tuple(row)
         for row in conn.execute(
-            "SELECT ordinal,table_name,record_key,payload_sha256 FROM derivation_row_refs "
-            "WHERE generation_id=? ORDER BY ordinal",
+            (
+                "SELECT ordinal, table_name, record_key, payload_sha256 FROM derivation_row_refs WHERE "
+                "generation_id = %s ORDER BY ordinal NULLS FIRST"
+            ),
             (generation_id,),
         )
     ]
 
 
-def marked(conn: sqlite3.Connection, generation_id: str) -> bool:
+def marked(conn: engine.Connection, generation_id: str) -> bool:
     return output_packs.evicted(conn, generation_id)
 
 
@@ -153,7 +172,7 @@ def test_a_pack_is_the_label_stream_of_every_generation(source_fixture):
     conn = f.conn
     store = objects.store_for(conn)
     labels = conn.execute(
-        "SELECT generation_id,stage,unit_kind,output_digest,row_count FROM derivation_generations"
+        "SELECT generation_id, stage, unit_kind, output_digest, row_count FROM derivation_generations"
     ).fetchall()
     kinds = {(str(stage), str(kind)) for _, stage, kind, _, _ in labels}
     assert {
@@ -175,7 +194,7 @@ def test_a_pack_is_the_label_stream_of_every_generation(source_fixture):
             assert len(lines) == row_count
             assert hashlib.sha256(b"".join(lines)).hexdigest() == output_digest
             raw = conn.execute(
-                "SELECT raw_bytes FROM objects WHERE class=? AND digest=?",
+                "SELECT raw_bytes FROM objects WHERE class = %s AND digest = %s",
                 (output_packs.CLASS, output_digest),
             ).fetchone()[0]
             assert raw == sum(len(line) for line in lines)
@@ -183,7 +202,7 @@ def test_a_pack_is_the_label_stream_of_every_generation(source_fixture):
             assert output_packs.pack(conn, store, generation_id, now=NOW) == output_digest
     distinct = {str(row[3]) for row in labels}
     assert conn.execute(
-        "SELECT count(*) FROM objects WHERE class=?", (output_packs.CLASS,)
+        "SELECT COUNT(*) FROM objects WHERE class = %s", (output_packs.CLASS,)
     ).fetchone()[0] == len(distinct)
 
 
@@ -270,7 +289,7 @@ def test_a_partial_generation_is_never_packed(tmp_path):
         with pytest.raises(GenerationUnavailable):
             with database.transaction():
                 output_packs.pack(conn, objects.store_for(conn), "dg_p", now=NOW)
-        assert conn.execute("SELECT count(*) FROM objects").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0] == 0
         with pytest.raises(GenerationUnavailable):
             list(output_packs.rows(conn, "dg_p"))
 
@@ -310,7 +329,7 @@ def test_page_in_is_bounded_resumable_and_drops_the_marker_when_whole(tmp_path):
                     output_packs.page_in(conn, "dg_a", now=NOW)
         assert refs(conn, "dg_a") == [] and marked(conn, "dg_a")
         # The marker cannot leave without the authority.
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
             with database.transaction():
                 conn.execute("DELETE FROM derivation_evicted")
 
@@ -333,7 +352,7 @@ def test_incomplete_generations_ignore_evicted_ones_and_count_real_partials(tmp_
         chosen = {
             str(row[0])
             for row in conn.execute(
-                "SELECT generation_id FROM derivation_generations WHERE 1"
+                " SELECT generation_id FROM derivation_generations WHERE true "
                 + derivations.unfinished_excluded(conn)
             )
         }
@@ -404,7 +423,7 @@ def test_reuse_of_an_evicted_small_generation_pages_it_in_on_the_complete_path(t
         assert refs(conn, generation) == whole
         assert not marked(conn, generation)
         assert derivations.selected_generation(conn, UNIT) == generation
-        assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == 1
         # A cutoff against the resident kept generation is unchanged: it keeps
         # the pointer and records an equivalence, with no page-in.
         calls: list[str] = []
@@ -418,8 +437,8 @@ def test_reuse_of_an_evicted_small_generation_pages_it_in_on_the_complete_path(t
             patch.setattr(output_packs, "page_in", spy)
             assert complete(database, rows, {"recipe/test": "two"}) == generation
         assert calls == []
-        assert conn.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[0] == 1
-        assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_equivalences").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == 1
 
 
 @contextlib.contextmanager
@@ -431,11 +450,11 @@ def per_transaction(monkeypatch, conn) -> Iterator[list[int]]:
     @contextlib.contextmanager
     def measured(self, **kwargs):
         top = not self.connection.in_transaction
-        before = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+        before = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
         with original(self, **kwargs) as inner:
             yield inner
         if top:
-            after = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+            after = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
             counts.append(after - before)
 
     monkeypatch.setattr(Database, "transaction", measured)
@@ -478,7 +497,7 @@ def test_reuse_of_an_evicted_large_generation_pages_in_chunk_by_chunk_on_the_sta
         assert refs(conn, generation) == whole
         assert not marked(conn, generation)
         assert derivations.selected_generation(conn, UNIT) == generation
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 0
 
 
 def test_a_return_to_a_large_evicted_generation_is_staged(tmp_path, monkeypatch):
@@ -501,7 +520,7 @@ def test_a_return_to_a_large_evicted_generation_is_staged(tmp_path, monkeypatch)
             assert derivations.stageable(conn, UNIT)
 
 
-def lose_pack(conn: sqlite3.Connection, generation: str) -> None:
+def lose_pack(conn: engine.Connection, generation: str) -> None:
     objects.store_for(conn).path(
         output_packs.CLASS, output_packs.label(conn, generation)[0]
     ).unlink()
@@ -583,8 +602,10 @@ def remint(f, unit: WorkUnit) -> str:
     current = derivations.selected_generation(conn, unit)
     assert current is not None
     fingerprint, recipe, dependency_set = conn.execute(
-        "SELECT input_fingerprint,recipe_json,dependency_set_id FROM derivation_generations "
-        "WHERE generation_id=?",
+        (
+            "SELECT input_fingerprint, recipe_json, dependency_set_id FROM derivation_generations WHERE "
+            "generation_id = %s"
+        ),
         (current,),
     ).fetchone()
     f.corpus.clock.sleep(1)
@@ -598,15 +619,25 @@ def remint(f, unit: WorkUnit) -> str:
                 payload = {**payload, "name_raw": "Renamed Entrant"}
             text = canonical(payload)
             sha = hashlib.sha256(text.encode()).hexdigest()
-            conn.execute("INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (sha, text))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (sha, text),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (created, ordinal, table, key, sha),
             )
             output.update(canonical((table, key, text)).encode() + b"\n")
             count += 1
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ),
             (
                 created,
                 unit.stage,
@@ -623,8 +654,10 @@ def remint(f, unit: WorkUnit) -> str:
             ),
         )
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=? "
-            "WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = %s AND unit_kind "
+                "= %s AND unit_id = %s"
+            ),
             (created, unit.stage, unit.unit_kind, unit.unit_id),
         )
     link_all(f)
@@ -655,9 +688,8 @@ def test_the_partitioned_build_reads_only_resident_generations(source_fixture, t
     hot = {
         str(row[0])
         for row in conn.execute(
-            "SELECT materialized_generation_id FROM derivation_scopes "
-            "WHERE materialized_generation_id IS NOT NULL "
-            "UNION SELECT generation_id FROM derivation_building"
+            "SELECT materialized_generation_id FROM derivation_scopes WHERE NOT "
+            "materialized_generation_id IS NULL UNION SELECT generation_id FROM derivation_building"
         )
     }
     cold = [
@@ -746,7 +778,6 @@ def test_the_build_artifact_readers_read_an_evicted_build_generation(tmp_path):
 ALLOWED = {
     "state/derivations.py",
     "state/output_packs.py",
-    "state/derivation_payload_migration.py",
     "state/retention.py",
     "state/retention_apply.py",
     # The one-time move and incremental eviction (WP3).
@@ -754,6 +785,9 @@ ALLOWED = {
     # Partial generations' references, collected (WP5, D-0231).
     "state/collector.py",
     "state/publication_fence.py",
+    # Explicit catalog verification defines expected schema, never reads outputs.
+    "state/postgres_schema.py",
+    "state/history_catalog.py",
     # The two current-pointer joins, `_refs` and `_dancer_rows`.
     "build/partitions.py",
 }

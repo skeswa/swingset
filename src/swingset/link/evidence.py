@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
@@ -11,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from swingset.log import log
 from swingset.normalize.names import normalize_name
-from swingset.state import read_sets
+from swingset.state import engine, read_sets
 from swingset.state.identity_journal import JournalToken
 from swingset.state.identity_references import ReferenceReader
 from swingset.state.work import WorkUnit
@@ -84,7 +83,7 @@ class LinkingSnapshot:
 
 
 def load_linking_snapshot(
-    conn: sqlite3.Connection, event_id: str, bundle: InputBundle, selection: Selection | None
+    conn: engine.Connection, event_id: str, bundle: InputBundle, selection: Selection | None
 ) -> LinkingSnapshot:
     """Assemble a LinkingSnapshot from retained database records.
 
@@ -103,21 +102,27 @@ def load_linking_snapshot(
 
 
 def _load(
-    conn: sqlite3.Connection, event_id: str, bundle: InputBundle, selection: Selection | None
+    conn: engine.Connection, event_id: str, bundle: InputBundle, selection: Selection | None
 ) -> LinkingSnapshot:
     resolver = DecisionResolver(conn)
-    event = conn.execute("SELECT year FROM events WHERE event_id=?", (event_id,)).fetchone()
+    event = conn.execute("SELECT year FROM events WHERE event_id = %s", (event_id,)).fetchone()
     event_year = int(event[0]) if event else None
     entry_rows = conn.execute(
-        "SELECT e.entry_id,e.name_raw,e.role,e.wsdc_id,c.division,e.bib,e.contest_id FROM entries e JOIN contests c USING(contest_id) WHERE e.event_id=?",
+        (
+            "SELECT e.entry_id, e.name_raw, e.role, e.wsdc_id, c.division, e.bib, e.contest_id FROM "
+            "entries AS e JOIN contests AS c USING (contest_id) WHERE e.event_id = %s"
+        ),
         (event_id,),
     ).fetchall()
     judge_rows = conn.execute(
-        "SELECT judge_id,name_raw,wsdc_id FROM judges WHERE event_id=?", (event_id,)
+        "SELECT judge_id, name_raw, wsdc_id FROM judges WHERE event_id = %s", (event_id,)
     ).fetchall()
     dancer_rows = (
         conn.execute(
-            "SELECT wsdc_id,first_name,last_name,primary_role,recent_year,is_pro,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,follower_highest_level FROM dancers WHERE merged_into_wsdc_id IS NULL"
+            "SELECT wsdc_id, first_name, last_name, primary_role, recent_year, is_pro, "
+            "leader_required_level, leader_allowed_level, follower_required_level, "
+            "follower_allowed_level, leader_highest_level, follower_highest_level FROM dancers WHERE "
+            "merged_into_wsdc_id IS NULL"
         ).fetchall()
         if entry_rows or judge_rows
         else []
@@ -172,18 +177,13 @@ def _load(
         if subject.subject_kind != "entry" or subject.division is None:
             continue
         rows = conn.execute(
-            """SELECT DISTINCT rp.wsdc_id
-            FROM placements p
-            JOIN contests c USING(contest_id)
-            JOIN registry_placements rp
-              ON rp.event_id=p.event_id
-             AND rp.role=?
-             AND rp.division=c.division
-             AND rp.dance_style=c.dance_style
-             AND rp.result IN (CAST(p.place AS TEXT),'F')
-            WHERE p.event_id=?
-              AND c.wsdc_points_eligible=1
-              AND ? IN (p.leader_entry_id,p.follower_entry_id,p.couple_entry_id)""",
+            (
+                "SELECT DISTINCT rp.wsdc_id FROM placements AS p JOIN contests AS c USING (contest_id) JOIN "
+                "registry_placements AS rp ON rp.event_id = p.event_id AND rp.role = %s AND rp.division = "
+                "c.division AND rp.dance_style = c.dance_style AND rp.result IN (CAST(p.place AS TEXT), 'F') "
+                "WHERE p.event_id = %s AND c.wsdc_points_eligible = 1 AND %s IN (p.leader_entry_id, "
+                "p.follower_entry_id, p.couple_entry_id)"
+            ),
             (subject.role, event_id, subject.subject_id),
         )
         returned = {int(row[0]) for row in rows}
@@ -271,7 +271,7 @@ def _load(
 
 
 def _loaded_reads(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     event_id: str,
     resolver: DecisionResolver,
     bindings: Mapping[str, tuple[Any, ...]],
@@ -308,8 +308,8 @@ def _loaded_reads(
     dancers: dict[str, str | None] = {
         str(row[0]): row[1]
         for row in conn.execute(
-            "SELECT unit_id,materialized_generation_id FROM derivation_scopes "
-            "WHERE stage='project' AND unit_kind='dancer'"
+            "SELECT unit_id, materialized_generation_id FROM derivation_scopes WHERE stage = 'project' "
+            "AND unit_kind = 'dancer'"
         )
     }
     # A dancer no unit materialized is read as its row (or its absence): only
@@ -334,7 +334,7 @@ def _loaded_reads(
 
 
 def read_set(
-    conn: sqlite3.Connection, snapshot: LinkingSnapshot, resolution: EventResolution
+    conn: engine.Connection, snapshot: LinkingSnapshot, resolution: EventResolution
 ) -> dict[str, Any] | None:
     """The run's read set, each key with its value at load (plan F20).
 

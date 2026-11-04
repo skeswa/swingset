@@ -23,7 +23,6 @@ import gzip
 import hashlib
 import os
 import re
-import sqlite3
 import uuid
 import zlib
 from collections.abc import Iterable, Iterator
@@ -31,6 +30,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO, cast
+
+from swingset.state import engine
 
 #: What a packed body column holds once its bytes are in an object.
 STUB = '{"packed":true}'
@@ -268,7 +269,7 @@ class Store:
 
 
 def record(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     cls: str,
     digest: str,
     raw_bytes: int,
@@ -287,9 +288,9 @@ def record(
     """
     _check(cls, digest)
     conn.execute(
-        "INSERT INTO objects(class,digest,raw_bytes,stored_bytes,stored_at) "
-        "VALUES (?,?,?,?,?) ON CONFLICT(class,digest) DO UPDATE SET "
-        "stored_at=max(stored_at,excluded.stored_at)",
+        (
+            "INSERT INTO objects (class, digest, raw_bytes, stored_bytes, stored_at) VALUES (%s, %s, %s, %s, %s) ON CONFLICT(class, digest) DO UPDATE SET stored_at = CASE WHEN objects.stored_at IS NULL OR excluded.stored_at IS NULL THEN NULL ELSE GREATEST(objects.stored_at, excluded.stored_at) END"
+        ),
         (cls, digest, raw_bytes, stored_bytes, stamp(now)),
     )
     store = store_for(conn) if _has_file(conn) else None
@@ -297,25 +298,15 @@ def record(
         raise ObjectUnavailable(f"{cls}/{digest} was removed before its row was written")
 
 
-def _has_file(conn: sqlite3.Connection) -> bool:
-    for row in conn.execute("PRAGMA database_list"):
-        if row[1] == "main":
-            return bool(row[2])
-    return False
+def _has_file(conn: engine.Connection) -> bool:
+    return conn.state_dir is not None
 
 
-def store_for(conn: sqlite3.Connection) -> Store:
-    """The store beside the connection's main database file.
-
-    A checkpoint or a restore scratch directory gets its own objects, so a
-    reader needs no state directory parameter.
-    """
-    for row in conn.execute("PRAGMA database_list"):
-        if row[1] == "main":
-            if not row[2]:
-                raise ValueError("an object store needs a database file")
-            return Store(Path(row[2]).parent)
-    raise ValueError("the connection has no main database")
+def store_for(conn: engine.Connection) -> Store:
+    """The object directory bound to this state connection."""
+    if conn.state_dir is None:
+        raise ValueError("an object store needs a state directory")
+    return Store(conn.state_dir)
 
 
 def _check_class(cls: str) -> None:

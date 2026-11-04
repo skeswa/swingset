@@ -60,7 +60,7 @@ def test_actual_http_dispatches_keep_gap_despite_variable_post_grant_latency(fet
     assert starts[1] - ends[0] >= 10
     assert starts[2] - ends[1] >= 13
     assert f.db.connection.execute("SELECT requests FROM host_budget").fetchone()[0] == 3
-    assert f.db.connection.execute("SELECT count(*) FROM scheduler_requests").fetchone()[0] == 3
+    assert f.db.connection.execute("SELECT COUNT(*) FROM scheduler_requests").fetchone()[0] == 3
 
 
 def test_two_live_gates_share_inflight_and_original_gap_with_clock_jump(tmp_path):
@@ -141,34 +141,42 @@ def test_release_preserves_longer_existing_deadline_and_original_debit_day(tmp_p
         assert isinstance(gate.acquire("example.test", crawl_delay=19), Grant)
         clock.sleep(86400)
         deadline = clock.now() + timedelta(seconds=90)
-        db.connection.execute("UPDATE hosts SET next_allowed_at=?", (deadline.isoformat(),))
+        db.connection.execute("UPDATE hosts SET next_allowed_at = %s", (deadline.isoformat(),))
         gate.release("example.test", Classification(Outcome.OK), body_bytes=9, request_day=day)
         assert gate.acquire("example.test") == Wait(19)
         clock.sleep(19)
         assert gate.acquire("example.test") == Wait(71)
         assert tuple(
-            db.connection.execute("SELECT day,requests,bytes FROM host_budget").fetchone()
+            db.connection.execute("SELECT day, requests, bytes FROM host_budget").fetchone()
         ) == (day, 1, 9)
 
 
 def test_failed_release_keeps_durable_reservation_and_request_debit(tmp_path):
-    import sqlite3
+    from swingset.state import engine
 
     clock = FakeClock()
     with open_database(tmp_path) as db:
         gate = Gate(db.connection, policy(), clock)
         assert isinstance(gate.acquire("example.test"), Grant)
-        db.connection.execute(
-            "CREATE TRIGGER reject_bytes BEFORE UPDATE OF bytes ON host_budget BEGIN SELECT RAISE(ABORT,'offline failure'); END"
-        )
-        with pytest.raises(sqlite3.IntegrityError, match="offline failure"):
+        from swingset.dev.services import ensure_service
+
+        with ensure_service().connect(db.connection.info.dbname) as admin:
+            admin.execute(
+                "CREATE FUNCTION ops.fixture_reject_bytes() RETURNS trigger LANGUAGE plpgsql "
+                "AS $$ BEGIN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='offline failure'; END $$"
+            )
+            admin.execute(
+                'CREATE TRIGGER fixture_reject_bytes BEFORE UPDATE OF bytes ON "fetch".host_budget '
+                "FOR EACH ROW EXECUTE FUNCTION ops.fixture_reject_bytes()"
+            )
+        with pytest.raises(engine.IntegrityError, match="23514"):
             gate.release("example.test", Classification(Outcome.OK), body_bytes=4)
         assert (
             db.connection.execute("SELECT released_at FROM host_request_spacing").fetchone()[0]
             is None
         )
         assert tuple(
-            db.connection.execute("SELECT requests,bytes FROM host_budget").fetchone()
+            db.connection.execute("SELECT requests, bytes FROM host_budget").fetchone()
         ) == (1, 0)
         assert not db.connection.in_transaction
         assert Gate(db.connection, policy(), clock).acquire("example.test") == Wait(10)
@@ -177,24 +185,28 @@ def test_failed_release_keeps_durable_reservation_and_request_debit(tmp_path):
 def test_unsupported_schema_does_not_infer_spacing_from_old_grant(tmp_path):
     clock = FakeClock()
     with open_database(tmp_path) as db:
-        db.connection.execute("DROP TABLE host_request_spacing")
+        db.connection.execute(
+            'SET search_path=pg_catalog,pg_temp,"fetch",plan,evidence,derive,project,release,ops'
+        )
+        db.connection.execute("CREATE TEMP VIEW host_request_spacing AS SELECT 1 AS unavailable")
         gate = Gate(db.connection, policy(), clock)
         assert gate.acquire("example.test") == Paused("request spacing schema unavailable")
-        assert db.connection.execute("SELECT count(*) FROM host_budget").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM host_budget").fetchone()[0] == 0
 
 
-def test_schema_upgrade_requires_reviewed_legacy_baseline_without_refund(tmp_path, monkeypatch):
-    from swingset.state import db as database_module
-
+def test_imported_unknown_spacing_requires_reviewed_baseline_without_refund(tmp_path):
     clock = FakeClock()
-    monkeypatch.setattr(database_module, "SCHEMA_VERSION", 27)
     with open_database(tmp_path) as db:
-        db.connection.execute("INSERT INTO hosts(host) VALUES ('example.test')")
+        db.connection.execute("INSERT INTO hosts (host) VALUES ('example.test')")
+        # The schema-37 import retains this explicit pre-spacing reservation.
         db.connection.execute(
-            "INSERT INTO host_budget VALUES ('example.test',?,12,34)",
+            "INSERT INTO host_request_spacing(host,reservation_id,gap_seconds) "
+            "VALUES('example.test','legacy_example.test',NULL)"
+        )
+        db.connection.execute(
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('example.test', %s, 12, 34)",
             (clock.now().date().isoformat(),),
         )
-    monkeypatch.setattr(database_module, "SCHEMA_VERSION", 28)
     with open_database(tmp_path) as db:
         gate = Gate(db.connection, policy(), clock)
         assert gate.acquire("example.test") == Paused("legacy request spacing unknown")
@@ -213,11 +225,18 @@ def test_schema_upgrade_requires_reviewed_legacy_baseline_without_refund(tmp_pat
         gate.release("example.test", Classification(Outcome.OK))
         assert tuple(
             db.connection.execute(
-                "SELECT requests,bytes FROM host_budget WHERE host='example.test'"
+                "SELECT requests, bytes FROM host_budget WHERE host = 'example.test'"
             ).fetchone()
         ) == (13, 34)
         baseline = db.connection.execute(
-            "SELECT * FROM host_request_spacing_baselines WHERE reservation_id=?", (receipt,)
+            (
+                "SELECT host_request_spacing_baselines.reservation_id, host_request_spacing_baselines.host, "
+                "host_request_spacing_baselines.gap_seconds, host_request_spacing_baselines.stopped_at, "
+                "host_request_spacing_baselines.recorded_at, host_request_spacing_baselines.evidence_ref, "
+                "host_request_spacing_baselines.prior_reservation_id FROM host_request_spacing_baselines "
+                "WHERE reservation_id = %s"
+            ),
+            (receipt,),
         ).fetchone()
         assert baseline["gap_seconds"] == 17
         assert baseline["prior_reservation_id"] == "legacy_example.test"
@@ -229,9 +248,14 @@ def test_legacy_baseline_requires_transaction_valid_gap_and_no_active_request(tm
 
     clock = FakeClock()
     with open_database(tmp_path) as db:
-        db.connection.execute("INSERT INTO hosts(host) VALUES ('example.test')")
+        db.connection.execute("INSERT INTO hosts (host) VALUES ('example.test')")
+        # The schema-37 import retains this explicit pre-spacing reservation.
         db.connection.execute(
-            "INSERT INTO host_budget VALUES ('example.test',?,1,0)",
+            "INSERT INTO host_request_spacing(host,reservation_id,gap_seconds) "
+            "VALUES('example.test','legacy_example.test',NULL)"
+        )
+        db.connection.execute(
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('example.test', %s, 1, 0)",
             (clock.now().date().isoformat(),),
         )
         gate = Gate(db.connection, policy(), clock)
@@ -253,7 +277,7 @@ def test_legacy_baseline_requires_transaction_valid_gap_and_no_active_request(tm
             with pytest.raises(ValueError, match="unsettled"):
                 gate.establish_spacing_baseline("example.test", **kwargs)
         assert (
-            db.connection.execute("SELECT count(*) FROM host_request_spacing_baselines").fetchone()[
+            db.connection.execute("SELECT COUNT(*) FROM host_request_spacing_baselines").fetchone()[
                 0
             ]
             == 0
@@ -263,9 +287,14 @@ def test_legacy_baseline_requires_transaction_valid_gap_and_no_active_request(tm
 def test_aborted_legacy_baseline_never_authorizes_recovery(tmp_path):
     clock = FakeClock()
     with open_database(tmp_path) as db:
-        db.connection.execute("INSERT INTO hosts(host) VALUES ('example.test')")
+        db.connection.execute("INSERT INTO hosts (host) VALUES ('example.test')")
+        # The schema-37 import retains this explicit pre-spacing reservation.
         db.connection.execute(
-            "INSERT INTO host_budget VALUES ('example.test',?,1,0)",
+            "INSERT INTO host_request_spacing(host,reservation_id,gap_seconds) "
+            "VALUES('example.test','legacy_example.test',NULL)"
+        )
+        db.connection.execute(
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('example.test', %s, 1, 0)",
             (clock.now().date().isoformat(),),
         )
         gate = Gate(db.connection, policy(), clock)
@@ -281,7 +310,7 @@ def test_aborted_legacy_baseline_never_authorizes_recovery(tmp_path):
         clock.sleep(60)
         assert gate.acquire("example.test") == Paused("legacy request spacing unknown")
         assert (
-            db.connection.execute("SELECT count(*) FROM host_request_spacing_baselines").fetchone()[
+            db.connection.execute("SELECT COUNT(*) FROM host_request_spacing_baselines").fetchone()[
                 0
             ]
             == 0
@@ -328,10 +357,10 @@ def test_actual_client_midnight_latency_keeps_request_receipt_and_bytes_on_debit
         fetcher.close()
     assert f.clock.now().date().isoformat() != day
     assert tuple(
-        f.db.connection.execute("SELECT day,requests,bytes FROM host_budget").fetchone()
+        f.db.connection.execute("SELECT day, requests, bytes FROM host_budget").fetchone()
     ) == (day, 1, len(BODY))
     row = f.db.connection.execute(
-        "SELECT day,issued_at,body_bytes FROM scheduler_requests"
+        "SELECT day, issued_at, body_bytes FROM scheduler_requests"
     ).fetchone()
     assert row["day"] == day and row["issued_at"].startswith(day)
     assert row["body_bytes"] == len(BODY)
@@ -357,7 +386,7 @@ def test_budget_assessment_and_debit_use_one_instant_across_midnight(tmp_path):
         clock.sleep(19)
         clock.armed = True
         assert gate.acquire("example.test") == Paused("request budget")
-        assert db.connection.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 1
+        assert db.connection.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 1
 
 
 def test_distinct_system_clocks_share_one_monotonic_wait_domain(tmp_path, monkeypatch):
@@ -372,10 +401,38 @@ def test_distinct_system_clocks_share_one_monotonic_wait_domain(tmp_path, monkey
         first.release("example.test", Classification(Outcome.OK))
         # Simulate a forward wall-clock change. The shared monotonic deadline
         # must survive alternating clients without restarting its wait.
-        db.connection.execute("UPDATE hosts SET next_allowed_at=NULL")
+        db.connection.execute("UPDATE hosts SET next_allowed_at = NULL")
         assert second.acquire("example.test") == Wait(10)
         elapsed[0] = 4
         assert first.acquire("example.test") == Wait(6)
         elapsed[0] = 10
         assert isinstance(second.acquire("example.test"), Grant)
         second.release("example.test", Classification(Outcome.OK))
+
+
+def test_failed_grant_commit_releases_the_process_claim(tmp_path, monkeypatch):
+    import psycopg
+
+    from swingset.state import engine
+
+    with open_database(tmp_path) as database:
+        conn = database.connection
+        gate = Gate(conn, policy(), FakeClock())
+        original = psycopg.Connection.commit
+        armed = True
+
+        def reject(self):
+            nonlocal armed
+            if self is conn and armed:
+                armed = False
+                self.execute(
+                    "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
+                    "VALUES(1,'injected rejection','2026-01-01')"
+                )
+            return original(self)
+
+        monkeypatch.setattr(psycopg.Connection, "commit", reject)
+        with pytest.raises(engine.IntegrityError):
+            gate.acquire("example.test")
+        assert not gate.inflight and not conn.in_transaction
+        assert conn.execute("SELECT count(*) FROM host_budget").fetchone()[0] == 0

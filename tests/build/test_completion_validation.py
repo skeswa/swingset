@@ -7,6 +7,7 @@ from test_h16_acceptance import release_state as release_state
 
 from swingset.build import closure, generations, service
 from swingset.build.builder import BuildError
+from tests.helpers.sql_observer import observe
 
 
 def test_completion_validates_before_output_after_rows_and_before_certificate(
@@ -19,26 +20,32 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
 
     def checked(conn, value):
         assert conn.in_transaction
-        events.append(
-            "validate" if conn.execute("PRAGMA query_only").fetchone()[0] == 0 else "proof"
-        )
+        events.append("validate" if not conn.read_only_snapshot else "proof")
         return validate(conn, value)
 
     def finishing(*args, **kwargs):
         monkeypatch.setattr(closure, "validate", checked)
-        f.conn.set_trace_callback(
+        _sql_trace = observe(
+            f.conn,
             lambda sql: (
                 events.append("artifact")
-                if sql.startswith("INSERT INTO derivation_row_refs")
+                if sql.startswith(
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, payload_sha256)"
+                )
                 else events.append("generation")
-                if sql.startswith("INSERT INTO derivation_generations")
+                if sql.startswith(
+                    "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                    "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                    "row_count, created_at, run_id)"
+                )
                 else None
-            )
+            ),
         )
+        _sql_trace.__enter__()
         try:
             return complete(*args, **kwargs)
         finally:
-            f.conn.set_trace_callback(None)
+            _sql_trace.__exit__(None, None, None)
             monkeypatch.setattr(closure, "validate", validate)
 
     monkeypatch.setattr(generations, "complete", finishing)
@@ -81,7 +88,8 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
         # Witness a real write in the same retention transaction; a rejected
         # closure must leave neither retained proof nor output committed.
         conn.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('completion-rollback-witness','[]')"
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES "
+            "('completion-rollback-witness', '[]')"
         )
 
     def finishing(database, selection, result, **kwargs):
@@ -92,44 +100,50 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
         with f.db.transaction():
             if mutation == "revocation":
                 f.conn.execute(
-                    "UPDATE source_generations SET state='revoked' WHERE generation_id=?",
+                    "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
                     (receipt["generation_id"],),
                 )
             elif mutation == "policy":
                 f.conn.execute(
-                    "UPDATE admission_policies SET contract_version=contract_version||'-changed' WHERE page_kind=?",
+                    "UPDATE admission_policies SET contract_version = contract_version || '-changed' WHERE page_kind = %s",
                     (receipt["page_kind"],),
                 )
             else:
                 f.conn.execute(
-                    "UPDATE snapshots SET body_sha256='different' WHERE snapshot_id=?",
+                    "UPDATE snapshots SET body_sha256 = 'different' WHERE snapshot_id = %s",
                     (accepted["snapshot_id"],),
                 )
         before = tuple(
             f.conn.execute(
-                "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+                "SELECT generation_id FROM derivation_generations ORDER BY generation_id NULLS FIRST"
             )
         )
-        f.conn.set_trace_callback(
+        _sql_trace = observe(
+            f.conn,
             lambda sql: (
-                writes.append(sql) if sql.startswith("INSERT INTO derivation_row_refs") else None
-            )
+                writes.append(sql)
+                if sql.startswith(
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, payload_sha256)"
+                )
+                else None
+            ),
         )
+        _sql_trace.__enter__()
         try:
             return complete(database, selection, result, **kwargs)
         finally:
-            f.conn.set_trace_callback(None)
+            _sql_trace.__exit__(None, None, None)
             assert (
                 tuple(
                     f.conn.execute(
-                        "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+                        "SELECT generation_id FROM derivation_generations ORDER BY generation_id NULLS FIRST"
                     )
                 )
                 == before
             )
             assert (
                 f.conn.execute(
-                    "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id='completion-rollback-witness'"
+                    "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id = 'completion-rollback-witness'"
                 ).fetchone()
                 is None
             )
@@ -150,8 +164,8 @@ def closure_proofs(conn):
     return {
         row[0]
         for row in conn.execute(
-            "SELECT dependency_set_id FROM derivation_dependency_sets "
-            "WHERE substr(manifest_json,1,40) LIKE '{\"baseline\":%'"
+            "SELECT dependency_set_id FROM derivation_dependency_sets WHERE SUBSTRING(manifest_json FROM "
+            "1 FOR 40) ILIKE '{\"baseline\":%'"
         )
     }
 
@@ -182,7 +196,7 @@ def test_build_generation_names_its_closure_proof_by_digest(release_state):
     (recipe,) = (
         json.loads(row[0])
         for row in f.conn.execute(
-            "SELECT recipe_json FROM derivation_generations WHERE stage='build' AND unit_kind='release'"
+            "SELECT recipe_json FROM derivation_generations WHERE stage = 'build' AND unit_kind = 'release'"
         )
     )
     named = recipe["context"]["release_closure"]
@@ -226,17 +240,19 @@ def test_completion_uses_the_proof_the_build_holds(release_state, monkeypatch):
     reads = []
 
     def finishing(*args, **kwargs):
-        f.conn.set_trace_callback(
+        _sql_trace = observe(
+            f.conn,
             lambda sql: (
                 reads.append(sql)
                 if sql.startswith("SELECT manifest_json FROM derivation_dependency_sets")
                 else None
-            )
+            ),
         )
+        _sql_trace.__enter__()
         try:
             return complete(*args, **kwargs)
         finally:
-            f.conn.set_trace_callback(None)
+            _sql_trace.__exit__(None, None, None)
 
     monkeypatch.setattr(generations, "complete", finishing)
     result = service.build_release(f.db, f.bundle, f.clock, f.run)

@@ -87,10 +87,10 @@ def test_changing_a_retention_limit_recomputes_nothing(tmp_path: Path) -> None:
 
         assert changed == {"config/sources.toml", "policy/retention.json"}
         assert desired(conn, unit).fingerprint == before
-        assert conn.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
         assert (
             conn.execute(
-                "SELECT digest FROM accepted_inputs WHERE input_name='policy/retention.json'"
+                "SELECT digest FROM accepted_inputs WHERE input_name = 'policy/retention.json'"
             ).fetchone()
             is not None
         )

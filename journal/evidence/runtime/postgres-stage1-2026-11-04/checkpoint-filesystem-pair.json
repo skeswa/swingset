@@ -1,0 +1,56 @@
+{
+  "durability": "All application fsync calls executed unchanged; only the test filesystem differs.",
+  "followup": {
+    "private_checker_passed": 3,
+    "private_checker_tmpfs_cases": 3,
+    "production_shaped": "Actual separate owner process without client owner credentials, corrupt-history rejection, exact owned database cleanup.",
+    "pytest_seconds": 7.03
+  },
+  "format": 1,
+  "harness": {
+    "application_durability_changes": false,
+    "gid": 10001,
+    "global_TMPDIR_override": false,
+    "ownership_ledgers": "persistent outer /tmp; private checker fixture explicitly placed there",
+    "retention": "failed",
+    "temporary_payload_root": "/tmp/pytest-of-swingset",
+    "uid": 10001
+  },
+  "interpretation": "One mandatory checkpoint and actual restore check passed on each filesystem with the same 310 real fsync calls. Total measured pytest time improved 13.9%; this does not establish complete-core performance.",
+  "job": "4564e5111835",
+  "limits": {
+    "memory": 2147483648,
+    "memory_plus_swap": 2147483648,
+    "tmpfs": 805306368
+  },
+  "measured_at": "2026-11-05T03:37:27.821085+00:00",
+  "raw_sha256": "bffe6a8ce9eb4841f37ee676089f58163762af0560039d8616002eff5656760d",
+  "results": [
+    {
+      "docker_exit_code": 0,
+      "fsync_calls": 310,
+      "fsync_seconds": 0.3451447,
+      "log": "/tmp/swingset-checkpoint-4564e5111835-volume.log",
+      "mode": "volume",
+      "pytest_exit_code": 0,
+      "seconds": 4.1369879769627005,
+      "volume": "swingset-checkpoint-4564e5111835-volume"
+    },
+    {
+      "docker_exit_code": 0,
+      "fsync_calls": 310,
+      "fsync_seconds": 0.008538771,
+      "log": "/tmp/swingset-checkpoint-4564e5111835-tmpfs.log",
+      "mode": "tmpfs",
+      "pytest_exit_code": 0,
+      "seconds": 3.5613973459694535,
+      "volume": "swingset-checkpoint-4564e5111835-tmpfs"
+    }
+  ],
+  "scripts_sha256": {
+    "swingset-checkpoint-probe.py": "98084de961797502b1ce5347bfb590cb7e10aee39afbd8b200abd77ddb911b24",
+    "swingset-stage1-checkpoint-fs-pair.py": "59ca744f71164c2845575dd3fc1be82509a3504bc439e97b779c7866c4eb36ea"
+  },
+  "source_revision": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "test": "tests/backup/test_checkpoint.py::test_checkpoint_uses_postgres_copy_and_restores_pending"
+}

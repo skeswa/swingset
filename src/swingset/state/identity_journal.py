@@ -5,11 +5,11 @@ from __future__ import annotations
 import csv
 import io
 import json
-import sqlite3
 from dataclasses import asdict, dataclass
 from datetime import date
 
 from swingset.fetch.archive import digest
+from swingset.state import engine
 from swingset.state.identity_references import SourceReference, fingerprint, references_for_subject
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
@@ -61,15 +61,17 @@ class JournalToken:
     generation: int
 
 
-def token(conn: sqlite3.Connection) -> JournalToken:
+def token(conn: engine.Connection) -> JournalToken:
     return JournalToken(
         str(
-            conn.execute("SELECT value FROM meta WHERE key='identity_journal_digest'").fetchone()[0]
-        ),
-        int(
-            conn.execute("SELECT value FROM revisions WHERE name='identity_decisions'").fetchone()[
+            conn.execute("SELECT value FROM meta WHERE key = 'identity_journal_digest'").fetchone()[
                 0
             ]
+        ),
+        int(
+            conn.execute(
+                "SELECT value FROM revisions WHERE name = 'identity_decisions'"
+            ).fetchone()[0]
         ),
     )
 
@@ -145,7 +147,7 @@ def encode_journal(rows: tuple[Decision, ...]) -> bytes:
     return target.getvalue().encode()
 
 
-def convert_legacy(conn: sqlite3.Connection, body: bytes) -> bytes:
+def convert_legacy(conn: engine.Connection, body: bytes) -> bytes:
     reader = csv.DictReader(io.StringIO(body.decode()))
     if reader.fieldnames is not None and set(reader.fieldnames) == set(FIELDS):
         parse_journal(body)
@@ -206,7 +208,7 @@ def convert_legacy(conn: sqlite3.Connection, body: bytes) -> bytes:
     return converted
 
 
-def accept_journal(conn: sqlite3.Connection, body: bytes, *, bundle_digest: str, now: str) -> bool:
+def accept_journal(conn: engine.Connection, body: bytes, *, bundle_digest: str, now: str) -> bool:
     """Caller owns the input-acceptance transaction, including invalidation."""
     if not conn.in_transaction:
         raise ValueError("identity journal acceptance requires an input transaction")
@@ -214,7 +216,7 @@ def accept_journal(conn: sqlite3.Connection, body: bytes, *, bundle_digest: str,
     by_id = {row.decision_id: row for row in rows}
     old = {
         str(r[0]): str(r[1])
-        for r in conn.execute("SELECT decision_id,row_sha256 FROM identity_decisions")
+        for r in conn.execute("SELECT decision_id, row_sha256 FROM identity_decisions")
     }
     if any(
         identifier not in by_id or fingerprint(asdict(by_id[identifier])) != sha
@@ -244,7 +246,11 @@ def accept_journal(conn: sqlite3.Connection, body: bytes, *, bundle_digest: str,
             values = asdict(row)
             ref = row.reference
             conn.execute(
-                "INSERT OR IGNORE INTO identity_source_refs VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    "INSERT INTO identity_source_refs (ref_id, source, source_event, contest, round, "
+                    "participant, subject_kind, locator_json, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, "
+                    "%s, %s) ON CONFLICT DO NOTHING"
+                ),
                 (
                     ref.ref_id,
                     ref.source,
@@ -260,7 +266,12 @@ def accept_journal(conn: sqlite3.Connection, body: bytes, *, bundle_digest: str,
                 ),
             )
             conn.execute(
-                "INSERT INTO identity_decisions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    "INSERT INTO identity_decisions (decision_id, source, source_event, contest, round, "
+                    "participant, wsdc_id, decision, evidence, reason, author, date, supersedes, row_json, "
+                    "row_sha256, accepted_digest, accepted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+                    "%s, %s, %s, %s, %s, %s, %s)"
+                ),
                 (
                     *[
                         values[field] or None if field == "supersedes" else values[field]
@@ -276,10 +287,15 @@ def accept_journal(conn: sqlite3.Connection, body: bytes, *, bundle_digest: str,
     bump_revision(conn, "identity_decisions")
     generation = token(conn).generation
     conn.execute(
-        "INSERT OR IGNORE INTO identity_journal_acceptances VALUES (?,?,?,?,?)",
+        (
+            "INSERT INTO identity_journal_acceptances (digest, bundle_digest, accepted_at, "
+            "decision_count, generation) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
+        ),
         (journal_digest, bundle_digest, now, len(rows), generation),
     )
-    conn.execute("UPDATE meta SET value=? WHERE key='identity_journal_digest'", (journal_digest,))
+    conn.execute(
+        "UPDATE meta SET value = %s WHERE key = 'identity_journal_digest'", (journal_digest,)
+    )
     scopes = {
         str(row[0])
         for row in conn.execute(
@@ -290,11 +306,12 @@ def accept_journal(conn: sqlite3.Connection, body: bytes, *, bundle_digest: str,
     return True
 
 
-def active_decisions(conn: sqlite3.Connection) -> tuple[Decision, ...]:
+def active_decisions(conn: engine.Connection) -> tuple[Decision, ...]:
     return tuple(
         Decision(**json.loads(row[0]))
         for row in conn.execute(
-            "SELECT row_json FROM identity_decisions WHERE decision_id NOT IN (SELECT supersedes FROM identity_decisions WHERE supersedes IS NOT NULL) ORDER BY decision_id"
+            "SELECT row_json FROM identity_decisions WHERE NOT decision_id IN (SELECT supersedes FROM "
+            "identity_decisions WHERE NOT supersedes IS NULL) ORDER BY decision_id NULLS FIRST"
         )
     )
 
@@ -311,10 +328,11 @@ def main() -> None:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    state = args.state if args.state.suffix in {".sqlite", ".db"} else args.state / "state.sqlite"
-    with sqlite3.connect(f"{state.resolve().as_uri()}?mode=ro", uri=True) as conn:
-        conn.execute("BEGIN")
-        converted = convert_legacy(conn, args.input.read_bytes())
+    from .db import open_database
+
+    with open_database(args.state, read_only=True) as database:
+        with database.reader() as conn:
+            converted = convert_legacy(conn, args.input.read_bytes())
     args.output.write_bytes(converted)
     print(
         json.dumps(

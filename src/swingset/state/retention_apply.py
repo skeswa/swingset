@@ -14,7 +14,7 @@ Two commands live here:
 - `gc --reclaim` rewrites the database file in place so the pages a removal
   freed stop counting against the size cap.
 
-**Why the note.** SQLite can undo a row it deleted. Nothing can undo a file it
+**Why the note.** Postgres can undo a row it deleted. Nothing can undo a file it
 unlinked. So the note, which names every file and every payload this apply
 intends to remove, commits *before* the first unlink. If the process dies
 between that commit and the last unlink, the note is the record of what was
@@ -48,15 +48,14 @@ from __future__ import annotations
 
 import contextlib
 import json
-import os
 import shutil
-import sqlite3
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir
+from swingset.state import engine
 
 from . import disk
 from .control_lock import control_lock
@@ -82,8 +81,7 @@ RECLAIM_FREE_HALVES = 5
 RECLAIM_FREE_MARGIN = 12 * 1000**3
 #: F36's earlier ask, kept in the receipt for comparison: twice the file.
 RECLAIM_FILE_MULTIPLE = 2
-#: Where SQLite puts its temporary files, under the state directory: the
-#: worker's `/tmp` is a small tmpfs, and the rewrite's copy is gigabytes.
+#: Local scratch files live here; Postgres SQL scratch lives on the server.
 TEMP_DIRECTORY = "tmp"
 
 
@@ -131,7 +129,7 @@ def apply_plan(
         )
     state_dir = database.state_dir
     conn = database.connection
-    with control_lock(state_dir, timeout=timeout):
+    with control_lock(state_dir, connection=conn, timeout=timeout):
         recorded = _note(conn, plan_digest)
         if recorded is not None and recorded["receipt_json"] is not None:
             # Already applied. Return the receipt as recorded, remove nothing.
@@ -167,9 +165,10 @@ def apply_plan(
         if recorded is None:
             with database.transaction() as txn:
                 txn.execute(
-                    "INSERT INTO retention_applies"
-                    "(plan_digest,planned_files_json,planned_payloads_json,"
-                    "removed_payload_bytes,started_at) VALUES (?,?,?,?,?)",
+                    (
+                        "INSERT INTO retention_applies (plan_digest, planned_files_json, planned_payloads_json, "
+                        "removed_payload_bytes, started_at) VALUES (%s, %s, %s, %s, %s)"
+                    ),
                     (
                         plan_digest,
                         canonical_json(list(planned_files)).decode(),
@@ -259,7 +258,7 @@ def eligible_files(value: Plan, *, now: datetime) -> tuple[str, ...]:
     )
 
 
-def eligible_payloads(conn: sqlite3.Connection, value: Plan) -> tuple[str, ...]:
+def eligible_payloads(conn: engine.Connection, value: Plan) -> tuple[str, ...]:
     """Payload digests this apply may remove. Empty until step 4 exists.
 
     A generation's bytes may go only once they are somewhere else, and the only
@@ -287,18 +286,16 @@ def eligible_payloads(conn: sqlite3.Connection, value: Plan) -> tuple[str, ...]:
     )
     if not eligible:
         return ()
-    marks = ",".join("?" * len(eligible))
+    marks = ",".join(["%s"] * len(eligible))
     rows = conn.execute(
-        f"SELECT DISTINCT payload_sha256 FROM derivation_row_refs WHERE generation_id IN ({marks}) "
-        f"AND payload_sha256 NOT IN (SELECT payload_sha256 FROM derivation_row_refs "
-        f"WHERE generation_id NOT IN ({marks}))",
+        f"SELECT DISTINCT payload_sha256 FROM derivation_row_refs WHERE generation_id IN ({marks}) AND payload_sha256 NOT IN (SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id NOT IN ({marks}))",
         (*eligible, *eligible),
     )
     return tuple(sorted(str(row[0]) for row in rows))
 
 
 def _remove_payloads(
-    txn: sqlite3.Connection,
+    txn: engine.Connection,
     payloads: tuple[str, ...],
     *,
     plan_digest: str,
@@ -313,12 +310,11 @@ def _remove_payloads(
     if not payloads:
         return
     txn.execute(
-        "INSERT INTO derivation_payload_removal_authority(singleton,reason,granted_at) "
-        "VALUES (1,?,?)",
+        "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, %s, %s)",
         (REMOVAL_REASON + plan_digest, now.isoformat()),
     )
     for digest in payloads:
-        txn.execute("DELETE FROM derivation_payloads WHERE payload_sha256=?", (digest,))
+        txn.execute("DELETE FROM derivation_payloads WHERE payload_sha256 = %s", (digest,))
     txn.execute("DELETE FROM derivation_payload_removal_authority")
 
 
@@ -352,12 +348,12 @@ def _remove_planned_files(state_dir: Path, planned: tuple[str, ...]) -> tuple[li
     return removed, absent
 
 
-def _payload_bytes(conn: sqlite3.Connection, payloads: tuple[str, ...]) -> int:
+def _payload_bytes(conn: engine.Connection, payloads: tuple[str, ...]) -> int:
     """The bytes those payloads hold, read before they go. Zero while the gate is shut."""
     total = 0
     for digest in payloads:
         row = conn.execute(
-            "SELECT octet_length(payload_json) FROM derivation_payloads WHERE payload_sha256=?",
+            "SELECT OCTET_LENGTH(payload_json) AS _value_0 FROM derivation_payloads WHERE payload_sha256 = %s",
             (digest,),
         ).fetchone()
         if row is not None:
@@ -370,23 +366,34 @@ def _payload_bytes(conn: sqlite3.Connection, payloads: tuple[str, ...]) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _note(conn: sqlite3.Connection, plan_digest: str) -> sqlite3.Row | None:
+def _note(conn: engine.Connection, plan_digest: str) -> engine.Row | None:
     if not _has_table(conn, "retention_applies"):
         return None
-    found: sqlite3.Row | None = conn.execute(
-        "SELECT * FROM retention_applies WHERE plan_digest=?", (plan_digest,)
+    found: engine.Row | None = conn.execute(
+        (
+            "SELECT retention_applies.plan_digest, retention_applies.planned_files_json, "
+            "retention_applies.planned_payloads_json, retention_applies.removed_payload_bytes, "
+            "retention_applies.started_at, retention_applies.files_completed_at, "
+            "retention_applies.receipt_json FROM retention_applies WHERE plan_digest = %s"
+        ),
+        (plan_digest,),
     ).fetchone()
     return found
 
 
-def _unfinished_notes(conn: sqlite3.Connection, *, exclude: str) -> list[sqlite3.Row]:
+def _unfinished_notes(conn: engine.Connection, *, exclude: str) -> list[engine.Row]:
     """Notes whose apply committed and whose file removal never finished."""
     if not _has_table(conn, "retention_applies"):
         return []
     return list(
         conn.execute(
-            "SELECT * FROM retention_applies WHERE files_completed_at IS NULL AND plan_digest<>? "
-            "ORDER BY plan_digest",
+            (
+                "SELECT retention_applies.plan_digest, retention_applies.planned_files_json, "
+                "retention_applies.planned_payloads_json, retention_applies.removed_payload_bytes, "
+                "retention_applies.started_at, retention_applies.files_completed_at, "
+                "retention_applies.receipt_json FROM retention_applies WHERE files_completed_at IS NULL AND "
+                "plan_digest <> %s ORDER BY plan_digest NULLS FIRST"
+            ),
             (exclude,),
         )
     )
@@ -394,7 +401,7 @@ def _unfinished_notes(conn: sqlite3.Connection, *, exclude: str) -> list[sqlite3
 
 def _finish_unfinished(
     database: Database,
-    notes: list[sqlite3.Row],
+    notes: list[engine.Row],
     *,
     eligible: frozenset[str],
     plan_digest: str,
@@ -457,8 +464,10 @@ def _finish_note(
 ) -> None:
     with database.transaction() as txn:
         txn.execute(
-            "UPDATE retention_applies SET files_completed_at=?, receipt_json=? "
-            "WHERE plan_digest=? AND files_completed_at IS NULL",
+            (
+                "UPDATE retention_applies SET files_completed_at = %s, receipt_json = %s WHERE plan_digest = "
+                "%s AND files_completed_at IS NULL"
+            ),
             (now.isoformat(), canonical_json(receipt).decode(), plan_digest),
         )
 
@@ -477,47 +486,16 @@ def _write_receipt(state_dir: Path, name: str, receipt: dict[str, Any]) -> dict[
 
 
 @contextlib.contextmanager
-def sqlite_temp_directory(conn: sqlite3.Connection, state_dir: Path) -> Iterator[Path]:
-    """Send SQLite's temporary files to `<state>/tmp` for the duration.
-
-    `PRAGMA temp_store_directory` rather than `SQLITE_TMPDIR`: SQLite reads
-    the environment once, when the library initialises, so a process cannot
-    change it for a connection it already has. The pragma is process-wide and
-    is put back on the way out. `temp_store` is set to files, which drops any
-    temporary table, so this is entered before any is made.
-    """
+def temporary_directory(conn: engine.Connection, state_dir: Path) -> Iterator[Path]:
+    """Local scratch directory; Postgres keeps SQL temporary data on the server."""
     directory = (state_dir / TEMP_DIRECTORY).resolve()
     directory.mkdir(parents=True, exist_ok=True)
-    previous_directory = conn.execute("PRAGMA temp_store_directory").fetchone()
-    previous_store = int(conn.execute("PRAGMA temp_store").fetchone()[0])
-    quoted = str(directory).replace("'", "''")
-    conn.execute(f"PRAGMA temp_store_directory='{quoted}'")
-    found = conn.execute("PRAGMA temp_store_directory").fetchone()
-    if (found[0] if found else "") != str(directory) and os.environ.get("SQLITE_TMPDIR") != str(
-        directory
-    ):
-        raise RetentionError(
-            f"this SQLite cannot direct its temporary files to {directory}; "
-            f"set SQLITE_TMPDIR={directory} and run again. Nothing was changed"
-        )
-    if previous_store != 1:
-        conn.execute("PRAGMA temp_store=FILE")
-    try:
-        yield directory
-    finally:
-        if previous_store != 1:
-            conn.execute(f"PRAGMA temp_store={previous_store}")
-        before = str(previous_directory[0]) if previous_directory and previous_directory[0] else ""
-        quoted = before.replace("'", "''")
-        conn.execute(f"PRAGMA temp_store_directory='{quoted}'")
+    yield directory
 
 
-def reclaim_estimate(conn: sqlite3.Connection, file_bytes: int) -> dict[str, int]:
-    """Free space the rewrite needs, now and as it was asked for before F36."""
-    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
-    pages = int(conn.execute("PRAGMA page_count").fetchone()[0])
-    free_pages = int(conn.execute("PRAGMA freelist_count").fetchone()[0])
-    in_use = page_size * (pages - free_pages)
+def reclaim_estimate(conn: engine.Connection, file_bytes: int) -> dict[str, int]:
+    """Conservative room for rewriting allocated application relations and WAL."""
+    in_use = int(disk.database_usage(conn)["bytes_in_use"])
     return {
         "bytes_in_use": in_use,
         "needed_bytes": RECLAIM_FREE_HALVES * in_use // 2 + RECLAIM_FREE_MARGIN,
@@ -526,101 +504,89 @@ def reclaim_estimate(conn: sqlite3.Connection, file_bytes: int) -> dict[str, int
 
 
 def reclaim(database: Database, *, now: datetime, timeout: float = 60) -> dict[str, Any]:
-    """Rewrite the database file in place so freed pages leave the file.
+    """Rewrite application tables in place under the exclusive state lock.
 
-    Deleting rows, and dropping a table, return pages to SQLite's free list and
-    leave the file the size it was. The cap in the plan's section 9 and every
-    backup measure the file, so the gap has to be closed on purpose.
-
-    In place, on the one writer connection: no second database file, no swap and
-    no second install path. SQLite's own journal makes the rewrite
-    all-or-nothing, so a crash or a kill at any point rolls back to the original
-    file the next time it is opened. Readers keep reading a consistent view. A
-    pending write on another connection makes `VACUUM` fail, and then this
-    reports it and stops with nothing changed
-    ([D-0150](../../../journal/decisions/0150-reclaim-rewrites-in-place-on-the-one-writer-connection.md)).
+    Each Postgres VACUUM FULL is atomic. A stopped run may have completed earlier
+    tables; every acknowledged completion is retained in the receipt. The
+    current table is uncertain if its acknowledgement is lost.
     """
+    from psycopg import sql
+
     if not database.holds_writer_lock:
         raise RetentionError(
             "gc --reclaim needs the writer lock; open the state database for writing"
         )
-    state_dir = database.state_dir
-    conn = database.connection
-    file = state_dir / "state.sqlite"
-    estimate: dict[str, Any] = dict(
-        reclaim_estimate(conn, file.stat().st_size if file.is_file() else 0)
-    )
-    before = usage(conn, state_dir)
-    # statfs cannot see the worker's btrfs quota; `disk.room` reads both.
-    room = disk.room(state_dir)
-    if room.quota_stale:
-        raise RetentionError(
-            f"the disk quota reading is from {room.quota_read_at}, too old to trust; run "
-            f"`{disk.REFRESH}` and reclaim again. Nothing was touched"
-        )
-    free = room.free
-    estimate["free_bytes"] = free
-    estimate["quota_free_bytes"] = room.quota_free
-    estimate["quota_read_at"] = room.quota_read_at
-    needed = estimate["needed_bytes"]
-    if free < needed:
-        raise RetentionError(
-            f"reclaim needs about {needed} free bytes on the state's disk (quota included) and "
-            f"there are {free}; nothing was touched. Free space or move the state directory first"
-        )
+    state_dir, conn = database.state_dir, database.connection
     if conn.in_transaction:
         raise RetentionError("reclaim cannot run inside a transaction; nothing was touched")
-    temporary = (state_dir / TEMP_DIRECTORY).resolve()
-    with control_lock(state_dir, timeout=timeout):
-        try:
-            with sqlite_temp_directory(conn, state_dir):
-                # Start the rewrite from a file with no pending changes, as
-                # backup creation already does, then rewrite it.
-                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                conn.execute("VACUUM")
-        except sqlite3.Error as exc:
-            message = str(exc).lower()
-            if "lock" in message or "busy" in message:
-                raise RetentionError(
-                    "another connection holds a pending write, so the file was not rewritten; "
-                    "nothing was changed"
-                ) from exc
-            raise RetentionError(
-                f"reclaim did not finish and the file rolled back to what it was: {exc}"
-            ) from exc
-        _check_after_rewrite(conn)
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    after = usage(conn, state_dir)
-    receipt = {
+    before = usage(conn, state_dir)
+    estimate: dict[str, Any] = dict(reclaim_estimate(conn, int(before["file_bytes"])))
+    room = disk.room(state_dir)
+    estimate.update(room.document())
+    if room.quota_stale:
+        raise RetentionError(
+            f"the disk quota reading is too old; run `{disk.REFRESH}` before reclaim"
+        )
+    if room.free < estimate["needed_bytes"]:
+        raise RetentionError(
+            f"reclaim needs about {estimate['needed_bytes']} free bytes on the state's disk "
+            f"(quota included) and there are {room.free}; nothing was touched"
+        )
+    completed: list[str] = []
+    current: str | None = None
+    receipt: dict[str, Any] = {
         "format": RECLAIM_RECEIPT_FORMAT,
         "at": now.isoformat(),
         "before": before,
-        "after": after,
-        "file_bytes_freed": int(before["file_bytes"]) - int(after["file_bytes"]),
         "free_space": estimate,
-        "temp_directory": str(temporary),
+        "completed_tables": completed,
+        "uncertain_table": None,
+        "error": None,
+        "temp_directory": "postgres-server-managed",
     }
-    name = _receipt_name(receipt_directory(state_dir), now)
-    durable_write(receipt_directory(state_dir) / name, canonical_json(receipt))
+    try:
+        with control_lock(state_dir, connection=conn, timeout=timeout):
+            tables = conn.execute(
+                "SELECT c.relname,n.nspname FROM pg_class c "
+                "JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' "
+                "AND n.nspname IN ('fetch','plan','evidence','derive','project','release','ops') AND c.relname <> 'environment_identity' "
+                "ORDER BY n.nspname,c.relname"
+            ).fetchall()
+            for table, namespace in tables:
+                current = namespace + "." + table
+                conn.execute(
+                    sql.SQL("VACUUM (FULL, ANALYZE) {}.{}").format(
+                        sql.Identifier(namespace), sql.Identifier(table)
+                    )
+                )
+                completed.append(current)
+                current = None
+            _check_after_rewrite(conn)
+    except BaseException as exc:
+        receipt["error"] = f"{type(exc).__name__}: {exc}"
+        receipt["uncertain_table"] = current
+        raise
+    finally:
+        # A lost connection cannot supply after statistics; preserve the durable
+        # progress receipt without reconnecting or pretending the last table failed.
+        try:
+            after: dict[str, Any] | None = usage(conn, state_dir)
+        except engine.Error:
+            after = None
+        receipt["after"] = after
+        receipt["file_bytes_freed"] = (
+            None if after is None else int(before["file_bytes"]) - int(after["file_bytes"])
+        )
+        directory = receipt_directory(state_dir)
+        durable_write(directory / _receipt_name(directory, now), canonical_json(receipt))
     return receipt
 
 
-def _check_after_rewrite(conn: sqlite3.Connection) -> None:
-    """The same three checks a checkpoint is verified with, on the live file."""
-    from swingset.backup.checkpoint import _check_database_schema
+def _check_after_rewrite(conn: engine.Connection) -> None:
+    """Validate schema identity; Postgres enforces constraints through the rewrite."""
+    from .postgres_schema import validate_schema
 
-    integrity = conn.execute("PRAGMA integrity_check").fetchone()
-    foreign_keys = conn.execute("PRAGMA foreign_key_check").fetchall()
-    if integrity is None or integrity[0] != "ok" or foreign_keys:
-        raise RetentionError(
-            f"the database failed its checks after the rewrite: integrity={integrity}, "
-            f"foreign_keys={foreign_keys[:5]}"
-        )
-    # Read the supported version when the check runs, not when this module was
-    # imported, so a caller that pins the schema is checked against its own pin.
-    from .db import SCHEMA_VERSION
-
-    _check_database_schema(conn, SCHEMA_VERSION)
+    validate_schema(conn, full=True)
 
 
 def _receipt_name(directory: Path, now: datetime) -> str:
@@ -634,10 +600,11 @@ def _receipt_name(directory: Path, now: datetime) -> str:
     return name
 
 
-def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+def _has_table(conn: engine.Connection, name: str) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = %s) AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))",
+            (name,),
         ).fetchone()
         is not None
     )

@@ -27,7 +27,7 @@ def gone(f, name="two.htm", *, alias=False, via="origin"):
     upsert_watch(f.conn, spec, f.corpus.clock.now())
     context = f.corpus.snapshot("gone-" + name, b"This page is gone", spec=spec, via=via)
     f.conn.execute(
-        "UPDATE snapshots SET classification='Gone',http_status=404 WHERE snapshot_id=?",
+        "UPDATE snapshots SET classification = 'Gone', http_status = 404 WHERE snapshot_id = %s",
         (context.snapshot_id,),
     )
     return context
@@ -43,7 +43,16 @@ def test_mixed_interpreted_and_unavailable_pages_are_accounted_without_success_i
     f = event
     prepare(f)
     response = gone(f)
-    before = tuple(f.conn.execute("SELECT * FROM event_stage_operations"))
+    before = tuple(
+        f.conn.execute(
+            "SELECT event_stage_operations.operation_id, event_stage_operations.stage, "
+            "event_stage_operations.source, event_stage_operations.request_id, "
+            "event_stage_operations.watch_id, event_stage_operations.snapshot_id, "
+            "event_stage_operations.generation_id, event_stage_operations.decision_id, "
+            "event_stage_operations.occurred_at, event_stage_operations.run_id FROM "
+            "event_stage_operations"
+        )
+    )
     result = read(f)
     assert result["listed_pages"] == 2
     assert result["acquired_pages"] == result["interpreted_pages"] == 1
@@ -57,7 +66,19 @@ def test_mixed_interpreted_and_unavailable_pages_are_accounted_without_success_i
     assert member["accounted_for"] is True
     assert member["next_action"] == "review_source_unavailability"
     assert member["unavailability_support"]["snapshot_id"] == response.snapshot_id
-    assert tuple(f.conn.execute("SELECT * FROM event_stage_operations")) == before
+    assert (
+        tuple(
+            f.conn.execute(
+                "SELECT event_stage_operations.operation_id, event_stage_operations.stage, "
+                "event_stage_operations.source, event_stage_operations.request_id, "
+                "event_stage_operations.watch_id, event_stage_operations.snapshot_id, "
+                "event_stage_operations.generation_id, event_stage_operations.decision_id, "
+                "event_stage_operations.occurred_at, event_stage_operations.run_id FROM "
+                "event_stage_operations"
+            )
+        )
+        == before
+    )
     with f.db.transaction(immediate=False):
         detailed = report(
             f.conn, f.archive, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now()
@@ -107,7 +128,7 @@ def test_unavailable_gap_still_requires_usable_parent_support(event):
     assert read(f)["known_pages_accounted_for"] is True
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (parent,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (parent,)
         ).fetchone()[0]
     )
     f.archive.blob_path(manifest[0]["body_sha256"]).unlink()

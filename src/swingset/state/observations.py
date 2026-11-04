@@ -2,19 +2,46 @@
 
 from __future__ import annotations
 
-import sqlite3
-
 from swingset.model.ids import observation_id
 from swingset.model.observations import encode_payload
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import ParseContext, ParseResult
+from swingset.state import engine
 
 from .findings import Finding, replace_findings
 from .work import WorkUnit, bump_revision, enqueue
 
 
+def observation_rows(
+    context: ParseContext,
+    result: ParseResult,
+    *,
+    extract_version: int | str,
+    parser_version: int | str,
+    archive_index: bool = False,
+) -> list[tuple[object, ...]]:
+    """Encode the observation cache independently of admission or scheduler effects."""
+    from swingset.sources.phase_one import stored_scope_ref
+
+    return [
+        (
+            observation_id(context.watch_id, context.snapshot_id, observation.kind, seq),
+            context.watch_id,
+            context.snapshot_id,
+            observation.kind,
+            observation.scope.kind,
+            stored_scope_ref(archive_index, observation.scope.kind, observation.scope.ref),
+            seq,
+            str(extract_version),
+            str(parser_version),
+            encode_payload(observation.payload),
+        )
+        for seq, observation in enumerate(result.observations)
+    ]
+
+
 def store_parse_result(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     context: ParseContext,
     result: ParseResult,
     *,
@@ -31,34 +58,36 @@ def store_parse_result(
     returns. Historical reparses still update their attempt status.
     """
     snapshot = conn.execute(
-        "SELECT COALESCE(observed_at,fetched_at),via FROM snapshots WHERE snapshot_id=? AND watch_id=?",
+        "SELECT COALESCE(observed_at, fetched_at) AS _value_0, via FROM snapshots WHERE snapshot_id = %s AND watch_id = %s",
         (context.snapshot_id, context.watch_id),
     ).fetchone()
     if snapshot is None:
         raise ValueError("parse context does not identify an archived snapshot")
     current = conn.execute(
-        "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?", (context.watch_id,)
+        "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
+        (context.watch_id,),
     ).fetchone()
     if current is None:
         raise ValueError(f"unknown watch: {context.watch_id}")
     current_snapshot = None
     if current[0] is not None:
         current_snapshot = conn.execute(
-            "SELECT COALESCE(observed_at,fetched_at),snapshot_id FROM snapshots WHERE snapshot_id=?",
+            "SELECT COALESCE(observed_at, fetched_at) AS _value_0, snapshot_id FROM snapshots WHERE snapshot_id = %s",
             (current[0],),
         ).fetchone()
     eligible = current_snapshot is None or (str(snapshot[0]), context.snapshot_id) >= (
         str(current_snapshot[0]),
         str(current_snapshot[1]),
     )
-    from swingset.sources.phase_one import PHASE1_KINDS, stored_scope_ref
+    from swingset.sources.phase_one import PHASE1_KINDS
 
     index_watch = (
         context.kind in PHASE1_KINDS
         and context.kind.split(".")[0] == context.source
         and bool(
             conn.execute(
-                "SELECT 1 FROM watches WHERE watch_id=? AND kind='index'", (context.watch_id,)
+                "SELECT 1 AS _value_0 FROM watches WHERE watch_id = %s AND kind = 'index'",
+                (context.watch_id,),
             ).fetchone()
         )
     )
@@ -74,21 +103,19 @@ def store_parse_result(
     # The rows a parse replaces: its own snapshot's, or the watch's. A live
     # capture of a listing watch never replaces an archived capture read on
     # the same watch: that capture is its own unit (D-0257).
-    owned = " AND snapshot_id=?" if snapshot_scope else ""
+    owned = " AND snapshot_id=%s" if snapshot_scope else ""
     owned_args: tuple[str, ...] = (
         (context.watch_id, context.snapshot_id) if snapshot_scope else (context.watch_id,)
     )
     if not snapshot_scope and index_watch:
-        owned = (
-            " AND snapshot_id NOT IN (SELECT snapshot_id FROM snapshots "
-            "WHERE watch_id=? AND via='wayback')"
-        )
+        owned = " AND snapshot_id NOT IN (SELECT snapshot_id FROM snapshots WHERE watch_id=%s AND via='wayback')"
         owned_args = (context.watch_id, context.watch_id)
     changed = False
     if eligible or archive_index:
         old_count = int(
             conn.execute(
-                "SELECT count(*) FROM observations WHERE watch_id=?" + owned, owned_args
+                "SELECT COUNT(*) AS _value_0 FROM observations WHERE watch_id = %s" + owned,
+                owned_args,
             ).fetchone()[0]
         )
         if not result.observations and old_count and not legitimate_empty:
@@ -96,35 +123,25 @@ def store_parse_result(
         old_scopes = {
             (str(row[0]), str(row[1]))
             for row in conn.execute(
-                "SELECT DISTINCT scope_kind,scope_id FROM observations WHERE watch_id=?",
+                "SELECT DISTINCT scope_kind, scope_id FROM observations WHERE watch_id = %s",
                 (context.watch_id,),
             )
         }
-        new_rows: list[tuple[object, ...]] = []
-        for seq, observation in enumerate(result.observations):
-            new_rows.append(
-                (
-                    observation_id(context.watch_id, context.snapshot_id, observation.kind, seq),
-                    context.watch_id,
-                    context.snapshot_id,
-                    observation.kind,
-                    observation.scope.kind,
-                    stored_scope_ref(archive_index, observation.scope.kind, observation.scope.ref),
-                    seq,
-                    str(extract_version),
-                    str(parser_version),
-                    encode_payload(observation.payload),
-                )
-            )
-        # The snapshot and version labels count too (D-0241): release support
-        # matches a row's observation, labels included, against the accepted
-        # generation, so an equal payload under new labels is still rewritten.
+        new_rows = observation_rows(
+            context,
+            result,
+            extract_version=extract_version,
+            parser_version=parser_version,
+            archive_index=archive_index,
+        )
         old_rows = [
             tuple(row)
             for row in conn.execute(
-                "SELECT kind,scope_kind,scope_id,seq,payload_json,snapshot_id,"
-                "CAST(extract_version AS TEXT),CAST(parser_version AS TEXT) "
-                "FROM observations WHERE watch_id=?" + owned + " ORDER BY seq",
+                (
+                    "SELECT kind, scope_kind, scope_id, seq, payload_json, snapshot_id, CAST(extract_version AS TEXT) AS _value_6, CAST(parser_version AS TEXT) AS _value_7 FROM observations WHERE watch_id = %s"
+                )
+                + owned
+                + " ORDER BY seq",
                 owned_args,
             )
         ]
@@ -133,9 +150,13 @@ def store_parse_result(
         ]
         changed = old_rows != comparable
         if changed:
-            conn.execute("DELETE FROM observations WHERE watch_id=?" + owned, owned_args)
+            conn.execute("DELETE FROM observations WHERE watch_id=%s" + owned, owned_args)
             conn.executemany(
-                "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, %s, "
+                    "%s, %s, %s, %s, %s)"
+                ),
                 new_rows,
             )
             new_scopes = {(str(row[4]), str(row[5])) for row in new_rows}
@@ -149,7 +170,7 @@ def store_parse_result(
             bump_revision(conn, "observations")
         if eligible:
             conn.execute(
-                "UPDATE watches SET current_observation_snapshot_id=?,extract_version=? WHERE watch_id=?",
+                "UPDATE watches SET current_observation_snapshot_id = %s, extract_version = %s WHERE watch_id = %s",
                 (context.snapshot_id, str(extract_version), context.watch_id),
             )
         from datetime import datetime
@@ -207,7 +228,7 @@ def store_parse_result(
 
 
 def mark_parsed(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     snapshot_id: str,
     *,
     extract_version: int | str,
@@ -222,20 +243,25 @@ def mark_parsed(
     would otherwise leave the snapshot `failed` (D-0205).
     """
     conn.execute(
-        "UPDATE snapshots SET parse_status='ok',parsed_at=?,extract_version=?,parser_version=? "
-        "WHERE snapshot_id=?",
+        (
+            "UPDATE snapshots SET parse_status = 'ok', parsed_at = %s, extract_version = %s, "
+            "parser_version = %s WHERE snapshot_id = %s"
+        ),
         (parsed_at, str(extract_version), str(parser_version), snapshot_id),
     )
 
 
-def load_scope(conn: sqlite3.Connection, scope_kind: str, scope_id: str) -> tuple[object, ...]:
+def load_scope(conn: engine.Connection, scope_kind: str, scope_id: str) -> tuple[object, ...]:
     """Decode current source evidence at the storage boundary."""
     from swingset.model.observations import decode_payload
 
     return tuple(
         decode_payload(str(row[0]), str(row[1]))
         for row in conn.execute(
-            "SELECT kind,payload_json FROM observations WHERE scope_kind=? AND scope_id=? ORDER BY watch_id,seq",
+            (
+                "SELECT kind, payload_json FROM observations WHERE scope_kind = %s AND scope_id = %s ORDER "
+                "BY watch_id NULLS FIRST, seq NULLS FIRST"
+            ),
             (scope_kind, scope_id),
         )
     )

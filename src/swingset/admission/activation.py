@@ -14,11 +14,10 @@ policy can only enforce the contract the running code applies.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Sequence
 from typing import Any
 
-from swingset.state import body_packs
+from swingset.state import body_packs, engine
 from swingset.state.db import Database
 
 from .kinds import contract_version
@@ -30,18 +29,20 @@ CALENDAR_FAMILY = frozenset(
 )
 
 
-def status(conn: sqlite3.Connection, page_kind: str) -> dict[str, Any]:
+def status(conn: engine.Connection, page_kind: str) -> dict[str, Any]:
     """The kind's code and policy versions and its parse results by contract and decision."""
     policy = conn.execute(
-        "SELECT contract_version,mode,policy_revision,reviewed_by,reviewed_at "
-        "FROM admission_policies WHERE page_kind=?",
+        (
+            "SELECT contract_version, mode, policy_revision, reviewed_by, reviewed_at FROM "
+            "admission_policies WHERE page_kind = %s"
+        ),
         (page_kind,),
     ).fetchone()
     generations: dict[str, int] = {}
     failures: dict[str, int] = {}
     code = contract_version(page_kind)
     for version, state, report in conn.execute(
-        "SELECT contract_version,state,report_json FROM source_generations WHERE page_kind=?",
+        "SELECT contract_version, state, report_json FROM source_generations WHERE page_kind = %s",
         (page_kind,),
     ):
         key = f"{version}:{state}"
@@ -55,25 +56,28 @@ def status(conn: sqlite3.Connection, page_kind: str) -> dict[str, Any]:
             failures[failure] = failures.get(failure, 0) + 1
     accepted: dict[str, int] = {}
     for version, count in conn.execute(
-        "SELECT g.contract_version,COUNT(*) FROM source_units u JOIN source_generations g "
-        "ON g.generation_id=u.accepted_generation_id WHERE u.page_kind=? GROUP BY 1",
+        (
+            "SELECT g.contract_version, COUNT(*) AS _value_1 FROM source_units AS u JOIN source_generations AS g ON g.generation_id = u.accepted_generation_id WHERE u.page_kind = %s GROUP BY 1"
+        ),
         (page_kind,),
     ):
         accepted[str(version)] = int(count)
     units = conn.execute(
-        "SELECT COUNT(*) FROM source_units WHERE page_kind=?", (page_kind,)
+        "SELECT COUNT(*) AS _value_0 FROM source_units WHERE page_kind = %s", (page_kind,)
     ).fetchone()[0]
     pending = conn.execute(
-        "SELECT COUNT(*) FROM pending_work p JOIN snapshots s ON s.snapshot_id=p.unit_id "
-        "JOIN watches w ON w.watch_id=s.watch_id "
-        "WHERE p.stage='parse' AND p.unit_kind='snapshot' AND w.parser=?",
+        (
+            "SELECT COUNT(*) AS _value_0 FROM pending_work AS p JOIN snapshots AS s ON s.snapshot_id = p.unit_id JOIN watches AS w ON w.watch_id = s.watch_id WHERE p.stage = 'parse' AND p.unit_kind = 'snapshot' AND w.parser = %s"
+        ),
         (page_kind,),
     ).fetchone()[0]
     reviews = [
         {"digest": row[0], "contract_version": row[1], "reviewer": row[2], "reviewed_at": row[3]}
         for row in conn.execute(
-            "SELECT report_digest,contract_version,reviewer,reviewed_at FROM admission_reviews "
-            "WHERE page_kind=? ORDER BY reviewed_at",
+            (
+                "SELECT report_digest, contract_version, reviewer, reviewed_at FROM admission_reviews WHERE "
+                "page_kind = %s ORDER BY reviewed_at NULLS FIRST"
+            ),
             (page_kind,),
         )
     ]
@@ -129,7 +133,7 @@ def activate(
     with database.transaction() as conn:
         for generation in cohort:
             row = conn.execute(
-                "SELECT page_kind,contract_version FROM source_generations WHERE generation_id=?",
+                "SELECT page_kind, contract_version FROM source_generations WHERE generation_id = %s",
                 (generation,),
             ).fetchone()
             if row is None:

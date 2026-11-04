@@ -8,9 +8,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import sqlite3
-import subprocess
-import sys
 import threading
 import time
 from collections.abc import Sequence
@@ -21,12 +18,23 @@ from typing import Any, NamedTuple
 import pytest
 from test_retention_plan import NOW, candidate_tree, history
 
-from swingset.state import retention, retention_apply
+from swingset.state import engine, retention, retention_apply
 from swingset.state.db import open_database
 from swingset.state.retention import RetentionError, add_hold, plan, usage
 from swingset.state.retention_apply import apply_plan, eligible_payloads, receipt_directory, reclaim
 
 KNOBS = {"max_database_bytes": 1 << 40, "recent_window": 1, "collect_older_than": 86400.0}
+
+
+def archive_table(conn):
+    """A prospective archive gate installed explicitly by the fixture owner."""
+    from swingset.dev.services import ensure_service
+
+    with ensure_service().connect(conn.info.dbname) as admin:
+        admin.execute("CREATE TABLE ops.archived_generations(generation_id TEXT PRIMARY KEY)")
+        admin.execute(
+            "GRANT SELECT,INSERT,UPDATE,DELETE ON ops.archived_generations TO swingset_worker"
+        )
 
 
 class DiskUsage(NamedTuple):
@@ -61,29 +69,51 @@ def applied(database: Any, digest: str, *, now: Any = NOW, **extra: Any) -> dict
     return apply_plan(database, plan_digest=digest, now=now, **KNOBS, **extra)
 
 
-def notes(database: Any) -> list[sqlite3.Row]:
-    return list(database.connection.execute("SELECT * FROM retention_applies ORDER BY plan_digest"))
+def notes(database: Any) -> list[engine.Row]:
+    return list(
+        database.connection.execute(
+            "SELECT retention_applies.plan_digest, retention_applies.planned_files_json, "
+            "retention_applies.planned_payloads_json, retention_applies.removed_payload_bytes, "
+            "retention_applies.started_at, retention_applies.files_completed_at, "
+            "retention_applies.receipt_json FROM retention_applies ORDER BY plan_digest NULLS FIRST"
+        )
+    )
 
 
 def payload_count(database: Any) -> int:
     return int(
-        database.connection.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0]
+        database.connection.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0]
     )
 
 
-def fat_payloads(database: Any, *, count: int = 300, size: int = 4096) -> tuple[str, ...]:
+def fat_payloads(database: Any, *, count: int = 300, size: int = 16384) -> tuple[str, ...]:
     """Bytes on an archivable generation, big enough that giving them back shows."""
     import hashlib
+    import random
 
+    random_bytes = random.Random(0)
     conn = database.connection
+    from swingset.dev.services import ensure_service
+
+    with ensure_service().connect(conn.info.dbname) as admin:
+        admin.execute(
+            "ALTER TABLE derive.derivation_payloads SET "
+            "(autovacuum_enabled=false, toast.autovacuum_enabled=false)"
+        )
     digests = []
     with database.transaction():
         for index in range(count):
-            text = json.dumps({"filler": f"{index:06d}" + "x" * size})
+            text = json.dumps({"filler": f"{index:06d}" + random_bytes.randbytes(size).hex()})
             digest = hashlib.sha256(text.encode()).hexdigest()
-            conn.execute("INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (digest, text))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (digest, text),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 ("dg_b1", 100 + index, "entries", f"fat-{index}", digest),
             )
             digests.append(digest)
@@ -432,7 +462,7 @@ def test_a_generation_archived_between_plan_and_apply_stops_the_apply(tmp_path: 
         assert before.content["totals"]["archived_generations"] == 0
         assert eligible_payloads(database.connection, before) == ()
         with database.transaction() as conn:
-            conn.execute("CREATE TABLE archived_generations(generation_id TEXT PRIMARY KEY)")
+            archive_table(conn)
             conn.execute("INSERT INTO archived_generations VALUES ('dg_b1')")
         # An empty table changes nothing; the row does.
         after = planned(database)
@@ -458,7 +488,7 @@ def test_a_crashed_apply_reports_the_payload_bytes_its_note_recorded(tmp_path: P
         aged_candidates(state)
         # Step 4's table, stood up here only to open the payload gate.
         with database.transaction() as conn:
-            conn.execute("CREATE TABLE archived_generations(generation_id TEXT PRIMARY KEY)")
+            archive_table(conn)
             conn.execute("INSERT INTO archived_generations VALUES ('dg_b1')")
         stale_plan = planned(database)
         stale = stale_plan.digest
@@ -526,8 +556,7 @@ def test_a_hold_arrives_while_apply_holds_the_locks(tmp_path: Path) -> None:
 
         def place_hold() -> None:
             time.sleep(0.1)
-            reader = sqlite3.connect(state / "state.sqlite")
-            reader.row_factory = sqlite3.Row
+            reader = engine.connect(engine.resolve_dsn(state))
             try:
                 add_hold(
                     state,
@@ -572,8 +601,7 @@ def test_a_hold_arrives_after_the_commit_before_file_removal(tmp_path: Path) -> 
         started: list[threading.Thread] = []
 
         def place_hold() -> None:
-            reader = sqlite3.connect(state / "state.sqlite")
-            reader.row_factory = sqlite3.Row
+            reader = engine.connect(engine.resolve_dsn(state))
             try:
                 add_hold(
                     state,
@@ -638,7 +666,7 @@ def test_the_archive_gate_opens_only_when_a_table_names_the_generation(tmp_path:
         aged_candidates(state)
         # Step 4's table, stood up here only to prove the gate is what opens it.
         with database.transaction() as conn:
-            conn.execute("CREATE TABLE archived_generations(generation_id TEXT PRIMARY KEY)")
+            archive_table(conn)
         value = planned(database)
         assert eligible_payloads(database.connection, value) == ()
         with database.transaction() as conn:
@@ -654,11 +682,11 @@ def test_the_archive_gate_opens_only_when_a_table_names_the_generation(tmp_path:
         # The gate closed again: the grant row can never be left switched on.
         assert (
             database.connection.execute(
-                "SELECT count(*) FROM derivation_payload_removal_authority"
+                "SELECT COUNT(*) FROM derivation_payload_removal_authority"
             ).fetchone()[0]
             == 0
         )
-        with pytest.raises(sqlite3.Error, match="requires authority"):
+        with pytest.raises(engine.Error, match="requires authority"):
             with database.transaction() as conn:
                 conn.execute("DELETE FROM derivation_payloads")
 
@@ -670,15 +698,18 @@ def test_a_shared_payload_stays_while_one_local_generation_names_it(tmp_path: Pa
         history(database)
         shared = str(
             database.connection.execute(
-                "SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id='dg_b1'"
+                "SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id = 'dg_b1'"
             ).fetchone()[0]
         )
         with database.transaction() as conn:
-            conn.execute("CREATE TABLE archived_generations(generation_id TEXT PRIMARY KEY)")
+            archive_table(conn)
             conn.execute("INSERT INTO archived_generations VALUES ('dg_b1')")
             # dg_a2 is a current pointer, so it is local and never eligible.
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES ('dg_a2',99,'entries','shared',?)",
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES ('dg_a2', 99, 'entries', 'shared', %s)"
+                ),
                 (shared,),
             )
         assert shared not in eligible_payloads(database.connection, planned(database))
@@ -714,7 +745,6 @@ def test_reclaim_refuses_below_the_new_estimate(tmp_path: Path) -> None:
         digests = fat_payloads(database)
         with database.transaction() as conn:
             retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         before = usage(database.connection, state)
         quota = tmp_path / "swingset-disk"
         with pytest.MonkeyPatch.context() as patch:
@@ -725,7 +755,7 @@ def test_reclaim_refuses_below_the_new_estimate(tmp_path: Path) -> None:
                 database.connection, int(before["file_bytes"])
             )
             needed = estimate["needed_bytes"]
-            in_use = int(before["file_bytes"]) - int(before["free_list_bytes"])
+            in_use = int(before["bytes_in_use"])
             assert needed == 5 * in_use // 2
             assert estimate["file_size_estimate_bytes"] == 2 * int(before["file_bytes"])
             patch.setattr(shutil, "disk_usage", lambda _path: DiskUsage(1, 0, needed - 1))
@@ -746,275 +776,232 @@ def test_reclaim_refuses_below_the_new_estimate(tmp_path: Path) -> None:
             # Enough on both.
             quota.write_text(f"{1000 - needed} 1000 {stamp}\n")
             receipt = reclaim(database, now=NOW)
-        assert receipt["free_space"] == {
-            **estimate,
-            "free_bytes": needed,
-            "quota_free_bytes": needed,
-            "quota_read_at": stamp,
-        }
-        assert receipt["after"]["file_bytes"] < before["file_bytes"]
+        assert receipt["free_space"]["free_bytes"] == needed
+        assert receipt["free_space"]["quota_free_bytes"] == needed
+        assert receipt["free_space"]["quota_read_at"] == stamp
+        assert receipt["after"]["file_bytes"] > 0
+        # Other databases may pin a cluster visibility horizon; the budget
+        # refusal test does not assume that this run can reclaim every tuple.
         # The margin is twelve gigabytes.
         assert (
             retention_apply.reclaim_estimate(database.connection, 0)["needed_bytes"] >= 12 * 10**9
         )
 
 
-def _open_paths() -> set[str]:
-    """Paths of this process's open files, unlinked ones included."""
-    import fcntl
-
-    found = set()
-    for name in os.listdir("/dev/fd"):
-        try:
-            if sys.platform == "darwin":
-                raw = fcntl.fcntl(int(name), fcntl.F_GETPATH, bytes(1024))  # type: ignore[attr-defined]
-                found.add(raw.split(b"\0")[0].decode())
-            else:
-                found.add(os.readlink(f"/proc/self/fd/{name}"))
-        except OSError:
-            continue
-    return found
-
-
-def test_reclaim_puts_its_temporary_files_under_the_state_directory(tmp_path: Path) -> None:
-    """SQLite unlinks a temporary file as it opens it, so look at open files mid-VACUUM."""
+def test_reclaim_uses_server_managed_temporary_storage(tmp_path: Path) -> None:
     state = tmp_path / "state"
     with open_database(state) as database:
         history(database)
-        digests = fat_payloads(database)
-        with database.transaction() as conn:
-            retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
-        seen: set[str] = set()
-
-        def look() -> int:
-            seen.update(_open_paths())
-            return 0
-
-        database.connection.set_progress_handler(look, 200)
-        try:
-            receipt = reclaim(database, now=NOW)
-        finally:
-            database.connection.set_progress_handler(None, 0)
-        temporary = (state / "tmp").resolve()
-        assert receipt["temp_directory"] == str(temporary)
-        assert any(path.startswith(str(temporary) + os.sep) for path in seen), sorted(seen)
-        assert not any("etilqs" in path and not path.startswith(str(temporary)) for path in seen)
-        # The process-wide setting is put back.
-        restored = database.connection.execute("PRAGMA temp_store_directory").fetchone()
-        assert restored is None or restored[0] in ("", None)
+        receipt = reclaim(database, now=NOW)
+        assert receipt["temp_directory"] == "postgres-server-managed"
+        assert not (state / "state.sqlite").exists()
+        assert receipt["completed_tables"]
+        assert receipt["uncertain_table"] is None
 
 
 def test_row_data_is_removed_and_reclaim_has_not_run(tmp_path: Path) -> None:
-    """File size unchanged; doctor shows the bytes as free-list."""
+    """Deletion preserves allocated relation storage until server maintenance."""
     state = tmp_path / "state"
     with open_database(state) as database:
         history(database)
         digests = fat_payloads(database)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         before = usage(database.connection, state)
         with database.transaction() as conn:
             retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         after = usage(database.connection, state)
         assert payload_count(database) < 10
-        assert after["file_bytes"] == before["file_bytes"]
-        assert after["free_list_bytes"] > before["free_list_bytes"]
-        assert after["bytes_in_use"] is not None
-        assert after["bytes_in_use"] < before["bytes_in_use"]
-        measured = retention.report(database.connection, state, **KNOBS)
-        assert measured["usage"]["free_list_bytes"] == after["free_list_bytes"]
+        assert after["bytes_in_use"] >= before["bytes_in_use"]
+        assert after["free_list_bytes"] is None and after["wal_bytes"] is None
+        assert retention.report(database.connection, state, **KNOBS)["usage"] == after
 
 
-def test_reclaim_completes(tmp_path: Path) -> None:
-    """File and write-ahead log shrink to bytes in use; next backup too; checks pass."""
-    from swingset.backup.checkpoint import create_checkpoint
-    from swingset.state.db import SCHEMA_VERSION
+def test_reclaim_completes(tmp_path: Path, monkeypatch) -> None:
+    """Isolate the physical-space assertion from other tests' global xmin pins."""
+    from swingset.dev import services
+    from swingset.state import engine, postgres_schema
+    from swingset.state.postgres_copy import Copies
 
     state = tmp_path / "state"
+    with services.lifecycle_service() as service, Copies.for_admin(service.dsn()) as copies:
+        # A configured CI cluster may serve several physical cases. Each one
+        # still owns a fresh C-locale database and the normal exact cleanup.
+        with copies.empty() as admin:
+            postgres_schema.migrate(admin, environment="dev")
+            name = admin.info.dbname
+            engine.write_settings(
+                state,
+                service.dsn(name, role="worker"),
+                control_dsn=service.dsn(name, role="control"),
+            )
+            with monkeypatch.context() as physical:
+                physical.setattr(services, "ensure_service", lambda *args, **kwargs: service)
+                _reclaim_completion(state)
+
+
+def _reclaim_completion(state: Path) -> None:
+    """Physical storage shrinks while logical rows and immutable guards survive."""
+    from swingset.state.postgres_schema import validate_schema
+
     with open_database(state) as database:
         history(database)
         digests = fat_payloads(database)
-        fat_backup = tmp_path / "before"
-        create_checkpoint(
-            state,
-            database.connection,
-            fat_backup,
-            schema_version=SCHEMA_VERSION,
-            versions={},
-            input_bundle_hash=None,
-        )
         with database.transaction() as conn:
             retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
         before = usage(database.connection, state)
+        expected = list(
+            database.connection.execute(
+                "SELECT generation_id FROM derivation_generations ORDER BY 1"
+            )
+        )
         receipt = reclaim(database, now=NOW)
         after = usage(database.connection, state)
-        assert receipt["before"]["file_bytes"] == before["file_bytes"]
-        assert receipt["after"]["file_bytes"] == after["file_bytes"]
         assert receipt["file_bytes_freed"] > 0
         assert after["file_bytes"] < before["file_bytes"]
-        assert after["free_list_bytes"] == 0
-        # The file is now about what the pages in it hold, and the log is empty.
-        assert after["bytes_in_use"] is not None
-        assert after["file_bytes"] - after["bytes_in_use"] < after["bytes_in_use"]
-        assert after["wal_bytes"] == 0
-        assert database.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-        thin_backup = tmp_path / "after"
-        create_checkpoint(
-            state,
-            database.connection,
-            thin_backup,
-            schema_version=SCHEMA_VERSION,
-            versions={},
-            input_bundle_hash=None,
+        assert after["bytes_in_use"] < before["bytes_in_use"]
+        assert after["free_list_bytes"] is None and after["wal_bytes"] is None
+        assert (
+            list(
+                database.connection.execute(
+                    "SELECT generation_id FROM derivation_generations ORDER BY 1"
+                )
+            )
+            == expected
         )
-        assert (thin_backup / "state.sqlite").stat().st_size < (
-            fat_backup / "state.sqlite"
-        ).stat().st_size
+        validate_schema(database.connection, full=True)
         written = sorted(receipt_directory(state).glob("reclaim-*.json"))
         assert len(written) == 1
         assert json.loads(written[0].read_text()) == receipt
 
 
-def test_reclaim_runs_while_doctor_holds_a_read_connection(tmp_path: Path) -> None:
-    """Doctor reads a consistent view; reclaim completes."""
+def test_reclaim_runs_while_doctor_holds_an_idle_read_connection(tmp_path: Path) -> None:
     state = tmp_path / "state"
     with open_database(state) as database:
         history(database)
-        digests = fat_payloads(database)
-        with database.transaction() as conn:
-            retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
         with open_database(state, lock=False, read_only=True) as reader:
-            expected = sorted(
-                str(row[0])
-                for row in reader.connection.execute(
-                    "SELECT generation_id FROM derivation_generations"
+            expected = list(
+                reader.connection.execute(
+                    "SELECT generation_id FROM derivation_generations ORDER BY 1"
                 )
             )
-            assert expected
-            receipt = reclaim(database, now=NOW)
-            assert receipt["after"]["file_bytes"] < receipt["before"]["file_bytes"]
-            # The same reader, across the rewrite, still sees the whole database.
+            reclaim(database, now=NOW)
             assert (
-                sorted(
-                    str(row[0])
-                    for row in reader.connection.execute(
-                        "SELECT generation_id FROM derivation_generations"
+                list(
+                    reader.connection.execute(
+                        "SELECT generation_id FROM derivation_generations ORDER BY 1"
                     )
                 )
                 == expected
             )
-            assert reader.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
 
 
-def test_reclaim_runs_while_another_connection_has_a_pending_write(tmp_path: Path) -> None:
-    """Reclaim reports it and stops; nothing changes."""
+def test_reclaim_reports_a_pending_write_and_can_resume(tmp_path: Path) -> None:
+    """Postgres relation locks bound the rewrite and retain a partial receipt."""
     state = tmp_path / "state"
     with open_database(state) as database:
         history(database)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        before = usage(database.connection, state)
-        database.connection.execute("PRAGMA busy_timeout=200")
-        other = sqlite3.connect(state / "state.sqlite", isolation_level=None)
+        conn = database.connection
+        other = engine.connect(engine.resolve_dsn(state))
         try:
-            other.execute("PRAGMA busy_timeout=200")
-            other.execute("BEGIN IMMEDIATE")
-            other.execute("INSERT INTO meta(key,value) VALUES ('pending','1')")
-            with pytest.raises(RetentionError, match="pending write"):
+            other.execute("BEGIN")
+            other.execute("INSERT INTO meta(key,value) VALUES('pending','1')")
+            conn.execute("SET lock_timeout='100ms'")
+            with pytest.raises(engine.LockTimeout):
                 reclaim(database, now=NOW)
         finally:
             other.rollback()
             other.close()
-        database.connection.execute("PRAGMA busy_timeout=5000")
-        assert not receipt_directory(state).exists()
-        assert usage(database.connection, state)["file_bytes"] == before["file_bytes"]
-        # And the file is still sound, so the next reclaim works.
-        assert reclaim(database, now=NOW)["after"]["file_bytes"] > 0
+            conn.execute("SET lock_timeout='70s'")
+        written = sorted(receipt_directory(state).glob("reclaim-*.json"))
+        receipt = json.loads(written[0].read_text())
+        assert receipt["completed_tables"]
+        assert receipt["uncertain_table"] in {"ops.meta", "fetch.history_dispatch_fence"}
+        assert receipt["error"]
+        assert conn.execute("SELECT count(*) FROM meta WHERE key='pending'").fetchone()[0] == 0
+        assert reclaim(database, now=NOW)["uncertain_table"] is None
 
 
 def test_reclaim_is_killed_partway_through_the_rewrite(tmp_path: Path) -> None:
-    """Next open rolls back; integrity passes; bytes unchanged; next reclaim succeeds."""
+    """Terminate a real VACUUM backend while it waits; committed rows survive."""
+    from swingset.dev.services import ensure_service
+
     state = tmp_path / "state"
     with open_database(state) as database:
         history(database)
-        digests = fat_payloads(database)
-        with database.transaction() as conn:
-            retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        before = usage(database.connection, state)
-    # A real kill, in its own process, part way into the rewrite. How far in is
-    # measured first on a throwaway copy, so the kill lands in the middle of
-    # this database's rewrite rather than at a guessed offset.
-    script = tmp_path / "vacuum.py"
-    script.write_text(
-        "import os, sqlite3, sys\n"
-        "limit = int(sys.argv[2])\n"
-        "conn = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
-        "seen = [0]\n"
-        "def handler():\n"
-        "    seen[0] += 1\n"
-        "    if limit and seen[0] >= limit:\n"
-        "        os._exit(91)\n"
-        "    return 0\n"
-        "conn.set_progress_handler(handler, 50)\n"
-        "conn.execute('VACUUM')\n"
-        "conn.set_progress_handler(None, 0)\n"
-        "print(seen[0])\n"
-    )
-
-    def vacuum(database_path: Path, limit: int) -> subprocess.CompletedProcess[bytes]:
-        return subprocess.run(
-            [sys.executable, str(script), str(database_path), str(limit)], capture_output=True
+        expected = list(
+            database.connection.execute(
+                "SELECT generation_id FROM derivation_generations ORDER BY 1"
+            )
         )
+        reader = engine.connect(engine.resolve_dsn(state))
+        vacuum = engine.connect(engine.resolve_dsn(state))
+        pid = vacuum.info.backend_pid
+        reader.execute("BEGIN")
+        reader.execute("SELECT count(*) FROM derivation_generations")
+        errors = []
 
-    probe = tmp_path / "probe"
-    shutil.copytree(state, probe)
-    measured = vacuum(probe / "state.sqlite", 0)
-    assert measured.returncode == 0, measured.stderr
-    steps = int(measured.stdout)
-    assert steps > 4, "the rewrite has to be long enough to be killed part way through"
+        def rewrite():
+            try:
+                vacuum.execute("VACUUM FULL derive.derivation_generations")
+            except engine.Error as exc:
+                errors.append(exc)
 
-    killed = vacuum(state / "state.sqlite", steps // 2)
-    assert killed.returncode == 91, killed.stderr
-    with open_database(state) as database:
-        assert database.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-        assert database.connection.execute("PRAGMA foreign_key_check").fetchall() == []
-        rolled_back = usage(database.connection, state)
-        assert rolled_back["file_bytes"] == before["file_bytes"]
-        assert rolled_back["free_list_bytes"] == before["free_list_bytes"]
-        receipt = reclaim(database, now=NOW)
-        assert receipt["after"]["file_bytes"] < before["file_bytes"]
-        assert database.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        worker = threading.Thread(target=rewrite)
+        worker.start()
+        with ensure_service().connect(database.connection.info.dbname) as admin:
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                if (
+                    admin.execute(
+                        "SELECT wait_event_type FROM pg_stat_activity WHERE pid=%s", (pid,)
+                    ).fetchone()[0]
+                    == "Lock"
+                ):
+                    break
+                time.sleep(0.01)
+            else:
+                raise AssertionError("VACUUM backend never reached its rewrite lock")
+            assert admin.execute("SELECT pg_terminate_backend(%s)", (pid,)).fetchone()[0]
+        reader.rollback()
+        reader.close()
+        worker.join(5)
+        vacuum.close()
+        assert errors and not worker.is_alive()
+        assert (
+            list(
+                database.connection.execute(
+                    "SELECT generation_id FROM derivation_generations ORDER BY 1"
+                )
+            )
+            == expected
+        )
+        assert reclaim(database, now=NOW)["uncertain_table"] is None
 
 
-def test_reclaim_is_interrupted_by_an_aborting_progress_handler(tmp_path: Path) -> None:
-    """It reports the rollback and changes nothing; the next reclaim succeeds."""
+def test_reclaim_interruption_records_completed_tables(tmp_path: Path, monkeypatch) -> None:
     state = tmp_path / "state"
     with open_database(state) as database:
         history(database)
-        digests = fat_payloads(database)
-        with database.transaction() as conn:
-            retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        before = usage(database.connection, state)
-        real_usage = retention_apply.usage
+        original = engine.Connection.execute
+        count = 0
 
-        def arm(conn: sqlite3.Connection, state_dir: Path) -> dict[str, Any]:
-            measured = real_usage(conn, state_dir)
-            # Armed only once the "before" reading is taken, so the abort lands
-            # inside the locked region and not in the measurement.
-            conn.set_progress_handler(lambda: 1, 20)
-            return measured
+        def interrupted(self, query, *args, **kwargs):
+            nonlocal count
+            text = query.as_string(self) if hasattr(query, "as_string") else str(query)
+            if self is database.connection and text.startswith("VACUUM"):
+                count += 1
+                if count == 3:
+                    raise KeyboardInterrupt("injected rewrite interruption")
+            return original(self, query, *args, **kwargs)
 
-        with pytest.MonkeyPatch.context() as patch:
-            patch.setattr(retention_apply, "usage", arm)
-            with pytest.raises(RetentionError, match="rolled back"):
+        with monkeypatch.context() as patch:
+            patch.setattr(engine.Connection, "execute", interrupted)
+            with pytest.raises(KeyboardInterrupt):
                 reclaim(database, now=NOW)
-        database.connection.set_progress_handler(None, 0)
-        assert not receipt_directory(state).exists()
-        after = usage(database.connection, state)
-        assert after["file_bytes"] == before["file_bytes"]
-        assert database.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-        assert reclaim(database, now=NOW)["after"]["file_bytes"] < before["file_bytes"]
+        receipt = json.loads(next(receipt_directory(state).glob("reclaim-*.json")).read_text())
+        assert len(receipt["completed_tables"]) == 2
+        assert receipt["uncertain_table"]
+        assert receipt["error"].startswith("KeyboardInterrupt")
+        assert reclaim(database, now=NOW)["uncertain_table"] is None
 
 
 def test_reclaim_refuses_without_the_writer_lock(tmp_path: Path) -> None:

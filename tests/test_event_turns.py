@@ -120,7 +120,7 @@ def test_existing_large_and_older_events_finish_under_continuous_new_arrivals(f)
         history.append(event_name)
         with f.db.transaction() as conn:
             conn.execute(
-                "UPDATE watches SET state='sealed',next_check_at=NULL WHERE watch_id=?",
+                "UPDATE watches SET state = 'sealed', next_check_at = NULL WHERE watch_id = %s",
                 (choice.key,),
             )
         if issued % 4 == 0:
@@ -137,7 +137,7 @@ def test_existing_large_and_older_events_finish_under_continuous_new_arrivals(f)
         history.count(event) == count
         for event, count in (("monterey", 33), ("large", 65), ("older", 9))
     )
-    assert f.db.connection.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[
+    assert f.db.connection.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[
         0
     ] == len(history)
 
@@ -157,11 +157,11 @@ def test_restart_and_policy_reload_preserve_partial_turn_and_debits(f):
     assert resumed.turn.owner_key == choice.turn.owner_key
     assert resumed.turn.policy_digest == original_policy
     row = f.db.connection.execute(
-        "SELECT used,target_requests FROM scheduler_event_turns WHERE owner_key=?",
+        "SELECT used, target_requests FROM scheduler_event_turns WHERE owner_key = %s",
         (choice.turn.owner_key,),
     ).fetchone()
     assert tuple(row) == (1, 4)
-    assert f.db.connection.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 1
+    assert f.db.connection.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 1
 
 
 def test_blocked_owner_keeps_place_while_independent_event_proceeds(f):
@@ -170,18 +170,18 @@ def test_blocked_owner_keeps_place_while_independent_event_proceeds(f):
     assert first.key in {a.watch_id, b.watch_id}
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE watches SET paused_until=? WHERE watch_id=?",
+            "UPDATE watches SET paused_until = %s WHERE watch_id = %s",
             ("2027-01-01T00:00:00+00:00", first.key),
         )
     other = select(f)
     assert other.key != first.key
     debit(f, other)
     with f.db.transaction() as conn:
-        conn.execute("UPDATE watches SET paused_until=NULL WHERE watch_id=?", (first.key,))
+        conn.execute("UPDATE watches SET paused_until = NULL WHERE watch_id = %s", (first.key,))
     assert select(f).turn.position == first.turn.position
     assert (
         f.db.connection.execute(
-            "SELECT used FROM scheduler_event_turns WHERE owner_key=?", (first.turn.owner_key,)
+            "SELECT used FROM scheduler_event_turns WHERE owner_key = %s", (first.turn.owner_key,)
         ).fetchone()[0]
         == 0
     )
@@ -221,16 +221,16 @@ def test_shared_watch_redirect_robots_and_retry_have_one_owner_and_actual_hosts(
         fetcher.close()
     assert result.snapshot_id is not None
     assert sum(seen.values()) == 5
-    assert dict(f.db.connection.execute("SELECT host,requests FROM host_budget")) == {
+    assert dict(f.db.connection.execute("SELECT host, requests FROM host_budget")) == {
         "example.test": 2,
         "other.test": 3,
     }
     assert f.db.connection.execute(
-        "SELECT count(*),count(DISTINCT owner_key) FROM scheduler_event_requests"
+        "SELECT COUNT(*) AS requests, COUNT(DISTINCT owner_key) AS owners FROM scheduler_event_requests"
     ).fetchone()[:] == (5, 1)
     assert (
         f.db.connection.execute(
-            "SELECT used FROM scheduler_event_turns WHERE owner_key=?", (choice.turn.owner_key,)
+            "SELECT used FROM scheduler_event_turns WHERE owner_key = %s", (choice.turn.owner_key,)
         ).fetchone()[0]
         == 5
     )
@@ -238,7 +238,7 @@ def test_shared_watch_redirect_robots_and_retry_have_one_owner_and_actual_hosts(
     add(f, "b", 1)
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE watches SET next_check_at='2027-01-01T00:00:00+00:00' WHERE watch_id=?",
+            "UPDATE watches SET next_check_at = '2027-01-01T00:00:00+00:00' WHERE watch_id = %s",
             (spec.watch_id,),
         )
     # The completed chain cannot receive a fresh turn by remaining selected.
@@ -298,10 +298,10 @@ def test_full_fetch_chain_bound_includes_all_robots_redirects_and_retries(f):
     assert bound == 83
     assert f.db.connection.execute("SELECT used FROM scheduler_event_turns").fetchone()[0] == bound
     assert (
-        f.db.connection.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0]
+        f.db.connection.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0]
         == bound
     )
-    assert f.db.connection.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == bound
+    assert f.db.connection.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == bound
 
 
 def test_gate_pause_and_failed_admission_do_not_consume_turn(f, monkeypatch):
@@ -346,13 +346,13 @@ def test_gate_pause_and_failed_admission_do_not_consume_turn(f, monkeypatch):
     monkeypatch.setattr(event_turns, "record", failed)
     with servicing(choice, run_id=f.run), pytest.raises(RuntimeError, match="after event debit"):
         issue(f.db, gate, f.clock, **kwargs)
-    assert f.db.connection.execute("SELECT count(*) FROM scheduler_requests").fetchone()[0] == 0
+    assert f.db.connection.execute("SELECT COUNT(*) FROM scheduler_requests").fetchone()[0] == 0
     assert (
-        f.db.connection.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 0
+        f.db.connection.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == 0
     )
     assert f.db.connection.execute("SELECT used FROM scheduler_event_turns").fetchone()[0] == 0
     assert (
-        f.db.connection.execute("SELECT coalesce(sum(requests),0) FROM host_budget").fetchone()[0]
+        f.db.connection.execute("SELECT COALESCE(SUM(requests), 0) FROM host_budget").fetchone()[0]
         == 0
     )
 
@@ -401,7 +401,7 @@ def test_admitted_enumeration_drives_real_membership_and_request_receipt(event):
     )
     assert tuple(
         event.conn.execute(
-            "SELECT source,source_ref,enumeration_id FROM scheduler_event_requests WHERE action_id=?",
+            "SELECT source, source_ref, enumeration_id FROM scheduler_event_requests WHERE action_id = %s",
             (action,),
         ).fetchone()
     ) == ("eepro", "eepro:test", inventory["enumeration_id"])

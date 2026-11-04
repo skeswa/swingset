@@ -29,15 +29,26 @@ def add(
     conn = database.connection
     url = f"https://example/{watch}"
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES (?,'scoringdance',?,'GET',?,?,'live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, "
+            "'scoringdance', %s, 'GET', %s, %s, 'live')"
+        ),
         (watch, page_kind, url, f"scoringdance.{page_kind}"),
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,?,200,1,1,'run_a','Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 1, "
+            "1, 'run_a', 'Ok')"
+        ),
         (snapshot, watch, url, fetched),
     )
     conn.execute(
-        "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,?,?,'source_event_row','source_index',?,0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, "
+            "'source_event_row', 'source_index', %s, 0, '1', '1', %s)"
+        ),
         (f"obs-{snapshot}", watch, snapshot, scope, encode_payload(payload)),
     )
 
@@ -45,7 +56,7 @@ def add(
 def test_sparse_sitemap_cannot_erase_richer_event_metadata(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         rich = SourceEventRow(
             "source_event_row",
@@ -71,14 +82,14 @@ def test_sparse_sitemap_cannot_erase_richer_event_metadata(tmp_path: Path) -> No
             project_source_index(database.connection, "event:418", "2026-09-08T00:00:00Z", "run_a")
             project_source_index(database.connection, "sitemap", "2026-09-08T00:00:00Z", "run_a")
         row = database.connection.execute(
-            "SELECT name_raw,start_date FROM source_events"
+            "SELECT name_raw, start_date FROM source_events"
         ).fetchone()
         assert tuple(row) == ("Bristol Swing Fiesta 2026", "2026-08-28")
-        database.connection.execute("DELETE FROM observations WHERE watch_id='event'")
+        database.connection.execute("DELETE FROM observations WHERE watch_id = 'event'")
         with database.transaction():
             project_source_index(database.connection, "event:418", "2026-09-09T00:00:00Z", "run_a")
         row = database.connection.execute(
-            "SELECT name_raw,start_date FROM source_events"
+            "SELECT name_raw, start_date FROM source_events"
         ).fetchone()
         assert tuple(row) == (None, None)
 
@@ -86,7 +97,7 @@ def test_sparse_sitemap_cannot_erase_richer_event_metadata(tmp_path: Path) -> No
 def test_empty_event_detail_preserves_durable_index_date_on_rebuild(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         indexed = SourceEventRow(
             "source_event_row",
@@ -126,7 +137,7 @@ def test_empty_event_detail_preserves_durable_index_date_on_rebuild(tmp_path: Pa
             project_source_index(database.connection, "scoringdance:2", "2026-09-08", "run_a")
         assert tuple(
             database.connection.execute(
-                "SELECT name_raw,start_date,end_date,snapshot_id FROM source_events"
+                "SELECT name_raw, start_date, end_date, snapshot_id FROM source_events"
             ).fetchone()
         ) == ("Carnival Swing 2018", "2018-02-03", "2018-02-03", "snap_index")
 
@@ -135,7 +146,7 @@ def test_empty_event_detail_preserves_durable_index_date_on_rebuild(tmp_path: Pa
             project_source_index(database.connection, "scoringdance", "2026-09-09", "run_a")
         assert tuple(
             database.connection.execute(
-                "SELECT name_raw,start_date,end_date FROM source_events"
+                "SELECT name_raw, start_date, end_date FROM source_events"
             ).fetchone()
         ) == ("Carnival Swing 2018", "2018-02-03", "2018-02-03")
 
@@ -143,7 +154,7 @@ def test_empty_event_detail_preserves_durable_index_date_on_rebuild(tmp_path: Pa
 def test_newer_dated_event_detail_wins_over_index_date(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         indexed = SourceEventRow(
             "source_event_row",
@@ -190,7 +201,7 @@ def test_eepro_printed_date_ranges_preserve_both_event_boundaries() -> None:
 def test_source_title_year_date_contradiction_creates_finding(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-10',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-10', 0)"
         )
         payload = SourceEventRow(
             "source_event_row",
@@ -211,7 +222,7 @@ def test_source_title_year_date_contradiction_creates_finding(tmp_path: Path) ->
         with database.transaction():
             project_source_index(database.connection, "scoringdance:315", "2026-09-10", "run_a")
         finding = database.connection.execute(
-            "SELECT summary,evidence_json FROM findings WHERE closed_at IS NULL"
+            "SELECT summary, evidence_json FROM findings WHERE closed_at IS NULL"
         ).fetchone()
     assert finding[0] == "Source event edition year contradicts its date"
     assert '"date_raw":"04/29/2027"' in finding[1]
@@ -220,7 +231,7 @@ def test_source_title_year_date_contradiction_creates_finding(tmp_path: Path) ->
 def test_projector_version_bump_repairs_stale_materialized_metadata(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         rich = SourceEventRow(
             "source_event_row",
@@ -239,7 +250,12 @@ def test_projector_version_bump_repairs_stale_materialized_metadata(tmp_path: Pa
             "2026-09-01T00:00:00Z",
         )
         database.connection.execute(
-            "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,location_raw,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('scoringdance','scoringdance:418',NULL,NULL,NULL,NULL,?,'snap_event','1','2026-09-01','2026-09-01','run_a')",
+            (
+                "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, "
+                "location_raw, url, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+                "('scoringdance', 'scoringdance:418', NULL, NULL, NULL, NULL, %s, 'snap_event', '1', "
+                "'2026-09-01', '2026-09-01', 'run_a')"
+            ),
             (rich.url,),
         )
         units = tuple(affected_work(database.connection, "version/projector"))
@@ -256,6 +272,6 @@ def test_projector_version_bump_repairs_stale_materialized_metadata(tmp_path: Pa
         while (unit := next_work(database.connection, "project")) is not None:
             process_unit(database, unit, bundle, FakeClock(), "run_a")
         row = database.connection.execute(
-            "SELECT name_raw,start_date FROM source_events"
+            "SELECT name_raw, start_date FROM source_events"
         ).fetchone()
         assert tuple(row) == ("Bristol Swing Fiesta 2026", "2026-08-28")

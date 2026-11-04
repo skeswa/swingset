@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import json
 import shutil
-import sqlite3
 import time
 import uuid
 from collections import Counter, defaultdict
@@ -56,6 +55,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from swingset.log import log
+from swingset.state import engine
 from swingset.state.retention import artifact_directory
 
 from .builder import (
@@ -446,20 +446,13 @@ def omissions(manifest: ReleaseManifest) -> tuple[list[dict[str, Any]], set[str]
     return result, batches
 
 
-def _snapshot_rows(conn: sqlite3.Connection, wanted: set[str]) -> Iterator[dict[str, Any]]:
+def _snapshot_rows(conn: engine.Connection, wanted: set[str]) -> Iterator[dict[str, Any]]:
     """`input._read_snapshots`, filtered to ``wanted`` while reading."""
     from .input import _convert
 
     schema = SCHEMAS["snapshots"]
     for values in conn.execute(
-        """
-        SELECT s.snapshot_id, w.source, s.url, s.fetched_at, s.http_status,
-               s.body_sha256, s.body_bytes, s.content_changed, w.parser,
-               s.parser_version, s.parse_status, s.via,
-               COALESCE(s.captured_at,s.fetched_at), s.archive_url,
-               COALESCE(s.observed_at,s.captured_at,s.fetched_at)
-        FROM snapshots AS s JOIN watches AS w ON w.watch_id = s.watch_id
-        """
+        "SELECT s.snapshot_id, w.source, s.url, s.fetched_at, s.http_status, s.body_sha256, s.body_bytes, s.content_changed, w.parser, s.parser_version, s.parse_status, s.via, COALESCE(s.captured_at, s.fetched_at) AS _value_12, s.archive_url, COALESCE(s.observed_at, s.captured_at, s.fetched_at) AS _value_14 FROM snapshots AS s JOIN watches AS w ON w.watch_id = s.watch_id"
     ):
         if values[0] in wanted:
             row = dict(zip(schema.names, values, strict=True))
@@ -570,7 +563,7 @@ class Assembly:
 
     # -- pass 1 ------------------------------------------------------------
 
-    def _pass_one(self, conn: sqlite3.Connection) -> None:
+    def _pass_one(self, conn: engine.Connection) -> None:
         db = self.db
         self.artifacts = self._artifact_files()
         self.paths = {
@@ -581,7 +574,7 @@ class Assembly:
         for table in STAGED_TABLES:
             db.execute(f"CREATE VIEW a_{table} AS SELECT * FROM {self._view(table)}")
         db.execute(
-            "CREATE TABLE a_files(filename VARCHAR, partition VARCHAR)",
+            "CREATE TABLE a_files (filename VARCHAR, partition VARCHAR)",
         )
         files = [
             (str(path), partition) for items in self.artifacts.values() for partition, path in items
@@ -594,23 +587,18 @@ class Assembly:
         self.absent = {
             int(row[0])
             for row in db.execute(
-                """
-                SELECT DISTINCT wsdc_id FROM (
-                    SELECT wsdc_id FROM a_entries UNION ALL SELECT wsdc_id FROM a_judges
-                    UNION ALL SELECT wsdc_id FROM a_identity_links
-                    UNION ALL SELECT wsdc_id FROM a_link_candidates
-                    UNION ALL SELECT leader_wsdc_id FROM a_placements
-                    UNION ALL SELECT follower_wsdc_id FROM a_placements
-                ) WHERE wsdc_id IS NOT NULL
-                AND wsdc_id NOT IN (SELECT wsdc_id FROM a_dancers WHERE wsdc_id IS NOT NULL)
-                """
+                "SELECT DISTINCT wsdc_id FROM (SELECT wsdc_id FROM a_entries UNION ALL SELECT wsdc_id FROM "
+                "a_judges UNION ALL SELECT wsdc_id FROM a_identity_links UNION ALL SELECT wsdc_id FROM "
+                "a_link_candidates UNION ALL SELECT leader_wsdc_id FROM a_placements UNION ALL SELECT "
+                "follower_wsdc_id FROM a_placements) WHERE NOT wsdc_id IS NULL AND NOT wsdc_id IN (SELECT "
+                "wsdc_id FROM a_dancers WHERE NOT wsdc_id IS NULL)"
             ).fetchall()
         }
         self.absent_events = {
             str(row[0])
             for row in db.execute(
-                "SELECT DISTINCT event_id FROM a_registry_placements WHERE event_id IS NOT NULL "
-                "AND event_id NOT IN (SELECT event_id FROM a_events)"
+                "SELECT DISTINCT event_id FROM a_registry_placements WHERE NOT event_id IS NULL AND NOT "
+                "event_id IN (SELECT event_id FROM a_events)"
             ).fetchall()
         }
         withheld_dancers: set[Any] = set()
@@ -631,26 +619,21 @@ class Assembly:
             for table in (*DANCER_TABLES, *sorted(_EVENT_TABLES))
         )
         db.execute(
-            f"CREATE TABLE a_support AS SELECT DISTINCT CAST(snapshot_id AS VARCHAR) AS s, "
-            f"coalesce(CAST(parser_version AS VARCHAR), '') AS p FROM ({sources}) "
-            "WHERE snapshot_id IS NOT NULL AND snapshot_id <> ''"
+            f"CREATE TABLE a_support AS SELECT DISTINCT CAST(snapshot_id AS VARCHAR) AS s, coalesce(CAST(parser_version AS VARCHAR), '') AS p FROM ({sources}) WHERE snapshot_id IS NOT NULL AND snapshot_id <> ''"
         )
         revoked = [
             (snapshot, parser)
             for snapshot, parser in db.execute(
-                "SELECT s, p FROM a_support ORDER BY s, p"
+                "SELECT s, p FROM a_support ORDER BY s NULLS FIRST, p NULLS FIRST"
             ).fetchall()
             if self.revocations.check((str(snapshot), str(parser)))
         ]
-        db.execute("CREATE TABLE a_revoked(s VARCHAR, p VARCHAR)")
+        db.execute("CREATE TABLE a_revoked (s VARCHAR, p VARCHAR)")
         if revoked:
             db.executemany("INSERT INTO a_revoked VALUES (?, ?)", revoked)
 
         def matching(table: str, select: str) -> str:
-            return (
-                f"SELECT {select} FROM a_{table} t JOIN a_revoked r ON r.s = t.snapshot_id "
-                "AND r.p = coalesce(t.parser_version, '')"
-            )
+            return f"SELECT {select} FROM a_{table} t JOIN a_revoked r ON r.s = t.snapshot_id AND r.p = coalesce(t.parser_version, '')"
 
         self.revoked_dancers = {
             row[0] for row in db.execute(matching("dancers", "DISTINCT t.wsdc_id")).fetchall()
@@ -667,7 +650,7 @@ class Assembly:
                 + " UNION ALL ".join(
                     matching(table, "t.filename") for table in sorted(_EVENT_TABLES)
                 )
-                + ") x JOIN a_files f USING (filename)"
+                + " ) x JOIN a_files f USING (filename) "
             ).fetchall()
         )
         # Close revoked event partitions first: the events left bound every
@@ -692,7 +675,7 @@ class Assembly:
     # -- pass 2 ------------------------------------------------------------
 
     def _annotator(
-        self, conn: sqlite3.Connection, support: Iterable[Mapping[str, Any]]
+        self, conn: engine.Connection, support: Iterable[Mapping[str, Any]]
     ) -> _Coverage:
         """Coverage state known before any row: statuses, snapshots, omissions."""
         from swingset.sources import sources as registered_sources
@@ -800,8 +783,7 @@ class Assembly:
         stage.close()
         db = self.db
         db.execute(
-            "CREATE TABLE r_registry AS SELECT wsdc_id, event_id, role, division, dance_style, "
-            f"result FROM {stage.relation('registry_placements')} WHERE event_id IS NOT NULL"
+            f"CREATE TABLE r_registry AS SELECT wsdc_id, event_id, role, division, dance_style, result FROM {stage.relation('registry_placements')} WHERE event_id IS NOT NULL"
         )
         db.execute(
             "CREATE TABLE r_names AS SELECT wsdc_id, first_name, last_name, name_norm "
@@ -827,13 +809,11 @@ class Assembly:
                     for name in (key, "wsdc_id", "snapshot_id", "parser_version")
                 )
                 db.execute(
-                    f"CREATE TABLE b_{table} AS SELECT {columns} FROM "
-                    f"read_parquet({_files(files)}, union_by_name=true)"
+                    f"CREATE TABLE b_{table} AS SELECT {columns} FROM read_parquet({_files(files)}, union_by_name=true)"
                 )
             else:
                 db.execute(
-                    f"CREATE TABLE b_{table}({_quoted(key)} VARCHAR, wsdc_id INTEGER, "
-                    "snapshot_id VARCHAR, parser_version VARCHAR)"
+                    f"CREATE TABLE b_{table}({_quoted(key)} VARCHAR, wsdc_id INTEGER, snapshot_id VARCHAR, parser_version VARCHAR)"
                 )
         if self.baseline is not None:
             verify_baseline(self.baseline)
@@ -891,7 +871,7 @@ class Assembly:
         )
         return {"dancers": names, "registry_placements": registry}
 
-    def _events(self, conn: sqlite3.Connection) -> _Stage:
+    def _events(self, conn: engine.Connection) -> _Stage:
         from .identity_policy import IdentityPolicy
 
         stage = _Stage(self.directory / "events", EVENT_TABLES)
@@ -1047,7 +1027,7 @@ class Assembly:
                 observed = value if value is not None and value <= self.cutoff else None
             rows.append((snapshot, row.get("via"), observed))
         db.execute("DROP TABLE IF EXISTS f_snap")
-        db.execute("CREATE TABLE f_snap(snapshot_id VARCHAR, via VARCHAR, observed TIMESTAMPTZ)")
+        db.execute("CREATE TABLE f_snap (snapshot_id VARCHAR, via VARCHAR, observed TIMESTAMPTZ)")
         if rows:
             db.executemany("INSERT INTO f_snap VALUES (?, ?, ?)", rows)
         self.meter.take(len(rows), "snapshots")
@@ -1084,9 +1064,7 @@ class Assembly:
             )
         ]
         parts.append(
-            f"SELECT 'events', CAST(t.event_id AS VARCHAR), {common}, CAST(t.event_id AS VARCHAR) "
-            f"FROM {relation['registry_placements']} t "
-            "WHERE t.event_id IS NOT NULL AND t.event_id <> ''"
+            f"SELECT 'events', CAST(t.event_id AS VARCHAR), {common}, CAST(t.event_id AS VARCHAR) FROM {relation['registry_placements']} t WHERE t.event_id IS NOT NULL AND t.event_id <> ''"
         )
         for table, kind, key in (("entries", "entry", "entry_id"), ("judges", "judge", "judge_id")):
             ev = event(table, identity=True)
@@ -1097,84 +1075,29 @@ class Assembly:
             ident = f"CAST(t.{key} AS VARCHAR)"
             parts.append(f"SELECT 'identity_subjects', {ident}, {common}, {ev} {base}")
             parts.append(
-                f"SELECT 'resolved_identities', {ident}, {common}, {ev} {base} "
-                "WHERE t.wsdc_id IS NOT NULL"
+                f"SELECT 'resolved_identities', {ident}, {common}, {ev} {base} WHERE t.wsdc_id IS NOT NULL"
             )
             parts.append(
-                f"SELECT 'withheld_identities', {ident}, {common}, {ev} {base} "
-                "WHERE t.wsdc_id IS NULL AND a.wsdc_id IS NOT NULL "
-                "AND a.acceptance_state IS DISTINCT FROM 'accepted'"
+                f"SELECT 'withheld_identities', {ident}, {common}, {ev} {base} WHERE t.wsdc_id IS NULL AND a.wsdc_id IS NOT NULL AND a.acceptance_state IS DISTINCT FROM 'accepted'"
             )
         if mode == "enrich":
             parts.append(
-                f"SELECT 'dancer_records', CAST(t.wsdc_id AS VARCHAR), {common}, NULL "
-                f"FROM {relation['dancers']} t"
+                f"SELECT 'dancer_records', CAST(t.wsdc_id AS VARCHAR), {common}, NULL FROM {relation['dancers']} t"
             )
         db.execute("DROP TABLE IF EXISTS f_rec")
         db.execute(
-            f"""
-            CREATE TABLE f_rec AS
-            WITH ct AS (SELECT CAST(contest_id AS VARCHAR) AS contest_id, event_id
-                        FROM {relation["contests"]}),
-                 il AS (SELECT CAST(subject_kind AS VARCHAR) AS subject_kind,
-                               CAST(subject_id AS VARCHAR) AS subject_id, wsdc_id,
-                               acceptance_state FROM {relation["identity_links"]})
-            {" UNION ALL ".join(parts)}
-            """
+            f"\n            CREATE TABLE f_rec AS\n            WITH ct AS (SELECT CAST(contest_id AS VARCHAR) AS contest_id, event_id\n                        FROM {relation['contests']}),\n                 il AS (SELECT CAST(subject_kind AS VARCHAR) AS subject_kind,\n                               CAST(subject_id AS VARCHAR) AS subject_id, wsdc_id,\n                               acceptance_state FROM {relation['identity_links']})\n            {' UNION ALL '.join(parts)}\n            "
         )
         db.execute("DROP TABLE IF EXISTS f_scope")
         db.execute(
-            f"""
-            CREATE TABLE f_scope AS
-            WITH ev AS (SELECT CAST(event_id AS VARCHAR) AS event_id, year
-                        FROM {relation["events"]}),
-                 rec AS (SELECT DISTINCT metric, ident, source, snapshot_id, ev FROM f_rec
-                         UNION SELECT 'events', ev, source, snapshot_id, ev
-                         FROM f_rec WHERE ev IS NOT NULL),
-                 scoped AS (
-                    SELECT r.metric, r.ident, r.source, r.ev, s.observed, e.event_id AS released,
-                           e.year,
-                           coalesce(NULLIF(s.via, ''), CASE WHEN r.snapshot_id = 'override'
-                                    THEN 'manual' ELSE 'origin' END) AS via
-                    FROM rec r LEFT JOIN f_snap s ON s.snapshot_id = r.snapshot_id
-                    LEFT JOIN ev e ON e.event_id = r.ev)
-            SELECT 'source' AS kind, source AS id, source, via, metric, ident, observed FROM scoped
-            UNION ALL SELECT 'event', ev, source, via, metric, ident, observed FROM scoped
-                WHERE released IS NOT NULL
-            UNION ALL SELECT 'year', CAST(year AS VARCHAR), source, via, metric, ident, observed
-                FROM scoped WHERE released IS NOT NULL AND year IS NOT NULL
-            """
+            f"\n            CREATE TABLE f_scope AS\n            WITH ev AS (SELECT CAST(event_id AS VARCHAR) AS event_id, year\n                        FROM {relation['events']}),\n                 rec AS (SELECT DISTINCT metric, ident, source, snapshot_id, ev FROM f_rec\n                         UNION SELECT 'events', ev, source, snapshot_id, ev\n                         FROM f_rec WHERE ev IS NOT NULL),\n                 scoped AS (\n                    SELECT r.metric, r.ident, r.source, r.ev, s.observed, e.event_id AS released,\n                           e.year,\n                           coalesce(NULLIF(s.via, ''), CASE WHEN r.snapshot_id = 'override'\n                                    THEN 'manual' ELSE 'origin' END) AS via\n                    FROM rec r LEFT JOIN f_snap s ON s.snapshot_id = r.snapshot_id\n                    LEFT JOIN ev e ON e.event_id = r.ev)\n            SELECT 'source' AS kind, source AS id, source, via, metric, ident, observed FROM scoped\n            UNION ALL SELECT 'event', ev, source, via, metric, ident, observed FROM scoped\n                WHERE released IS NOT NULL\n            UNION ALL SELECT 'year', CAST(year AS VARCHAR), source, via, metric, ident, observed\n                FROM scoped WHERE released IS NOT NULL AND year IS NOT NULL\n            "
         )
         metrics = ", ".join(
             f"count(*) FILTER (WHERE metric = '{name}') AS {name}" for name in FACT_METRICS
         )
         facts = Facts()
         for row in self._query(
-            f"""
-            WITH idents AS (SELECT DISTINCT kind, id, source, via, metric, ident FROM f_scope),
-            counted AS (SELECT kind, id, source, via, {metrics} FROM idents GROUP BY ALL),
-            timed AS (
-                SELECT kind, id, source, via, max(observed) AS observed,
-                       bool_or(observed IS NULL) AS unknown_time
-                FROM f_scope GROUP BY ALL),
-            summary AS (
-                SELECT d.kind, d.id, d.source, d.via,
-                    count(*) FILTER (WHERE e.coverage_tier = 'registry_only') AS events_registry_only,
-                    count(*) FILTER (WHERE e.coverage_tier = 'index_only') AS events_index_only,
-                    count(*) FILTER (WHERE e.coverage_tier = 'sheets_partial') AS events_sheets_partial,
-                    count(*) FILTER (WHERE e.coverage_tier = 'sheets_complete') AS events_sheets_complete,
-                    count(*) FILTER (WHERE e.date_precision = 'day') AS events_day_precision,
-                    count(*) FILTER (WHERE e.held IS DISTINCT FROM 'held') AS events_listed_only
-                FROM (SELECT kind, id, source, via, ident FROM idents WHERE metric = 'events') d
-                JOIN (SELECT CAST(event_id AS VARCHAR) AS event_id, coverage_tier,
-                             date_precision, held FROM {relation["events"]}) e
-                  ON e.event_id = d.ident
-                GROUP BY ALL)
-            SELECT t.*, {", ".join(f"coalesce(c.{name}, 0) AS {name}" for name in FACT_METRICS)},
-                   {", ".join(f"coalesce(s.{name}, 0) AS {name}" for name in TIER_FIELDS)}
-            FROM timed t LEFT JOIN counted c USING (kind, id, source, via)
-            LEFT JOIN summary s USING (kind, id, source, via)
-            """
+            f"\n            WITH idents AS (SELECT DISTINCT kind, id, source, via, metric, ident FROM f_scope),\n            counted AS (SELECT kind, id, source, via, {metrics} FROM idents GROUP BY ALL),\n            timed AS (\n                SELECT kind, id, source, via, max(observed) AS observed,\n                       bool_or(observed IS NULL) AS unknown_time\n                FROM f_scope GROUP BY ALL),\n            summary AS (\n                SELECT d.kind, d.id, d.source, d.via,\n                    count(*) FILTER (WHERE e.coverage_tier = 'registry_only') AS events_registry_only,\n                    count(*) FILTER (WHERE e.coverage_tier = 'index_only') AS events_index_only,\n                    count(*) FILTER (WHERE e.coverage_tier = 'sheets_partial') AS events_sheets_partial,\n                    count(*) FILTER (WHERE e.coverage_tier = 'sheets_complete') AS events_sheets_complete,\n                    count(*) FILTER (WHERE e.date_precision = 'day') AS events_day_precision,\n                    count(*) FILTER (WHERE e.held IS DISTINCT FROM 'held') AS events_listed_only\n                FROM (SELECT kind, id, source, via, ident FROM idents WHERE metric = 'events') d\n                JOIN (SELECT CAST(event_id AS VARCHAR) AS event_id, coverage_tier,\n                             date_precision, held FROM {relation['events']}) e\n                  ON e.event_id = d.ident\n                GROUP BY ALL)\n            SELECT t.*, {', '.join(f'coalesce(c.{name}, 0) AS {name}' for name in FACT_METRICS)},\n                   {', '.join(f'coalesce(s.{name}, 0) AS {name}' for name in TIER_FIELDS)}\n            FROM timed t LEFT JOIN counted c USING (kind, id, source, via)\n            LEFT JOIN summary s USING (kind, id, source, via)\n            "
         ):
             scope: Scope = (str(row["kind"]), str(row["id"]), str(row["source"]), str(row["via"]))
             facts.counts[scope] = {name: int(row[name]) for name in (*FACT_METRICS, *TIER_FIELDS)}
@@ -1184,16 +1107,14 @@ class Assembly:
                 facts.unknown_time.add(scope)
         if mode == "enrich":
             for snapshot, events in db.execute(
-                "SELECT snapshot_id, list(DISTINCT ev) FROM f_rec WHERE snapshot_id <> '' "
-                "GROUP BY snapshot_id"
+                "SELECT snapshot_id, LIST(DISTINCT ev) AS _value_1 FROM f_rec WHERE snapshot_id <> '' GROUP BY snapshot_id"
             ).fetchall():
                 facts.selected_snapshots.add(str(snapshot))
                 values = {str(value) for value in events or () if value is not None}
                 if values:
                     facts.snapshot_events[str(snapshot)] = values
             for snapshot, parsers in db.execute(
-                "SELECT snapshot_id, list(DISTINCT parser_version) FROM f_rec "
-                "WHERE snapshot_id <> '' AND parser_version IS NOT NULL GROUP BY snapshot_id"
+                "SELECT snapshot_id, LIST(DISTINCT parser_version) AS _value_1 FROM f_rec WHERE snapshot_id <> '' AND NOT parser_version IS NULL GROUP BY snapshot_id"
             ).fetchall():
                 facts.snapshot_parsers[str(snapshot)] = {str(value) for value in parsers}
         db.execute("DROP TABLE f_scope")
@@ -1205,7 +1126,7 @@ class Assembly:
 
     def run(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         *,
         support: Iterable[Mapping[str, Any]],
         data: BuildInput,
@@ -1342,11 +1263,11 @@ class Assembly:
             snapshots = [
                 {"snapshot_id": row[0]}
                 for row in self.db.execute(
-                    "SELECT DISTINCT CAST(snapshot_id AS VARCHAR) FROM ("
+                    "SELECT DISTINCT CAST(snapshot_id AS VARCHAR) AS snapshot_id FROM ("
                     + " UNION ALL ".join(
                         f"SELECT snapshot_id FROM {relation[name]}" for name in result_tables
                     )
-                    + ") WHERE snapshot_id IS NOT NULL AND snapshot_id <> ''"
+                    + " ) WHERE snapshot_id IS NOT NULL AND snapshot_id <> '' "
                 ).fetchall()
             ]
             finalize({"contests": snapshots, "coverage": self.coverage}, self.witness)
@@ -1546,14 +1467,7 @@ class Assembly:
             events = _files(files["events"])
             placements = _files(files["placements"])
             horizon, covered = self.db.execute(
-                f"""
-                SELECT
-                  (SELECT max(CAST(end_date AS VARCHAR)) FROM read_parquet({events})
-                   WHERE end_date IS NOT NULL),
-                  (SELECT max(CAST(end_date AS VARCHAR)) FROM read_parquet({events})
-                   WHERE end_date IS NOT NULL
-                   AND event_id IN (SELECT event_id FROM read_parquet({placements})))
-                """
+                f"\n                SELECT\n                  (SELECT max(CAST(end_date AS VARCHAR)) FROM read_parquet({events})\n                   WHERE end_date IS NOT NULL),\n                  (SELECT max(CAST(end_date AS VARCHAR)) FROM read_parquet({events})\n                   WHERE end_date IS NOT NULL\n                   AND event_id IN (SELECT event_id FROM read_parquet({placements})))\n                "
             ).fetchone() or (None, None)
             snapshots = self.snapshots
             return StreamedTables(

@@ -13,7 +13,7 @@ from swingset.clock import FakeClock
 from swingset.config import load_config
 from swingset.loops import derive, maintain
 from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, tick
-from swingset.state import guards, queue, rwlock
+from swingset.state import engine, guards, queue, rwlock
 from swingset.state.db import DatabaseLockedError, open_database
 from swingset.state.work import WorkUnit
 
@@ -42,7 +42,7 @@ def projected(monkeypatch):
         derivations.complete(
             database.connection, selection, rows=(), now=clock.now(), run_id=run_id
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     return ran
@@ -82,14 +82,16 @@ def _derive(dirs, clock):
 def _pending(state, stage):
     with open_database(state) as db:
         return db.connection.execute(
-            "SELECT count(*) FROM pending_work WHERE stage=?", (stage,)
+            "SELECT COUNT(*) FROM pending_work WHERE stage = %s", (stage,)
         ).fetchone()[0]
 
 
 def _admit(conn, action_id, kind, run_id, clock):
     conn.execute(
-        "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,"
-        "run_id,all_sources,all_kinds,state) VALUES (?,?,?,0,?,1,1,'active')",
+        (
+            "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+            "run_id, all_sources, all_kinds, state) VALUES (%s, %s, %s, 0, %s, 1, 1, 'active')"
+        ),
         (action_id, kind, clock.now().isoformat(), run_id),
     )
 
@@ -113,16 +115,16 @@ def test_a_derive_tick_completes_units_and_writes_its_run_record(dirs, projected
     assert saved == record
     with open_database(state) as db:
         row = db.connection.execute(
-            "SELECT loop,finished_at FROM runs WHERE run_id=?", (record["run_id"],)
+            "SELECT loop, finished_at FROM runs WHERE run_id = %s", (record["run_id"],)
         ).fetchone()
         assert tuple(row) == ("derive", record["finished_at"])
         progress = db.connection.execute(
-            "SELECT run_id,failed,last_progress_at FROM loop_state WHERE loop='derive'"
+            "SELECT run_id, failed, last_progress_at FROM loop_state WHERE loop = 'derive'"
         ).fetchone()
         assert tuple(progress) == (record["run_id"], 0, record["finished_at"])
         # The units ran with no ledger row (D-0238).
         for table in ("execution_admissions", "execution_dependencies"):
-            assert db.connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+            assert db.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
     # A quiet tick keeps the time of the last progress.
     clock.sleep(60)
     quiet = _derive(dirs, clock)
@@ -130,7 +132,7 @@ def test_a_derive_tick_completes_units_and_writes_its_run_record(dirs, projected
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT last_progress_at FROM loop_state WHERE loop='derive'"
+                "SELECT last_progress_at FROM loop_state WHERE loop = 'derive'"
             ).fetchone()[0]
             == (record["finished_at"])
         )
@@ -146,7 +148,7 @@ def test_per_loop_recovery_closes_only_the_loops_own_dead_runs(dirs):
         conn = db.connection
         for run_id, loop in (("run_dead", "derive"), ("run_live", "acquire")):
             conn.execute(
-                "INSERT INTO runs(run_id,started_at,dry_run,loop) VALUES (?,?,1,?)",
+                "INSERT INTO runs (run_id, started_at, dry_run, loop) VALUES (%s, %s, 1, %s)",
                 (run_id, clock.now().isoformat(), loop),
             )
         begin_attempt(db, WorkUnit("project", "dancer", "a"), now=clock.now(), run_id="run_dead")
@@ -188,16 +190,16 @@ def test_per_loop_recovery_closes_only_the_loops_own_dead_runs(dirs):
     }
     with open_database(state, lock=False) as db:
         conn = db.connection
-        dead = conn.execute("SELECT finished_at,summary_json FROM runs WHERE run_id='run_dead'")
+        dead = conn.execute("SELECT finished_at, summary_json FROM runs WHERE run_id = 'run_dead'")
         finished, summary = dead.fetchone()
         assert finished is not None
         assert json.loads(summary)["error"] == "process_interrupted"
         assert json.loads((state / "runs" / "run_dead.json").read_bytes())["failed"] is True
         assert (
-            conn.execute("SELECT finished_at FROM runs WHERE run_id='run_live'").fetchone()[0]
+            conn.execute("SELECT finished_at FROM runs WHERE run_id = 'run_live'").fetchone()[0]
             is None
         )
-        states = dict(conn.execute("SELECT action_id,state FROM execution_admissions"))
+        states = dict(conn.execute("SELECT action_id, state FROM execution_admissions"))
         assert states == {"dead_action": "settled", "live_action": "active"}
         # The death is a counted failure: the unit backs off 15 minutes.
         failed = queue.get(conn, WorkUnit("project", "dancer", "a"))
@@ -231,7 +233,7 @@ def test_every_loop_settles_admissions_whose_run_is_gone(dirs):
             ("run_cli", None, None),
         ):
             conn.execute(
-                "INSERT INTO runs(run_id,started_at,finished_at,dry_run,loop) VALUES (?,?,?,1,?)",
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, loop) VALUES (%s, %s, %s, 1, %s)",
                 (run_id, clock.now().isoformat(), finished, loop),
             )
         _admit(conn, "old_cli", "fetch", "run_cli", clock)
@@ -247,7 +249,7 @@ def test_every_loop_settles_admissions_whose_run_is_gone(dirs):
         pass
     assert current.summary["recovered"]["admissions"] == 3
     with open_database(state, lock=False) as db:
-        states = dict(db.connection.execute("SELECT action_id,state FROM execution_admissions"))
+        states = dict(db.connection.execute("SELECT action_id, state FROM execution_admissions"))
     assert states == {
         "old_cli": "settled",
         "old_nameless": "settled",
@@ -264,7 +266,7 @@ def test_a_dead_run_whose_record_finished_keeps_that_record(dirs):
     clock = FakeClock()
     with open_database(state) as db:
         db.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run,loop) VALUES ('run_x',?,1,'maintain')",
+            "INSERT INTO runs (run_id, started_at, dry_run, loop) VALUES ('run_x', %s, 1, 'maintain')",
             (clock.now().isoformat(),),
         )
     record = {"run_id": "run_x", "loop": "maintain", "failed": False, "finished_at": "2026-01-01"}
@@ -275,7 +277,7 @@ def test_a_dead_run_whose_record_finished_keeps_that_record(dirs):
     assert current.summary["recovered"]["completed_from_record"] == 1
     with open_database(state, lock=False) as db:
         row = db.connection.execute(
-            "SELECT finished_at,summary_json FROM runs WHERE run_id='run_x'"
+            "SELECT finished_at, summary_json FROM runs WHERE run_id = 'run_x'"
         )
         finished, summary = row.fetchone()
         assert finished == "2026-01-01" and json.loads(summary) == record
@@ -285,11 +287,13 @@ def test_a_derive_tick_starts_no_unit_while_release_holds_the_heavy_lock(dirs, p
     state = dirs[0]
     clock = FakeClock()
     _enqueue(state, clock, ["a", "b"])
-    heavy = rwlock.heavy_exclusive(state, timeout=0)
+    lock_connection = engine.connect(engine.resolve_dsn(state))
+    heavy = rwlock.heavy_exclusive(state, connection=lock_connection, timeout=0)
     try:
         record = _derive(dirs, clock)
     finally:
         heavy.release()
+        lock_connection.close()
     # A build and a derive tick together outgrow the worker (F10).
     assert record["counters"]["heavy_deferred"] == 1 and record["heavy_deferred"] is True
     assert record["stages"] == [] and record["progress"] == 0
@@ -318,8 +322,8 @@ def test_a_tick_skips_while_a_publication_is_in_flight(dirs):
     assert ran == [None, None]
     with open_database(state, lock=False) as db:
         # Nothing was written: the fence would refuse it.
-        assert db.connection.execute("SELECT count(*) FROM runs").fetchone()[0] == 0
-        assert db.connection.execute("SELECT count(*) FROM loop_state").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM loop_state").fetchone()[0] == 0
     # Release, the only publisher among the loops, settles a dead publication.
     with _tick("release", dirs, clock) as current:
         pass
@@ -353,7 +357,7 @@ def test_a_closure_publication_pauses_the_loops_and_a_narrow_one_does_not(dirs, 
     _enqueue(state, clock, ["c"])
     with open_database(state) as db:
         db.connection.execute(
-            "UPDATE execution_admissions SET state='settled',settled_at=?,outcome='published'",
+            "UPDATE execution_admissions SET state = 'settled', settled_at = %s, outcome = 'published'",
             (clock.now().isoformat(),),
         )
         _admit(db.connection, "publication_2", "publication", None, clock)
@@ -366,8 +370,10 @@ def _release_row(state, clock, run_id, skipped, *, completed_build=False):
     """A release tick that finished now, skipped for `skipped` (None: it ran)."""
     with open_database(state) as db:
         db.connection.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,loop,summary_json) "
-            "VALUES (?,?,?,1,'release',?)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, loop, summary_json) VALUES (%s, "
+                "%s, %s, 1, 'release', %s)"
+            ),
             (
                 run_id,
                 clock.now().isoformat(),
@@ -377,9 +383,11 @@ def _release_row(state, clock, run_id, skipped, *, completed_build=False):
         )
         if completed_build:
             db.connection.execute(
-                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
-                "control_revision,run_id,all_sources,all_kinds,state,settled_at,outcome) "
-                "VALUES (?,'build',?,0,?,1,1,'settled',?,'completed')",
+                (
+                    "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                    "run_id, all_sources, all_kinds, state, settled_at, outcome) VALUES (%s, 'build', %s, 0, %s, "
+                    "1, 1, 'settled', %s, 'completed')"
+                ),
                 (f"build-{run_id}", clock.now().isoformat(), run_id, clock.now().isoformat()),
             )
 
@@ -486,7 +494,7 @@ def test_a_completed_build_is_release_progress(dirs):
     with open_database(state) as db:
         conn = db.connection
         conn.execute(
-            "UPDATE execution_admissions SET admitted_at=? WHERE action_kind='build'",
+            "UPDATE execution_admissions SET admitted_at = %s WHERE action_kind = 'build'",
             ((clock.now() - timedelta(seconds=interval + 1)).isoformat(),),
         )
         assert release_lag(conn, config, now=clock.now()) is None
@@ -542,16 +550,22 @@ def test_maintain_prunes_and_checkpoints(dirs):
                 ),
             )
         conn.execute(
-            "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
-            "input_fingerprint,run_id,started_at,updated_at) "
-            "VALUES ('g','project','history','all','f','r',?,?)",
+            (
+                "INSERT INTO derivation_building (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, run_id, started_at, updated_at) VALUES ('g', 'project', 'history', "
+                "'all', 'f', 'r', %s, %s)"
+            ),
             (queue.at(now - timedelta(days=2)),) * 2,
         )
         # A parse whose pending row went (superseded) keeps a failed queue row;
         # a parse still pending keeps its own.
         stamp = queue.at(now)
         conn.execute(
-            "INSERT INTO pending_work VALUES ('parse','snapshot','snap_pending',?)", (stamp,)
+            (
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+                "'snapshot', 'snap_pending', %s)"
+            ),
+            (stamp,),
         )
         for unit_id in ("snap_gone", "snap_pending"):
             queue.upsert(
@@ -608,7 +622,7 @@ def test_maintain_prunes_and_checkpoints(dirs):
             run = db.start_run(datetime.fromisoformat(finished))
             summary = {"loop": loop, "failed": True, "progress": 2, "big": "x" * 1000}
             db.connection.execute(
-                "UPDATE runs SET loop=?,finished_at=?,summary_json=? WHERE run_id=?",
+                "UPDATE runs SET loop = %s, finished_at = %s, summary_json = %s WHERE run_id = %s",
                 (loop, finished, json.dumps(summary), run),
             )
             rows[name] = run
@@ -616,13 +630,16 @@ def test_maintain_prunes_and_checkpoints(dirs):
         for action_id, kind, days in (("old-request", "request", 31), ("old-build", "build", 400)):
             settled = (now - timedelta(days=days)).isoformat()
             db.connection.execute(
-                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
-                "control_revision,all_sources,all_kinds,state,settled_at,outcome) "
-                "VALUES (?,?,?,0,0,0,'settled',?,'completed')",
+                (
+                    "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                    "all_sources, all_kinds, state, settled_at, outcome) VALUES (%s, %s, %s, 0, 0, 0, 'settled', "
+                    "%s, 'completed')"
+                ),
                 (action_id, kind, settled, settled),
             )
             db.connection.execute(
-                "INSERT INTO execution_dependencies VALUES (?,'source','eepro')", (action_id,)
+                "INSERT INTO execution_dependencies (action_id, scope_kind, scope_id) VALUES (%s, 'source', 'eepro')",
+                (action_id,),
             )
     with _tick("maintain", dirs, clock) as current:
         maintain.run(current)
@@ -642,7 +659,7 @@ def test_maintain_prunes_and_checkpoints(dirs):
         summaries = {
             name: json.loads(
                 db.connection.execute(
-                    "SELECT summary_json FROM runs WHERE run_id=?", (run,)
+                    "SELECT summary_json FROM runs WHERE run_id = %s", (run,)
                 ).fetchone()[0]
             )
             for name, run in rows.items()
@@ -662,7 +679,8 @@ def test_maintain_prunes_and_checkpoints(dirs):
     assert record["guards_pruned"] == 2
     assert record["building"] == {"rows": 1, "stale": 1}
     assert record["queue_orphans"] == 1
-    assert set(record["wal"]) == {"busy", "frames", "checkpointed", "bytes"}
+    assert set(record["wal"]) == {"server_managed", "bytes_written", "records", "full_page_images"}
+    assert record["wal"]["server_managed"] is True
     assert record["artifacts"]["removed"] == 0
     # The weekly verify sample ran: nothing is derived here to verify.
     assert record["verify"]["mismatches"] == []
@@ -670,7 +688,9 @@ def test_maintain_prunes_and_checkpoints(dirs):
     with open_database(state, lock=False) as db:
         subjects = [
             row[0]
-            for row in db.connection.execute("SELECT subject FROM guard_reasons ORDER BY subject")
+            for row in db.connection.execute(
+                "SELECT subject FROM guard_reasons ORDER BY subject NULLS FIRST"
+            )
         ]
         assert subjects == ["host:new", "watch:held"]
         left = [row[0] for row in db.connection.execute("SELECT unit_id FROM work_queue")]
@@ -697,11 +717,12 @@ def test_maintain_runs_the_storage_tasks_and_the_weekly_drill(dirs, monkeypatch)
             LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT),
             now=clock.now(),
             versions={"swingset": "test"},
+            headroom=0,
         )
         # This week's verify sample is done, so the tick may drill.
         run = db.start_run(clock.now() - timedelta(days=1))
         db.connection.execute(
-            "UPDATE runs SET loop='maintain',finished_at=?,summary_json=? WHERE run_id=?",
+            "UPDATE runs SET loop = 'maintain', finished_at = %s, summary_json = %s WHERE run_id = %s",
             (
                 (clock.now() - timedelta(days=1)).isoformat(),
                 json.dumps({"verify": {"week": "2025-W53", "complete": True}}),
@@ -768,10 +789,11 @@ def _drill_due(state, clock):
             LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT),
             now=clock.now(),
             versions={"swingset": "test"},
+            headroom=0,
         )
         run = db.start_run(clock.now() - timedelta(days=1))
         db.connection.execute(
-            "UPDATE runs SET loop='maintain',finished_at=?,summary_json=? WHERE run_id=?",
+            "UPDATE runs SET loop = 'maintain', finished_at = %s, summary_json = %s WHERE run_id = %s",
             (
                 (clock.now() - timedelta(days=1)).isoformat(),
                 json.dumps({"verify": {"week": "2025-W53", "complete": True}}),
@@ -830,6 +852,7 @@ def test_a_verify_that_raises_or_never_completes_cannot_starve_the_drill(dirs, m
             LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT),
             now=clock.now(),
             versions={"swingset": "test"},
+            headroom=0,
         )
     from swingset.backup import drill
 
@@ -880,7 +903,9 @@ def test_partial_generations_holding_references_exclude_evicted_and_stripped(tmp
         # An evicted generation with the prefix a stopped `storage.evict` leaves.
         write(database, "dg_prefix", ("project", "event", "e"), SAMPLE, stored=1, point=False)
         with database.transaction():
-            conn.execute("INSERT INTO derivation_evicted VALUES ('dg_prefix','2026-01-01')")
+            conn.execute(
+                "INSERT INTO derivation_evicted (generation_id, evicted_at) VALUES ('dg_prefix', '2026-01-01')"
+            )
         assert incomplete_generations(conn) == {"rows": 2, "refs": 1}
         assert holding_generations(conn) == 1
 
@@ -905,13 +930,15 @@ def test_cli_derive_and_maintain_ticks(dirs):
     assert main(["maintain", *common, "--timer"]) == 0
     loops = {json.loads(path.read_bytes()).get("loop") for path in (state / "runs").glob("*.json")}
     assert loops == {"derive", "maintain"}
-    held = rwlock.exclusive(state, timeout=0)
+    lock_connection = engine.connect(engine.resolve_dsn(state))
+    held = rwlock.exclusive(state, connection=lock_connection, timeout=0)
     try:
         # A writer holds the state: a timer tick skips, a manual one fails.
         assert main(["derive", *common, "--timer"]) == 0
         assert main(["derive", *common]) == 1
     finally:
         held.release()
+        lock_connection.close()
 
 
 # The plan and acquire loops (D-0218).
@@ -969,14 +996,21 @@ def history(dirs, monkeypatch):
         )
         conn.execute("DELETE FROM pending_work")
         conn.execute(
-            "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES (%s, %s, %s, 'explicit', 1)"
+            ),
             (EVENT.source, EVENT.source_ref, EVENT.event_id),
         )
         conn.executemany(
-            "INSERT INTO meta VALUES (?,'true')", [("h7_deployed",), ("h10_deployed",)]
+            "INSERT INTO meta (key, value) VALUES (%s, 'true')",
+            [("h7_deployed",), ("h10_deployed",)],
         )
         conn.executemany(
-            "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+            (
+                "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+                "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained')"
+            ),
             [("eepro", c.url, c.timestamp, c.digest, c.mimetype, c.length, at) for c in CAPTURES],
         )
         f = SimpleNamespace(
@@ -988,20 +1022,23 @@ def history(dirs, monkeypatch):
                 {"web.archive.org": HostConfig(min_gap_seconds=10)}, {"eepro": SourceConfig(True)}
             ),
         )
-        materialize_seeded_outputs(db, now=clock.now(), run_id=run)
-        reviewed_index(f)
+        # Establish the initial runtime while the graph is empty. The fixture's
+        # synthetic baseline is then recorded under that accepted recipe.
         bundle = capture(config, overrides, state, versions())
         accept_inputs(db, bundle, clock)
+        materialize_seeded_outputs(db, now=clock.now(), run_id=run)
+        reviewed_index(f)
         discover(db, bundle, clock.now())
         conn.execute("DELETE FROM pending_work")
-        conn.execute("UPDATE watches SET state='paused',next_check_at=NULL")
+        conn.execute("UPDATE watches SET state = 'paused', next_check_at = NULL")
         accept(f)
         # One ordinary origin watch comes due.
         origin = conn.execute(
-            "SELECT watch_id FROM watches WHERE url='https://eepro.com/results/review-control/'"
+            "SELECT watch_id FROM watches WHERE url = 'https://eepro.com/results/review-control/'"
         ).fetchone()[0]
         conn.execute(
-            "UPDATE watches SET state='live',next_check_at=? WHERE watch_id=?", (at, origin)
+            "UPDATE watches SET state = 'live', next_check_at = %s WHERE watch_id = %s",
+            (at, origin),
         )
         conn.execute("DELETE FROM pending_work")
     return SimpleNamespace(clock=clock, origin=origin, event=EVENT)
@@ -1150,7 +1187,7 @@ def test_acquire_fetches_an_eligible_plan_row_and_a_due_watch_on_facts_alone(
     assert record["checked"] >= 2 and record["progress"] >= 2
     with open_database(dirs[0]) as db:
         loop = db.connection.execute(
-            "SELECT loop FROM runs WHERE run_id=?", (record["run_id"],)
+            "SELECT loop FROM runs WHERE run_id = %s", (record["run_id"],)
         ).fetchone()[0]
         assert loop == "acquire"
 
@@ -1168,7 +1205,7 @@ def test_plan_and_acquire_tick_through_a_narrow_publication(dirs, history):
     with open_database(dirs[0]) as db:
         assert (
             db.connection.execute(
-                "SELECT state FROM execution_admissions WHERE action_id='publication_narrow_1'"
+                "SELECT state FROM execution_admissions WHERE action_id = 'publication_narrow_1'"
             ).fetchone()[0]
             == "active"
         )
@@ -1179,9 +1216,8 @@ def test_a_request_that_raises_holds_its_watch_and_the_pass_goes_on(dirs, histor
     fetched in the same tick and later ones, the tick reports the error, and
     the row waits on a clock, an hour doubling, a week from the third (I3).
     Contention skips the request and holds nothing."""
-    import sqlite3
-
     import swingset.history.backfill as backfill
+    from swingset.state import engine
 
     _plan_tick(dirs, history.clock)
     clock = history.clock
@@ -1198,7 +1234,7 @@ def test_a_request_that_raises_holds_its_watch_and_the_pass_goes_on(dirs, histor
     def due():
         with open_database(dirs[0]) as db:
             db.connection.execute(
-                "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+                "UPDATE watches SET next_check_at = %s WHERE watch_id = %s",
                 (clock.now().isoformat(), history.origin),
             )
 
@@ -1216,7 +1252,7 @@ def test_a_request_that_raises_holds_its_watch_and_the_pass_goes_on(dirs, histor
                 for row in [
                     guards.get(db.connection, subject, guards.REQUEST_ERROR)
                     for (subject,) in db.connection.execute(
-                        "SELECT subject FROM guard_reasons WHERE reason=?",
+                        "SELECT subject FROM guard_reasons WHERE reason = %s",
                         (guards.REQUEST_ERROR,),
                     )
                 ]
@@ -1241,8 +1277,10 @@ def test_a_request_that_raises_holds_its_watch_and_the_pass_goes_on(dirs, histor
         assert held() == [(number, queue.at(clock.now() + hold))]
     # Contention is not the watch's fault: skipped, nothing held or counted.
     with open_database(dirs[0]) as db:
-        db.connection.execute("DELETE FROM guard_reasons WHERE reason=?", (guards.REQUEST_ERROR,))
-    fault[0] = sqlite3.OperationalError("database is locked")
+        db.connection.execute(
+            "DELETE FROM guard_reasons WHERE reason = %s", (guards.REQUEST_ERROR,)
+        )
+    fault[0] = engine.OperationalError("database is locked")
     clock.sleep(600)
     due()
     busy = tick()
@@ -1303,7 +1341,7 @@ def test_a_watch_whose_write_after_its_request_raises_waits_on_its_clock(
         row = guards.get(db.connection, f"watch:{history.origin}", guards.REQUEST_ERROR)
         assert row is not None and row.expires_at == queue.at(clock.now() + timedelta(hours=1))
         db.connection.execute(
-            "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+            "UPDATE watches SET next_check_at = %s WHERE watch_id = %s",
             (clock.now().isoformat(), history.origin),
         )
     clock.sleep(600)
@@ -1317,7 +1355,7 @@ def test_acquire_refuses_a_row_whose_year_digest_changed_after_planning(dirs, hi
     _plan_tick(dirs, history.clock)
     with open_database(dirs[0]) as db:
         # The committed event list moves: the accepted digest no longer matches.
-        db.connection.execute("UPDATE events SET start_date='2019-01-17' WHERE year=2019")
+        db.connection.execute("UPDATE events SET start_date = '2019-01-17' WHERE year = 2019")
     seen, handler = _requests()
     record = _acquire_tick(dirs, history.clock, handler)
     assert record["offered"] == 1
@@ -1392,12 +1430,12 @@ def test_a_release_tick_builds_then_defers_inside_the_build_interval(dirs):
     assert "heavy_wait_seconds" not in again
     with open_database(dirs[0]) as db:
         builds = db.connection.execute(
-            "SELECT count(*) FROM execution_admissions WHERE action_kind='build'"
+            "SELECT COUNT(*) FROM execution_admissions WHERE action_kind = 'build'"
         ).fetchone()[0]
         assert builds == 1
         assert (
             db.connection.execute(
-                "SELECT loop FROM runs WHERE run_id=?", (again["run_id"],)
+                "SELECT loop FROM runs WHERE run_id = %s", (again["run_id"],)
             ).fetchone()[0]
             == "release"
         )
@@ -1453,7 +1491,7 @@ def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM work_attempts WHERE unit_id='during-build'"
+                "SELECT COUNT(*) FROM work_attempts WHERE unit_id = 'during-build'"
             ).fetchone()[0]
             == 0
         )
@@ -1487,7 +1525,8 @@ def test_a_streamed_build_takes_the_heavy_lock_until_streamed_lock_is_off(
     def build(*args, **kwargs):
         during.append(_derive(dirs, clock))
         if not locked:
-            rwlock.heavy_exclusive(state, timeout=0).release()
+            with engine.connect(engine.resolve_dsn(state)) as ownership:
+                rwlock.heavy_exclusive(state, connection=ownership, timeout=0).release()
         return original(*args, **kwargs)
 
     monkeypatch.setattr(release_steps, "build", build)
@@ -1509,11 +1548,13 @@ def test_release_skips_when_derive_holds_the_heavy_lock_past_its_wait(dirs):
     clock = FakeClock()
     _release_path(dirs, "whole")
     _accepted(dirs, clock)
-    heavy = rwlock.heavy_shared(state)
+    lock_connection = engine.connect(engine.resolve_dsn(state))
+    heavy = rwlock.heavy_shared(state, connection=lock_connection)
     try:
         record = _release_tick(dirs, clock, budget=30)
     finally:
         heavy.release()
+        lock_connection.close()
     assert record["skipped"] == "heavy_busy" and not record["failed"]
     assert record["counters"]["heavy_busy"] == 1 and record["heavy_wait_seconds"] >= 30
     assert "candidate_id" not in record
@@ -1541,7 +1582,7 @@ def test_release_refuses_to_build_on_a_full_disk(dirs):
         assert row.expires_at == queue.at(clock.now() + timedelta(hours=1))
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM execution_admissions WHERE action_kind='build'"
+                "SELECT COUNT(*) FROM execution_admissions WHERE action_kind = 'build'"
             ).fetchone()[0]
             == 0
         )
@@ -1569,7 +1610,8 @@ def test_a_release_build_error_is_reported_and_fails_the_tick(dirs, monkeypatch)
     assert record["failed"] and record["error"] is None
     assert record["build_error"] == "BuildError: stale generation"
     # The heavy lock is free again.
-    rwlock.heavy_exclusive(dirs[0], timeout=0).release()
+    with engine.connect(engine.resolve_dsn(dirs[0])) as ownership:
+        rwlock.heavy_exclusive(dirs[0], connection=ownership, timeout=0).release()
 
 
 def test_cli_release_tick(dirs, monkeypatch):
@@ -1601,11 +1643,13 @@ def test_whole_tick_skips_leave_loop_guards_with_expiries(dirs):
         assert row is not None and row.expires_at == queue.at(clock.now() + timedelta(hours=1))
     _accepted(dirs, clock)
     clock.sleep(60)
-    heavy = rwlock.heavy_shared(state)
+    lock_connection = engine.connect(engine.resolve_dsn(state))
+    heavy = rwlock.heavy_shared(state, connection=lock_connection)
     try:
         busy = _release_tick(dirs, clock, budget=1)
     finally:
         heavy.release()
+        lock_connection.close()
     assert busy["skipped"] == "heavy_busy"
     with open_database(state) as db:
         assert guards.get(db.connection, "loop:release", "inputs_not_accepted") is None
@@ -1749,7 +1793,7 @@ def project(database, unit, _bundle, clock, run_id, selection=None):
     if unit.unit_id == "u02":
         os.kill(os.getpid(), signal.SIGTERM)
     derivations.complete(database.connection, selection, rows=(), now=clock.now(), run_id=run_id)
-    database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+    database.connection.execute("DELETE FROM pending_work WHERE unit_id=%s", (unit.unit_id,))
 
 swingset.project.process_unit = project
 sys.exit(main(["derive", "--state", {str(state)!r}, "--config", {str(config)!r},
@@ -1767,15 +1811,18 @@ sys.exit(main(["derive", "--state", {str(state)!r}, "--config", {str(config)!r},
     with open_database(state, lock=False) as db:
         conn = db.connection
         assert (
-            conn.execute("SELECT count(*) FROM work_attempts WHERE outcome='running'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM work_attempts WHERE outcome = 'running'").fetchone()[
+                0
+            ]
             == 0
         )
         assert (
-            conn.execute("SELECT count(*) FROM work_queue WHERE state='leased'").fetchone()[0] == 0
+            conn.execute("SELECT COUNT(*) FROM work_queue WHERE state = 'leased'").fetchone()[0]
+            == 0
         )
         assert (
             conn.execute(
-                "SELECT finished_at FROM runs WHERE run_id=?", (record["run_id"],)
+                "SELECT finished_at FROM runs WHERE run_id = %s", (record["run_id"],)
             ).fetchone()[0]
             is not None
         )

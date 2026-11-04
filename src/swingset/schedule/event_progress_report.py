@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime
 from hashlib import sha256
 from typing import Any
 
 from swingset.config import Config
+from swingset.state import engine
 from swingset.state.event_progress import available
 
 from .event_accounting import available as accounting_available
@@ -16,8 +16,8 @@ from .event_pressure import token
 
 
 def _observation(
-    conn: sqlite3.Connection,
-    row: sqlite3.Row,
+    conn: engine.Connection,
+    row: engine.Row,
     *,
     source: str,
     source_ref: str,
@@ -59,7 +59,7 @@ def _observation(
         result["reasons"] = reasons
         reason = "observation_policy_missing"
         captured = conn.execute(
-            "SELECT policy_json FROM event_progress_policies WHERE digest=?",
+            "SELECT policy_json FROM event_progress_policies WHERE digest = %s",
             (old_token["policy_digest"],),
         ).fetchone()
         if captured is None:
@@ -110,7 +110,7 @@ def _observation(
 
 
 def report(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source: str,
     source_ref: str,
@@ -142,21 +142,18 @@ def report(
     result["progress"] = [
         dict(row)
         for row in conn.execute(
-            "SELECT p.*,o.occurred_at,o.snapshot_id,o.generation_id,o.decision_id FROM event_progress_receipts p "
-            "JOIN event_stage_operations o USING(operation_id) WHERE p.source=? AND p.source_ref=? "
-            "ORDER BY julianday(o.occurred_at) DESC,p.receipt_id DESC LIMIT ?",
+            (
+                "SELECT p.receipt_id, p.source, p.source_ref, p.request_id, p.stage, p.enumeration_id, p.operation_id, p.missing_observed_at, p.verified_at, p.token_json, o.occurred_at, o.snapshot_id, o.generation_id, o.decision_id FROM event_progress_receipts AS p JOIN event_stage_operations AS o USING (operation_id) WHERE p.source = %s AND p.source_ref = %s ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(o.occurred_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, p.receipt_id DESC NULLS LAST LIMIT %s"
+            ),
             (source, source_ref, limit),
         )
     ]
     result["operations"] = [
         dict(row)
         for row in conn.execute(
-            "SELECT o.* FROM event_stage_operations o WHERE o.source=? AND ("
-            "EXISTS(SELECT 1 FROM watches w WHERE w.watch_id=o.watch_id AND w.source=? AND w.source_ref=?) OR "
-            "EXISTS(SELECT 1 FROM source_event_inventory i JOIN source_event_member_watches m USING(enumeration_id) "
-            "WHERE i.source=? AND i.source_ref=? AND m.watch_id=o.watch_id) OR "
-            "EXISTS(SELECT 1 FROM event_progress_receipts p WHERE p.operation_id=o.operation_id AND p.source=? AND p.source_ref=?)) "
-            "ORDER BY o.operation_id DESC LIMIT ?",
+            (
+                "SELECT o.operation_id, o.stage, o.source, o.request_id, o.watch_id, o.snapshot_id, o.generation_id, o.decision_id, o.occurred_at, o.run_id FROM event_stage_operations AS o WHERE o.source = %s AND (EXISTS(SELECT 1 AS _value_0 FROM watches AS w WHERE w.watch_id = o.watch_id AND w.source = %s AND w.source_ref = %s) OR EXISTS(SELECT 1 AS _value_0 FROM source_event_inventory AS i JOIN source_event_member_watches AS m USING (enumeration_id) WHERE i.source = %s AND i.source_ref = %s AND m.watch_id = o.watch_id) OR EXISTS(SELECT 1 AS _value_0 FROM event_progress_receipts AS p WHERE p.operation_id = o.operation_id AND p.source = %s AND p.source_ref = %s)) ORDER BY o.operation_id DESC NULLS LAST LIMIT %s"
+            ),
             (source, source, source_ref, source, source_ref, source, source_ref, limit),
         )
     ]
@@ -166,21 +163,22 @@ def report(
     if result["progress"]:
         result["latest_qualified_operation_at"] = result["progress"][0]["occurred_at"]
         result["last_observed_progress_at"] = conn.execute(
-            "SELECT verified_at FROM event_progress_receipts WHERE source=? AND source_ref=? "
-            "ORDER BY julianday(verified_at) DESC,receipt_id DESC LIMIT 1",
+            (
+                "SELECT verified_at FROM event_progress_receipts WHERE source = %s AND source_ref = %s ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(verified_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, receipt_id DESC NULLS LAST LIMIT 1"
+            ),
             (source, source_ref),
         ).fetchone()[0]
     if result["operations"]:
         result["last_recorded_operation_at"] = result["operations"][0]["occurred_at"]
     assessment = conn.execute(
-        "SELECT assessment_reason,assessed_at FROM event_progress_scans WHERE source=? AND source_ref=?",
+        "SELECT assessment_reason, assessed_at FROM event_progress_scans WHERE source = %s AND source_ref = %s",
         (source, source_ref),
     ).fetchone()
     result["last_membership_assessment"] = dict(assessment) if assessment else None
     for row in conn.execute(
-        "SELECT p.*,EXISTS(SELECT 1 FROM source_event_inventory i JOIN source_event_enumeration_members m USING(enumeration_id) "
-        "WHERE i.source=p.source AND i.source_ref=p.source_ref AND m.request_id=p.request_id) AS currently_listed "
-        "FROM event_progress_observations p WHERE source=? AND source_ref=? ORDER BY request_id,stage LIMIT ?",
+        (
+            "SELECT p.source, p.source_ref, p.request_id, p.stage, p.enumeration_id, p.observed_at, p.valid_until, p.availability, p.operation_frontier, p.token_json, p.reasons_json, CAST(EXISTS(SELECT 1 AS _value_0 FROM source_event_inventory AS i JOIN source_event_enumeration_members AS m USING (enumeration_id) WHERE i.source = p.source AND i.source_ref = p.source_ref AND m.request_id = p.request_id) AS INT) AS currently_listed FROM event_progress_observations AS p WHERE source = %s AND source_ref = %s ORDER BY request_id NULLS FIRST, stage NULLS FIRST LIMIT %s"
+        ),
         (source, source_ref, limit),
     ):
         result["observations"].append(

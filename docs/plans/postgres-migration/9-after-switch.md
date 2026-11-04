@@ -33,6 +33,10 @@ dependencies stated below; otherwise they can run in any order.
 5. **Overrides move into `gov` together.** All eight override tables switch
    in one deploy. The one-time old-to-new hash map is a re-key, so nothing
    re-runs ([2. Schema](2-schema.md#gov-decisions-as-rows)).
+   Before that deploy, test the approval chains: refuse two approved
+   successors for one row; for A → B → C with B and C waiting, refuse
+   withdrawing B but allow withdrawing C then B; refuse withdrawing an
+   active proposal.
 6. **Scraping and safety rules, holds and exceptions next** ([2. Schema](2-schema.md#scraping-and-safety-rules-as-rows)): `gov.sources`, `gov.host_policy`, `gov.fetch_rules` and `gov.settings` replace `hosts.toml`, the policy parts of `sources.toml`, the request floor and User-Agent constants, and the publish switch. Exceptions are the decisions that
    let something through or keep it out: finding dismissals, admission and
    contract reviews, retention holds, approved release decreases and

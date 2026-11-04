@@ -34,7 +34,7 @@ def page(f, name, *, listed):
     spec = add(f, name)
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE watches SET parser=? WHERE watch_id=?",
+            "UPDATE watches SET parser = %s WHERE watch_id = %s",
             ("scoringdance.round" if listed else "scoringdance.event", spec.watch_id),
         )
     return spec
@@ -60,10 +60,10 @@ def test_weighted_share_under_continuous_discovery_with_event_rotation(capacity,
     assert lanes["discovery"] == 200 - 2 * percent
     assert abs(owners["listed-a"] - owners["listed-b"]) <= f.config.scheduler.event_turn_requests
     assert (
-        f.db.connection.execute("SELECT count(*) FROM scheduler_capacity_requests").fetchone()[0]
+        f.db.connection.execute("SELECT COUNT(*) FROM scheduler_capacity_requests").fetchone()[0]
         == 200
     )
-    assert f.db.connection.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 200
+    assert f.db.connection.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 200
 
 
 @pytest.mark.parametrize("listed", [False, True])
@@ -86,7 +86,7 @@ def test_borrowing_preserves_credit_and_does_not_create_catchup_debt(capacity, l
     assert lanes == ["listed_result", "discovery", "listed_result", "discovery"]
     assert (
         f.db.connection.execute(
-            "SELECT count(*) FROM scheduler_capacity_requests WHERE reason='borrowed'"
+            "SELECT COUNT(*) FROM scheduler_capacity_requests WHERE reason = 'borrowed'"
         ).fetchone()[0]
         == 30
     )
@@ -101,7 +101,7 @@ def test_pause_filters_competitor_and_restart_preserves_actual_credit(capacity):
     assert first.capacity.lane == "listed_result"
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE watches SET paused_until='2027-01-01T00:00:00+00:00' WHERE watch_id=?",
+            "UPDATE watches SET paused_until = '2027-01-01T00:00:00+00:00' WHERE watch_id = %s",
             (index.watch_id,),
         )
     borrowed = select(f)
@@ -115,7 +115,9 @@ def test_pause_filters_competitor_and_restart_preserves_actual_credit(capacity):
         == -50
     )
     with f.db.transaction() as conn:
-        conn.execute("UPDATE watches SET paused_until=NULL WHERE watch_id=?", (index.watch_id,))
+        conn.execute(
+            "UPDATE watches SET paused_until = NULL WHERE watch_id = %s", (index.watch_id,)
+        )
     assert select(f).capacity.lane == "discovery"
 
 
@@ -151,9 +153,9 @@ def test_failed_capacity_receipt_rolls_back_host_event_and_share_usage(capacity,
         "scheduler_capacity_requests",
         "scheduler_capacity_service",
     ):
-        assert f.db.connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+        assert f.db.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
     assert (
-        f.db.connection.execute("SELECT coalesce(sum(requests),0) FROM host_budget").fetchone()[0]
+        f.db.connection.execute("SELECT COALESCE(SUM(requests), 0) FROM host_budget").fetchone()[0]
         == 0
     )
     assert f.db.connection.execute("SELECT used FROM scheduler_event_turns").fetchone()[0] == 0
@@ -194,20 +196,20 @@ def test_shared_redirect_chain_charges_one_lane_and_each_actual_host(capacity):
     assert fetched.snapshot_id is not None
     assert sum(calls.values()) == 5
     assert f.db.connection.execute(
-        "SELECT count(*),count(DISTINCT lane) FROM scheduler_capacity_requests"
+        "SELECT COUNT(*) AS requests, COUNT(DISTINCT lane) AS lanes FROM scheduler_capacity_requests"
     ).fetchone()[:] == (5, 1)
-    assert dict(f.db.connection.execute("SELECT host,requests FROM host_budget")) == {
+    assert dict(f.db.connection.execute("SELECT host, requests FROM host_budget")) == {
         "example.test": 2,
         "other.test": 3,
     }
     assert (
         f.db.connection.execute(
-            "SELECT credit FROM scheduler_capacity_service WHERE selected_host='example.test'"
+            "SELECT credit FROM scheduler_capacity_service WHERE selected_host = 'example.test'"
         ).fetchone()[0]
         == -250
     )
     assert (
-        f.db.connection.execute("SELECT count(*) FROM scheduler_capacity_service").fetchone()[0]
+        f.db.connection.execute("SELECT COUNT(*) FROM scheduler_capacity_service").fetchone()[0]
         == 1
     )
     # The entire chain consumes five requests of listed capacity. Other-host
@@ -215,7 +217,7 @@ def test_shared_redirect_chain_charges_one_lane_and_each_actual_host(capacity):
     page(f, "next-result", listed=True)
     with f.db.transaction() as conn:
         conn.execute(
-            "UPDATE watches SET next_check_at='2027-01-01T00:00:00+00:00' WHERE watch_id=?",
+            "UPDATE watches SET next_check_at = '2027-01-01T00:00:00+00:00' WHERE watch_id = %s",
             (result.watch_id,),
         )
     f.clock.sleep(5)

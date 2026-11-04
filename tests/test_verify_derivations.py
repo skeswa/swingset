@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 import test_link_read_sets as linked
+from test_event_enumerations import event as event
 
 from swingset.clock import FakeClock
 from swingset.loops import maintain
@@ -27,7 +28,8 @@ def world(tmp_path):
     with open_database(tmp_path / "state", lock=False) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run',?,1)", (NOW.isoformat(),)
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', %s, 1)",
+            (NOW.isoformat(),),
         )
         linked._events(conn)
         w = linked.World(db=db, conn=conn, clock=FakeClock(NOW), people={}, pages=0)
@@ -45,7 +47,7 @@ def world(tmp_path):
 def _state(conn):
     """Everything a verify must leave as it found it."""
     return {
-        table: conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+        table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         for table in (
             "derivation_generations",
             "derivation_equivalences",
@@ -57,12 +59,13 @@ def _state(conn):
         )
     } | {
         "pointers": conn.execute(
-            "SELECT group_concat(materialized_generation_id) FROM ("
-            "SELECT materialized_generation_id FROM derivation_scopes ORDER BY stage,unit_kind,unit_id)"
+            "SELECT STRING_AGG(materialized_generation_id, ',') FROM (SELECT materialized_generation_id "
+            "FROM derivation_scopes ORDER BY stage NULLS FIRST, unit_kind NULLS FIRST, unit_id NULLS "
+            "FIRST)"
         ).fetchone()[0],
         "links": conn.execute(
-            "SELECT group_concat(subject_id||':'||coalesce(wsdc_id,'')) FROM ("
-            "SELECT subject_id,wsdc_id FROM identity_links ORDER BY subject_id)"
+            "SELECT STRING_AGG(subject_id || ':' || COALESCE(wsdc_id::text, ''), ',') FROM (SELECT subject_id, "
+            "wsdc_id FROM identity_links ORDER BY subject_id NULLS FIRST)"
         ).fetchone()[0],
     }
 
@@ -93,11 +96,11 @@ def test_a_dancer_row_changed_without_a_generation_is_a_read_set_miss(world):
     # A dancer whose name some link's candidates matched, renamed in place:
     # no dancer generation moves, so every link still reads as current.
     wsdc_id, event = w.conn.execute(
-        "SELECT c.wsdc_id,e.event_id FROM link_candidates c JOIN entries e "
-        "ON e.entry_id=c.subject_id ORDER BY c.wsdc_id,e.event_id LIMIT 1"
+        "SELECT c.wsdc_id, e.event_id FROM link_candidates AS c JOIN entries AS e ON e.entry_id = "
+        "c.subject_id ORDER BY c.wsdc_id NULLS FIRST, e.event_id NULLS FIRST LIMIT 1"
     ).fetchone()
     w.conn.execute(
-        "UPDATE dancers SET first_name='Zebulon',last_name='Quixote' WHERE wsdc_id=?",
+        "UPDATE dancers SET first_name = 'Zebulon', last_name = 'Quixote' WHERE wsdc_id = %s",
         (wsdc_id,),
     )
     assert w.stale() == set()
@@ -178,8 +181,8 @@ def test_maintain_verifies_once_a_week(tmp_path):
     assert "verify" in once()
     with open_database(state, lock=False) as db:
         rows = db.connection.execute(
-            "SELECT count(*) FROM runs WHERE loop='maintain' "
-            "AND json_extract(summary_json,'$.verify.week') IS NOT NULL"
+            "SELECT COUNT(*) FROM runs WHERE loop = 'maintain' AND NOT "
+            "JSON_EXTRACT_PATH_TEXT(CAST(summary_json AS JSON), 'verify', 'week') IS NULL"
         ).fetchone()[0]
     assert rows == 2
 
@@ -222,8 +225,11 @@ def test_partitions_withheld_counts_by_reason(tmp_path, capsys):
             ),
         )
         conn.execute(
-            "INSERT INTO release_partitions VALUES ('event/d','d',NULL,'withheld',"
-            "'source_revoked',NULL,?,'run')",
+            (
+                "INSERT INTO release_partitions (partition, inputs_digest, artifact_digest, state, reason, "
+                "detail_json, built_at, run_id) VALUES ('event/d', 'd', NULL, 'withheld', 'source_revoked', "
+                "NULL, %s, 'run')"
+            ),
             (NOW.isoformat(),),
         )
     assert main(["partitions", "--state", str(state), "--withheld"]) == 0
@@ -282,8 +288,10 @@ def test_only_a_complete_sample_makes_the_next_one_wait(world, monkeypatch):
 
     def record(run_id, value):
         w.conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,loop,summary_json) "
-            "VALUES (?,?,?,1,'maintain',?)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, loop, summary_json) VALUES (%s, "
+                "%s, %s, 1, 'maintain', %s)"
+            ),
             (run_id, NOW.isoformat(), NOW.isoformat(), json.dumps({"verify": value})),
         )
 
@@ -305,3 +313,253 @@ def test_only_a_complete_sample_makes_the_next_one_wait(world, monkeypatch):
     record("whole", full)
     assert not verify.due(w.conn, now=later)
     assert verify.due(w.conn, now=NOW + verify.INTERVAL + timedelta(seconds=1))
+
+
+def test_graph_receipt_requires_exact_complete_coverage():
+    from swingset.fetch.archive import canonical, digest
+    from swingset.state import verify_graph
+
+    names = ["project/year/2026", "link/event/a"]
+    good = {
+        "format": verify_graph.FORMAT,
+        "expected_units": names,
+        "unit_set_digest": digest(canonical(names)),
+        "results": [{"unit": n, "state": "match", "generation_id": "g"} for n in names],
+        "audit": {"recipe/env": "new"},
+        "versions": {},
+        "inputs": {},
+        "checkpoint": "frozen",
+        "complete": True,
+        "clean": True,
+        "errors": [],
+    }
+    assert verify_graph.validate_receipt(good, audit=good["audit"], checkpoint="frozen")
+    assert not verify_graph.validate_receipt(good, audit={"recipe/env": "old"})
+    for results in (
+        good["results"][:-1],
+        good["results"] * 2,
+        [*good["results"][:-1], {"unit": names[-1], "state": "failed"}],
+        [*good["results"][:-1], {"unit": names[-1], "state": "superseded"}],
+    ):
+        assert not verify_graph.validate_receipt(good | {"results": results})
+    assert not verify_graph.validate_receipt(good | {"errors": ["interrupted"]})
+    different = [good["results"][0], good["results"][1] | {"state": "mismatch"}]
+    assert not verify_graph.validate_receipt(good | {"results": different})
+    assert verify_graph.validate_receipt(good | {"results": different, "clean": False})
+
+
+def test_graph_verification_runs_on_copies_and_binds_dependencies(world, tmp_path):
+    from swingset.state import verify_graph
+
+    before = _state(world.conn)
+    receipt = verify_graph.run(
+        world.db.state_dir, linked.Bundle(), scopes=["link"], receipt_path=tmp_path / "receipt.json"
+    )
+    assert receipt["complete"], receipt
+    assert receipt["clean"], receipt
+    assert verify_graph.validate_receipt(receipt)
+    assert len(receipt["results"]) == len(linked.EVENTS)
+    assert all(
+        result["expected_dependencies"] in result["found_dependencies"]
+        for result in receipt["results"]
+    )
+    assert _state(world.conn) == before
+    assert json.loads((tmp_path / "receipt.json").read_text()) == receipt
+
+
+def test_graph_source_replay_compares_extract_and_parse_and_shards(tmp_path):
+    from test_admission import Corpus
+
+    from swingset.state import verify_graph
+
+    with open_database(tmp_path / "source", lock=False) as db:
+        corpus = Corpus(db)
+        generation, _ = corpus.stage(corpus.snapshot("one"))
+        corpus.review(generation)
+        assert corpus.admit(generation) == "accepted"
+        receipt = verify_graph.run(
+            db.state_dir, linked.Bundle(), scopes=["parse", "extract"], processes=2
+        )
+        assert receipt["complete"] and receipt["clean"], receipt
+        assert len(receipt["results"]) == 2
+        assert all(r["generation_id"] == generation for r in receipt["results"])
+        assert verify_graph.validate_receipt(receipt)
+
+
+def test_postgres_frozen_copy_pins_all_tables_and_preserves_sequence_floors(tmp_path, monkeypatch):
+    import psycopg
+
+    from swingset.dev.services import ensure_service
+    from swingset.state.postgres_copy import Copies
+
+    service = ensure_service()
+    with open_database(tmp_path / "source", lock=False) as source:
+        source.connection.execute(
+            "INSERT INTO ops.meta(key,value) VALUES('copy-left','old'),('copy-right','old')"
+        )
+        source.connection.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES('copy-sequence','2026-01-01T00:00:00+00:00',1)"
+        )
+        floor = source.connection.execute(
+            "SELECT nextval(pg_get_serial_sequence('fetch.watches','rowid')) AS value"
+        ).fetchone()[0]
+        source_id = source.connection.execute(
+            "SELECT database_id FROM ops.environment_identity"
+        ).fetchone()[0]
+        with service.connect(source.connection.info.dbname) as admin:
+            admin.execute("UPDATE ops.environment_identity SET environment='production'")
+        original = psycopg.Cursor.copy
+        changed = False
+
+        def concurrent_change(cursor, statement, *args, **kwargs):
+            nonlocal changed
+            if cursor.connection is source.connection and not changed:
+                # The frozen read snapshot already exists, but no table's
+                # binary stream has been copied yet.
+                with service.connect(source.connection.info.dbname) as writer:
+                    writer.execute(
+                        "UPDATE ops.meta SET value='new' WHERE key IN('copy-left','copy-right')"
+                    )
+                changed = True
+            return original(cursor, statement, *args, **kwargs)
+
+        monkeypatch.setattr(psycopg.Cursor, "copy", concurrent_change)
+        with Copies(source.state_dir) as copies:
+            state = tmp_path / "frozen"
+            copies.freeze(source.connection, state)
+            with open_database(state, lock=False) as frozen:
+                assert frozen.environment == "dev"
+                assert (
+                    frozen.connection.execute(
+                        "SELECT database_id FROM ops.environment_identity"
+                    ).fetchone()[0]
+                    != source_id
+                )
+                assert [
+                    row[0]
+                    for row in frozen.connection.execute(
+                        "SELECT value FROM ops.meta WHERE key IN('copy-left','copy-right') ORDER BY key"
+                    )
+                ] == ["old", "old"]
+                assert (
+                    frozen.connection.execute(
+                        "SELECT nextval(pg_get_serial_sequence('fetch.watches','rowid')) AS value"
+                    ).fetchone()[0]
+                    > floor
+                )
+        assert changed
+        assert [
+            row[0]
+            for row in source.connection.execute(
+                "SELECT value FROM ops.meta WHERE key IN('copy-left','copy-right') ORDER BY key"
+            )
+        ] == ["new", "new"]
+
+
+def test_failed_postgres_copy_removes_only_its_owned_database(tmp_path, monkeypatch):
+    import psycopg
+
+    from swingset.dev.services import ensure_service
+    from swingset.state.postgres_copy import Copies
+
+    service = ensure_service()
+    with open_database(tmp_path / "source", lock=False) as source:
+        identifier = source.connection.info.dbname
+
+        def fail(*args, **kwargs):
+            raise RuntimeError("interrupted binary stream")
+
+        monkeypatch.setattr(psycopg.Cursor, "copy", fail)
+        with pytest.raises(RuntimeError, match="interrupted binary stream"):
+            with Copies(source.state_dir) as copies:
+                copies.freeze(source.connection, tmp_path / "failed-copy")
+        with service.connect() as admin:
+            names = {row[0] for row in admin.execute("SELECT datname FROM pg_database")}
+        assert identifier in names
+        assert not set(copies.record["databases"]) & names
+
+
+def test_graph_new_dependency_is_difference_even_with_identical_output(world, monkeypatch):
+    from swingset.state import derivation_dependencies, verify_graph
+
+    original = derivation_dependencies.dependencies
+
+    def extra(conn, unit, selected, **kwargs):
+        dependencies, groups = original(conn, unit, selected, **kwargs)
+        if unit.stage == "link":
+            dependencies.append(selected(conn, WorkUnit("project", "dancer", "never-present")))
+        return dependencies, groups
+
+    monkeypatch.setattr(derivation_dependencies, "dependencies", extra)
+    name = f"link/event/{linked.EVENTS[0]}"
+    result = verify_graph._derive(world.db, name, linked.Bundle(), world.clock)
+    assert result["state"] == "mismatch", result
+    assert result["reason"] == "dependencies_changed"
+    assert result["found"] == result["expected"]
+
+
+def test_graph_entire_projection_and_link_fixture(world):
+    from swingset.state import verify_graph
+
+    receipt = verify_graph.run(world.db.state_dir, linked.Bundle())
+    assert receipt["complete"] and receipt["clean"], receipt
+    stages = {r["unit"].split("/")[0] for r in receipt["results"]}
+    assert stages == {"project", "link"}
+    kinds = {r["unit"].split("/")[1] for r in receipt["results"]}
+    assert {"dancer", "event", "year"} <= kinds
+
+
+def test_graph_replays_the_33_page_event_cohort(event):
+    from test_event_enumerations import admit_parent, child, finish_bootstrap
+
+    from swingset.state import verify_graph
+
+    names = [f"round-{number:02}.htm" for number in range(33)]
+    admit_parent(event, names)
+    finish_bootstrap(event)
+    for name in names:
+        child(event, name)
+    receipt = verify_graph.run(event.db.state_dir, linked.Bundle(), processes=2)
+    assert receipt["complete"] and receipt["clean"], receipt
+    assert len(receipt["results"]) == 68  # parent + 33 rounds; extract and parse
+    assert verify_graph.validate_receipt(receipt)
+
+
+def test_graph_ignores_retired_scopes_with_retained_pointers(world):
+    from swingset.state import verify_graph
+
+    generation = world.conn.execute(
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = 'project' LIMIT 1"
+    ).fetchone()[0]
+    for kind, identifier in (("history", "all"), ("map", "all"), ("year", "all")):
+        world.conn.execute(
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, materialized_generation_id, "
+                "registered_at) VALUES ('project', %s, %s, %s, '2026-01-01T00:00:00+00:00')"
+            ),
+            (kind, identifier, generation),
+        )
+    names = verify_graph.enumerate_units(world.conn)
+    assert all(
+        name not in names for name in ("project/history/all", "project/map/all", "project/year/all")
+    )
+
+
+def test_graph_clone_fallback_removes_partial_copy_and_never_hardlinks(tmp_path, monkeypatch):
+    import subprocess
+
+    from swingset.state import verify_graph
+
+    source, destination = tmp_path / "source.sqlite", tmp_path / "clone.sqlite"
+    source.write_bytes(b"frozen checkpoint")
+
+    def unsupported(*args, **kwargs):
+        destination.write_bytes(b"partial failed clone")
+        return subprocess.CompletedProcess(args[0], 1)
+
+    monkeypatch.setattr(verify_graph.subprocess, "run", unsupported)
+    assert verify_graph._clone_checkpoint(source, destination) == "full_copy"
+    assert destination.read_bytes() == source.read_bytes()
+    assert destination.stat().st_ino != source.stat().st_ino
+    destination.write_bytes(b"scratch writes")
+    assert source.read_bytes() == b"frozen checkpoint"

@@ -11,15 +11,13 @@ checkpoint at 34 round-trips, and that code at 33 refuses a 34 file.
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from swingset.clock import FakeClock
-from swingset.state import db as db_module
-from swingset.state import loop_state, queue
+from swingset.state import engine, loop_state, queue
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit
 
@@ -28,25 +26,33 @@ AT = "2026-09-25T00:00:00Z"
 TABLES = ("work_queue", "acquisition_plan", "guard_reasons", "loop_state", "derivation_building")
 
 
-def insert(conn: sqlite3.Connection, table: str) -> None:
+def insert(conn: engine.Connection, table: str) -> None:
     """One valid row in `table`."""
     values = {
-        "work_queue": "INSERT INTO work_queue(stage,unit_kind,unit_id,partition,state,"
-        "enqueued_at,updated_at) VALUES ('parse','snapshot','s1','snapshot/s1','ready',?,?)",
-        "acquisition_plan": "INSERT INTO acquisition_plan(plan_key,kind,year,reason,"
-        "planned_at,run_id) VALUES ('year:2024','year',2024,'eligible',?,?)",
-        "guard_reasons": "INSERT INTO guard_reasons(subject,reason,loop,since,last_seen_at,"
-        "expires_at) VALUES ('host:a.test','request budget','acquire',?,?,'2026-09-26')",
-        "loop_state": "INSERT INTO loop_state(loop,run_id,updated_at) VALUES ('derive',?,?)",
-        "derivation_building": "INSERT INTO derivation_building(generation_id,stage,unit_kind,"
-        "unit_id,input_fingerprint,run_id,started_at,updated_at) "
-        "VALUES ('g1','project','history','all','fp','r1',?,?)",
+        "work_queue": (
+            "INSERT INTO work_queue (stage, unit_kind, unit_id, partition, state, enqueued_at, "
+            "updated_at) VALUES ('parse', 'snapshot', 's1', 'snapshot/s1', 'ready', %s, %s)"
+        ),
+        "acquisition_plan": (
+            "INSERT INTO acquisition_plan (plan_key, kind, year, reason, planned_at, run_id) VALUES "
+            "('year:2024', 'year', 2024, 'eligible', %s, %s)"
+        ),
+        "guard_reasons": (
+            "INSERT INTO guard_reasons (subject, reason, loop, since, last_seen_at, expires_at) VALUES "
+            "('host:a.test', 'request budget', 'acquire', %s, %s, '2026-09-26')"
+        ),
+        "loop_state": "INSERT INTO loop_state (loop, run_id, updated_at) VALUES ('derive', %s, %s)",
+        "derivation_building": (
+            "INSERT INTO derivation_building (generation_id, stage, unit_kind, unit_id, "
+            "input_fingerprint, run_id, started_at, updated_at) VALUES ('g1', 'project', 'history', "
+            "'all', 'fp', 'r1', %s, %s)"
+        ),
     }
     conn.execute(values[table], (AT, AT))
 
 
 def attempt(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     run_id: str,
     unit: WorkUnit,
     outcome: str,
@@ -57,9 +63,11 @@ def attempt(
     evidence: dict[str, str] | None = None,
 ) -> None:
     conn.execute(
-        "INSERT INTO work_attempts(stage,unit_kind,unit_id,queue_generation,retry_generation,"
-        "work_token,input_fingerprint,run_id,started_at,finished_at,outcome,reason_code,"
-        "evidence_json,retry_at) VALUES (?,?,?,1,0,'token',?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO work_attempts (stage, unit_kind, unit_id, queue_generation, retry_generation, "
+            "work_token, input_fingerprint, run_id, started_at, finished_at, outcome, reason_code, "
+            "evidence_json, retry_at) VALUES (%s, %s, %s, 1, 0, 'token', %s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             unit.stage,
             unit.unit_kind,
@@ -76,9 +84,9 @@ def attempt(
     )
 
 
-def pending(conn: sqlite3.Connection, unit: WorkUnit) -> None:
+def pending(conn: engine.Connection, unit: WorkUnit) -> None:
     conn.execute(
-        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES (?,?,?,?)",
+        "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES (%s, %s, %s, %s)",
         (unit.stage, unit.unit_kind, unit.unit_id, AT),
     )
 
@@ -92,109 +100,8 @@ FRESH = WorkUnit("parse", "snapshot", "fresh")
 CHANGED = WorkUnit("project", "event", "changed")
 
 
-def test_migration_from_33_seeds_failing_units(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = tmp_path / "state"
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 33)
-        with open_database(state, lock=False) as database:
-            assert database.schema_version == 33
-            conn = database.connection
-            run_id = database.start_run(NOW)
-            with database.transaction():
-                for unit in (BLOCKED, FAILING, EXCEPTION, IO, DONE, FRESH, CHANGED):
-                    pending(conn, unit)
-                attempt(conn, run_id, BLOCKED, "blocked", "parse_failed")
-                for _ in range(3):
-                    attempt(
-                        conn,
-                        run_id,
-                        FAILING,
-                        "transient",
-                        "write_deadline_exceeded",
-                        retry_at=NOW + timedelta(minutes=15),
-                    )
-                for _ in range(4):
-                    attempt(
-                        conn,
-                        run_id,
-                        EXCEPTION,
-                        "transient",
-                        "unit_exception",
-                        evidence={"exception": "ValueError", "message": "bad row"},
-                        retry_at=NOW + timedelta(hours=1),
-                    )
-                for _ in range(25):
-                    attempt(conn, run_id, IO, "transient", "unit_io_error", retry_at=NOW)
-                attempt(conn, run_id, DONE, "transient", "unit_io_error", retry_at=NOW)
-                attempt(conn, run_id, DONE, "succeeded", None)
-                # Two failures on an old fingerprint, one on the new: a run of 1.
-                attempt(conn, run_id, CHANGED, "transient", "nondeterministic_output")
-                attempt(conn, run_id, CHANGED, "transient", "nondeterministic_output")
-                attempt(
-                    conn, run_id, CHANGED, "transient", "nondeterministic_output", fingerprint="new"
-                )
-            for table in TABLES:
-                assert (
-                    conn.execute("SELECT 1 FROM sqlite_master WHERE name=?", (table,)).fetchone()
-                    is None
-                )
-
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 34)
-    with open_database(state, lock=False, clock=FakeClock(NOW)) as database:
-        conn = database.connection
-        assert database.schema_version == 34
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 34
-        assert "loop" in {row[1] for row in conn.execute("PRAGMA table_info(runs)")}
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        for table in TABLES:
-            for action in ("insert", "update", "delete"):
-                name = f"publication_fence_{table}_{action}"
-                assert conn.execute(
-                    "SELECT 1 FROM sqlite_master WHERE type='trigger' AND name=?", (name,)
-                ).fetchone()
-            assert not conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='trigger' AND name LIKE ?",
-                (f"history_timing_{table}_%",),
-            ).fetchone()
-
-        blocked = queue.get(conn, BLOCKED)
-        assert blocked is not None
-        assert blocked.state == "waiting_input"
-        assert blocked.attempts == 1
-        assert blocked.error_class == "parse_failed"
-        assert blocked.partition == "snapshot/blocked"
-        assert blocked.next_attempt_at == queue.at(NOW + timedelta(hours=24))
-
-        failing = queue.get(conn, FAILING)
-        assert failing is not None
-        assert (failing.state, failing.attempts) == ("ready", 2)
-        assert failing.next_attempt_at == queue.at(NOW + timedelta(minutes=15))
-        assert failing.lease_owner is None and failing.quarantined_at is None
-
-        raising = queue.get(conn, EXCEPTION)
-        assert raising is not None
-        assert (raising.state, raising.attempts) == ("ready", 2)
-        assert raising.error_class == "unit_exception:ValueError"
-        assert raising.last_error == "bad row"
-
-        io = queue.get(conn, IO)
-        assert io is not None
-        assert (io.state, io.attempts) == ("ready", 19)
-
-        changed = queue.get(conn, CHANGED)
-        assert changed is not None
-        assert (changed.attempts, changed.input_fingerprint) == (1, "new")
-
-        assert queue.get(conn, DONE) is None
-        assert queue.get(conn, FRESH) is None
-        assert queue.counts_by_state(conn) == {
-            "ready": 4,
-            "leased": 0,
-            "waiting_input": 1,
-            "quarantined": 0,
-        }
+def test_migration_from_33_seeds_failing_units(legacy_sqlite):
+    legacy_sqlite.assert_case("test_work_queue.py", "test_migration_from_33_seeds_failing_units")
 
 
 def test_seed_keeps_a_later_retry_and_parks_unsupported_pages(tmp_path: Path) -> None:
@@ -241,9 +148,9 @@ def test_check_constraints_refuse_bad_rows(tmp_path: Path) -> None:
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         base = (
-            "INSERT INTO work_queue(stage,unit_kind,unit_id,partition,state,attempts,"
-            "lease_owner,lease_until,next_attempt_at,enqueued_at,updated_at) "
-            "VALUES (?,'snapshot','s1','snapshot/s1',?,?,?,?,?,?,?)"
+            "INSERT INTO work_queue (stage, unit_kind, unit_id, partition, state, attempts, lease_owner, "
+            "lease_until, next_attempt_at, enqueued_at, updated_at) VALUES (%s, 'snapshot', 's1', "
+            "'snapshot/s1', %s, %s, %s, %s, %s, %s, %s)"
         )
         refused = [
             ("parse", "leased", 0, None, "2026-09-26", None),
@@ -256,21 +163,25 @@ def test_check_constraints_refuse_bad_rows(tmp_path: Path) -> None:
             ("parse", "ready", -1, None, None, None),
         ]
         for stage, state, attempts, owner, until, due in refused:
-            with pytest.raises(sqlite3.IntegrityError, match="CHECK"):
+            with pytest.raises(engine.IntegrityError, match="SQLSTATE 23514"):
                 with database.transaction():
                     conn.execute(base, (stage, state, attempts, owner, until, due, AT, AT))
         with database.transaction():
             conn.execute(base, ("parse", "leased", 0, "derive:r1", "2026-09-26", None, AT, AT))
-        with pytest.raises(sqlite3.IntegrityError, match="CHECK"):
+        with pytest.raises(engine.IntegrityError, match="SQLSTATE 23514"):
             with database.transaction():
                 conn.execute(
-                    "INSERT INTO acquisition_plan(plan_key,kind,reason,planned_at,run_id) "
-                    "VALUES ('x','month','eligible',?,'r1')",
+                    (
+                        "INSERT INTO acquisition_plan (plan_key, kind, reason, planned_at, run_id) VALUES ('x', "
+                        "'month', 'eligible', %s, 'r1')"
+                    ),
                     (AT,),
                 )
-        with pytest.raises(sqlite3.IntegrityError, match="CHECK"):
+        with pytest.raises(engine.IntegrityError, match="SQLSTATE 23514"):
             with database.transaction():
-                conn.execute("INSERT INTO loop_state(loop,updated_at) VALUES ('fetch',?)", (AT,))
+                conn.execute(
+                    "INSERT INTO loop_state (loop, updated_at) VALUES ('fetch', %s)", (AT,)
+                )
 
 
 @pytest.mark.parametrize("table", TABLES)
@@ -279,15 +190,16 @@ def test_an_active_publication_blocks_writes(tmp_path: Path, table: str) -> None
         conn = database.connection
         with database.transaction():
             conn.execute(
-                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
-                "control_revision,all_sources,all_kinds,state) "
-                "VALUES ('publishing','publication',?,0,1,1,'active')",
+                (
+                    "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                    "all_sources, all_kinds, state) VALUES ('publishing', 'publication', %s, 0, 1, 1, 'active')"
+                ),
                 (AT,),
             )
-        with pytest.raises(sqlite3.IntegrityError, match="active publication fences"):
+        with pytest.raises(engine.IntegrityError, match="active publication fences"):
             with database.transaction():
                 insert(conn, table)
-        assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
 
 def test_queue_and_loop_state_rows_round_trip(tmp_path: Path) -> None:
@@ -343,59 +255,14 @@ def test_error_class_names_the_exception_type() -> None:
     assert queue.Policy().quarantine_threshold("unit_exception:KeyError") == 3
 
 
-def test_a_checkpoint_at_schema_34_verifies_and_restores(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    from swingset.backup.checkpoint import (
-        create_checkpoint,
-        restore_checkpoint,
-        verify_checkpoint,
+def test_a_checkpoint_at_schema_34_verifies_and_restores(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_work_queue.py", "test_a_checkpoint_at_schema_34_verifies_and_restores"
     )
 
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 34)
-    state = tmp_path / "state"
-    with open_database(state, lock=False) as database:
-        conn = database.connection
-        with database.transaction():
-            for table in TABLES:
-                insert(conn, table)
-        expected = {
-            table: sorted(tuple(row) for row in conn.execute(f"SELECT * FROM {table}"))
-            for table in TABLES
-        }
-        checkpoint = create_checkpoint(
-            state,
-            conn,
-            tmp_path / "checkpoint",
-            schema_version=database.schema_version,
-            versions={},
-            input_bundle_hash=None,
-        )
-    manifest = verify_checkpoint(checkpoint.path, maximum_schema_version=34)
-    assert int(manifest["schema_version"]) == 34
 
-    restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=34)
-    with open_database(restored, lock=False, allow_restore_pending=True) as database:
-        assert database.schema_version == 34
-        assert {
-            table: sorted(
-                tuple(row) for row in database.connection.execute(f"SELECT * FROM {table}")
-            )
-            for table in TABLES
-        } == expected
-
-
-def test_schema_33_code_refuses_a_schema_34_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = tmp_path / "state"
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 34)
-    with open_database(state, lock=False) as database:
-        assert database.schema_version == 34
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
-    with pytest.raises(RuntimeError, match="schema 34 is newer than supported 33"):
-        open_database(state, lock=False)
+def test_schema_33_code_refuses_a_schema_34_file(legacy_sqlite):
+    legacy_sqlite.assert_case("test_work_queue.py", "test_schema_33_code_refuses_a_schema_34_file")
 
 
 # WP3: the queue's policy, in `derive_one` and on its own (D-0216).
@@ -505,7 +372,7 @@ def _unit_world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, raises: dict[st
             now=clock.now(),
             run_id=run_id,
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     return clock, seen
@@ -596,8 +463,11 @@ def _failing_parse(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, db, clock, r
     watch = WatchSpec("", "wsdc_calendar", "index", "GET", "https://example.test/events", "x")
     upsert_watch(db.connection, watch, clock.now())
     db.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-        "body_bytes,content_changed,run_id,classification) VALUES ('s1',?,'GET',?,?,200,0,1,?,'Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES ('s1', %s, 'GET', %s, %s, 200, "
+            "0, 1, %s, 'Ok')"
+        ),
         (watch.watch_id, watch.url, clock.now().isoformat(), run),
     )
     unit = WorkUnit("parse", "snapshot", "s1")
@@ -724,12 +594,12 @@ def test_a_dead_lease_is_taken_over_and_its_attempt_closed(
         run = db.start_run(clock.now())
         with queue.owning("derive", run):
             fingerprint = db.connection.execute(
-                "SELECT input_fingerprint FROM work_attempts WHERE attempt_id=?", (dead,)
+                "SELECT input_fingerprint FROM work_attempts WHERE attempt_id = %s", (dead,)
             ).fetchone()[0]
             assert eligible(db.connection, unit, fingerprint, clock.now()) is taken
             outcome = derive_one(db, Archive(tmp_path), unit, _bundle(tmp_path), clock, run)
         closed = db.connection.execute(
-            "SELECT outcome,reason_code FROM work_attempts WHERE attempt_id=?", (dead,)
+            "SELECT outcome, reason_code FROM work_attempts WHERE attempt_id = %s", (dead,)
         ).fetchone()
         # A unit carries no admission (D-0238): the lease and attempt alone
         # record it, and takeover recovers both.
@@ -804,7 +674,7 @@ def test_requeue_by_class_resets_counts_and_requests_a_retry(tmp_path: Path) -> 
         assert queue.get(conn, EXCEPTION).state == "quarantined"  # type: ignore[union-attr]
         assert queue.get(conn, BLOCKED).state == "waiting_input"  # type: ignore[union-attr]
         reason = conn.execute(
-            "SELECT retry_reason FROM work_generations WHERE unit_id=?", (FAILING.unit_id,)
+            "SELECT retry_reason FROM work_generations WHERE unit_id = %s", (FAILING.unit_id,)
         ).fetchone()[0]
         assert reason == "operator_requeue by operator test"
     assert cli.main(["queue", "--state", str(state), "--json"]) == 0

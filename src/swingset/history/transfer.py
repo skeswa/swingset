@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +15,7 @@ from swingset.model.history import HISTORY_START
 from swingset.schedule.parse import parse_snapshot
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
+from swingset.state import engine
 from swingset.state.db import Database
 from swingset.state.work import WorkUnit
 
@@ -37,12 +37,39 @@ def export_evidence(
     ledger = json.loads((database.state_dir / "phase1-ledger.json").read_bytes())
     ids = {row.get("snapshot_id") for row in ledger["targets"].values()} - {None}
     snapshots = [
-        dict(conn.execute("SELECT * FROM snapshots WHERE snapshot_id=?", (identifier,)).fetchone())
+        dict(
+            conn.execute(
+                (
+                    "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                    "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                    "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                    "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                    "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                    "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                    "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                    "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                    "snapshots.extract_recipe_sha256 FROM snapshots WHERE snapshot_id = %s"
+                ),
+                (identifier,),
+            ).fetchone()
+        )
         for identifier in sorted(ids)
     ]
     watches = {
         row["watch_id"]: dict(
-            conn.execute("SELECT * FROM watches WHERE watch_id=?", (row["watch_id"],)).fetchone()
+            conn.execute(
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (row["watch_id"],),
+            ).fetchone()
         )
         for row in snapshots
     }
@@ -50,7 +77,13 @@ def export_evidence(
         raise ValueError("phase1 export contains a non-event-list watch")
     runs = {
         row["run_id"]: dict(
-            conn.execute("SELECT * FROM runs WHERE run_id=?", (row["run_id"],)).fetchone()
+            conn.execute(
+                (
+                    "SELECT runs.run_id, runs.started_at, runs.finished_at, runs.dry_run, runs.summary_json, "
+                    "runs.loop FROM runs WHERE run_id = %s"
+                ),
+                (row["run_id"],),
+            ).fetchone()
         )
         for row in snapshots
     }
@@ -88,21 +121,41 @@ def export_evidence(
         "archive_queries": [
             dict(row)
             for row in conn.execute(
-                "SELECT * FROM archive_queries WHERE source IN ('wsdc_calendar','swingdancecouncil')"
+                "SELECT archive_queries.query_id, archive_queries.source, archive_queries.prefix, "
+                "archive_queries.year, archive_queries.next_page, archive_queries.total_pages, "
+                "archive_queries.completed_at, archive_queries.started_at FROM archive_queries WHERE source "
+                "IN ('wsdc_calendar', 'swingdancecouncil')"
             )
         ],
         "archive_captures": [
             dict(row)
             for row in conn.execute(
-                "SELECT * FROM archive_captures WHERE source IN ('wsdc_calendar','swingdancecouncil')"
+                "SELECT archive_captures.source, archive_captures.url, archive_captures.timestamp, "
+                "archive_captures.digest, archive_captures.status, archive_captures.mimetype, "
+                "archive_captures.length, archive_captures.queried_at, archive_captures.cdx_query_id FROM "
+                "archive_captures WHERE source IN ('wsdc_calendar', 'swingdancecouncil')"
             )
         ],
         "hosts": [
-            dict(row) for row in conn.execute("SELECT * FROM hosts WHERE host IN (?,?,?)", _HOSTS)
+            dict(row)
+            for row in conn.execute(
+                (
+                    "SELECT hosts.host, hosts.next_allowed_at, hosts.paused_until, hosts.pause_reason, "
+                    "hosts.pause_streak, hosts.robots_sha256, hosts.robots_fetched_at, hosts.robots_status FROM "
+                    "hosts WHERE host IN (%s, %s, %s)"
+                ),
+                _HOSTS,
+            )
         ],
         "host_budget": [
             dict(row)
-            for row in conn.execute("SELECT * FROM host_budget WHERE host IN (?,?,?)", _HOSTS)
+            for row in conn.execute(
+                (
+                    "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM "
+                    "host_budget WHERE host IN (%s, %s, %s)"
+                ),
+                _HOSTS,
+            )
         ],
     }
     for host in manifest["hosts"]:
@@ -112,15 +165,18 @@ def export_evidence(
     return {"snapshots": len(snapshots), "watches": len(watches)}
 
 
-def _insert(conn: sqlite3.Connection, table: str, row: dict[str, Any]) -> bool:
-    allowed = {str(column[1]) for column in conn.execute(f"PRAGMA table_info({table})")}
+def _insert(conn: engine.Connection, table: str, row: dict[str, Any]) -> bool:
+    from swingset.state.schema_catalog import columns as column_names
+
+    allowed = set(column_names(conn, table))
     if not set(row) <= allowed:
         raise ValueError(f"unknown {table} fields in phase1 export")
     columns = ",".join(row)
-    marks = ",".join("?" for _ in row)
+    marks = ",".join("%s" for _ in row)
     return bool(
         conn.execute(
-            f"INSERT OR IGNORE INTO {table}({columns}) VALUES ({marks})", tuple(row.values())
+            f"INSERT INTO {table}({columns}) VALUES ({marks}) ON CONFLICT DO NOTHING",
+            tuple(row.values()),
         ).rowcount
         > 0
     )
@@ -194,7 +250,7 @@ def import_evidence(database: Database, package: Path, *, clock: Clock) -> dict[
             run_id=run_id,
         )
         conn.execute(
-            "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+            "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
             (
                 clock.now().isoformat(),
                 json.dumps({"imported": imported, "parse_failures": failed}),
@@ -221,7 +277,17 @@ def _merge_evidence(
             _insert(conn, "runs", row)
         for watch_id, row in watches.items():
             existing = conn.execute(
-                "SELECT * FROM watches WHERE watch_id=?", (watch_id,)
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (watch_id,),
             ).fetchone()
             if existing:
                 preserved[watch_id] = dict(existing)
@@ -240,7 +306,7 @@ def _merge_evidence(
             )
         for row in manifest["snapshots"]:
             prior = conn.execute(
-                "SELECT body_sha256,url,fetched_at FROM snapshots WHERE snapshot_id=?",
+                "SELECT body_sha256, url, fetched_at FROM snapshots WHERE snapshot_id = %s",
                 (row["snapshot_id"],),
             ).fetchone()
             if prior and tuple(prior) != (row["body_sha256"], row["url"], row["fetched_at"]):
@@ -268,44 +334,56 @@ def _merge_evidence(
                     columns = [key for key in row if key != "watch_id"]
                     conn.execute(
                         "UPDATE watches SET "
-                        + ",".join(key + "=?" for key in columns)
-                        + " WHERE watch_id=?",
+                        + ",".join(key + "=%s" for key in columns)
+                        + " WHERE watch_id=%s",
                         tuple(row[key] for key in columns) + (watch_id,),
                     )
                 else:
                     conn.execute(
-                        "UPDATE watches SET state='sealed',next_check_at=NULL WHERE watch_id=?",
+                        "UPDATE watches SET state = 'sealed', next_check_at = NULL WHERE watch_id = %s",
                         (watch_id,),
                     )
     with database.transaction():
         for row in conn.execute(
-            "SELECT watch_id,parser FROM watches WHERE kind='index'"
+            "SELECT watch_id, parser FROM watches WHERE kind = 'index'"
         ).fetchall():
             if row[0] not in existing_watch_ids and row[1] in _PARSERS:
                 conn.execute(
-                    "UPDATE watches SET state='sealed',next_check_at=NULL WHERE watch_id=?",
+                    "UPDATE watches SET state = 'sealed', next_check_at = NULL WHERE watch_id = %s",
                     (row[0],),
                 )
     return imported, failed
 
 
-def _merge_transport(conn: sqlite3.Connection, manifest: dict[str, Any]) -> None:
+def _merge_transport(conn: engine.Connection, manifest: dict[str, Any]) -> None:
     for row in manifest["archive_queries"]:
         _insert(conn, "archive_queries", row)
         conn.execute(
-            "UPDATE archive_queries SET next_page=MAX(next_page,?),total_pages=COALESCE(total_pages,?),completed_at=COALESCE(completed_at,?) WHERE query_id=?",
+            (
+                "UPDATE archive_queries SET next_page = GREATEST(next_page, %s), total_pages = "
+                "COALESCE(total_pages, %s), completed_at = COALESCE(completed_at, %s) WHERE query_id = %s"
+            ),
             (row["next_page"], row["total_pages"], row["completed_at"], row["query_id"]),
         )
     for row in manifest["archive_captures"]:
         _insert(conn, "archive_captures", row)
     for row in manifest["host_budget"]:
         conn.execute(
-            "INSERT INTO host_budget(host,day,requests,bytes) VALUES (?,?,?,?) ON CONFLICT(host,day) DO UPDATE SET requests=MAX(requests,excluded.requests),bytes=MAX(bytes,excluded.bytes)",
+            (
+                "INSERT INTO host_budget (host, day, requests, bytes) VALUES (%s, %s, %s, %s) ON CONFLICT(host, day) DO UPDATE SET requests = CASE WHEN host_budget.requests IS NULL OR excluded.requests IS NULL THEN NULL ELSE GREATEST(host_budget.requests, excluded.requests) END, bytes = CASE WHEN host_budget.bytes IS NULL OR excluded.bytes IS NULL THEN NULL ELSE GREATEST(host_budget.bytes, excluded.bytes) END"
+            ),
             (row["host"], row["day"], row["requests"], row["bytes"]),
         )
     for row in manifest["hosts"]:
         _insert(conn, "hosts", row)
-        current = conn.execute("SELECT * FROM hosts WHERE host=?", (row["host"],)).fetchone()
+        current = conn.execute(
+            (
+                "SELECT hosts.host, hosts.next_allowed_at, hosts.paused_until, hosts.pause_reason, "
+                "hosts.pause_streak, hosts.robots_sha256, hosts.robots_fetched_at, hosts.robots_status FROM "
+                "hosts WHERE host = %s"
+            ),
+            (row["host"],),
+        ).fetchone()
         next_allowed = max(
             (value for value in (current["next_allowed_at"], row["next_allowed_at"]) if value),
             default=None,
@@ -315,6 +393,9 @@ def _merge_transport(conn: sqlite3.Connection, manifest: dict[str, Any]) -> None
             default=None,
         )
         conn.execute(
-            "UPDATE hosts SET next_allowed_at=?,paused_until=?,pause_reason=COALESCE(pause_reason,?) WHERE host=?",
+            (
+                "UPDATE hosts SET next_allowed_at = %s, paused_until = %s, pause_reason = "
+                "COALESCE(pause_reason, %s) WHERE host = %s"
+            ),
             (next_allowed, paused, row["pause_reason"], row["host"]),
         )

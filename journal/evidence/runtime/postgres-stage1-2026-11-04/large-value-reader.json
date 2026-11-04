@@ -1,0 +1,29 @@
+{
+  "format": "swingset-large-value-measurement-v1",
+  "timestamp": "2026-11-04T23:41:05.141129+00:00",
+  "environment": "local PostgreSQL 17.11 ARM64, disposable database",
+  "trigger": "256 MiB text through 64 KiB windows must finish within 15 seconds and client RSS below 128 MiB",
+  "baseline": {
+    "bytes": 27721728,
+    "expected_bytes": 268435456,
+    "complete": false,
+    "sha256": "3ca6481304e5c599112c92195369df44713818cef98584115806423ee719734f",
+    "seconds": 15.023128082975745,
+    "peak_rss_bytes": 41730048
+  },
+  "prototype": {
+    "bytes": 268435456,
+    "expected_bytes": 268435456,
+    "complete": true,
+    "sha256": "46cb77dd3f41b57fd3dcaef737766c333175e7979ad7b736ed80dc1a5209e974",
+    "expected_sha256": "46cb77dd3f41b57fd3dcaef737766c333175e7979ad7b736ed80dc1a5209e974",
+    "seconds": 1.4882290000095963,
+    "peak_rss_bytes": 45514752,
+    "column_bytes": 268435456,
+    "postgres": "17.11",
+    "query": "ops.text_bytes(text,integer,integer) LANGUAGE internal bytea_substr; STORAGE EXTERNAL"
+  },
+  "baseline_query": "substring(convert_to(column,'UTF8') FROM offset FOR bytes)",
+  "prototype_source": "https://github.com/postgres/postgres/blob/REL_17_STABLE/src/backend/utils/adt/varlena.c#L2877",
+  "scope": "Synthetic text; native reader only. No production change."
+}

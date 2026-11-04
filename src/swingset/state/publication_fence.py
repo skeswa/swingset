@@ -11,7 +11,7 @@ Two fences, one per publication kind (plan phase 3, WP10):
   (`NARROW`). The loops tick through it.
 """
 
-import sqlite3
+from swingset.state import engine
 
 CONTROL_TABLES = frozenset(
     {
@@ -145,65 +145,41 @@ def narrow_condition(table: str, action: str) -> str | None:
             )
         if table in _VALUE:
             column = _quote(_VALUE[table])
-            parts.append(f"NEW.{column} IS NOT OLD.{column}")
+            parts.append(f"NEW.{column} IS DISTINCT FROM OLD.{column}")
     elif rows is not None:
         parts.append(rows.replace("R.", "OLD."))
     return " AND ".join(parts) or "1"
 
 
-def install_publication_fences(conn: sqlite3.Connection) -> None:
+def install_publication_fences(conn: engine.Connection) -> None:
     """Refresh coverage after every migration, including newly introduced tables."""
-    tables = [
-        str(row[0])
-        for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-        )
-    ]
-    for table in tables:
-        if table in CONTROL_TABLES or table in OPERATIONAL_TABLES:
-            continue
-        quoted_table = _quote(table)
-        for action in ("INSERT", "UPDATE", "DELETE"):
-            name = _quote(f"publication_fence_{table}_{action.lower()}")
-            conn.execute(
-                f"CREATE TRIGGER IF NOT EXISTS {name} BEFORE {action} ON {quoted_table} "
-                "WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' "
-                f"AND action_kind IN {kinds_sql(FULL)}) "
-                "BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
-            )
-        if table not in NARROW:
-            continue
-        for action in ("INSERT", "UPDATE", "DELETE"):
-            condition = narrow_condition(table, action)
-            if condition is None:
-                continue
-            name = _quote(f"publication_narrow_fence_{table}_{action.lower()}")
-            # The admission test comes first, so the row condition is read
-            # only while a narrow publication is active.
-            conn.execute(
-                f"CREATE TRIGGER IF NOT EXISTS {name} BEFORE {action} ON {quoted_table} "
-                "WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' "
-                f"AND action_kind='{NARROW_KIND}') AND ({condition}) "
-                "BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
-            )
+    from swingset.state.postgres_schema import install_publication_fences as install
+
+    install(conn)
 
 
-def narrow_triggers(conn: sqlite3.Connection) -> dict[str, list[str]]:
+def narrow_triggers(conn: engine.Connection) -> dict[str, list[str]]:
     """The narrow fence as installed: table -> sorted actions (for tests and doctor)."""
     found: dict[str, list[str]] = {}
-    prefix = "publication_narrow_fence_"
-    for (name,) in conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE ?", (prefix + "%",)
+    for table, action in conn.execute(
+        "SELECT c.relname, CASE WHEN t.tgtype & 4 <> 0 THEN 'insert' "
+        "WHEN t.tgtype & 16 <> 0 THEN 'update' ELSE 'delete' END AS action "
+        "FROM pg_catalog.pg_trigger t JOIN pg_catalog.pg_class c ON c.oid=t.tgrelid "
+        "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE NOT t.tgisinternal "
+        "AND t.tgname LIKE 'a_publication_narrow_fence_%%' AND n.nspname=ANY(%s)",
+        (["fetch", "plan", "evidence", "derive", "project", "release", "ops"],),
     ):
-        table, _, action = str(name).removeprefix(prefix).rpartition("_")
-        found.setdefault(table, []).append(action)
+        found.setdefault(str(table), []).append(str(action))
     return {table: sorted(actions) for table, actions in sorted(found.items())}
 
 
-def expected_narrow(conn: sqlite3.Connection) -> dict[str, list[str]]:
+def expected_narrow(conn: engine.Connection) -> dict[str, list[str]]:
     """The narrow triggers this schema should carry: `NARROW` over its tables."""
     present = {
-        str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        str(row[0])
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
     }
     return {
         table: sorted(
@@ -216,7 +192,7 @@ def expected_narrow(conn: sqlite3.Connection) -> dict[str, list[str]]:
     }
 
 
-def admission_kind(conn: sqlite3.Connection, *, narrow: bool) -> str:
+def admission_kind(conn: engine.Connection, *, narrow: bool) -> str:
     """The kind a publication is admitted as: narrow only when its fence is whole.
 
     A database whose narrow triggers are missing (installed by migration 35

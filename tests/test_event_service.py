@@ -1,6 +1,5 @@
 """Event service explains issued receipts, never successful page progress."""
 
-import sqlite3
 from dataclasses import replace
 from types import SimpleNamespace
 
@@ -79,14 +78,11 @@ def test_mixed_hosts_policies_borrowing_and_failure_keep_exact_owner_counts(capa
     assert not next_choice.capacity.competing
     final_action = charge(f, next_choice, "example.test")
     conn = f.db.connection
-    snapshot = list(conn.iterdump())
-    conn.execute("PRAGMA query_only=ON")
-    try:
+    snapshot = conn.total_changes
+    with conn.read_snapshot():
         result = report(conn, source="wsdc_calendar", source_ref="result", limit=2)
         shared = report(conn, source="wsdc_calendar", source_ref="shared")
-    finally:
-        conn.execute("PRAGMA query_only=OFF")
-    assert list(conn.iterdump()) == snapshot
+    assert conn.total_changes == snapshot
     assert result["total_recorded_requests"] == 3 and result["details_truncated"]
     assert {row["actual_host"]: row["issued_requests"] for row in result["actual_hosts"]} == {
         "example.test": 2,
@@ -138,7 +134,9 @@ def test_detail_limit_does_not_truncate_aggregate_service(capacity):
     assert result["details_truncated"]
 
 
-def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch):
+def test_retained_turn_history_without_capacity_receipts_keeps_capacity_unknown(
+    tmp_path, monkeypatch
+):
     from test_event_turns import add
 
     from swingset.clock import FakeClock
@@ -146,8 +144,16 @@ def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch)
     from swingset.state.controls import admission, settle
 
     with monkeypatch.context() as legacy:
-        legacy.setattr(state_db, "SCHEMA_VERSION", 17)
         with state_db.open_database(tmp_path) as database:
+            database.connection.execute(
+                'SET search_path=pg_catalog,pg_temp,"fetch",plan,evidence,derive,project,release,ops'
+            )
+            for table in (
+                "scheduler_capacity_requests",
+                "scheduler_capacity_policies",
+                "scheduler_capacity_service",
+            ):
+                database.connection.execute(f"CREATE TEMP VIEW {table} AS SELECT 1 AS unavailable")
             clock = FakeClock()
             # Use the real legacy fallback owner; explicit event membership is
             # supplied through the same read-only seam as scheduler selection.
@@ -184,9 +190,11 @@ def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch)
                 ),
             ):
                 conn = database.connection
-                conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (choice.host,))
                 conn.execute(
-                    "INSERT INTO host_budget VALUES (?,?,1,0)",
+                    "INSERT INTO hosts (host) VALUES (%s) ON CONFLICT DO NOTHING", (choice.host,)
+                )
+                conn.execute(
+                    "INSERT INTO host_budget (host, day, requests, bytes) VALUES (%s, %s, 1, 0)",
                     (choice.host, clock.now().date().isoformat()),
                 )
                 record_request(
@@ -199,26 +207,25 @@ def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch)
                     now=clock.now(),
                 )
                 settle(conn, "retained-schema17-request", now=clock.now(), outcome="Ok")
-    conn = sqlite3.connect((tmp_path / "state.sqlite").as_uri() + "?mode=ro", uri=True)
-    conn.row_factory = sqlite3.Row
-    try:
-        before = list(conn.iterdump())
-        value = report(conn, source="wsdc_calendar", source_ref="legacy")
-        assert value["supported"] and not value["capacity_supported"]
-        assert value["total_recorded_requests"] == value["capacity_unrecorded_requests"] == 1
-        assert value["recent_requests"][0]["capacity"] is None
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 17
-        assert list(conn.iterdump()) == before
-    finally:
-        conn.close()
+            conn = database.connection
+            before = conn.total_changes
+            with conn.read_snapshot():
+                value = report(conn, source="wsdc_calendar", source_ref="legacy")
+            assert value["supported"] and not value["capacity_supported"]
+            assert value["total_recorded_requests"] == value["capacity_unrecorded_requests"] == 1
+            assert value["recent_requests"][0]["capacity"] is None
+            assert database.schema_version == 37
+            assert conn.total_changes == before
 
 
 def test_pre_turn_schema_is_unavailable_and_new_empty_history_is_not_success(tmp_path):
-    with sqlite3.connect(":memory:") as old:
-        result = report(old, source="eepro", source_ref="eepro:test")
+    with state_db.open_database(tmp_path / "unavailable") as database:
+        old = database.connection
+        old.execute("SET search_path=pg_catalog,pg_temp")
+        with old.read_snapshot():
+            result = report(old, source="eepro", source_ref="eepro:test")
         assert not result["supported"] and result["total_recorded_requests"] is None
         assert result["reason"] == "event_service_schema_unavailable"
-        assert not old.execute("SELECT name FROM sqlite_master").fetchall()
     with state_db.open_database(tmp_path) as database:
         result = report(database.connection, source="eepro", source_ref="eepro:test")
         assert result["supported"] and result["total_recorded_requests"] == 0
@@ -235,7 +242,8 @@ def test_only_explicit_event_drilldown_reads_service_and_preserves_stage_unknown
     clock, run = f.corpus.clock, f.corpus.run
     config = Config({"eepro.com": HostConfig()}, {"eepro": SourceConfig(True)})
     children = {
-        row[0] for row in f.conn.execute("SELECT watch_id FROM watches WHERE parser='eepro.round'")
+        row[0]
+        for row in f.conn.execute("SELECT watch_id FROM watches WHERE parser = 'eepro.round'")
     }
     excluded = {row[0] for row in f.conn.execute("SELECT watch_id FROM watches")} - children
     with f.db.transaction() as conn:
@@ -275,9 +283,12 @@ def test_only_explicit_event_drilldown_reads_service_and_preserves_stage_unknown
 
 @pytest.mark.parametrize("limit", [0, 101, -1, True, 1.5])
 def test_detail_limit_is_bounded(limit):
-    with sqlite3.connect(":memory:") as conn:
-        with pytest.raises(ValueError, match="history limit"):
-            report(conn, source="eepro", source_ref="eepro:test", limit=limit)
+    from unittest.mock import Mock
+
+    conn = Mock()
+    with pytest.raises(ValueError, match="history limit"):
+        report(conn, source="eepro", source_ref="eepro:test", limit=limit)
+    conn.execute.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -292,10 +303,12 @@ def test_blob_policy_corruption_is_reported_without_crashing(capacity, table, ke
     page(f, "only", listed=True)
     debit(f, select(f))
     conn = f.db.connection
-    policy_id, raw = conn.execute(f"SELECT digest,policy_json FROM {table}").fetchone()
-    conn.execute(f"UPDATE {table} SET policy_json=? WHERE digest=?", (raw.encode(), policy_id))
-    snapshot = list(conn.iterdump())
+    policy_id, raw = conn.execute(f"SELECT digest, policy_json FROM {table}").fetchone()
+    conn.execute(
+        f"UPDATE {table} SET policy_json = %s WHERE digest = %s", (raw.encode(), policy_id)
+    )
+    snapshot = conn.total_changes
     result = report(conn, source="wsdc_calendar", source_ref="only")
     assert result[key][policy_id] == {"status": "invalid", "policy": None}
     assert result["total_recorded_requests"] == 1
-    assert list(conn.iterdump()) == snapshot
+    assert conn.total_changes == snapshot

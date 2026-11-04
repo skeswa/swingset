@@ -1,4 +1,4 @@
-"""Canonical SQLite table metadata used by projection and build."""
+"""Canonical table metadata used by projection and build."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -6,9 +6,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from swingset.build.schema import PRIMARY_KEYS as ARROW_PRIMARY_KEYS
     from swingset.build.schema import SCHEMAS as ARROW_SCHEMAS
-
-__all__ = ["ARROW_PRIMARY_KEYS", "ARROW_SCHEMAS", "RECORD_TABLE", "TABLES", "TableSchema"]
-
 
 __all__ = ["ARROW_PRIMARY_KEYS", "ARROW_SCHEMAS", "RECORD_TABLE", "TABLES", "TableSchema"]
 

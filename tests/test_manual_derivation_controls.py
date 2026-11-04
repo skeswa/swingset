@@ -54,7 +54,7 @@ def test_manual_work_skips_paused_unit_progresses_other_and_resumes_once(
                 run_id=run_id,
             )
         database.connection.execute(
-            "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+            "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
             (unit.stage, unit.unit_kind, unit.unit_id),
         )
 
@@ -94,11 +94,19 @@ def test_manual_work_skips_paused_unit_progresses_other_and_resumes_once(
             )
             upsert_watch(db.connection, watch, clock.now())
             db.connection.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,?,200,0,1,?,'Ok')",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 0, "
+                    "1, %s, 'Ok')"
+                ),
                 (name, watch.watch_id, watch.url, clock.now().isoformat(), run),
             )
             db.connection.execute(
-                "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)", (source, name, name)
+                (
+                    "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                    "VALUES (%s, %s, %s, 'explicit', 1)"
+                ),
+                (source, name, name),
             )
         replace_findings(
             db.connection,
@@ -138,7 +146,10 @@ def test_manual_work_skips_paused_unit_progresses_other_and_resumes_once(
                 # Lost materialization is real derived work even when the
                 # operational token did not change.
                 conn.executemany(
-                    "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage=? AND unit_kind=? AND unit_id=?",
+                    (
+                        "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = %s AND "
+                        "unit_kind = %s AND unit_id = %s"
+                    ),
                     [(unit.stage, unit.unit_kind, unit.unit_id) for unit in units],
                 )
     change_control(
@@ -150,23 +161,27 @@ def test_manual_work_skips_paused_unit_progresses_other_and_resumes_once(
         now=clock.now(),
     )
     args = [stage, "--state", str(state), "--config", str(config), "--overrides", str(overrides)]
+    with open_database(state) as db:
+        previous_runs = {row[0] for row in db.connection.execute("SELECT run_id FROM runs")}
     assert main(args) == 0
     assert calls == ["healthy"]
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT unit_id FROM pending_work WHERE stage=?", (stage,)
+                "SELECT unit_id FROM pending_work WHERE stage = %s", (stage,)
             ).fetchone()[0]
             == "held"
         )
         assert [
-            tuple(row) for row in db.connection.execute("SELECT unit_id,outcome FROM work_attempts")
+            tuple(row)
+            for row in db.connection.execute("SELECT unit_id, outcome FROM work_attempts")
         ] == [("healthy", "succeeded")]
-        summary = json.loads(
-            db.connection.execute(
-                "SELECT summary_json FROM runs WHERE summary_json IS NOT NULL ORDER BY rowid DESC LIMIT 1"
-            ).fetchone()[0]
-        )
+        (new_summary,) = [
+            row[1]
+            for row in db.connection.execute("SELECT run_id,summary_json FROM runs")
+            if row[0] not in previous_runs
+        ]
+        summary = json.loads(new_summary)
         assert summary["held_units"][0]["unit_id"] == "held"
         assert summary["held_units"][0]["pauses"][0]["reason"] == "manual isolation"
     change_control(
@@ -181,10 +196,10 @@ def test_manual_work_skips_paused_unit_progresses_other_and_resumes_once(
     assert main(args) == 0
     assert calls == ["healthy", "held"]
     with open_database(state) as db:
-        assert db.connection.execute("SELECT count(*) FROM work_attempts").fetchone()[0] == 2
+        assert db.connection.execute("SELECT COUNT(*) FROM work_attempts").fetchone()[0] == 2
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM execution_admissions WHERE state!='settled'"
+                "SELECT COUNT(*) FROM execution_admissions WHERE state <> 'settled'"
             ).fetchone()[0]
             == 0
         )
@@ -197,14 +212,16 @@ def test_manual_startup_recovers_publication_before_accepting_inputs(tmp_path, m
     state = tmp_path / "state"
     with open_database(state) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('abandoned','publication','2026-09-13T00:00:00Z',0,1,1,'active')"
+            "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+            "all_sources, all_kinds, state) VALUES ('abandoned', 'publication', '2026-09-13T00:00:00Z', "
+            "0, 1, 1, 'active')"
         )
     original = swingset.state.inputs.accept
     checked = []
 
     def accept_after_recovery(database, bundle, clock):
         row = database.connection.execute(
-            "SELECT state,outcome FROM execution_admissions WHERE action_id='abandoned'"
+            "SELECT state, outcome FROM execution_admissions WHERE action_id = 'abandoned'"
         ).fetchone()
         assert tuple(row) == ("uncertain", "receipt_reconciliation_required")
         checked.append(True)
@@ -217,7 +234,7 @@ def test_manual_startup_recovers_publication_before_accepting_inputs(tmp_path, m
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT state FROM execution_admissions WHERE action_id='abandoned'"
+                "SELECT state FROM execution_admissions WHERE action_id = 'abandoned'"
             ).fetchone()[0]
             == "uncertain"
         )
@@ -236,13 +253,15 @@ def test_manual_project_saved_crosscheck_obeys_kind_admission(tmp_path, monkeypa
 
     def saved(database, *_args):
         calls.append(True)
-        database.connection.execute("DELETE FROM meta WHERE key='registry_crosscheck_due'")
+        database.connection.execute("DELETE FROM meta WHERE key = 'registry_crosscheck_due'")
 
     monkeypatch.setattr(registry, "run_saved_crosscheck_if_due", saved)
     with open_database(state) as db:
         accept(db, capture(config, overrides, state, versions()), clock)
         db.connection.execute("DELETE FROM pending_work")
-        db.connection.execute("INSERT INTO meta VALUES ('registry_crosscheck_due','retained-dump')")
+        db.connection.execute(
+            "INSERT INTO meta (key, value) VALUES ('registry_crosscheck_due', 'retained-dump')"
+        )
     selector = Selector("kind", "registry_event_association")
     change_control(
         state,
@@ -266,11 +285,11 @@ def test_manual_project_saved_crosscheck_obeys_kind_admission(tmp_path, monkeypa
     with open_database(state) as db:
         assert (
             db.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_due'"
             ).fetchone()[0]
             == "retained-dump"
         )
-        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
     change_control(
         state, selector=selector, paused=False, actor="operator", reason="reviewed", now=clock.now()
     )
@@ -279,7 +298,7 @@ def test_manual_project_saved_crosscheck_obeys_kind_admission(tmp_path, monkeypa
     assert calls == [True]
     with open_database(state) as db:
         row = db.connection.execute(
-            "SELECT action_kind,state,outcome FROM execution_admissions WHERE action_kind='registry_crosscheck'"
+            "SELECT action_kind, state, outcome FROM execution_admissions WHERE action_kind = 'registry_crosscheck'"
         ).fetchone()
         assert tuple(row) == ("registry_crosscheck", "settled", "completed")
 
@@ -331,7 +350,7 @@ def test_explicit_crosscheck_hold_preserves_archive_only_input_path(tmp_path, mo
     with open_database(state) as db:
         assert [
             tuple(row)
-            for row in db.connection.execute("SELECT action_kind,state FROM execution_admissions")
+            for row in db.connection.execute("SELECT action_kind, state FROM execution_admissions")
         ] == [("registry_crosscheck", "settled")]
 
 
@@ -362,11 +381,8 @@ def test_manual_build_pause_returns_held_receipt_and_successful_run(
     assert receipt["pauses"][0]["reason"] == "publication review"
     assert calls == []
     with open_database(state) as db:
-        summary = json.loads(
-            db.connection.execute(
-                "SELECT summary_json FROM runs ORDER BY rowid DESC LIMIT 1"
-            ).fetchone()[0]
-        )
+        (saved_summary,) = list(db.connection.execute("SELECT summary_json FROM runs"))
+        summary = json.loads(saved_summary[0])
         assert not summary["failed"]
         assert summary["held_operations"] == [receipt]
 

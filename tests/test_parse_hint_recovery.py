@@ -39,11 +39,11 @@ def pending(f, name="one.htm", *, identifier=None, body=BODY):
 
 def forget(f, unit):
     token = f.conn.execute(
-        "SELECT enqueued_at FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+        "SELECT enqueued_at FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
         (unit.stage, unit.unit_kind, unit.unit_id),
     ).fetchone()[0]
     f.conn.execute(
-        "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+        "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
         (unit.stage, unit.unit_kind, unit.unit_id),
     )
     return token
@@ -62,7 +62,7 @@ def test_retained_child_reconstructs_and_parses_under_normal_pause_gate(
     _, unit = pending(f)
     original_token = forget(f, unit)
     f.conn.execute(
-        "UPDATE watches SET state=?,next_check_at=NULL WHERE watch_id=?",
+        "UPDATE watches SET state = %s, next_check_at = NULL WHERE watch_id = %s",
         (parent_state, f.parent.watch_id),
     )
     change_control(
@@ -73,7 +73,21 @@ def test_retained_child_reconstructs_and_parses_under_normal_pause_gate(
         reason="offline hold",
         now=f.corpus.clock.now(),
     )
-    before = list(map(tuple, f.conn.execute("SELECT * FROM watches ORDER BY watch_id")))
+    before = list(
+        map(
+            tuple,
+            f.conn.execute(
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches ORDER BY watch_id NULLS FIRST"
+            ),
+        )
+    )
     with monkeypatch.context() as scoped:
         scoped.setattr(
             Archive, "read_body", Mock(side_effect=AssertionError("reconstruction read artifacts"))
@@ -87,12 +101,29 @@ def test_retained_child_reconstructs_and_parses_under_normal_pause_gate(
     assert result["enqueued"] == 1
     assert (
         f.conn.execute(
-            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",
+            "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
             (unit.unit_id,),
         ).fetchone()[0]
         == original_token
     )
-    assert list(map(tuple, f.conn.execute("SELECT * FROM watches ORDER BY watch_id"))) == before
+    assert (
+        list(
+            map(
+                tuple,
+                f.conn.execute(
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches ORDER BY watch_id NULLS FIRST"
+                ),
+            )
+        )
+        == before
+    )
     assert (
         next_work(
             f.conn,
@@ -120,18 +151,18 @@ def test_retained_child_reconstructs_and_parses_under_normal_pause_gate(
     assert not completed.failed and completed.reason is None
     assert (
         f.conn.execute(
-            "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (unit.unit_id,)
+            "SELECT parse_status FROM snapshots WHERE snapshot_id = %s", (unit.unit_id,)
         ).fetchone()[0]
         == "ok"
     )
     assert recover(f)["enqueued"] == 0
     assert (
         f.conn.execute(
-            "SELECT count(*) FROM work_attempts WHERE unit_id=?", (unit.unit_id,)
+            "SELECT COUNT(*) FROM work_attempts WHERE unit_id = %s", (unit.unit_id,)
         ).fetchone()[0]
         == 1
     )
-    assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests>0").fetchone()
+    assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests > 0").fetchone()
 
 
 def test_retry_deadline_and_original_attempt_token_survive_missing_hint(event):
@@ -149,23 +180,50 @@ def test_retry_deadline_and_original_attempt_token_survive_missing_hint(event):
         retry_at=deadline,
     )
     forget(f, unit)
-    before = list(map(tuple, f.conn.execute("SELECT * FROM work_attempts")))
+    before = list(
+        map(
+            tuple,
+            f.conn.execute(
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts"
+            ),
+        )
+    )
     generation = f.conn.execute(
-        "SELECT retry_generation FROM work_generations WHERE unit_id=?", (unit.unit_id,)
+        "SELECT retry_generation FROM work_generations WHERE unit_id = %s", (unit.unit_id,)
     ).fetchone()[0]
     assert recover(f)["enqueued"] == 1
     assert next_work(f.conn, "parse", now=f.corpus.clock.now()) is None
-    assert list(map(tuple, f.conn.execute("SELECT * FROM work_attempts"))) == before
+    assert (
+        list(
+            map(
+                tuple,
+                f.conn.execute(
+                    "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                    "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                    "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                    "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                    "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                    "work_attempts.requirement_id FROM work_attempts"
+                ),
+            )
+        )
+        == before
+    )
     assert (
         f.conn.execute(
-            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",
+            "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
             (unit.unit_id,),
         ).fetchone()[0]
         == attempt.work_token
     )
     assert (
         f.conn.execute(
-            "SELECT retry_generation FROM work_generations WHERE unit_id=?", (unit.unit_id,)
+            "SELECT retry_generation FROM work_generations WHERE unit_id = %s", (unit.unit_id,)
         ).fetchone()[0]
         == generation
     )
@@ -185,10 +243,37 @@ def test_unchanged_terminal_attempt_is_not_reopened(event, outcome):
         )
     if outcome != "succeeded":
         forget(f, unit)
-    before = list(map(tuple, f.conn.execute("SELECT * FROM work_attempts")))
+    before = list(
+        map(
+            tuple,
+            f.conn.execute(
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts"
+            ),
+        )
+    )
     assert recover(f)["reasons"]["terminal_attempt"] == 1
     assert recover(f)["enqueued"] == 0
-    assert list(map(tuple, f.conn.execute("SELECT * FROM work_attempts"))) == before
+    assert (
+        list(
+            map(
+                tuple,
+                f.conn.execute(
+                    "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                    "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                    "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                    "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                    "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                    "work_attempts.requirement_id FROM work_attempts"
+                ),
+            )
+        )
+        == before
+    )
     assert next_work(f.conn, "parse", now=f.corpus.clock.now()) is None
     if outcome != "succeeded":
         request_retry(f.conn, unit, now=f.corpus.clock.now(), reason_code="explicit_offline_retry")
@@ -206,14 +291,13 @@ def test_relevant_changed_fingerprint_reopens_own_terminal_attempt(event):
     )
     forget(f, unit)
     f.conn.execute(
-        "INSERT INTO accepted_inputs VALUES('pipeline','recipe/env','changed') "
-        "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest"
+        "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', 'recipe/code/parse/eepro.round', 'changed') ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
     )
     assert recover(f)["enqueued"] == 1
     assert next_work(f.conn, "parse", now=f.corpus.clock.now()) == unit
     assert (
         f.conn.execute(
-            "SELECT retry_generation FROM work_generations WHERE unit_id=?", (unit.unit_id,)
+            "SELECT retry_generation FROM work_generations WHERE unit_id = %s", (unit.unit_id,)
         ).fetchone()[0]
         == 0
     )
@@ -237,7 +321,7 @@ def test_same_input_guard_terminal_admission_without_work_attempt_is_not_reparse
     # The direct admission guard removed its parse hint, while transport status
     # remains pending/NULL; that is a terminal decision, not unstarted work.
     assert f.conn.execute(
-        "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (unit.unit_id,)
+        "SELECT parse_status FROM snapshots WHERE snapshot_id = %s", (unit.unit_id,)
     ).fetchone()[0] in (None, "pending")
     assert recover(f)["reasons"]["terminal_admission"] == 1
     assert recover(f)["enqueued"] == 0
@@ -251,7 +335,7 @@ def test_accepted_own_unit_receipt_suppresses_pending_transport_hint(event):
     assert f.corpus.admit(generation) == "accepted"
     # Reproduce old retained transport metadata without deleting the accepted receipt.
     f.conn.execute(
-        "UPDATE snapshots SET parse_status='pending' WHERE snapshot_id=?", (unit.unit_id,)
+        "UPDATE snapshots SET parse_status = 'pending' WHERE snapshot_id = %s", (unit.unit_id,)
     )
     assert recover(f)["reasons"]["terminal_admission"] == 1
     assert recover(f)["enqueued"] == 0
@@ -264,21 +348,23 @@ def test_superseded_snapshot_is_not_revived_and_existing_hint_is_unchanged(event
     forget(f, old)
     _, newest = pending(f, identifier="new")
     token = f.conn.execute(
-        "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id='new'"
+        "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = 'new'"
     ).fetchone()[0]
     generation = f.conn.execute(
-        "SELECT generation FROM work_generations WHERE unit_id='new'"
+        "SELECT generation FROM work_generations WHERE unit_id = 'new'"
     ).fetchone()[0]
     result = recover(f)
     assert result["enqueued"] == 0 and result["reasons"]["superseded_snapshot"] == 1
     assert (
         f.conn.execute(
-            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id='new'"
+            "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = 'new'"
         ).fetchone()[0]
         == token
     )
     assert (
-        f.conn.execute("SELECT generation FROM work_generations WHERE unit_id='new'").fetchone()[0]
+        f.conn.execute("SELECT generation FROM work_generations WHERE unit_id = 'new'").fetchone()[
+            0
+        ]
         == generation
     )
     assert next_work(f.conn, "parse", now=f.corpus.clock.now()) == newest
@@ -292,16 +378,16 @@ def test_other_unit_aggregate_is_not_a_completion_receipt_for_this_snapshot(even
     finish_bootstrap(f)
     unit = WorkUnit("parse", "snapshot", contexts[1].snapshot_id)
     forget(f, unit)
-    before = f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+    before = f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
     assert recover(f)["enqueued"] == 1
-    assert f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0] == before
+    assert f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0] == before
     assert not f.conn.execute("SELECT 1 FROM event_progress_receipts").fetchone()
     result = derive_one(f.db, f.archive, unit, SimpleNamespace(), f.corpus.clock, f.corpus.run)
     assert not result.failed and result.reason is None
     assert recover(f)["enqueued"] == 0
     assert (
         f.conn.execute(
-            "SELECT state FROM source_generations WHERE generation_id=?", (aggregate_generation,)
+            "SELECT state FROM source_generations WHERE generation_id = %s", (aggregate_generation,)
         ).fetchone()[0]
         == "accepted"
     )
@@ -318,7 +404,7 @@ def test_bounded_pass_finishes_old_candidates_before_continuous_arrivals(event):
     first = recover(f, limit=1)
     assert first["scanned"] == first["enqueued"] == 1 and not first["pass_complete"]
     high = json.loads(
-        f.conn.execute("SELECT value FROM meta WHERE key=?", (CURSOR,)).fetchone()[0]
+        f.conn.execute("SELECT value FROM meta WHERE key = %s", (CURSOR,)).fetchone()[0]
     )["high"]
     for number in range(3, 5):
         _, unit = pending(f, f"{number}.htm")
@@ -327,12 +413,12 @@ def test_bounded_pass_finishes_old_candidates_before_continuous_arrivals(event):
     assert result["pass_complete"]
     for unit in original:
         assert f.conn.execute(
-            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (unit.unit_id,)
+            "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s", (unit.unit_id,)
         ).fetchone()
     assert (
-        json.loads(f.conn.execute("SELECT value FROM meta WHERE key=?", (CURSOR,)).fetchone()[0])[
-            "high"
-        ]
+        json.loads(
+            f.conn.execute("SELECT value FROM meta WHERE key = %s", (CURSOR,)).fetchone()[0]
+        )["high"]
         == high
     )
     assert recover(f)["enqueued"] == 2
@@ -344,7 +430,7 @@ def test_undeclared_normalized_alias_and_failed_snapshots_remain_out_of_scope(ev
     _, failed = pending(f)
     forget(f, failed)
     f.conn.execute(
-        "UPDATE snapshots SET parse_status='failed' WHERE snapshot_id=?", (failed.unit_id,)
+        "UPDATE snapshots SET parse_status = 'failed' WHERE snapshot_id = %s", (failed.unit_id,)
     )
     alias = WatchSpec(
         "",
@@ -367,11 +453,13 @@ def test_oversized_own_unit_receipt_is_unassessed_without_requeue(event):
     context, unit = pending(f)
     generation, _ = f.corpus.stage(context)
     forget(f, unit)
-    f.conn.execute("DROP TRIGGER source_generation_immutable")
-    f.conn.execute(
-        "UPDATE source_generations SET recipe_json=? WHERE generation_id=?",
-        ("x" * 70000, generation),
-    )
+    from helpers.corruption import corruption_connection
+
+    with corruption_connection(f.conn) as owner:
+        owner.execute(
+            "UPDATE source_generations SET recipe_json=%s WHERE generation_id=%s",
+            ("x" * 70000, generation),
+        )
     result = recover(f)
     assert result["unassessed"] == 1 and result["enqueued"] == 0
 
@@ -397,7 +485,21 @@ def test_shared_helper_scalars_are_bounded_before_loading(event, monkeypatch, ta
     forget(f, unit)
     key = "watch_id" if table == "watches" else "snapshot_id"
     value = context.watch_id if table == "watches" else context.snapshot_id
-    f.conn.execute(f"UPDATE {table} SET {column}=? WHERE {key}=?", ("x" * 70000, value))
+    if column == "body_bytes":
+        from swingset.state import engine
+
+        before = f.conn.execute(
+            f"SELECT {column} FROM {table} WHERE {key}=%s", (value,)
+        ).fetchone()[0]
+        with pytest.raises(engine.DatabaseError) as rejected:
+            f.conn.execute(f"UPDATE {table} SET {column}=%s WHERE {key}=%s", ("x" * 70000, value))
+        assert rejected.value.sqlstate == "22P02"
+        assert (
+            f.conn.execute(f"SELECT {column} FROM {table} WHERE {key}=%s", (value,)).fetchone()[0]
+            == before
+        )
+        return  # Native BIGINT rejects this corruption before recovery can read it.
+    f.conn.execute(f"UPDATE {table} SET {column} = %s WHERE {key} = %s", ("x" * 70000, value))
     monkeypatch.setattr(
         parse_recovery, "selected_snapshot", Mock(side_effect=AssertionError("unguarded helper"))
     )
@@ -414,7 +516,7 @@ def test_accepted_inputs_have_a_total_metadata_cap(event, monkeypatch):
     _, unit = pending(f)
     forget(f, unit)
     f.conn.executemany(
-        "INSERT INTO accepted_inputs VALUES(?,?,?)",
+        "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES (%s, %s, %s)",
         [("bulk", str(i), "x" * 1000) for i in range(100)],
     )
     monkeypatch.setattr(
@@ -447,17 +549,18 @@ def test_shared_budget_does_not_skip_later_unfinished_candidates(event, monkeypa
         result = recover(f)
         assert result["enqueued"] == 1
         assert f.conn.execute(
-            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (units[index].unit_id,)
+            "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
+            (units[index].unit_id,),
         ).fetchone()
         cursor = json.loads(
-            f.conn.execute("SELECT value FROM meta WHERE key=?", (CURSOR,)).fetchone()[0]
+            f.conn.execute("SELECT value FROM meta WHERE key = %s", (CURSOR,)).fetchone()[0]
         )
         if index < 2:
             assert result["reasons"]["metadata_byte_budget"] == 1
             assert (
                 cursor["last"]
                 == f.conn.execute(
-                    "SELECT rowid FROM snapshots WHERE snapshot_id=?", (units[index].unit_id,)
+                    "SELECT rowid FROM snapshots WHERE snapshot_id = %s", (units[index].unit_id,)
                 ).fetchone()[0]
             )
     assert result["pass_complete"]
@@ -468,17 +571,20 @@ def test_hint_and_cursor_reconstruction_roll_back_together(event):
     ready(f)
     _, unit = pending(f)
     forget(f, unit)
-    f.conn.execute(
-        "CREATE TRIGGER fail_recovery_cursor BEFORE INSERT ON meta WHEN NEW.key='event_parse_recovery_cursor' BEGIN SELECT RAISE(ABORT,'interrupted recovery'); END"
-    )
-    import sqlite3
+    from helpers.corruption import reject_inserts
 
-    with pytest.raises(sqlite3.IntegrityError, match="interrupted recovery"):
-        recover(f)
+    from swingset.state import engine
+
+    with reject_inserts(
+        f.conn, "meta", "interrupted recovery", when="NEW.key='event_parse_recovery_cursor'"
+    ):
+        with pytest.raises(engine.IntegrityError) as rejected:
+            recover(f)
+        assert rejected.value.sqlstate == "23514"
     assert not f.conn.execute(
-        "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (unit.unit_id,)
+        "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s", (unit.unit_id,)
     ).fetchone()
-    assert not f.conn.execute("SELECT 1 FROM meta WHERE key=?", (CURSOR,)).fetchone()
+    assert not f.conn.execute("SELECT 1 FROM meta WHERE key = %s", (CURSOR,)).fetchone()
 
 
 def test_elapsed_budget_stops_before_unattempted_candidate(event, monkeypatch):
@@ -516,7 +622,7 @@ def test_uninterrupted_active_attempt_stays_unassessed(event):
     assert result["reasons"] == {"active_attempt_requires_normal_interruption_recovery": 1}
     assert (
         f.conn.execute(
-            "SELECT outcome FROM work_attempts WHERE attempt_id=?", (attempt.attempt_id,)
+            "SELECT outcome FROM work_attempts WHERE attempt_id = %s", (attempt.attempt_id,)
         ).fetchone()[0]
         == "running"
     )
@@ -541,7 +647,7 @@ def test_real_parse_failure_requires_new_explicit_retry_to_rebuild_lost_hint(
     assert result.failed and result.reason == "parse_failed"
     assert (
         f.conn.execute(
-            "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (unit.unit_id,)
+            "SELECT parse_status FROM snapshots WHERE snapshot_id = %s", (unit.unit_id,)
         ).fetchone()[0]
         == "failed"
     )
@@ -549,20 +655,47 @@ def test_real_parse_failure_requires_new_explicit_retry_to_rebuild_lost_hint(
     if explicit_retry:
         request_retry(f.conn, unit, now=f.corpus.clock.now(), reason_code="operator_retry")
     token = forget(f, unit)
-    attempts = list(map(tuple, f.conn.execute("SELECT * FROM work_attempts")))
+    attempts = list(
+        map(
+            tuple,
+            f.conn.execute(
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts"
+            ),
+        )
+    )
     retry = tuple(
         f.conn.execute(
-            "SELECT retry_generation,retry_reason,retry_requested_at FROM work_generations WHERE unit_id=?",
+            "SELECT retry_generation, retry_reason, retry_requested_at FROM work_generations WHERE unit_id = %s",
             (unit.unit_id,),
         ).fetchone()
     )
     result = recover(f)
     assert result["enqueued"] == int(explicit_retry)
-    assert list(map(tuple, f.conn.execute("SELECT * FROM work_attempts"))) == attempts
+    assert (
+        list(
+            map(
+                tuple,
+                f.conn.execute(
+                    "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                    "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                    "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                    "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                    "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                    "work_attempts.requirement_id FROM work_attempts"
+                ),
+            )
+        )
+        == attempts
+    )
     assert (
         tuple(
             f.conn.execute(
-                "SELECT retry_generation,retry_reason,retry_requested_at FROM work_generations WHERE unit_id=?",
+                "SELECT retry_generation, retry_reason, retry_requested_at FROM work_generations WHERE unit_id = %s",
                 (unit.unit_id,),
             ).fetchone()
         )
@@ -571,7 +704,7 @@ def test_real_parse_failure_requires_new_explicit_retry_to_rebuild_lost_hint(
     if explicit_retry:
         assert (
             f.conn.execute(
-                "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",
+                "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
                 (unit.unit_id,),
             ).fetchone()[0]
             == token
@@ -583,7 +716,7 @@ def test_real_parse_failure_requires_new_explicit_retry_to_rebuild_lost_hint(
         assert not completed.failed and completed.reason is None
         assert (
             f.conn.execute(
-                "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (unit.unit_id,)
+                "SELECT parse_status FROM snapshots WHERE snapshot_id = %s", (unit.unit_id,)
             ).fetchone()[0]
             == "ok"
         )
@@ -598,10 +731,11 @@ def test_oversized_integer_cursor_restarts_without_sql_binding_overflow(event):
     _, unit = pending(f)
     forget(f, unit)
     f.conn.execute(
-        "INSERT INTO meta VALUES(?,?)", (CURSOR, json.dumps({"last": 1, "high": 10**40}))
+        "INSERT INTO meta (key, value) VALUES (%s, %s)",
+        (CURSOR, json.dumps({"last": 1, "high": 10**40})),
     )
     assert recover(f)["enqueued"] == 1
     cursor = json.loads(
-        f.conn.execute("SELECT value FROM meta WHERE key=?", (CURSOR,)).fetchone()[0]
+        f.conn.execute("SELECT value FROM meta WHERE key = %s", (CURSOR,)).fetchone()[0]
     )
     assert cursor["high"] < 2**63

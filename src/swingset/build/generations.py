@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
-import sqlite3
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
-from swingset.fetch.archive import Archive
+from swingset.fetch.archive import Archive, canonical
 from swingset.publish.safety import reject_candidate, verify_candidate_files
-from swingset.state import derivations, output_packs
+from swingset.state import derivations, engine, output_packs
 from swingset.state.attempts import SupersededWorkError
 from swingset.state.db import Database
 from swingset.state.work import WorkUnit
@@ -29,6 +29,59 @@ def baseline_commit(database: Database) -> str | None:
     return json.loads((path / "PUBLISHED").read_bytes())["commit"] if path.is_symlink() else None
 
 
+def render_inputs(value: Mapping[str, Any]) -> dict[str, str]:
+    """Validate literal rendering inputs; never infer a historical clock."""
+    if not isinstance(value, Mapping) or set(value) != {"cutoff", "run_id"}:
+        raise BuildError("build render inputs are invalid")
+    cutoff, run_id = value["cutoff"], value["run_id"]
+    if not isinstance(cutoff, str) or not isinstance(run_id, str) or not run_id.strip():
+        raise BuildError("build render inputs are invalid")
+    try:
+        moment = datetime.fromisoformat(cutoff.replace("Z", "+00:00"))
+    except ValueError:
+        raise BuildError("build render cutoff is invalid") from None
+    if moment.tzinfo is None or moment.utcoffset() is None:
+        raise BuildError("build render cutoff must be timezone aware")
+    return {"cutoff": cutoff, "run_id": run_id}
+
+
+def _render_basis(selection: derivations.Selection) -> dict[str, Any]:
+    context = dict(selection.context)
+    context.pop("render", None)
+    return {
+        "inputs": dict(selection.recipe),
+        "context": context,
+        "continuity": dict(selection.continuity),
+        "dependencies": list(selection.dependencies),
+    }
+
+
+def render_basis(selection: derivations.Selection) -> str:
+    """Bind a BUILT-before-completion render witness to its complete inputs."""
+    return hashlib.sha256(canonical(_render_basis(selection))).hexdigest()
+
+
+def _render_context(
+    database: Database, selection: derivations.Selection, requested: Mapping[str, str]
+) -> dict[str, Any]:
+    selected = render_inputs(requested)
+    previous = database.connection.execute(
+        "SELECT g.recipe_json,d.manifest_json FROM derive.derivation_scopes s JOIN derive.derivation_generations g ON g.generation_id=s.materialized_generation_id JOIN derive.derivation_dependency_sets d ON d.dependency_set_id=g.dependency_set_id WHERE s.stage=%s AND s.unit_kind=%s AND s.unit_id=%s",
+        (selection.unit.stage, selection.unit.unit_kind, selection.unit.unit_id),
+    ).fetchone()
+    if previous is not None:
+        recipe = json.loads(previous[0])
+        if isinstance(recipe, dict) and set(recipe) == {"inputs", "context", "continuity"}:
+            context = recipe.get("context")
+            if isinstance(context, dict) and "render" in context:
+                old_context = dict(context)
+                old_render = old_context.pop("render")
+                basis = {**recipe, "context": old_context, "dependencies": json.loads(previous[1])}
+                if canonical(basis) == canonical(_render_basis(selection)):
+                    selected = render_inputs(old_render)
+    return {**selection.context, "render": selected}
+
+
 def select(
     database: Database,
     *,
@@ -37,6 +90,8 @@ def select(
     closure: ReleaseClosure | Mapping[str, Any] | None = None,
     manifest: ReleaseManifest | None = None,
     build_trigger: str | None = None,
+    render: Mapping[str, str] | None = None,
+    expected_parent: str | None = None,
 ) -> derivations.Selection:
     """Call in the same read snapshot that supplies the build's actual rows.
 
@@ -48,18 +103,24 @@ def select(
     if manifest is not None:
         if correction_only or closure is not None:
             raise BuildError("a partitioned build has neither a closure nor a correction")
-        return derivations.desired(
-            database.connection,
-            WorkUnit("build", "release", "all"),
-            context={
-                "baseline_commit": baseline_commit(database),
-                "input_bundle_hash": bundle_digest,
-                "mode": "partitioned",
-                "release_manifest": manifest.digest,
-                "build_trigger": build_trigger,
-                "correction_token": manifest.value["correction_token"],
-            },
-        )
+        context: dict[str, Any] = {
+            "baseline_commit": baseline_commit(database),
+            "input_bundle_hash": bundle_digest,
+            "mode": "partitioned",
+            "release_manifest": manifest.digest,
+            "build_trigger": build_trigger,
+            "correction_token": manifest.value["correction_token"],
+        }
+        unit = WorkUnit("build", "release", "all")
+        if render is not None:
+            context["expected_parent"] = expected_parent
+            proposed = derivations.desired(
+                database.connection, unit, context=context, _validate_artifacts=False
+            )
+            context = _render_context(database, proposed, render)
+        return derivations.desired(database.connection, unit, context=context)
+    if render is not None:
+        raise BuildError("sealed render inputs require a release manifest")
     pinned = (
         closure.manifest()
         if isinstance(closure, ReleaseClosure)
@@ -71,7 +132,7 @@ def select(
         raise BuildError("correction-only build cannot select new closure generations")
     if pinned is not None:
         pinned = hydrate(database.connection, pinned)
-    context: dict[str, Any] = {
+    context = {
         "baseline_commit": baseline_commit(database),
         "input_bundle_hash": bundle_digest,
         "mode": "correction_only"
@@ -105,7 +166,7 @@ def complete(
     closure: Mapping[str, Any] | None = None,
 ) -> None:
     """``closure`` is the build's private proof when it is already in memory."""
-    # Hash potentially large files outside the short SQLite write transaction.
+    # Hash potentially large files outside the short write transaction.
     verify_candidate_files(result.path)
     pinned = selection.context.get("release_closure")
     from contextlib import nullcontext
@@ -166,7 +227,7 @@ def complete(
 
 
 def _complete_in_transaction(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     database: Database,
     selection: derivations.Selection,
     result: BuildResult,
@@ -176,7 +237,7 @@ def _complete_in_transaction(
 ) -> None:
     if baseline_commit(database) != selection.context["baseline_commit"]:
         raise SupersededWorkError("build baseline changed before completion")
-    accepted = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+    accepted = conn.execute("SELECT value FROM meta WHERE key = 'input_bundle_hash'").fetchone()
     if accepted is None or accepted[0] != selection.context["input_bundle_hash"]:
         raise SupersededWorkError("build input bundle changed before completion")
     release_manifest = selection.context.get("release_manifest")
@@ -218,15 +279,15 @@ def _complete_in_transaction(
     )
 
 
-def completed(conn: sqlite3.Connection, candidate_id: str, manifest_hash: str) -> bool:
+def completed(conn: engine.Connection, candidate_id: str, manifest_hash: str) -> bool:
     """Any immutable completed build receipt may support its still-valid candidate.
 
     Input proof retention alone is insufficient. Newer materialized pointers do
     not erase a completed older build's artifact receipt.
     """
     for (generation_id,) in conn.execute(
-        "SELECT generation_id FROM derivation_generations WHERE stage='build' "
-        "ORDER BY created_at DESC,generation_id"
+        "SELECT generation_id FROM derivation_generations WHERE stage = 'build' ORDER BY created_at "
+        "DESC NULLS LAST, generation_id NULLS FIRST"
     ).fetchall():
         # Through the one accessor: an evicted build generation is read from
         # its pack (phase 4).

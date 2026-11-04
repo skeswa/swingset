@@ -1,0 +1,49 @@
+{
+  "ast_sha256": {
+    "src/swingset/dev/core_client.py": "8e2396743f8e2c805d6d57ba53d5b40328724de7ec2000797b5d43942cf8f626",
+    "src/swingset/dev/core_images.py": "d881d7d93b4611ab46524310de816271437d1b6666fa10337dac999da02d090c",
+    "src/swingset/dev/core_partition.py": "512370eaf770f65d77c3b6a3c5fcfd3353ee053c937be55c552cf36695bbd704",
+    "src/swingset/dev/core_runner.py": "8c76b9d4723ed2f17d42e10e099b136650285444b464aebc68cefc0d7e0e3a16",
+    "src/swingset/dev/pytest_paths.py": "ad72a8bcbfb6549253974156df1699ca3ddcf56d09f945e3590cdf4effc45629"
+  },
+  "checks": [
+    "Complete ordered worker manifests and independent executed-case union must agree; skipped, missing, duplicate or failed cases cannot pass.",
+    "One host executor lock serializes complete core jobs; an independent nonblocking flock regression proves the lock is held until work ends.",
+    "Every client has a private PID namespace, UID10001, readonly checkout, no Docker socket, 2GiB memory-plus-swap cap and bounded payload tmpfs; combined local working-memory stop is 7GiB.",
+    "Client helpers stop before physical PostgreSQL teardown; injected monitor failure preserves reports and restores signal handlers.",
+    "Passed volume deletion requires exact nonce-derived name, labels, original creation identity and no running or stopped container references.",
+    "Timed-out report readers can remove only the exact owned helper ID; foreign labels refuse deletion.",
+    "Fresh nonce builders have inspected 2GiB/no-swap and two-CPU limits; cleanup targets only that builder.",
+    "Failed payloads and capacity roots remain durably exported; symlinks are retained without following them and special files cannot block export.",
+    "Persistent capacity-directory removal checks UID, mode, nonce, inode and quarantined identity after dependent finalizers."
+  ],
+  "default_seed_refresh": {
+    "actual_readonly_checks": {
+      "directory_is_symlink": false,
+      "receipt_name_matches": true,
+      "stored_dev_uuid_matches": true
+    },
+    "database": "dev_default",
+    "excluded": "Every sampled/rehearsal database and files directory",
+    "private_receipt_format": "swingset-development-seed-v1",
+    "verdict": "ACCEPT only if stale, via existing seed.drop/create"
+  },
+  "format": 1,
+  "limits": [
+    "This verdict authorizes only owned local test/seed cleanup, with no production change or global prune.",
+    "Full regression, final timing and real sample rebuild receipts are separate gates."
+  ],
+  "reviewed_at": "2026-11-05T06:31:20.300449+00:00",
+  "reviewer": "root agent, independent of pg_engine and pg_dev authors",
+  "scope": "Local test supervisor ownership, cleanup, resource limits and failure retention; not a core timing acceptance",
+  "validation": {
+    "actual_bare_integrity_and_cleanup_checks": true,
+    "actual_bare_passed": 2513,
+    "actual_bare_run": "core-runs/de72a95a0d2845e2b42518fe",
+    "actual_bare_timing_passed": false,
+    "adoption_resource_cases": 103,
+    "independent_supervisor_cases": 48,
+    "supervisor_image_export_cases": 62
+  },
+  "verdict": "ACCEPT"
+}

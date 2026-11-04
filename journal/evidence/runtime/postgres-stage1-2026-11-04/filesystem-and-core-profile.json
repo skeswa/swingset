@@ -1,0 +1,397 @@
+{
+  "actual_core_profile": {
+    "aggregate_capture": [
+      {
+        "calls": 136,
+        "cum_seconds": 1.257925698,
+        "function": "('/workspace/src/swingset/build/files.py', 25, 'durable_write')",
+        "self_seconds": 0.0023126690000000003
+      },
+      {
+        "calls": 11211,
+        "cum_seconds": 84.25723363600001,
+        "function": "('/workspace/src/swingset/fetch/archive.py', 25, 'durable_write')",
+        "self_seconds": 0.15335456100000003
+      },
+      {
+        "calls": 149,
+        "cum_seconds": 18.117041005000004,
+        "function": "('/workspace/src/swingset/state/recipes.py', 59, 'capture_runtime')",
+        "self_seconds": 0.181796825
+      },
+      {
+        "calls": 40,
+        "cum_seconds": 90.005195673,
+        "function": "('/workspace/src/swingset/backup/snapshot.py', 65, 'capture')",
+        "self_seconds": 0.021129515
+      },
+      {
+        "calls": 21,
+        "cum_seconds": 85.678129713,
+        "function": "('/workspace/src/swingset/state/inputs.py', 52, 'capture')",
+        "self_seconds": 0.074068594
+      },
+      {
+        "calls": 5,
+        "cum_seconds": 0.001706688,
+        "function": "('/workspace/src/swingset/build/event_coverage.py', 248, 'capture')",
+        "self_seconds": 3.6375e-05
+      },
+      {
+        "calls": 90,
+        "cum_seconds": 0.327202754,
+        "function": "('/workspace/src/swingset/state/derivations.py', 515, 'capture')",
+        "self_seconds": 0.0015788310000000002
+      }
+    ],
+    "aggregate_fsync": {
+      "calls": 39727,
+      "cum_seconds": 147.890040355,
+      "function": "('~', 0, '<built-in method posix.fsync>')",
+      "self_seconds": 147.890040355
+    },
+    "assigned_counts": [
+      1303,
+      1086
+    ],
+    "clients": [
+      {
+        "cleanup": {
+          "complete": true,
+          "remaining_helpers": [],
+          "remaining_run_records": 0,
+          "test_runs_reaped": 0
+        },
+        "counts": {
+          "error": 0,
+          "failed": 0,
+          "passed": 117,
+          "skipped": 0
+        },
+        "index": 0
+      },
+      {
+        "cleanup": {
+          "complete": true,
+          "remaining_helpers": [],
+          "remaining_run_records": 0,
+          "test_runs_reaped": 1
+        },
+        "counts": {
+          "error": 0,
+          "failed": 0,
+          "passed": 38,
+          "skipped": 0
+        },
+        "index": 1
+      }
+    ],
+    "intentional_stop_reason": "bounded45s",
+    "membership_sha256": "6fd71a7cf76384108e22658f6821b9022286c2c5d8bfd323091db39c8037b3af",
+    "requested_bound_seconds": 45,
+    "selected_count": 2389,
+    "wall_seconds_including_cleanup_and_report_export": 48.3415,
+    "workers": [
+      {
+        "client": 0,
+        "fsync": [
+          {
+            "calls": 7504,
+            "cum_seconds": 25.836021,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 25.836021
+          }
+        ],
+        "node": "tests/backup/test_backup_prune_wiring.py::test_pruning_never_removes_the_checkpoint_this_run_wrote",
+        "phase": "call",
+        "phases": {
+          "call": 30.478222927893512,
+          "setup": 0.004318469204008579,
+          "teardown": 0.03934636211488396
+        },
+        "pid": 10
+      },
+      {
+        "client": 0,
+        "fsync": [
+          {
+            "calls": 3442,
+            "cum_seconds": 12.82352,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 12.82352
+          }
+        ],
+        "node": "tests/backup/test_checkpoint.py::test_restore_refuses_valid_unmarked_state_and_resumes_marked_staging",
+        "phase": "call",
+        "phases": {
+          "call": 39.08756526862271,
+          "setup": 0.08958623092621565,
+          "teardown": 0.35883559903595597
+        },
+        "pid": 13
+      },
+      {
+        "client": 0,
+        "fsync": [
+          {
+            "calls": 4266,
+            "cum_seconds": 15.821308,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 15.821308
+          }
+        ],
+        "node": "tests/publish/test_safety.py::test_changed_candidate_inputs_never_reach_remote_commit[journal]",
+        "phase": "call",
+        "phases": {
+          "call": 31.82838834892027,
+          "setup": 5.879128170199692,
+          "teardown": 0.29210660932585597
+        },
+        "pid": 16
+      },
+      {
+        "client": 0,
+        "fsync": [
+          {
+            "calls": 5964,
+            "cum_seconds": 22.717289,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 22.717289
+          }
+        ],
+        "node": "tests/backup/test_segments.py::test_parts_split_and_rejoin",
+        "phase": "call",
+        "phases": {
+          "call": 33.10938187583815,
+          "setup": 0.02429750480223447,
+          "teardown": 0.04943677503615618
+        },
+        "pid": 7
+      },
+      {
+        "client": 1,
+        "fsync": [
+          {
+            "calls": 6067,
+            "cum_seconds": 21.58247,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 21.58247
+          }
+        ],
+        "node": "tests/backup/test_transport.py::test_the_archive_gets_one_commit_per_set_and_keeps_three",
+        "phase": "call",
+        "phases": {
+          "call": 28.24625820212532,
+          "setup": 0.010528338956646621,
+          "teardown": 0.09606631100177765
+        },
+        "pid": 10
+      },
+      {
+        "client": 1,
+        "fsync": [
+          {
+            "calls": 5654,
+            "cum_seconds": 23.99023,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 23.99023
+          }
+        ],
+        "node": "tests/build/test_assembly.py::test_streamed_equals_whole_when_h17_accepts_a_printed_id",
+        "phase": "setup",
+        "phases": {
+          "call": 13.201474434928969,
+          "setup": 21.733644107938744,
+          "teardown": 0.2322220349451527
+        },
+        "pid": 13
+      },
+      {
+        "client": 1,
+        "fsync": [
+          {
+            "calls": 6814,
+            "cum_seconds": 25.088431,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 25.088431
+          }
+        ],
+        "node": "tests/backup/test_restore_set.py::test_a_wrong_item_digest_fails_before_anything_is_placed",
+        "phase": "call",
+        "phases": {
+          "call": 34.86868330289144,
+          "setup": 0.005482527078129351,
+          "teardown": 0.02602603007107973
+        },
+        "pid": 16
+      },
+      {
+        "client": 1,
+        "fsync": [
+          {
+            "calls": 16,
+            "cum_seconds": 0.030772,
+            "function": "('~', 0, '<built-in method posix.fsync>')",
+            "self_seconds": 0.030772
+          }
+        ],
+        "node": "tests/test_read_sets.py::test_pipeline_fixtures_run_armed_with_zero_undeclared_reads",
+        "phase": "call",
+        "phases": {
+          "call": 0.03792409226298332,
+          "setup": 1.1668234560638666,
+          "teardown": 0.14149137504864484
+        },
+        "pid": 7
+      }
+    ]
+  },
+  "conclusion": "Mac source-bind versus Linux-local source staging did not improve the complete small fixture. The actual core prefix spent 147.89 worker-seconds in 39,727 fsync calls; durable fixture and artifact writes dominate this prefix. Source staging and allocator tuning are not supported by these measurements.",
+  "controlled_filesystem_pair": {
+    "expected_incomplete_fixture": true,
+    "iterations": 20,
+    "original_600_iteration_fixture_unchanged": true,
+    "results": [
+      {
+        "connection_source_sha256": "9ee0b5216b5921f00088c892bb5727d45a2c65da7d614a8832e30525e9c89dcf",
+        "counts": {
+          "deadline_setting_statements": 1116,
+          "driver_execute_calls": 11224
+        },
+        "fixed_dependencies_sha256": "6ee0d1d808ab86398e756ab4ec86ab2fa745c3c523b444ed0751b8fb3e9b72a8",
+        "fixture_sha256": "c9d436990f83c8f687659584c4825c9bf7577774bd547836072ffc61fdb743a5",
+        "iterations": 20,
+        "mode": "bind",
+        "nondeadline_driver_calls": 10108,
+        "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+        "phase_durations": {
+          "call": 1.1358470729319379,
+          "setup": 0.07159725902602077,
+          "teardown": 0.006115991971455514
+        },
+        "seconds": 1.5345076229423285,
+        "staging_seconds": 5.5409036576747894e-06,
+        "uv_lock_sha256": "71b9cc76361a910cbd1d9c1f3b1854d4d96407d092ba9eddf3b53054f340ce0f"
+      },
+      {
+        "connection_source_sha256": "9ee0b5216b5921f00088c892bb5727d45a2c65da7d614a8832e30525e9c89dcf",
+        "counts": {
+          "deadline_setting_statements": 1171,
+          "driver_execute_calls": 11279
+        },
+        "fixed_dependencies_sha256": "6ee0d1d808ab86398e756ab4ec86ab2fa745c3c523b444ed0751b8fb3e9b72a8",
+        "fixture_sha256": "c9d436990f83c8f687659584c4825c9bf7577774bd547836072ffc61fdb743a5",
+        "iterations": 20,
+        "mode": "staged",
+        "nondeadline_driver_calls": 10108,
+        "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+        "phase_durations": {
+          "call": 1.217100285924971,
+          "setup": 0.08819333999417722,
+          "teardown": 0.00536844099406153
+        },
+        "seconds": 1.6223321669967845,
+        "staging_seconds": 0.12845321104396135,
+        "uv_lock_sha256": "71b9cc76361a910cbd1d9c1f3b1854d4d96407d092ba9eddf3b53054f340ce0f"
+      }
+    ],
+    "same_exact_source_and_outcome": true,
+    "same_nondeadline_driver_calls": true
+  },
+  "fsync_callers": {
+    "('/workspace/src/swingset/backup/checkpoint.py', 42, '_copy_file')": {
+      "calls": 1,
+      "elapsed_seconds": 0.0033023320000000003
+    },
+    "('/workspace/src/swingset/backup/r2.py', 130, 'fetch')": {
+      "calls": 1,
+      "elapsed_seconds": 0.001324558
+    },
+    "('/workspace/src/swingset/backup/restore_set.py', 351, '_join')": {
+      "calls": 18,
+      "elapsed_seconds": 0.27512643700000006
+    },
+    "('/workspace/src/swingset/backup/segments.py', 1222, '_close')": {
+      "calls": 16,
+      "elapsed_seconds": 1.172242934
+    },
+    "('/workspace/src/swingset/backup/segments.py', 960, '_finish')": {
+      "calls": 17,
+      "elapsed_seconds": 0.299023069
+    },
+    "('/workspace/src/swingset/build/artifact_store.py', 97, '_fsync')": {
+      "calls": 56,
+      "elapsed_seconds": 0.156859191
+    },
+    "('/workspace/src/swingset/build/files.py', 25, 'durable_write')": {
+      "calls": 136,
+      "elapsed_seconds": 0.372109264
+    },
+    "('/workspace/src/swingset/build/files.py', 36, 'fsync_dir')": {
+      "calls": 414,
+      "elapsed_seconds": 1.4876751670000001
+    },
+    "('/workspace/src/swingset/fetch/archive.py', 25, 'durable_write')": {
+      "calls": 22421,
+      "elapsed_seconds": 81.81985620400002
+    },
+    "('/workspace/src/swingset/state/engine/settings.py', 35, 'write_settings')": {
+      "calls": 96,
+      "elapsed_seconds": 0.5454590650000001
+    },
+    "('/workspace/src/swingset/state/objects.py', 154, 'put_stream')": {
+      "calls": 51,
+      "elapsed_seconds": 0.11957664400000001
+    },
+    "('/workspace/src/swingset/state/objects.py', 371, '_fsync_dir')": {
+      "calls": 147,
+      "elapsed_seconds": 0.37037798499999997
+    },
+    "('/workspace/src/swingset/state/postgres_backup.py', 248, 'export')": {
+      "calls": 5968,
+      "elapsed_seconds": 24.075089414
+    },
+    "('/workspace/src/swingset/state/postgres_backup.py', 659, 'restore')": {
+      "calls": 34,
+      "elapsed_seconds": 0.214586148
+    },
+    "('/workspace/src/swingset/state/postgres_backup.py', 75, '_copy_out')": {
+      "calls": 10118,
+      "elapsed_seconds": 35.224055534
+    },
+    "('/workspace/src/swingset/state/postgres_copy.py', 51, '_sync_directory')": {
+      "calls": 99,
+      "elapsed_seconds": 0.808699862
+    },
+    "('/workspace/src/swingset/state/postgres_copy.py', 59, '_write')": {
+      "calls": 66,
+      "elapsed_seconds": 0.5594027420000001
+    }
+  },
+  "instrumentation_sha256": {
+    "cpu_receipt.py": "f82083770a5da655f85d18f98ed48751b8243c90c13d654cd8daa4e8d0ed30b8",
+    "sitecustomize.py": "c78e6cc9e486566cbad07fd971a452752de451992617fffd0a26d7d48906eefb",
+    "swingset-cpu-core.py": "474985808ff72acd4f0e98a7fc621eef6a2c9277101dc0c5a09a49ccdfa852be",
+    "swingset-filesystem-measure.py": "f07608c6b9ccf4166dc1dc33dd32331c384573c333f38dc40a5242a90094271c",
+    "swingset-filesystem-pair.py": "c617f5ac97284212e611b685c8fc173a7e5bb2f4a4b32af3665682e032ef41b7"
+  },
+  "kernel_limits": {
+    "cpus_per_client": 4,
+    "memory_per_client": 2147483648,
+    "memory_plus_swap_per_client": 2147483648,
+    "postgres_memory": 2147483648,
+    "workers_per_client": 4
+  },
+  "limitations": [
+    "The 45-second run was intentionally incomplete and is a diagnosis, not a complete performance result.",
+    "cProfile measures elapsed blocking time inside fsync, not CPU busy time. Cumulative application times overlap and must not be added.",
+    "Some generator cProfile totals exceed elapsed wall time; they are excluded from the diagnosis.",
+    "The armed child had not produced its final profile when normal supervisor helper cleanup completed. Its parent wait is visible; its internal costs remain unmeasured in this receipt.",
+    "Deadline GUC counts differ with exact floored-millisecond memo timing; domain-driver counts and domain outcomes matched."
+  ],
+  "measured_at": "2026-11-05T03:17:53.543752+00:00",
+  "purpose": "Find the remaining actual default-core cost after the pinned-revision executor missed 180 seconds. No source optimization was applied.",
+  "source_binding_sha256": "9876f82794f11061d35f130baa98ef765fa43f36a9c15af88eedc50aa2a99b76",
+  "source_revision": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "source_stable": true
+}

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -11,6 +10,7 @@ from typing import Any
 import httpx
 
 from swingset.fetch.archive import canonical, digest
+from swingset.state import engine
 
 
 def timestamp(value: str | None) -> str | None:
@@ -41,9 +41,19 @@ def request_id(value: Mapping[str, Any]) -> str:
     return "request_" + digest(canonical(value))
 
 
-def generation(conn: sqlite3.Connection, identifier: str) -> dict[str, Any]:
+def generation(conn: engine.Connection, identifier: str) -> dict[str, Any]:
     row = conn.execute(
-        "SELECT * FROM source_generations WHERE generation_id=?", (identifier,)
+        (
+            "SELECT source_generations.generation_id, source_generations.unit_key, "
+            "source_generations.page_kind, source_generations.contract_version, "
+            "source_generations.input_fingerprint, source_generations.manifest_json, "
+            "source_generations.recipe_json, source_generations.result_json, "
+            "source_generations.report_json, source_generations.previous_generation_id, "
+            "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+            "source_generations.state, source_generations.removal_authority FROM source_generations "
+            "WHERE generation_id = %s"
+        ),
+        (identifier,),
     ).fetchone()
     if row is None:
         raise ValueError("source_generation_missing")
@@ -87,45 +97,52 @@ def decode_generation(row: Mapping[str, Any], identifier: str) -> dict[str, Any]
 # it, and the readers' row budgets count revoked generations. An equivalence
 # whose recipe is not valid JSON is kept, so readers name it invalid.
 _LABEL = (
-    "CASE WHEN json_valid({0}.recipe_json) THEN "
-    "json_array(json_extract({0}.recipe_json,'$.context.snapshot_id'),"
-    "json_extract({0}.recipe_json,'$.parser_version')) END"
+    "CASE WHEN pg_input_is_valid({0}.recipe_json,'json') THEN "
+    "ops.compact_json(json_build_array("
+    "json_extract_path({0}.recipe_json::json,'context','snapshot_id'),"
+    "json_extract_path({0}.recipe_json::json,'parser_version'))) END"
 )
 REVOKED_EVIDENCE = (
-    "SELECT unit_key,input_fingerprint,recipe_json FROM ("
-    "SELECT generation_id,unit_key,input_fingerprint,recipe_json FROM source_generations "
-    "WHERE state='revoked' UNION ALL "
-    "SELECT g.generation_id,e.unit_key,min(e.input_fingerprint),e.recipe_json "
+    "WITH candidate_equivalences AS ("
+    "SELECT g.generation_id,e.unit_key,e.input_fingerprint,e.recipe_json,"
+    f"{_LABEL.format('e')} AS source_label,"
+    "CASE WHEN pg_input_is_valid(e.recipe_json,'json') THEN NULL ELSE e.input_fingerprint END AS invalid_label "
     "FROM source_equivalences e JOIN source_generations g "
-    "ON g.generation_id=e.generation_id AND g.unit_key=e.unit_key WHERE g.state='revoked' "
-    f"AND {_LABEL.format('e')} IS NOT {_LABEL.format('g')} "
-    f"GROUP BY g.generation_id,e.unit_key,{_LABEL.format('e')},"
-    "CASE WHEN json_valid(e.recipe_json) THEN NULL ELSE e.input_fingerprint END) "
-    "ORDER BY generation_id,input_fingerprint"
+    "ON g.generation_id=e.generation_id AND g.unit_key=e.unit_key "
+    f"WHERE g.state='revoked' AND {_LABEL.format('e')} IS DISTINCT FROM {_LABEL.format('g')}"
+    "), distinct_equivalences AS ("
+    "SELECT DISTINCT ON (generation_id,unit_key,source_label,invalid_label) "
+    "generation_id,unit_key,input_fingerprint,recipe_json FROM candidate_equivalences "
+    "ORDER BY generation_id,unit_key,source_label NULLS FIRST,invalid_label NULLS FIRST,input_fingerprint"
+    ") SELECT unit_key,input_fingerprint,recipe_json FROM ("
+    "SELECT generation_id,unit_key,input_fingerprint,recipe_json FROM source_generations WHERE state='revoked' "
+    "UNION ALL SELECT generation_id,unit_key,input_fingerprint,recipe_json FROM distinct_equivalences"
+    ") AS revoked ORDER BY generation_id,input_fingerprint"
 )
+
 #: The same before schema 33, which has no equivalences.
 REVOKED_EVIDENCE_32 = (
-    "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations "
-    "WHERE state='revoked' ORDER BY generation_id,input_fingerprint"
+    "SELECT unit_key, input_fingerprint, recipe_json FROM source_generations WHERE state = "
+    "'revoked' ORDER BY generation_id NULLS FIRST, input_fingerprint NULLS FIRST"
 )
 
 
-def revoked_evidence(conn: sqlite3.Connection) -> str:
+def revoked_evidence(conn: engine.Connection) -> str:
     """The revoked-evidence query this file's schema supports.
 
     A read-only open skips migration, so a reader can meet schema 32 (D-0206).
     """
     has_equivalences = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='source_equivalences'"
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'source_equivalences') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
     ).fetchone()
     return REVOKED_EVIDENCE if has_equivalences else REVOKED_EVIDENCE_32
 
 
 def admission_reason(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     value: Mapping[str, Any],
     *,
-    revoked_rows: Iterable[sqlite3.Row | tuple[Any, ...]] | None = None,
+    revoked_rows: Iterable[engine.Row | tuple[Any, ...]] | None = None,
     policy_version: Callable[[str], str | None] | None = None,
 ) -> str | None:
     if value["state"] == "revoked":
@@ -148,13 +165,13 @@ def admission_reason(
     if value["report"].get("failures"):
         return "source_interpretation_unsupported"
     if not conn.execute(
-        "SELECT 1 FROM admission_decisions WHERE generation_id=? AND state='accepted' LIMIT 1",
+        "SELECT 1 AS _value_0 FROM admission_decisions WHERE generation_id = %s AND state = 'accepted' LIMIT 1",
         (value["generation_id"],),
     ).fetchone():
         return "source_generation_unadmitted"
     if policy_version is None:
         policy = conn.execute(
-            "SELECT contract_version FROM admission_policies WHERE page_kind=?",
+            "SELECT contract_version FROM admission_policies WHERE page_kind = %s",
             (value["page_kind"],),
         ).fetchone()
         contract = policy[0] if policy else None
@@ -165,12 +182,12 @@ def admission_reason(
     return None
 
 
-def parent_support(conn: sqlite3.Connection, value: Mapping[str, Any]) -> dict[str, Any]:
+def parent_support(conn: engine.Connection, value: Mapping[str, Any]) -> dict[str, Any]:
     context = value["recipe"]["context"]
     snapshots = []
     for member in value["manifest"]:
         row = conn.execute(
-            "SELECT watch_id,url,body_sha256,fetched_at FROM snapshots WHERE snapshot_id=?",
+            "SELECT watch_id, url, body_sha256, fetched_at FROM snapshots WHERE snapshot_id = %s",
             (member["snapshot_id"],),
         ).fetchone()
         if row is None or tuple(row[:3]) != (
@@ -183,7 +200,7 @@ def parent_support(conn: sqlite3.Connection, value: Mapping[str, Any]) -> dict[s
     if not snapshots or context["snapshot_id"] not in {row["snapshot_id"] for row in snapshots}:
         raise ValueError("parent_snapshot_not_in_manifest")
     watch = conn.execute(
-        "SELECT source FROM watches WHERE watch_id=?", (context["watch_id"],)
+        "SELECT source FROM watches WHERE watch_id = %s", (context["watch_id"],)
     ).fetchone()
     if watch is None or watch[0] != context["source"]:
         raise ValueError("parent_source_changed")

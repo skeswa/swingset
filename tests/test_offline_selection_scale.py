@@ -28,11 +28,14 @@ def test_blocked_event_catalog_is_read_once_before_ready_registry_work(tmp_path,
             WorkUnit("project", "dancer", "1"),
         ]
         conn.executemany(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, %s, %s)",
             [(u.stage, u.unit_kind, u.unit_id, NOW.isoformat()) for u in units],
         )
         conn.execute(
-            "INSERT INTO scheduler_offline_service VALUES ('project','dancer',1,?,10)",
+            (
+                "INSERT INTO scheduler_offline_service (stage, unit_kind, attempts, last_served_at, "
+                "sequence) VALUES ('project', 'dancer', 1, %s, 10)"
+            ),
             (NOW.isoformat(),),
         )
         calls = Counter()
@@ -67,15 +70,18 @@ def test_fixed_and_shared_prerequisites_match_full_catalog_order_and_invalidate(
             )
         ]
         conn.executemany(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, %s, %s)",
             [(u.stage, u.unit_kind, u.unit_id, NOW.isoformat()) for u in units],
         )
         conn.execute(
-            "INSERT INTO events(event_id,series_id,name,year,wsdc_status,sources,source,"
-            "snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-            "VALUES ('event','s','Event',2026,'registry','[]','test','snap','1','t','t','run')"
+            "INSERT INTO events (event_id, series_id, name, year, wsdc_status, sources, source, "
+            "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('event', 's', "
+            "'Event', 2026, 'registry', '[]', 'test', 'snap', '1', 't', 't', 'run')"
         )
-        conn.execute("INSERT INTO source_event_map VALUES ('eepro','source','event','explicit',1)")
+        conn.execute(
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'source', 'event', 'explicit', 1)"
+        )
         with query(conn):
             project = tuple(dependencies.scopes(conn, "project"))
             assert WorkUnit("project", "history", "all") not in project
@@ -105,7 +111,9 @@ def test_fixed_and_shared_prerequisites_match_full_catalog_order_and_invalidate(
                 WorkUnit("project", "mapping", "eepro"),
             )
             conn.execute(
-                "INSERT INTO source_event_proposals VALUES ('scoringdance','s:1','event','name_date',1,NULL)"
+                "INSERT INTO source_event_proposals (source, source_ref, event_id, match_method, "
+                "match_confidence, placeholder_json) VALUES ('scoringdance', 's:1', 'event', 'name_date', 1, "
+                "NULL)"
             )
             assert dependencies.waits_for(conn, resolution) == (
                 WorkUnit("project", "mapping", "eepro"),
@@ -125,7 +133,7 @@ def test_fixed_and_shared_prerequisites_match_full_catalog_order_and_invalidate(
                 if u.unit_kind in {"event", "resolution"} and u.unit_id == "event"
             )
             conn.executemany(
-                "INSERT INTO derivation_reads VALUES ('link','event','event',?)",
+                "INSERT INTO derivation_reads (stage, unit_kind, unit_id, read_key) VALUES ('link', 'event', 'event', %s)",
                 [("project/dancer/2",), ("project/dancer/3",)],
             )
             links = dependencies.prerequisites(conn, WorkUnit("link", "event", "event"))
@@ -143,17 +151,24 @@ def test_mapping_dependency_subset_matches_full_scope_inference(tmp_path, storag
         conn = db.connection
         if storage == "registered":
             conn.execute(
-                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project',?,'custom',?)",
+                (
+                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                    "%s, 'custom', %s)"
+                ),
                 (kind, NOW.isoformat()),
             )
         elif storage == "queued":
             conn.execute(
-                "INSERT INTO pending_work VALUES ('project',?,'custom',?)",
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', %s, 'custom', %s)",
                 (kind, NOW.isoformat()),
             )
         else:
             conn.execute(
-                "INSERT INTO canonical_scope_rows VALUES (?,'custom','events','[]')", (kind,)
+                (
+                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES (%s, "
+                    "'custom', 'events', '[]')"
+                ),
+                (kind,),
             )
         for kind_name, direct in (
             ("mapping", dependencies.mapping_units),
@@ -181,7 +196,8 @@ def test_resolution_lookup_preserves_empty_state_and_write_rollback_without_cata
             with db.transaction():
                 conn.execute("SAVEPOINT temporary_mapping")
                 conn.execute(
-                    "INSERT INTO canonical_scope_rows VALUES ('resolution','event','events','[]')"
+                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+                    "('resolution', 'event', 'events', '[]')"
                 )
                 assert dependencies.prerequisites(conn, unit) == (
                     WorkUnit("project", "resolution", "event"),
@@ -219,29 +235,38 @@ def test_a_retired_scope_is_never_scheduled_registered_or_run(tmp_path, kind):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-            "VALUES ('project',?,'all',?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                "%s, 'all', %s)"
+            ),
             (kind, NOW.isoformat()),
         )
         conn.execute(
-            "INSERT INTO pending_work VALUES ('project',?,'all',?)", (kind, NOW.isoformat())
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', %s, 'all', %s)",
+            (kind, NOW.isoformat()),
         )
         conn.execute(
-            "INSERT INTO canonical_scope_rows VALUES (?,'all','events','[\"e\"]')", (kind,)
+            (
+                "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES (%s, "
+                "'all', 'events', '[\"e\"]')"
+            ),
+            (kind,),
         )
         assert dependencies.retired(history) and history in dependencies.RETIRED
         assert history not in set(dependencies.scopes(conn, "project"))
         assert history not in set(derivations.pending_units(conn, "project"))
         assert history not in set(derivations.candidate_units(conn, "project"))
         assert next_offline(conn, now=NOW) != history
-        conn.execute("DELETE FROM derivation_scopes WHERE unit_kind=?", (kind,))
+        conn.execute("DELETE FROM derivation_scopes WHERE unit_kind = %s", (kind,))
         derivations.refresh(conn, NOW)
         assert not conn.execute(
-            "SELECT 1 FROM derivation_scopes WHERE unit_kind=?", (kind,)
+            "SELECT 1 FROM derivation_scopes WHERE unit_kind = %s", (kind,)
         ).fetchone()
         run = db.start_run(NOW)
         assert not process_unit(db, history, SimpleNamespace(files={}), FakeClock(NOW), run)
-        assert not conn.execute("SELECT 1 FROM pending_work WHERE unit_kind=?", (kind,)).fetchone()
         assert not conn.execute(
-            "SELECT 1 FROM derivation_generations WHERE unit_kind=?", (kind,)
+            "SELECT 1 FROM pending_work WHERE unit_kind = %s", (kind,)
+        ).fetchone()
+        assert not conn.execute(
+            "SELECT 1 FROM derivation_generations WHERE unit_kind = %s", (kind,)
         ).fetchone()

@@ -1,4 +1,4 @@
-"""Content-addressed files become durable before SQLite can reference them."""
+"""Content-addressed files become durable before Postgres can reference them."""
 
 import gzip
 import hashlib

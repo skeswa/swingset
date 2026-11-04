@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from postgres_statements import assert_integrity
 
 from swingset.publish.safety import verify_candidate_files
 from swingset.state.db import open_database
@@ -44,14 +45,13 @@ def invoke(state, overrides, config, fault="none", variant=""):
 
 def belief(state):
     with open_database(state, lock=False, read_only=True) as db:
-        assert db.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-        assert db.connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert_integrity(db.connection)
         assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
         assert list(unfinished_units(db.connection)) == []
         builds = db.connection.execute(
-            "SELECT r.payload_json FROM derivation_scopes s "
-            "JOIN derivation_rows r ON r.generation_id=s.materialized_generation_id "
-            "WHERE s.stage='build' AND r.table_name='artifact'"
+            "SELECT r.payload_json FROM derivation_scopes AS s JOIN derivation_rows AS r ON "
+            "r.generation_id = s.materialized_generation_id WHERE s.stage = 'build' AND r.table_name = "
+            "'artifact'"
         ).fetchall()
         assert builds, "recovery must finish a durable build, not only recreate event rows"
         for row in builds:
@@ -63,8 +63,8 @@ def belief(state):
         return [
             tuple(row)
             for row in db.connection.execute(
-                "SELECT event_id,series_id,name,year,start_date,end_date,city,region,country,"
-                "website,wsdc_status,sources FROM events ORDER BY event_id"
+                "SELECT event_id, series_id, name, year, start_date, end_date, city, region, country, "
+                "website, wsdc_status, sources FROM events ORDER BY event_id NULLS FIRST"
             )
         ]
 
@@ -132,6 +132,9 @@ def test_restart_before_and_after_remaining_cycle_transactions(tmp_path, uninter
             assert_recovery(state, overrides, config, boundary, side, expected)
             # Each copy is about 21 MiB and is needed for one check only; ninety
             # of them per run were most of a 15 GiB temp tree (D-0170).
+            from swingset.dev.testing import retire_state
+
+            retire_state(state)
             shutil.rmtree(state, ignore_errors=True)
 
 

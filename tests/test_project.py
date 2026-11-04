@@ -26,7 +26,7 @@ def test_scope_replacement_preserves_seen_times_for_unchanged_facts(tmp_path) ->
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         with database.transaction():
             assert replace_scope(
@@ -46,16 +46,18 @@ def test_scope_replacement_preserves_seen_times_for_unchanged_facts(tmp_path) ->
                 run_id="run_b",
                 projected_at="2026-09-09T00:00:00Z",
             )
-        row = conn.execute("SELECT first_seen_at,last_seen_at,run_id FROM events").fetchone()
+        row = conn.execute("SELECT first_seen_at, last_seen_at, run_id FROM events").fetchone()
         assert tuple(row) == ("2026-09-08T00:00:00Z", "2026-09-08T00:00:00Z", "run_a")
-        assert conn.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()[0] == 1
+        assert (
+            conn.execute("SELECT value FROM revisions WHERE name = 'canonical'").fetchone()[0] == 1
+        )
 
 
 def test_empty_scope_removes_owned_rows(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         with database.transaction():
             replace_scope(
@@ -75,14 +77,14 @@ def test_empty_scope_removes_owned_rows(tmp_path) -> None:
                 run_id="run_a",
                 projected_at="2026-09-08T01:00:00Z",
             )
-        assert conn.execute("SELECT count(*) FROM events").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0
 
 
 def test_dropped_calendar_event_detaches_its_registry_placements(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         with database.transaction():
             replace_scope(
@@ -93,15 +95,26 @@ def test_dropped_calendar_event_detaches_its_registry_placements(tmp_path) -> No
                 run_id="run_a",
                 projected_at="2026-09-08T00:00:00Z",
             )
-            columns = [row[1] for row in conn.execute("PRAGMA table_info(dancers)")]
-            types = {row[1]: row[2] for row in conn.execute("PRAGMA table_info(dancers)")}
-            values = [1 if types[name] == "INTEGER" else "x" for name in columns]
+            from swingset.state.postgres_schema import semantic_columns
+
+            columns = semantic_columns("dancers")
+            types = {
+                row[0]: row[1]
+                for row in conn.execute(
+                    "SELECT a.attname,t.typname FROM pg_attribute a JOIN pg_type t ON t.oid=a.atttypid WHERE a.attrelid='dancers'::regclass AND a.attnum>0 AND NOT a.attisdropped"
+                )
+            }
+            values = [1 if types[name] in {"int8", "int4"} else "x" for name in columns]
             conn.execute(
-                f"INSERT INTO dancers({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
+                f"INSERT INTO dancers ({','.join(columns)}) VALUES ({','.join('%s' for _ in columns)})",
                 values,
             )
             conn.execute(
-                "INSERT INTO registry_placements VALUES (1,'leader','wcs','novice','slug-summer-hummer','Summer Hummer','2026-08','2026-08-summer-hummer','1',10,'wsdc_registry','snap_r','1','2026-09-08T00:00:00Z','2026-09-08T00:00:00Z','run_a')"
+                "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+                "series_name_raw, event_month, event_id, result, points, source, snapshot_id, "
+                "parser_version, first_seen_at, last_seen_at, run_id) VALUES (1, 'leader', 'wcs', 'novice', "
+                "'slug-summer-hummer', 'Summer Hummer', '2026-08', '2026-08-summer-hummer', '1', 10, "
+                "'wsdc_registry', 'snap_r', '1', '2026-09-08T00:00:00Z', '2026-09-08T00:00:00Z', 'run_a')"
             )
         # The live calendar stops listing an event once it has passed. The
         # registry row must survive the delete, unlinked, not block it.
@@ -114,7 +127,7 @@ def test_dropped_calendar_event_detaches_its_registry_placements(tmp_path) -> No
                 run_id="run_a",
                 projected_at="2026-09-21T22:05:00Z",
             )
-        assert conn.execute("SELECT count(*) FROM events").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0
         assert [tuple(row) for row in conn.execute("SELECT event_id FROM registry_placements")] == [
             (None,)
         ]

@@ -22,7 +22,7 @@ def members(
     """No parent artifact verdict or completeness claim follows from this check."""
     headers = session.read(
         "SELECT source,source_ref,predecessor_id,generation_id,parent_support_json,pagination,membership_digest "
-        "FROM source_event_enumerations WHERE enumeration_id=?",
+        "FROM source_event_enumerations WHERE enumeration_id=%s",
         (enumeration_id,),
         (
             "source",
@@ -40,7 +40,7 @@ def members(
     header = headers[0]
     rows = session.read(
         "SELECT request_id,request_json,support_json,first_known_at FROM source_event_enumeration_members "
-        "WHERE enumeration_id=? ORDER BY request_id",
+        "WHERE enumeration_id=%s ORDER BY request_id",
         (enumeration_id,),
         ("request_id", "request_json", "support_json", "first_known_at"),
         cap=min(limit, session.limits.rows),

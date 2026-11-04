@@ -2,14 +2,12 @@
 
 import json
 import random
-import sqlite3
 import time
 import zlib
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from urllib.parse import urljoin, urlsplit
@@ -32,7 +30,7 @@ from swingset.sources.base import (
     ExtractError,
     PageKind,
 )
-from swingset.state import guards
+from swingset.state import engine, guards
 from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ControlPaused, operation
@@ -130,7 +128,7 @@ def _pause_end(pauses: list[dict[str, object]]) -> str | None:
 class FetchClient:
     def __init__(
         self,
-        connection: sqlite3.Connection,
+        connection: engine.Connection,
         config: Config,
         clock: Clock,
         archive: Archive,
@@ -142,15 +140,13 @@ class FetchClient:
         run_id: str | None = None,
     ) -> None:
         self.connection = connection
+        self._external_transport = transport
         #: Stamped on request admissions without a watch's own run.
         self.run_id = run_id
         self.config = config
         self.clock = clock
         self.archive = archive
-        database_file = next(
-            row[2] for row in connection.execute("PRAGMA database_list") if row[1] == "main"
-        )
-        state_dir = Path(database_file).parent if database_file else archive.state_dir
+        state_dir = connection.state_dir or archive.state_dir
         self.database = Database(state_dir, connection, None)
         self.gate = Gate(connection, config, clock)
         self.robots = Robots(connection, archive, clock)
@@ -206,6 +202,9 @@ class FetchClient:
         sweep: bool = False,
         context: RequestContext | None = None,
     ) -> tuple[httpx.Response | None, Classification, str | None]:
+        from swingset.state.environment import ensure_external_allowed
+
+        ensure_external_allowed(self.connection, "source requests", self._external_transport)
         if context and (reason := context.check(self.connection, url, self.clock.now())):
             return None, Classification(Outcome.INVALID), reason
         archive_request = urlsplit(url).hostname == "web.archive.org"
@@ -297,6 +296,12 @@ class FetchClient:
                 try:
                     try:
                         # No request uses cookies from a previous response.
+                        ensure_external_allowed(
+                            self.connection, "source requests", self._external_transport
+                        )
+                        from swingset.state.controls import check_admission
+
+                        check_admission(self.connection, action_id)
                         self.http.cookies.clear()
                         if context is None:
                             response = self.http.request(
@@ -464,7 +469,17 @@ class FetchClient:
         sweep: bool = False,
     ) -> FetchResult:
         row = self.connection.execute(
-            "SELECT * FROM watches WHERE watch_id=?", (watch_id,)
+            (
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches WHERE watch_id = %s"
+            ),
+            (watch_id,),
         ).fetchone()
         if row is None:
             raise ValueError(f"unknown watch {watch_id}")
@@ -496,7 +511,7 @@ class FetchClient:
     def _compared(self, watch_id: str) -> tuple[Any, Any, Any, Any] | None:
         """The watch columns a fetch compares its response with, as they are now."""
         row = self.connection.execute(
-            "SELECT body_sha256,fingerprint,extract_version,etag FROM watches WHERE watch_id=?",
+            "SELECT body_sha256, fingerprint, extract_version, etag FROM watches WHERE watch_id = %s",
             (watch_id,),
         ).fetchone()
         return None if row is None else (row[0], row[1], row[2], row[3])
@@ -511,7 +526,19 @@ class FetchClient:
         sweep: bool = False,
     ) -> FetchResult:
         conn = self.connection
-        row = conn.execute("SELECT * FROM watches WHERE watch_id=?", (watch_id,)).fetchone()
+        row = conn.execute(
+            (
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches WHERE watch_id = %s"
+            ),
+            (watch_id,),
+        ).fetchone()
         if row is None:
             raise ValueError(f"unknown watch {watch_id}")
         watch = SimpleNamespace(**dict(row), _origin_run_id=run_id)
@@ -534,7 +561,9 @@ class FetchClient:
                 self.guards.skipped(reason, watch_id=watch_id, history=True)
                 return FetchResult(Classification(Outcome.INVALID), skipped=reason)
             prior = conn.execute(
-                "SELECT 1 FROM snapshots WHERE url=? AND (archive_url=? OR requested_archive_url=?) AND http_status=200 AND classification='Ok'",
+                (
+                    "SELECT 1 AS _value_0 FROM snapshots WHERE url = %s AND (archive_url = %s OR requested_archive_url = %s) AND http_status = 200 AND classification = 'Ok'"
+                ),
                 (watch.url, watch.archive_url, watch.archive_url),
             ).fetchone()
             if prior:
@@ -571,7 +600,8 @@ class FetchClient:
             if registry:
                 with self.database.transaction():
                     conn.execute(
-                        "UPDATE watches SET last_checked_at=? WHERE watch_id=?", (now, watch_id)
+                        "UPDATE watches SET last_checked_at = %s WHERE watch_id = %s",
+                        (now, watch_id),
                     )
                     record_check(
                         conn,
@@ -660,25 +690,35 @@ class FetchClient:
         with self.database.transaction():
             moved = self._compared(watch_id) != compared
             conn.execute(
-                "UPDATE watches SET last_checked_at=?,ever_ok=CASE WHEN ? THEN 1 ELSE ever_ok END WHERE watch_id=?",
+                (
+                    "UPDATE watches SET last_checked_at = %s, ever_ok = CASE WHEN %s THEN 1 ELSE ever_ok END "
+                    "WHERE watch_id = %s"
+                ),
                 (now, response.status_code == 200, watch_id),
             )
             if outcome.outcome == Outcome.OK and (changed or not moved):
                 conn.execute(
-                    "UPDATE watches SET etag=?,last_modified=? WHERE watch_id=?",
+                    "UPDATE watches SET etag = %s, last_modified = %s WHERE watch_id = %s",
                     (etag, last_modified, watch_id),
                 )
             if failed_cache:
                 conn.execute(
-                    "UPDATE watches SET body_sha256=NULL,fingerprint=NULL,etag=NULL,last_modified=NULL WHERE watch_id=?",
+                    (
+                        "UPDATE watches SET body_sha256 = NULL, fingerprint = NULL, etag = NULL, last_modified = "
+                        "NULL WHERE watch_id = %s"
+                    ),
                     (watch_id,),
                 )
             if snapshot_id:
                 conn.execute(
-                    """INSERT INTO snapshots(snapshot_id,watch_id,method,url,form,fetched_at,http_status,
-                    etag,last_modified,content_type,body_sha256,body_bytes,content_changed,run_id,via,headers_json,
-                    classification,extract_status,extract_sha256,parse_status,extract_version,parser_version,captured_at,observed_at,archive_url,requested_archive_url)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        "INSERT INTO snapshots (snapshot_id, watch_id, method, url, form, fetched_at, http_status, "
+                        "etag, last_modified, content_type, body_sha256, body_bytes, content_changed, run_id, via, "
+                        "headers_json, classification, extract_status, extract_sha256, parse_status, "
+                        "extract_version, parser_version, captured_at, observed_at, archive_url, "
+                        "requested_archive_url) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+                        "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    ),
                     (
                         snapshot_id,
                         watch_id,
@@ -692,7 +732,7 @@ class FetchClient:
                         response.headers.get("content-type"),
                         body_sha,
                         len(response.content),
-                        changed,
+                        int(changed),
                         run_id,
                         "wayback" if via_archive else "origin",
                         json.dumps(dict(response.headers)),
@@ -708,7 +748,7 @@ class FetchClient:
                         watch.archive_url if via_archive else None,
                     ),
                 )
-                conn.execute("UPDATE revisions SET value=value+1 WHERE name='snapshots'")
+                conn.execute("UPDATE revisions SET value = value + 1 WHERE name = 'snapshots'")
                 if outcome.outcome in (Outcome.OK, Outcome.NOT_MODIFIED):
                     from swingset.state.event_progress import acquired
 
@@ -717,22 +757,25 @@ class FetchClient:
                     )
                 if queue_parse:
                     conn.execute(
-                        "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES ('parse','snapshot',?,?)",
+                        (
+                            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+                            "'snapshot', %s, %s) ON CONFLICT DO NOTHING"
+                        ),
                         (snapshot_id, now),
                     )
             if changed:
                 conn.execute(
-                    "UPDATE watches SET body_sha256=?,last_changed_at=?,unchanged_streak=0 WHERE watch_id=?",
+                    "UPDATE watches SET body_sha256 = %s, last_changed_at = %s, unchanged_streak = 0 WHERE watch_id = %s",
                     (body_sha, now, watch_id),
                 )
                 if extract_status == "ok":
                     conn.execute(
-                        "UPDATE watches SET fingerprint=?,extract_version=? WHERE watch_id=?",
+                        "UPDATE watches SET fingerprint = %s, extract_version = %s WHERE watch_id = %s",
                         (extract_sha, str(page_kind.EXTRACT_VERSION), watch_id),
                     )
             elif outcome.outcome in (Outcome.OK, Outcome.NOT_MODIFIED) and not moved:
                 conn.execute(
-                    "UPDATE watches SET unchanged_streak=unchanged_streak+1 WHERE watch_id=?",
+                    "UPDATE watches SET unchanged_streak = unchanged_streak + 1 WHERE watch_id = %s",
                     (watch_id,),
                 )
             if registry:

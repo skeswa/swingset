@@ -77,7 +77,9 @@ def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budge
             ),
         )
         source.connection.execute(
-            "INSERT INTO archive_queries VALUES ('q','wsdc_calendar','worldsdc.com/events/',2024,1,2,NULL,'2026-01-01')"
+            "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, total_pages, "
+            "completed_at, started_at) VALUES ('q', 'wsdc_calendar', 'worldsdc.com/events/', 2024, 1, 2, "
+            "NULL, '2026-01-01')"
         )
         sha = Archive(source_path).store_body(b'{"pages":2}')
         durable_write(
@@ -86,7 +88,10 @@ def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budge
         )
         robots_sha = Archive(source_path).store_body(b"User-agent: *\nDisallow: /\n")
         source.connection.execute(
-            "INSERT INTO hosts(host,robots_sha256,robots_fetched_at,robots_status) VALUES ('www.worldsdc.com',?,'2026-01-01',200)",
+            (
+                "INSERT INTO hosts (host, robots_sha256, robots_fetched_at, robots_status) VALUES "
+                "('www.worldsdc.com', %s, '2026-01-01', 200)"
+            ),
             (robots_sha,),
         )
         export_evidence(source, package, repository=tmp_path)
@@ -125,23 +130,45 @@ def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budge
             run_id,
         )
         conn.execute(
-            "UPDATE watches SET state='paused',paused_until='2030-01-01T00:00:00+00:00',notes='owner hold',priority=17 WHERE watch_id=?",
+            (
+                "UPDATE watches SET state = 'paused', paused_until = '2030-01-01T00:00:00+00:00', notes = "
+                "'owner hold', priority = 17 WHERE watch_id = %s"
+            ),
             (spec.watch_id,),
         )
         conn.execute(
-            "INSERT INTO hosts(host,next_allowed_at,paused_until,pause_reason) VALUES ('web.archive.org','2030-01-01T00:00:00+00:00','2030-02-01T00:00:00+00:00','owner hold')"
+            "INSERT INTO hosts (host, next_allowed_at, paused_until, pause_reason) VALUES "
+            "('web.archive.org', '2030-01-01T00:00:00+00:00', '2030-02-01T00:00:00+00:00', 'owner hold')"
         )
         conn.execute(
-            "INSERT INTO host_budget VALUES ('web.archive.org',?,190,999999)",
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('web.archive.org', %s, 190, 999999)",
             (clock.now().date().isoformat(),),
         )
         watch_before = dict(
-            conn.execute("SELECT * FROM watches WHERE watch_id=?", (spec.watch_id,)).fetchone()
+            conn.execute(
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (spec.watch_id,),
+            ).fetchone()
         )
         live_observations = [
             tuple(row)
             for row in conn.execute(
-                "SELECT * FROM observations WHERE snapshot_id=?", (fetched.snapshot_id,)
+                (
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations WHERE snapshot_id = %s"
+                ),
+                (fetched.snapshot_id,),
             )
         ]
         import swingset.history.transfer as transfer
@@ -160,56 +187,86 @@ def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budge
         assert conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == snapshots_before
         assert (
             dict(
-                conn.execute("SELECT * FROM watches WHERE watch_id=?", (spec.watch_id,)).fetchone()
+                conn.execute(
+                    (
+                        "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                        "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                        "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                        "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                        "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                        "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                        "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                        "FROM watches WHERE watch_id = %s"
+                    ),
+                    (spec.watch_id,),
+                ).fetchone()
             )
             == watch_before
         )
         assert not (live_path / "phase1-catalog.json").exists()
         first = import_evidence(live, package, clock=clock)
         conn.execute(
-            "UPDATE archive_queries SET next_page=2,completed_at='2026-01-02' WHERE query_id='q'"
+            "UPDATE archive_queries SET next_page = 2, completed_at = '2026-01-02' WHERE query_id = 'q'"
         )
         second = import_evidence(live, package, clock=clock)
         assert first["imported"] == 1 and second["imported"] == 0
         imported_robots = conn.execute(
-            "SELECT robots_sha256 FROM hosts WHERE host='www.worldsdc.com'"
+            "SELECT robots_sha256 FROM hosts WHERE host = 'www.worldsdc.com'"
         ).fetchone()[0]
         assert Archive(live_path).read_body(imported_robots) == b"User-agent: *\nDisallow: /\n"
         assert tuple(
             conn.execute(
-                "SELECT next_page,completed_at FROM archive_queries WHERE query_id='q'"
+                "SELECT next_page, completed_at FROM archive_queries WHERE query_id = 'q'"
             ).fetchone()
         ) == (2, "2026-01-02")
         receipt = json.loads((live_path / "archive-cdx/q/probe.json").read_bytes())
         assert Archive(live_path).read_body(receipt["body_sha256"]) == b'{"pages":2}'
         assert (
             dict(
-                conn.execute("SELECT * FROM watches WHERE watch_id=?", (spec.watch_id,)).fetchone()
+                conn.execute(
+                    (
+                        "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                        "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                        "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                        "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                        "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                        "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                        "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                        "FROM watches WHERE watch_id = %s"
+                    ),
+                    (spec.watch_id,),
+                ).fetchone()
             )
             == watch_before
         )
         assert [
             tuple(row)
             for row in conn.execute(
-                "SELECT * FROM observations WHERE snapshot_id=?", (fetched.snapshot_id,)
+                (
+                    "SELECT observations.observation_id, observations.watch_id, observations.snapshot_id, "
+                    "observations.kind, observations.scope_kind, observations.scope_id, observations.seq, "
+                    "observations.extract_version, observations.parser_version, observations.payload_json FROM "
+                    "observations WHERE snapshot_id = %s"
+                ),
+                (fetched.snapshot_id,),
             )
         ] == live_observations
         assert (
             conn.execute(
-                "SELECT COUNT(*) FROM observations WHERE scope_id='wsdc-history'"
+                "SELECT COUNT(*) FROM observations WHERE scope_id = 'wsdc-history'"
             ).fetchone()[0]
             == 127
         )
         assert (
             conn.execute(
-                "SELECT requests FROM host_budget WHERE host='web.archive.org'"
+                "SELECT requests FROM host_budget WHERE host = 'web.archive.org'"
             ).fetchone()[0]
             == 190
         )
         assert (
-            conn.execute("SELECT pause_reason FROM hosts WHERE host='web.archive.org'").fetchone()[
-                0
-            ]
+            conn.execute(
+                "SELECT pause_reason FROM hosts WHERE host = 'web.archive.org'"
+            ).fetchone()[0]
             == "owner hold"
         )
-        assert not conn.execute("SELECT 1 FROM watches WHERE kind!='index'").fetchone()
+        assert not conn.execute("SELECT 1 FROM watches WHERE kind <> 'index'").fetchone()

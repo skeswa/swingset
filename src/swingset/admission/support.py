@@ -2,20 +2,23 @@
 
 import json
 import re
-import sqlite3
 from typing import Any
 
 from swingset.fetch.archive import canonical, digest
+from swingset.state import engine
 
 
-def generation_failure_codes(conn: sqlite3.Connection, generation_id: str) -> tuple[str, ...]:
+def generation_failure_codes(conn: engine.Connection, generation_id: str) -> tuple[str, ...]:
     """Public diagnostics use stored guard codes, never private exception text."""
     row = conn.execute(
-        "SELECT report_json FROM source_generations WHERE generation_id=?", (generation_id,)
+        "SELECT report_json FROM source_generations WHERE generation_id = %s", (generation_id,)
     ).fetchone()
     reasons = [] if row is None else list(json.loads(row[0])["failures"])
     decision = conn.execute(
-        "SELECT reason FROM admission_decisions WHERE generation_id=? ORDER BY decision_id DESC LIMIT 1",
+        (
+            "SELECT reason FROM admission_decisions WHERE generation_id = %s ORDER BY decision_id DESC "
+            "NULLS LAST LIMIT 1"
+        ),
         (generation_id,),
     ).fetchone()
     if decision is not None:
@@ -24,25 +27,32 @@ def generation_failure_codes(conn: sqlite3.Connection, generation_id: str) -> tu
     return tuple(sorted({reason for reason in reasons if re.fullmatch(r"[a-z][a-z0-9_]*", reason)}))
 
 
-def selection_digest(conn: sqlite3.Connection) -> str:
+def selection_digest(conn: engine.Connection) -> str:
     """Pin policies, selected/legacy pointers, and explicit revocations."""
     return digest(
         canonical(
             {
                 "policies": [
                     tuple(row)
-                    for row in conn.execute("SELECT * FROM admission_policies ORDER BY page_kind")
+                    for row in conn.execute(
+                        "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+                        "admission_policies.mode, admission_policies.policy_revision, "
+                        "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+                        "admission_policies.reviewed_at FROM admission_policies ORDER BY page_kind NULLS FIRST"
+                    )
                 ],
                 "units": [
                     tuple(row)
                     for row in conn.execute(
-                        "SELECT unit_key,desired_fingerprint,accepted_generation_id,legacy_snapshot_id,legacy_state FROM source_units ORDER BY unit_key"
+                        "SELECT unit_key, desired_fingerprint, accepted_generation_id, legacy_snapshot_id, "
+                        "legacy_state FROM source_units ORDER BY unit_key NULLS FIRST"
                     )
                 ],
                 "revocations": [
                     tuple(row)
                     for row in conn.execute(
-                        "SELECT generation_id,input_fingerprint FROM source_generations WHERE state='revoked' ORDER BY generation_id"
+                        "SELECT generation_id, input_fingerprint FROM source_generations WHERE state = 'revoked' "
+                        "ORDER BY generation_id NULLS FIRST"
                     )
                 ],
             }
@@ -50,10 +60,10 @@ def selection_digest(conn: sqlite3.Connection) -> str:
     )
 
 
-def admission_summary(conn: sqlite3.Connection) -> dict[str, Any]:
+def admission_summary(conn: engine.Connection) -> dict[str, Any]:
     if (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='source_generations'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'source_generations') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is None
     ):
@@ -63,26 +73,29 @@ def admission_summary(conn: sqlite3.Connection) -> dict[str, Any]:
         "policies": [
             dict(row)
             for row in conn.execute(
-                "SELECT page_kind,contract_version,mode,policy_revision,reviewed_by,reviewed_at FROM admission_policies ORDER BY page_kind"
+                "SELECT page_kind, contract_version, mode, policy_revision, reviewed_by, reviewed_at FROM "
+                "admission_policies ORDER BY page_kind NULLS FIRST"
             )
         ],
         "generations": [
             dict(row)
             for row in conn.execute(
-                "SELECT page_kind,state,COUNT(*) AS count,MIN(created_at) AS oldest_created_at FROM source_generations GROUP BY state,page_kind ORDER BY page_kind,state"
+                "SELECT page_kind, state, COUNT(*) AS count, MIN(created_at) AS oldest_created_at FROM "
+                "source_generations GROUP BY state, page_kind ORDER BY page_kind NULLS FIRST, state NULLS "
+                "FIRST"
             )
         ],
         "legacy_unassessed": conn.execute(
-            "SELECT COUNT(*) FROM source_units WHERE legacy_state='legacy_unassessed'"
+            "SELECT COUNT(*) AS _value_0 FROM source_units WHERE legacy_state = 'legacy_unassessed'"
         ).fetchone()[0],
         "accepted_units": conn.execute(
-            "SELECT COUNT(*) FROM source_units WHERE accepted_generation_id IS NOT NULL"
+            "SELECT COUNT(*) AS _value_0 FROM source_units WHERE NOT accepted_generation_id IS NULL"
         ).fetchone()[0],
     }
 
 
 def interpretation_support(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     snapshot_id: str,
     *,
     parser_version: str,
@@ -96,21 +109,38 @@ def interpretation_support(
     An explicit revocation wins over legacy or other apparent support.
     """
     snapshot = conn.execute(
-        "SELECT s.watch_id,w.parser FROM snapshots s JOIN watches w USING(watch_id) WHERE snapshot_id=?",
+        (
+            "SELECT s.watch_id, w.parser FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE "
+            "snapshot_id = %s"
+        ),
         (snapshot_id,),
     ).fetchone()
     if snapshot is None:
         return {"state": "missing", "usable": False, "reason": "snapshot_missing"}
     watch_id, page_kind = str(snapshot[0]), str(snapshot[1])
     policy = conn.execute(
-        "SELECT mode,contract_version,policy_revision FROM admission_policies WHERE page_kind=?",
+        "SELECT mode, contract_version, policy_revision FROM admission_policies WHERE page_kind = %s",
         (page_kind,),
     ).fetchone()
-    units = list(conn.execute("SELECT * FROM source_units WHERE watch_id=?", (watch_id,)))
+    units = list(
+        conn.execute(
+            (
+                "SELECT source_units.unit_key, source_units.watch_id, source_units.page_kind, "
+                "source_units.desired_fingerprint, source_units.accepted_generation_id, "
+                "source_units.legacy_snapshot_id, source_units.legacy_state FROM source_units WHERE watch_id "
+                "= %s"
+            ),
+            (watch_id,),
+        )
+    )
     matching = []
     for unit in units:
         for generation in conn.execute(
-            "SELECT generation_id,state,contract_version,recipe_json,removal_authority FROM source_generations WHERE unit_key=? ORDER BY created_at DESC,generation_id DESC",
+            (
+                "SELECT generation_id, state, contract_version, recipe_json, removal_authority FROM "
+                "source_generations WHERE unit_key = %s ORDER BY created_at DESC NULLS LAST, generation_id "
+                "DESC NULLS LAST"
+            ),
             (unit["unit_key"],),
         ):
             recipe = json.loads(generation["recipe_json"])
@@ -136,7 +166,9 @@ def interpretation_support(
             "generation_ids": revoked,
         }
     observation = conn.execute(
-        "SELECT 1 FROM observations WHERE watch_id=? AND snapshot_id=? AND parser_version=? AND (? IS NULL OR extract_version=?) LIMIT 1",
+        (
+            "SELECT 1 AS _value_0 FROM observations WHERE watch_id = %s AND snapshot_id = %s AND parser_version = %s AND (CAST(%s AS TEXT) IS NULL OR extract_version = %s) LIMIT 1"
+        ),
         (watch_id, snapshot_id, str(parser_version), extract_version, extract_version),
     ).fetchone()
     for generation, unit in matching:

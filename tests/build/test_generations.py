@@ -24,9 +24,11 @@ def build_context(db, result):
     (D-0224); the closure path named its closure.
     """
     row = db.connection.execute(
-        "SELECT g.recipe_json FROM derivation_generations g JOIN derivation_rows r "
-        "ON r.generation_id=g.generation_id WHERE g.stage='build' AND r.table_name='artifact' "
-        "AND r.record_key=? ORDER BY g.created_at DESC LIMIT 1",
+        (
+            "SELECT g.recipe_json FROM derivation_generations AS g JOIN derivation_rows AS r ON "
+            "r.generation_id = g.generation_id WHERE g.stage = 'build' AND r.table_name = 'artifact' AND "
+            "r.record_key = %s ORDER BY g.created_at DESC NULLS LAST LIMIT 1"
+        ),
         (result.candidate_id,),
     ).fetchone()
     return json.loads(row[0])["context"]
@@ -62,7 +64,7 @@ def test_interrupted_completion_retains_files_without_false_materialization(
     assert len(candidates) == 1
     assert (
         db.connection.execute(
-            "SELECT count(*) FROM derivation_generations WHERE stage='build'"
+            "SELECT COUNT(*) FROM derivation_generations WHERE stage = 'build'"
         ).fetchone()[0]
         == 0
     )
@@ -117,7 +119,7 @@ def test_new_inputs_reject_completed_old_build_files(empty_release, monkeypatch)
     assert (retained[0] / "REJECTED").is_file()
     assert (
         db.connection.execute(
-            "SELECT count(*) FROM derivation_generations WHERE stage='build'"
+            "SELECT COUNT(*) FROM derivation_generations WHERE stage = 'build'"
         ).fetchone()[0]
         == 0
     )
@@ -137,3 +139,69 @@ def test_missing_candidate_body_is_not_current_even_with_intact_manifest(empty_r
     assert recovered.content_hash == result.content_hash
     assert (result.path / "REJECTED").is_file()
     assert derivations.current(db.connection, unit, context=context)
+
+
+def test_render_witness_reuse_requires_same_trigger_parent_recipe_and_dependencies(empty_release):
+    from dataclasses import replace
+
+    from swingset.build import manifest as manifests
+
+    database, bundle, clock, run = empty_release
+    built = service.build_release(database, bundle, clock, run)
+    recorded = json.loads((built.path / "_meta/manifest.json").read_bytes())
+    policy = recorded["release_policy"]
+    value = manifests.read(database.state_dir, policy["manifest_digest"])
+    manifest = manifests.ReleaseManifest(policy["manifest_digest"], value, 0)
+    clock.sleep(300)
+    requested = {"cutoff": clock.now().isoformat(), "run_id": database.start_run(clock.now())}
+
+    def select(**changes):
+        arguments = {
+            "bundle_digest": bundle.digest,
+            "correction_only": False,
+            "manifest": manifest,
+            "build_trigger": policy["build_trigger"],
+            "render": requested,
+            "expected_parent": recorded["expected_parent"],
+        }
+        return generations.select(database, **{**arguments, **changes})
+
+    selected = select()
+    assert selected.context["render"] == policy["render"]
+    assert select(build_trigger="different-health-trigger").context["render"] == requested
+    assert select(expected_parent="different-public-parent").context["render"] == requested
+    changed_dependencies = replace(
+        selected,
+        dependencies=(*selected.dependencies, {"kind": "new-explicit-input", "fingerprint": "new"}),
+    )
+    assert (
+        generations._render_context(database, changed_dependencies, requested)["render"]
+        == requested
+    )
+    old = database.connection.execute(
+        "SELECT digest FROM accepted_inputs WHERE consumer='pipeline' AND input_name='recipe/code/build'"
+    ).fetchone()[0]
+    try:
+        database.connection.execute(
+            "UPDATE accepted_inputs SET digest=%s WHERE consumer='pipeline' AND input_name='recipe/code/build'",
+            ("f" * 64,),
+        )
+        assert select().context["render"] == requested
+    finally:
+        database.connection.execute(
+            "UPDATE accepted_inputs SET digest=%s WHERE consumer='pipeline' AND input_name='recipe/code/build'",
+            (old,),
+        )
+
+
+@pytest.mark.parametrize(
+    "render",
+    [
+        {"cutoff": "2026-11-04T00:00:00", "run_id": "run"},
+        {"cutoff": "invalid", "run_id": "run"},
+        {"cutoff": "2026-11-04T00:00:00Z", "run_id": " "},
+    ],
+)
+def test_render_witness_requires_aware_literal_clock_and_real_run_label(render):
+    with pytest.raises(BuildError, match="render"):
+        generations.render_inputs(render)

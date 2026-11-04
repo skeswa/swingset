@@ -1,0 +1,164 @@
+{
+  "armed_nested_retention": {
+    "inner_directory_count": 74,
+    "inner_non_test_directories": [],
+    "largest_inner_directory_bytes": 72527872,
+    "previous_allocated_bytes": 1115979776
+  },
+  "capacity_fixture_extension_review": {
+    "activation": "Only SWINGSET_TEST_TMP_RETENTION=failed plus the capacity_disk marker; ordinary and native tests keep the builtin fixture path.",
+    "cleanup": "Only after the wrapper finalized and setup,call,teardown reports all passed. Atomically move into a fresh private same-filesystem quarantine, recheck ownership, then rmtree only that private quarantine. Ownership changes retain payload and report a teardown error with its retained path.",
+    "export_requirement": "The job exporter must durably copy all retained /tmp/swingset-capacity-* directories, including swingset-capacity-clean-* quarantines, as well as retained pytest payloads, before client exit.",
+    "failure_semantics": "Capacity fixtures retain setup/call/teardown failures and SIGINT state. Ordinary builtin fixtures still have the narrower call-failure retention described above.",
+    "ownership": "Exact UID,mode,device,inode and private nonce marker. Marker open uses O_NOFOLLOW|O_NONBLOCK; fstat requires a regular current-UID file and a bounded exact token read, so FIFO/oversized/symlink markers refuse safely.",
+    "placement": "A private direct /tmp/swingset-capacity-* parent is created by mkdtemp with mode0700 on the persistent named /tmp volume. Its nonce stays in that parent; tests receive a clean mode0700 child named case. The nonce never enters application state or backup history. Real statfs/free-space checks run unchanged.",
+    "selection": "Capacity metadata adds a marker only; it changes no selected node or test assertion.",
+    "source_safety": "Child symlinks are unlinked during owned-directory cleanup; the source target stays unchanged. No source, production directory or shared ledger is an allocation target.",
+    "source_sha256": "e4fd524b8a8f50639b021d78e3785b29bc693927b07ef6d5b83005f09374fbce",
+    "tests_sha256": "45d87ea443d3d8c15bcc4200163535d885afa023fab5c8f8a6de87790e0c8e01",
+    "validation": "7 passed in 1.54s",
+    "verdict": "ACCEPT the explicit persistent capacity-fixture exception with the same bounded harness conditions."
+  },
+  "historical_policy_validation": {
+    "ambient_pytest_addopts_forwarded": false,
+    "explicit_environment": "SWINGSET_TEST_TMP_RETENTION=failed",
+    "forwarded_arguments": [
+      "-o",
+      "tmp_path_retention_policy=failed"
+    ],
+    "helper_sha256": "9bb30bbaa5170f3bff2d9e05b10e545a7bce7c32a84d930faf56d5ddf6d8b92d",
+    "unknown_harness_value_refused": true,
+    "validation": "31 passed in 8.71s"
+  },
+  "installed_pytest_semantics": {
+    "application_cleanup": "The Postgres test owner finalizer may run after tmp_path cleanup; it uses its separate persistent exact-owner registry and tolerates an absent state marker.",
+    "factory_lifetime": "mktemp factory directories are not removed after each test; successful sessionfinish can remove an auto-generated base. Explicit basetemp and interrupted/failed sessions can retain it.",
+    "path_bounds": "The factory checks basename resolution remains directly within its owned base, verifies predictable root ownership, and does not permit a symlink root. rmtree of the owned temporary path does not follow child source symlinks.",
+    "tmp_path_cleanup": "During fixture finalization, rmtree only the path created by the factory when policy==failed and call report passed (default True when absent). Dependent fixtures finalize first. A later setup/teardown error does not restore removed files.",
+    "version": "9.1.1"
+  },
+  "limitations": [
+    "Prior volumes are incomplete core prefixes. The sums are conservative observed directory maxima, not simultaneous measurements or a full-core bound.",
+    "Footprints count regular-file allocated blocks with hardlink deduplication within each measured directory, excluding directory inode overhead.",
+    "Changing the temporary filesystem changes real free-space readings; application quota and storage guards remain active and may legitimately fail in the bounded trial.",
+    "The mounted pytest tmpfs belongs to this one disposable test container; power loss of that container loses its RAM artifacts. Process SIGKILL tests retain kernel data while the client container lives."
+  ],
+  "mandatory_conditions": [
+    "Mount only /tmp/pytest-of-swingset with size=768MiB,mode1777,uid10001,gid10001; keep the outer /tmp named volume for real test-run/Copies ledgers, service credentials and reports.",
+    "Apply builtin tmp_path_retention_policy=failed to the outer pytest AND inherited ordinary pytest children, including armed acceptance. Preserve existing cache options. Do not propagate unrelated selectors or worker flags.",
+    "The isolated historical runner strips ambient pytest options. Either forward only the literal failed-retention policy under the recognized harness setting, or account for its accumulating session-factory group directories in the bounded trial.",
+    "Preserve real fsync calls, all crash/cleanup assertions, exact default-core selection and test outcomes.",
+    "Retain the 2GiB RAM+swap cap per client and monitor actual cgroup usage/OOM events, tmpfs bytes and inodes. Gracefully stop on exhaustion; do not silently raise limits or drop tests.",
+    "Before client exit, durably export retained CALL-failure/interrupted/session data out of tmpfs. Builtin cleanup does not promise artifacts for setup or teardown failures."
+  ],
+  "measured_at": "2026-11-05T04:05:44.808156+00:00",
+  "native_linux_proof": {
+    "events": [
+      [
+        "test_pass",
+        "dependent-finalizer",
+        true
+      ],
+      [
+        "test_pass",
+        "after-tmp-finalizer",
+        false
+      ],
+      [
+        "test_call_failure",
+        "dependent-finalizer",
+        true
+      ],
+      [
+        "test_call_failure",
+        "after-tmp-finalizer",
+        true
+      ],
+      [
+        "test_setup_failure",
+        "dependent-finalizer",
+        true
+      ],
+      [
+        "test_setup_failure",
+        "after-tmp-finalizer",
+        false
+      ],
+      [
+        "test_teardown_failure",
+        "dependent-finalizer",
+        true
+      ],
+      [
+        "test_teardown_failure",
+        "after-tmp-finalizer",
+        false
+      ]
+    ],
+    "mount_mode": "0o1700",
+    "mount_uid": 10001,
+    "persistent_ledger_unchanged": true,
+    "pytest_status": 1,
+    "source_unchanged": true,
+    "states": {
+      "session": true,
+      "test_call_failure": true,
+      "test_pass": false,
+      "test_setup_failure": false,
+      "test_teardown_failure": false
+    }
+  },
+  "prior_volumes_modified": false,
+  "probe_sha256": {
+    "swingset-retention-review.py": "fdec7e2a7095a0a5a25d4a2df8469178292d025948a18a39d5294aa983bdb196",
+    "swingset-temp-armed.py": "92c626629e03b38c79188cfa39764631059c0bc2ca56899733e3260d493181c9",
+    "swingset-temp-footprint.py": "fea6fb95489fe834356cef7b5a1300f1820cf0ef4eee74cd168c7844644f88e3"
+  },
+  "pytest_tmpdir_source_sha256": "5099f71d89413191c9e7515c9d4fe9fc7083bb73306f2cf1f73a9f89c862ed90",
+  "read_only_prior_volume_measurement": [
+    {
+      "largest_ordinary_test_per_worker_bytes": {
+        "popen-gw0": 100675584,
+        "popen-gw1": 120492032,
+        "popen-gw2": 96681984,
+        "popen-gw3": 96186368
+      },
+      "largest_per_worker_sum_bytes": 414035968,
+      "non_test_factory_allocated_bytes": 71221248,
+      "retained_regular_files": {
+        "allocated_bytes": 6515204096,
+        "apparent_bytes": 6126534998,
+        "files": 151967
+      },
+      "verified_labels": {
+        "io.swingset.core-probe": "0f8960654d3e",
+        "io.swingset.core-probe.shard": "0"
+      },
+      "volume": "swingset-linux-two-0f8960654d3e-0-tmp"
+    },
+    {
+      "largest_ordinary_test_per_worker_bytes": {
+        "popen-gw0": 95649792,
+        "popen-gw1": 124284928,
+        "popen-gw2": 73314304,
+        "popen-gw3": 97263616
+      },
+      "largest_per_worker_sum_bytes": 390512640,
+      "non_test_factory_allocated_bytes": 0,
+      "retained_regular_files": {
+        "allocated_bytes": 6126120960,
+        "apparent_bytes": 5824236868,
+        "files": 128530
+      },
+      "verified_labels": {
+        "io.swingset.core-probe": "0f8960654d3e",
+        "io.swingset.core-probe.shard": "1"
+      },
+      "volume": "swingset-linux-two-0f8960654d3e-1-tmp"
+    }
+  ],
+  "reviewer": "independent pg_engine agent; launcher owned by pg_dev",
+  "scope": "Only disposable pytest-owned paths and explicitly marked capacity-fixture allocations in dedicated native Linux test clients; production durability code and source files are unchanged.",
+  "source_files_deleted": false,
+  "verdict": "ACCEPT for a bounded measured trial with the mandatory conditions below. This is not proof that the complete core fits the tmpfs bound."
+}

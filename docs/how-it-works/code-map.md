@@ -33,8 +33,9 @@ records, and migrations. Start with [db.py](../../src/swingset/state/db.py),
 there and in `admission/generations.py`; [cutoff.py](../../src/swingset/cutoff.py)
 holds its off switch and [recipe_scope.py](../../src/swingset/state/recipe_scope.py)
 decides which code each recipe names. Each distinct output row is stored once;
-[derivation_payload_migration.py](../../src/swingset/state/derivation_payload_migration.py)
-is the one-time fill and check that migration 32 runs.
+[postgres_schema.py](../../src/swingset/state/postgres_schema.py) defines the
+Postgres schema and explicit owner migration job. The old SQLite fill and check
+are retained in the [historical test fixture](../../tests/fixtures/legacy_sqlite37/README.md#historical-python-helpers).
 
 [retention.py](../../src/swingset/state/retention.py) decides what stays in the
 live database: it owns the file closure and the walk behind `gc --plan`, `hold`

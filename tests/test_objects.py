@@ -87,7 +87,7 @@ def test_equal_bytes_are_stored_once_and_indexed_once(tmp_path: Path) -> None:
             objects.record(conn, "parse_body", first[0], first[1], first[2], NOW)
             objects.record(conn, "parse_body", first[0], first[1], first[2], NOW)
         rows = database.connection.execute(
-            "SELECT class,digest,raw_bytes,stored_bytes,stored_at FROM objects"
+            "SELECT class, digest, raw_bytes, stored_bytes, stored_at FROM objects"
         ).fetchall()
         assert [tuple(row) for row in rows] == [
             ("parse_body", first[0], 3, first[2], "2026-10-01T00:00:00.000000Z")
@@ -180,30 +180,32 @@ def test_store_for_follows_a_copy_of_the_database(tmp_path: Path) -> None:
         digest, raw_bytes, stored = store.put_stream("derivation_output", iter(LINES))
         with database.transaction() as conn:
             objects.record(conn, "derivation_output", digest, raw_bytes, stored, NOW)
-        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    copy = tmp_path / "checkpoint" / "state"
-    shutil.copytree(state, copy)
-    shutil.rmtree(state)
-    with open_database(copy, lock=False) as database:
-        store = store_for(database.connection)
-        assert store.state_dir == copy
-        (listed,) = database.connection.execute("SELECT digest FROM objects").fetchall()
-        assert list(store.lines("derivation_output", listed[0])) == LINES
-    import sqlite3
+        from swingset.state import engine
+        from swingset.state.postgres_copy import Copies
 
-    with pytest.raises(ValueError, match="database file"):
-        store_for(sqlite3.connect(":memory:"))
+        with Copies(state) as copies:
+            copy = tmp_path / "checkpoint/state"
+            shutil.copytree(state, copy, ignore=shutil.ignore_patterns("database.json"))
+            copies.freeze(database.connection, copy)
+            with open_database(copy, lock=False) as restored:
+                store = store_for(restored.connection)
+                assert store.state_dir == copy
+                (listed,) = restored.connection.execute("SELECT digest FROM objects").fetchall()
+                assert list(store.lines("derivation_output", listed[0])) == LINES
+            with engine.connect(engine.resolve_dsn(copy)) as unbound:
+                with pytest.raises(ValueError, match="state directory"):
+                    store_for(unbound)
 
 
 def test_classes_mirror_the_seeded_rows(tmp_path: Path) -> None:
     with open_database(tmp_path / "state", lock=False) as database:
         rows = database.connection.execute(
-            "SELECT class,location,roots,collector,min_age_seconds,backed_up FROM blob_classes "
-            "ORDER BY rowid"
+            "SELECT class, location, roots, collector, min_age_seconds, backed_up FROM blob_classes "
+            "ORDER BY class"
         ).fetchall()
     assert [tuple(row) for row in rows] == [
         (c.name, c.location, c.roots, c.collector, c.min_age_seconds, int(c.backed_up))
-        for c in CLASSES.values()
+        for c in sorted(CLASSES.values(), key=lambda c: c.name)
     ]
     assert objects.STORED == {"derivation_output", "parse_body", "label_body", "release_manifest"}
 

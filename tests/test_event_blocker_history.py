@@ -1,9 +1,9 @@
 """Bounded blocker samples retain changes without manufacturing elapsed eligibility."""
 
-import sqlite3
 from dataclasses import replace
 
 import pytest
+from postgres_statements import contents
 from test_event_enumerations import admit_parent, finish_bootstrap
 from test_event_enumerations import event as event
 
@@ -12,6 +12,7 @@ from swingset.config import Config, HostConfig, SourceConfig
 from swingset.schedule import event_blocker_history as history
 from swingset.schedule import event_pressure
 from swingset.schedule.watches import upsert_watch
+from swingset.state import engine
 from swingset.state.controls import Selector, change_control
 from swingset.state.db import SCHEMA_VERSION
 
@@ -51,11 +52,11 @@ def test_unchanged_samples_ignore_counters_and_clock_but_keep_refresh_summaries(
     first = sample(f)
     f.corpus.clock.sleep(5)
     f.conn.execute(
-        "INSERT INTO host_budget VALUES ('eepro.com',?,1,50)",
+        "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('eepro.com', %s, 1, 50)",
         (f.corpus.clock.now().date().isoformat(),),
     )
     f.conn.execute(
-        "UPDATE watches SET last_checked_at=?,unchanged_streak=unchanged_streak+1",
+        "UPDATE watches SET last_checked_at = %s, unchanged_streak = unchanged_streak + 1",
         (f.corpus.clock.now().isoformat(),),
     )
     second = sample(f)
@@ -63,7 +64,7 @@ def test_unchanged_samples_ignore_counters_and_clock_but_keep_refresh_summaries(
     assert first["refresh_id"] != second["refresh_id"]
     assert (
         f.conn.execute(
-            "SELECT count(*) FROM event_blocker_refreshes WHERE run_id=?", (f.corpus.run,)
+            "SELECT COUNT(*) FROM event_blocker_refreshes WHERE run_id = %s", (f.corpus.run,)
         ).fetchone()[0]
         == 2
     )
@@ -79,13 +80,17 @@ def test_overlapping_pause_budget_cooldown_and_retry_boundaries(event):
     from datetime import timedelta
 
     boundary = (now + timedelta(seconds=10)).isoformat()
-    f.conn.execute("UPDATE watches SET next_check_at=?,paused_until=?", (boundary, boundary))
+    f.conn.execute("UPDATE watches SET next_check_at = %s, paused_until = %s", (boundary, boundary))
     f.conn.execute(
-        "INSERT INTO hosts(host,next_allowed_at,paused_until,pause_reason) VALUES ('eepro.com',?,?,'Blocked')",
+        (
+            "INSERT INTO hosts (host, next_allowed_at, paused_until, pause_reason) VALUES ('eepro.com', "
+            "%s, %s, 'Blocked')"
+        ),
         (boundary, boundary),
     )
     f.conn.execute(
-        "INSERT INTO host_budget VALUES ('eepro.com',?,2,100)", (now.date().isoformat(),)
+        "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('eepro.com', %s, 2, 100)",
+        (now.date().isoformat(),),
     )
     pause = change_control(
         f.db.state_dir,
@@ -119,8 +124,8 @@ def test_overlapping_pause_budget_cooldown_and_retry_boundaries(event):
     assert after_expiry["changed_events"] == 1
     assert set(after_expiry["reason_counts"]) == {"request_budget", "byte_budget"}
     # Expiry observation does not delete an operator record or refund usage.
-    assert f.conn.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 1
-    assert f.conn.execute("SELECT requests,bytes FROM host_budget").fetchone()[:] == (2, 100)
+    assert f.conn.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 1
+    assert f.conn.execute("SELECT requests, bytes FROM host_budget").fetchone()[:] == (2, 100)
     f.corpus.clock.sleep(86400)
     assert sample(f)["reason_counts"] == {}
 
@@ -134,7 +139,7 @@ def test_policy_input_enumeration_and_control_revision_changes_are_recorded(even
     policy = replace(config(), sources={"eepro": SourceConfig(False)})
     assert sample(f, policy)["changed_events"] == 1
     assert report(f)["latest"]["facts"]["policy_digest"] != old["policy_digest"]
-    f.conn.execute("INSERT INTO meta VALUES ('input_bundle_hash','new-bundle')")
+    f.conn.execute("INSERT INTO meta (key, value) VALUES ('input_bundle_hash', 'new-bundle')")
     assert sample(f, policy)["changed_events"] == 1
     assert report(f)["latest"]["facts"]["input_bundle_hash"] == "new-bundle"
     admit_parent(f, ["one.htm", "two.htm"])
@@ -239,7 +244,7 @@ def test_frozen_catalog_pass_rotates_before_continuous_new_arrivals(event):
         result = sample(f, limit=1)
         observed.append(
             f.conn.execute(
-                "SELECT source_ref FROM event_blocker_observations WHERE refresh_id=?",
+                "SELECT source_ref FROM event_blocker_observations WHERE refresh_id = %s",
                 (result["refresh_id"],),
             ).fetchone()[0]
         )
@@ -248,11 +253,11 @@ def test_frozen_catalog_pass_rotates_before_continuous_new_arrivals(event):
     assert observed == ["eepro:test", "eepro:second", "eepro:third"]
     assert result["pass_finished"]
     # Revisit the beginning before walking the arrivals in the next frozen pass.
-    f.conn.execute("UPDATE watches SET next_check_at=NULL WHERE source_ref='eepro:test'")
+    f.conn.execute("UPDATE watches SET next_check_at = NULL WHERE source_ref = 'eepro:test'")
     following = sample(f, limit=1)
     assert (
         f.conn.execute(
-            "SELECT source_ref FROM event_blocker_observations WHERE refresh_id=?",
+            "SELECT source_ref FROM event_blocker_observations WHERE refresh_id = %s",
             (following["refresh_id"],),
         ).fetchone()[0]
         == "eepro:test"
@@ -264,12 +269,19 @@ def test_failed_sample_commit_rolls_back_history_summary_policy_and_cursor(event
     f = event
     finish_bootstrap(f)
     add_event(f, "second")
-    before = tuple(f.conn.execute("SELECT * FROM event_blocker_cursor").fetchone())
-    f.conn.execute(
-        "CREATE TEMP TRIGGER fail_second BEFORE INSERT ON event_blocker_observations WHEN NEW.source_ref='eepro:second' BEGIN SELECT RAISE(ABORT,'test failure'); END"
+    before = tuple(
+        f.conn.execute(
+            "SELECT event_blocker_cursor.singleton, event_blocker_cursor.last_rowid, "
+            "event_blocker_cursor.high_water, event_blocker_cursor.pass FROM event_blocker_cursor"
+        ).fetchone()
     )
-    with pytest.raises(sqlite3.IntegrityError, match="test failure"):
-        sample(f)
+    from helpers.corruption import reject_inserts
+
+    with reject_inserts(
+        f.conn, "event_blocker_observations", "test failure", when="NEW.source_ref='eepro:second'"
+    ):
+        with pytest.raises(engine.IntegrityError, match="23514"):
+            sample(f)
     for table in (
         "event_blocker_observations",
         "event_blocker_refreshes",
@@ -277,15 +289,32 @@ def test_failed_sample_commit_rolls_back_history_summary_policy_and_cursor(event
         "event_blocker_latest",
     ):
         assert not f.conn.execute(f"SELECT 1 FROM {table}").fetchone()
-    assert tuple(f.conn.execute("SELECT * FROM event_blocker_cursor").fetchone()) == before
+    assert (
+        tuple(
+            f.conn.execute(
+                "SELECT event_blocker_cursor.singleton, event_blocker_cursor.last_rowid, "
+                "event_blocker_cursor.high_water, event_blocker_cursor.pass FROM event_blocker_cursor"
+            ).fetchone()
+        )
+        == before
+    )
 
 
-def test_history_report_is_read_only_bounded_and_survives_checkpoint_restore(event):
+def test_history_report_is_read_only_bounded_and_restored_policy_keeps_samples_unknown(event):
     f = event
     finish_bootstrap(f)
     sample(f)
     sample(f, hold=True)
     expected = report(f)
+    policies = [
+        tuple(row) for row in f.conn.execute("SELECT * FROM event_blocker_policies ORDER BY digest")
+    ]
+    with f.conn.read_snapshot():
+        before = contents(f.conn)
+        bounded = history.report(f.conn, source="eepro", source_ref="eepro:test", limit=1)
+        assert bounded["details_truncated"] and len(bounded["recent"]) == 1
+        assert bounded["latest"] == expected["latest"]
+        assert contents(f.conn) == before
     saved = create_checkpoint(
         f.db.state_dir,
         f.conn,
@@ -296,28 +325,34 @@ def test_history_report_is_read_only_bounded_and_survives_checkpoint_restore(eve
     )
     target = f.db.state_dir / "restored"
     restore_checkpoint(saved.path, target, maximum_schema_version=SCHEMA_VERSION)
-    with sqlite3.connect(
-        (target / "state.sqlite").as_uri() + "?mode=ro&immutable=1", uri=True
-    ) as conn:
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA query_only=ON")
-        conn.execute("BEGIN")
-        try:
-            actual = history.report(conn, source="eepro", source_ref="eepro:test")
-            assert actual == expected
-            bounded = history.report(conn, source="eepro", source_ref="eepro:test", limit=1)
-            assert bounded["details_truncated"] and len(bounded["recent"]) == 1
-            assert bounded["latest"] == expected["latest"]
-            assert not conn.total_changes
-        finally:
-            conn.rollback()
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with engine.connect(engine.resolve_dsn(target), read_only=True) as conn, conn.read_snapshot():
+        before = contents(conn)
+        assert [
+            tuple(row)
+            for row in conn.execute("SELECT * FROM event_blocker_policies ORDER BY digest")
+        ] == policies
+        actual = history.report(conn, source="eepro", source_ref="eepro:test")
+        assert actual["supported"] and actual["latest"] is None and actual["recent"] == []
+        assert actual["eligible_service_age_seconds"] is None
+        assert actual["successful_progress_at"] is None
+        for table in (
+            "event_blocker_observations",
+            "event_blocker_refreshes",
+            "event_blocker_latest",
+        ):
+            assert not conn.execute("SELECT 1 FROM " + table).fetchone()
+        assert tuple(
+            conn.execute("SELECT last_rowid,high_water,pass FROM event_blocker_cursor").fetchone()
+        ) == (0, 0, 0)
+        assert contents(conn) == before
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         f.conn.execute("UPDATE event_blocker_observations SET observed_at='changed'")
 
 
-def test_unknown_old_schema_and_bounds(event):
-    with sqlite3.connect(":memory:") as conn:
-        conn.execute("PRAGMA query_only=ON")
+def test_unknown_old_schema_and_bounds(event, tmp_path):
+    from swingset.dev.testing import provision_empty
+
+    with engine.connect(provision_empty(tmp_path / "empty"), read_only=True) as conn:
         assert not history.report(conn, source="eepro", source_ref="eepro:test")["supported"]
     for value in (0, 101, True, 1.5):
         with pytest.raises(ValueError):

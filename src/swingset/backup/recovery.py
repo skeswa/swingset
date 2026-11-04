@@ -18,7 +18,6 @@ from __future__ import annotations
 import contextlib
 import gzip
 import json
-import sqlite3
 import tarfile
 import tempfile
 import zlib
@@ -26,6 +25,9 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import duckdb
+
+from swingset import scratch_db
 from swingset.fetch.archive import (
     Archive,
     ArtifactKind,
@@ -46,7 +48,7 @@ class SegmentRecovery:
     """Share one instance across work units; healthy reads never call it.
 
     Each set's index is read once per instance into an on-disk lookup (a
-    SQLite file in a temporary directory), and each segment's tar headers
+    DuckDB file in a temporary directory), and each segment's tar headers
     once into the same lookup with every member's data offset, so
     recovering many files costs one index read per set and one header scan
     per segment, then one seek per file.
@@ -56,21 +58,19 @@ class SegmentRecovery:
         self.checkpoints = checkpoints.resolve()
         self.restored: list[dict[str, str]] = []
         self._scratch: tempfile.TemporaryDirectory[str] | None = None
-        self._lookup: sqlite3.Connection | None = None
+        self._lookup: duckdb.DuckDBPyConnection | None = None
         self._loaded: set[str] = set()
         self._scanned: set[str] = set()
 
-    def _db(self) -> sqlite3.Connection:
+    def _db(self) -> duckdb.DuckDBPyConnection:
         if self._lookup is None:
             self._scratch = tempfile.TemporaryDirectory(prefix="swingset-recovery-")
-            self._lookup = sqlite3.connect(Path(self._scratch.name) / "index.sqlite")
+            self._lookup = scratch_db.connect(Path(self._scratch.name) / "index.duckdb")
             self._lookup.execute(
-                "CREATE TABLE entries(set_id TEXT, path TEXT, sha256 TEXT, segment TEXT, "
-                "bytes INTEGER, PRIMARY KEY(set_id,path)) WITHOUT ROWID"
+                "CREATE TABLE entries(set_id TEXT, path TEXT, sha256 TEXT, segment TEXT, bytes BIGINT, PRIMARY KEY(set_id,path))"
             )
             self._lookup.execute(
-                "CREATE TABLE members(segment TEXT, name TEXT, offset INTEGER, size INTEGER, "
-                "PRIMARY KEY(segment,name)) WITHOUT ROWID"
+                'CREATE TABLE members(segment TEXT, name TEXT, "offset" BIGINT, size BIGINT, PRIMARY KEY(segment,name))'
             )
         return self._lookup
 
@@ -83,13 +83,17 @@ class SegmentRecovery:
             for item in read_index(index):
                 batch.append((set_id, item.path, item.sha256, item.segment, item.bytes))
                 if len(batch) >= 10_000:
-                    lookup.executemany("INSERT OR REPLACE INTO entries VALUES (?,?,?,?,?)", batch)
+                    scratch_db.insert_many(
+                        lookup, "INSERT OR REPLACE INTO entries VALUES (?, ?, ?, ?, ?)", batch
+                    )
                     batch.clear()
-            lookup.executemany("INSERT OR REPLACE INTO entries VALUES (?,?,?,?,?)", batch)
+            scratch_db.insert_many(
+                lookup, "INSERT OR REPLACE INTO entries VALUES (?, ?, ?, ?, ?)", batch
+            )
             lookup.commit()
             self._loaded.add(set_id)
         row = lookup.execute(
-            "SELECT segment,bytes,sha256 FROM entries WHERE set_id=? AND path=?",
+            "SELECT segment, bytes, sha256 FROM entries WHERE set_id = ? AND path = ?",
             (set_id, relative),
         ).fetchone()
         return None if row is None else (str(row[0]), int(row[1]), str(row[2]))
@@ -98,7 +102,7 @@ class SegmentRecovery:
         """(set_id, segment, bytes) of the newest local set whose index holds
         `relative` with this digest, or None."""
         for set_id in reversed(local_sets(self.checkpoints)):
-            with contextlib.suppress(OSError, ValueError, sqlite3.Error):
+            with contextlib.suppress(OSError, ValueError, duckdb.Error):
                 read_manifest(self.checkpoints / SETS / set_id)
                 entry = self._entry(set_id, relative)
                 if entry is not None and entry[2] == sha256:
@@ -118,13 +122,17 @@ class SegmentRecovery:
                     if member.isfile():
                         batch.append((segment, member.name, member.offset_data, member.size))
                     if len(batch) >= 10_000:
-                        lookup.executemany("INSERT OR REPLACE INTO members VALUES (?,?,?,?)", batch)
+                        scratch_db.insert_many(
+                            lookup, "INSERT OR REPLACE INTO members VALUES (?, ?, ?, ?)", batch
+                        )
                         batch.clear()
-            lookup.executemany("INSERT OR REPLACE INTO members VALUES (?,?,?,?)", batch)
+            scratch_db.insert_many(
+                lookup, "INSERT OR REPLACE INTO members VALUES (?, ?, ?, ?)", batch
+            )
             lookup.commit()
             self._scanned.add(segment)
         row = lookup.execute(
-            "SELECT offset,size FROM members WHERE segment=? AND name=?", (segment, name)
+            'SELECT "offset", size FROM members WHERE segment = ? AND name = ?', (segment, name)
         ).fetchone()
         if row is None:
             raise ValueError(f"{name} is not in {path.name}")
@@ -179,7 +187,7 @@ class SegmentRecovery:
                 EOFError,
                 zlib.error,
                 tarfile.TarError,
-                sqlite3.Error,
+                duckdb.Error,
             ) as exc:
                 failures.append({"set": set_id, "reason": str(exc)})
         raise ArtifactUnavailable(kind, sha256, "no_valid_matching_local_segment", tuple(failures))
@@ -227,7 +235,7 @@ class SegmentRecovery:
                 EOFError,
                 zlib.error,
                 tarfile.TarError,
-                sqlite3.Error,
+                duckdb.Error,
                 ObjectUnavailable,
             ) as exc:
                 failures.append(f"{set_id}: {exc}")

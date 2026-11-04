@@ -99,20 +99,20 @@ def test_counterexample_linker_produces_no_new_default_judge_join(tmp_path, case
         for dancer in case["dancers"]:
             columns = ",".join(dancer)
             db.connection.execute(
-                f"INSERT INTO dancers({columns}) VALUES ({','.join('?' for _ in dancer)})",
+                f"INSERT INTO dancers ({columns}) VALUES ({','.join('%s' for _ in dancer)})",
                 tuple(dancer.values()),
             )
         judge = {key: value for key, value in case["judge"].items() if key != "year"}
         judge["event_id"] = "event"
         db.connection.execute(
-            f"INSERT INTO judges({','.join(judge)}) VALUES ({','.join('?' for _ in judge)})",
+            f"INSERT INTO judges ({','.join(judge)}) VALUES ({','.join('%s' for _ in judge)})",
             tuple(judge.values()),
         )
         run(db, Bundle())
         assert db.connection.execute("SELECT wsdc_id FROM judges").fetchone()[0] is None
         assert (
             db.connection.execute(
-                "SELECT score FROM link_candidates WHERE wsdc_id=?", (case["contrasting_id"],)
+                "SELECT score FROM link_candidates WHERE wsdc_id = %s", (case["contrasting_id"],)
             ).fetchone()[0]
             < 0.9
         )
@@ -122,13 +122,15 @@ def test_named_judge_without_registry_number_remains_a_valid_unmatched_judge(tmp
     with open_database(tmp_path) as db:
         seed(db.connection)
         db.connection.execute(
-            "INSERT INTO judges(judge_id,event_id,name_raw,initials,anonymous,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('judge','event','Taylor Unregistered','TU',0,'test','snap','1','t','t','run')"
+            "INSERT INTO judges (judge_id, event_id, name_raw, initials, anonymous, source, snapshot_id, "
+            "parser_version, first_seen_at, last_seen_at, run_id) VALUES ('judge', 'event', 'Taylor "
+            "Unregistered', 'TU', 0, 'test', 'snap', '1', 't', 't', 'run')"
         )
         run(db, Bundle())
-        judge = db.connection.execute("SELECT name_raw,anonymous,wsdc_id FROM judges").fetchone()
+        judge = db.connection.execute("SELECT name_raw, anonymous, wsdc_id FROM judges").fetchone()
         assert tuple(judge) == ("Taylor Unregistered", 0, None)
         link = db.connection.execute(
-            "SELECT status,wsdc_id FROM identity_links WHERE subject_kind='judge'"
+            "SELECT status, wsdc_id FROM identity_links WHERE subject_kind = 'judge'"
         ).fetchone()
         assert tuple(link) == ("unmatched", None)
         assert db.connection.execute("SELECT COUNT(*) FROM link_candidates").fetchone()[0] == 0

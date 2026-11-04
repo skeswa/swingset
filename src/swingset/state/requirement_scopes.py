@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from typing import Any
+
+from swingset.state import engine
 
 _FINALIST = (
     "c.wsdc_points_eligible=1 AND c.division IN ('newcomer','novice') "
@@ -18,7 +19,7 @@ _FINALIST = (
 _SCOPES = (
     ("a", "finding", "finding_support", "active=1", ("finding_id",)),
     ("b", "round", "watches", "kind='round'", ("watch_id",)),
-    ("c", "mapping", "source_events", "1", ("source", "source_ref")),
+    ("c", "mapping", "source_events", "TRUE", ("source", "source_ref")),
     (
         "d",
         "source_id",
@@ -26,7 +27,7 @@ _SCOPES = (
         "method='source_id' AND wsdc_id IS NOT NULL",
         ("wsdc_id",),
     ),
-    ("e", "occurrence", "registry_placements", "1", ("series_id", "event_month")),
+    ("e", "occurrence", "registry_placements", "TRUE", ("series_id", "event_month")),
     (
         "f",
         "finalist",
@@ -39,7 +40,7 @@ _SCOPES = (
 )
 
 
-def scope_page(conn: sqlite3.Connection, cursor: str, limit: int) -> list[dict[str, str]]:
+def scope_page(conn: engine.Connection, cursor: str, limit: int) -> list[dict[str, str]]:
     """Seek only scopes at or after the durable cursor; never sort their union."""
     prefix, values = (cursor[0], json.loads(cursor[2:])) if cursor else ("", [])
     result: list[dict[str, str]] = []
@@ -49,11 +50,11 @@ def scope_page(conn: sqlite3.Connection, cursor: str, limit: int) -> list[dict[s
         parameters: list[Any] = []
         if letter == prefix:
             lhs = columns[0] if len(columns) == 1 else f"({','.join(columns)})"
-            rhs = "?" if len(columns) == 1 else f"({','.join('?' for _ in columns)})"
+            rhs = "%s" if len(columns) == 1 else f"({','.join('%s' for _ in columns)})"
             condition += f" AND {lhs}>{rhs}"
             parameters.extend(values)
         selected = ",".join(columns)
-        query = f"SELECT {selected} FROM {table} WHERE {condition} GROUP BY {selected} ORDER BY {selected} LIMIT ?"
+        query = f"SELECT {selected} FROM {table} WHERE {condition} GROUP BY {selected} ORDER BY {selected} LIMIT %s"
         parameters.append(limit - len(result))
         for row in conn.execute(query, parameters):
             keys = list(row)
@@ -71,17 +72,17 @@ def scope_page(conn: sqlite3.Connection, cursor: str, limit: int) -> list[dict[s
 
 
 _PRESENT = {
-    "round_observations": "SELECT 1 FROM watches WHERE watch_id=? AND kind='round'",
-    "source_event_mapping": "SELECT 1 FROM source_events WHERE source=? AND source_ref=?",
-    "source_id_checked": "SELECT 1 FROM identity_links WHERE wsdc_id=? AND method='source_id'",
-    "registry_event_association": "SELECT 1 FROM registry_placements WHERE series_id=? AND event_month=?",
-    "first_point_reconsideration": "SELECT 1 FROM entries e JOIN contests c USING(contest_id) WHERE e.entry_id=? AND "
+    "round_observations": "SELECT 1 AS _value_0 FROM watches WHERE watch_id = %s AND kind = 'round'",
+    "source_event_mapping": "SELECT 1 AS _value_0 FROM source_events WHERE source = %s AND source_ref = %s",
+    "source_id_checked": "SELECT 1 AS _value_0 FROM identity_links WHERE wsdc_id = %s AND method = 'source_id'",
+    "registry_event_association": "SELECT 1 AS _value_0 FROM registry_placements WHERE series_id = %s AND event_month = %s",
+    "first_point_reconsideration": "SELECT 1 AS _value_0 FROM entries AS e JOIN contests AS c USING (contest_id) WHERE e.entry_id = %s AND "
     + _FINALIST,
-    "archive_artifact": "SELECT 1 FROM snapshots WHERE body_sha256=?",
+    "archive_artifact": "SELECT 1 AS _value_0 FROM snapshots WHERE body_sha256 = %s",
 }
 
 
-def scope_present(conn: sqlite3.Connection, kind: str, subject_id: str) -> bool:
+def scope_present(conn: engine.Connection, kind: str, subject_id: str) -> bool:
     query = _PRESENT.get(kind)
     if query is None:
         return True

@@ -27,37 +27,86 @@ from swingset.state.retention import artifact_directory
 NOW = datetime(2026, 10, 2, 3, 30, tzinfo=UTC)
 
 
-def _artifact(state: Path) -> str:
-    rows = b"partition rows"
-    sidecar = canonical_json(
-        {
-            "generations": [],
-            "tables": {
-                "rows": {"file": "rows.parquet", "sha256": hashlib.sha256(rows).hexdigest()}
-            },
-        }
+def _artifact(database, *, unit=None) -> str:
+    """A real retained generation and its reproducible coverage Parquet artifact."""
+    import pyarrow as pa
+
+    from swingset.build import artifact_store, partitions
+    from swingset.build.schema import SCHEMAS
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    payload = {
+        "year": 2025,
+        "source": "wsdc_registry",
+        "via": "origin",
+        "events": 1,
+        "contests": 0,
+        "rounds": 0,
+        "entries": 0,
+        "events_registry_only": 1,
+        "events_index_only": 0,
+        "events_sheets_partial": 0,
+        "events_sheets_complete": 0,
+        "events_day_precision": 0,
+        "events_listed_only": 0,
+        "events_accepted": 0,
+        "expected_rounds": None,
+        "parsed_rounds": 0,
+        "unresolved_findings": 0,
+        "last_changed_at": NOW.isoformat(),
+    }
+    key = '[2025,"wsdc_registry","origin"]'
+    unit = unit or WorkUnit("project", "year", "2025")
+    run = database.start_run(NOW)
+    with database.transaction() as conn:
+        selection = derivations.capture(conn, unit, now=NOW, recipe={"recipe/test": "drill"})
+        generation = derivations.complete(
+            conn,
+            selection,
+            rows=lambda: iter([derivations.OutputRow("coverage", key, payload)]),
+            now=NOW,
+            run_id=run,
+        )
+    tables = partitions.public_tables(
+        partitions.Partition("year/2025", "year"), {("coverage", key): payload}
     )
-    digest = hashlib.sha256(sidecar).hexdigest()
-    directory = artifact_directory(state, digest)
-    directory.mkdir(parents=True)
-    (directory / "sidecar.json").write_bytes(sidecar)
-    (directory / "rows.parquet").write_bytes(rows)
+    arrow = {
+        name: pa.Table.from_pylist(rows, schema=SCHEMAS[name]) for name, rows in tables.items()
+    }
+    digest, _size = artifact_store.write(
+        database.state_dir,
+        arrow,
+        {
+            "format": partitions.FORMAT,
+            "partition": "year/2025",
+            "inputs_digest": "fixture",
+            "inputs": {},
+            "support": [],
+            "generations": [generation],
+            "withheld_subjects": [],
+            "counts": {},
+        },
+    )
     return digest
 
 
 def _candidate(state: Path, name: str, policy: dict[str, Any]) -> None:
     candidate = state / "candidates" / name
     (candidate / "_meta").mkdir(parents=True)
-    (candidate / "BUILT").write_text('{"manifest_hash":"m"}')
+    body = canonical_json({"candidate_id": name, "files": {}, "release_policy": policy})
+    (candidate / "BUILT").write_bytes(
+        canonical_json({"manifest_hash": hashlib.sha256(body).hexdigest()})
+    )
     (candidate / "PUBLISHED").write_text(json.dumps({"commit": "abc", "verified_at": "x"}))
-    (candidate / "_meta" / "manifest.json").write_text(json.dumps({"release_policy": policy}))
+    (candidate / "_meta" / "manifest.json").write_bytes(body)
     (state / "baseline").symlink_to(Path("candidates") / name)
 
 
 def build_state(state: Path, policy: dict[str, Any] | None = None) -> str:
-    """A schema-36 state whose baseline is a partitioned release with one artifact."""
+    """A native schema37 state with one retained, reproducible partition."""
     with open_database(state) as database:
-        artifact = _artifact(state)
+        artifact = _artifact(database)
         body = canonical_json({"format": manifest.FORMAT, "built": [["year/2025", artifact]]})
         digest = hashlib.sha256(body).hexdigest()
         manifest.store(database, body, digest, now=NOW)
@@ -68,7 +117,7 @@ def build_state(state: Path, policy: dict[str, Any] | None = None) -> str:
 def backup(state: Path, *, now: datetime = NOW) -> dict[str, Any]:
     transport = LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT)
     with open_database(state) as database:
-        return create_set(database, transport, now=now, versions={"swingset": "test"})
+        return create_set(database, transport, now=now, versions={"swingset": "test"}, headroom=0)
 
 
 #: Room enough for any test drill: the real check reads this machine's disk.
@@ -85,7 +134,7 @@ def _row(state: Path, set_id: str) -> tuple[Any, ...]:
     with open_database(state, lock=False) as database:
         return tuple(
             database.connection.execute(
-                "SELECT drilled_at,drill_json FROM backup_sets WHERE set_id=?", (set_id,)
+                "SELECT drilled_at, drill_json FROM backup_sets WHERE set_id = %s", (set_id,)
             ).fetchone()
         )
 
@@ -98,7 +147,7 @@ def test_the_drill_passes_on_a_set_and_hydrates_its_partitioned_release(tmp_path
     record = _drill(state, scratch, now=NOW + timedelta(hours=2))
     assert record["passed"] is True, record
     assert record["set_id"] == later["set_id"]
-    assert record["install"]["integrity"] == "quick"
+    assert record["install"]["integrity"] == "full"
     assert record["install"]["baseline_candidate"] == "cand_base"
     assert record["release"] == {
         "candidate": "cand_base",
@@ -119,6 +168,75 @@ def test_the_drill_passes_on_a_set_and_hydrates_its_partitioned_release(tmp_path
         assert not drill.due(conn, now=NOW + timedelta(days=6), every_days=7)
         assert drill.due(conn, now=NOW + timedelta(days=7), every_days=7)
     assert not (state / "ALERTS.log").exists()
+
+
+def test_historical_parquet_recovery_preserves_labels_and_ignores_current_gates(
+    tmp_path, monkeypatch
+):
+    from postgres_statements import contents
+
+    from swingset.backup.artifacts import hydrate
+    from swingset.build import partitions
+    from swingset.state import derivations
+
+    state = tmp_path / "state"
+    digest = build_state(state)
+    artifact = manifest.read(state, digest)["built"][0][1]
+    directory = artifact_directory(state, artifact)
+    original = {path.name: path.read_bytes() for path in directory.glob("*.parquet")}
+    for name in original:
+        (directory / name).unlink()
+    with open_database(state) as database:
+        before = contents(database.connection)
+
+    def current_gate(*args, **kwargs):
+        raise AssertionError(
+            "historical artifacts must not run current admission or currency checks"
+        )
+
+    monkeypatch.setattr(partitions, "extract", current_gate)
+    monkeypatch.setattr(derivations, "current", current_gate)
+    assert hydrate(state, digest) == {"recovered": 1, "artifacts": 1}
+    assert {path.name: path.read_bytes() for path in directory.glob("*.parquet")} == original
+    assert manifest.verify(state, digest)["built"] == [["year/2025", artifact]]
+    with open_database(state) as database:
+        assert contents(database.connection) == before
+
+
+@pytest.mark.parametrize("defect", ["missing_recipe", "different_file_digest"])
+def test_historical_parquet_recovery_refuses_insufficient_recipes_without_installing(
+    tmp_path, defect
+):
+    from postgres_statements import contents
+
+    from swingset.backup.artifacts import ArtifactUnavailable, hydrate
+
+    state = tmp_path / "state"
+    digest = build_state(state)
+    artifact = manifest.read(state, digest)["built"][0][1]
+    sidecar = json.loads((artifact_directory(state, artifact) / "sidecar.json").read_bytes())
+    if defect == "missing_recipe":
+        sidecar["generations"] = []
+    else:
+        sidecar["tables"]["coverage"]["sha256"] = "0" * 64
+    body = canonical_json(sidecar)
+    changed = hashlib.sha256(body).hexdigest()
+    directory = artifact_directory(state, changed)
+    directory.mkdir(parents=True)
+    (directory / "sidecar.json").write_bytes(body)
+    release = canonical_json({"format": manifest.FORMAT, "built": [["year/2025", changed]]})
+    release_digest = hashlib.sha256(release).hexdigest()
+    with open_database(state) as database:
+        manifest.store(database, release, release_digest, now=NOW)
+        before = contents(database.connection)
+    with pytest.raises(
+        ArtifactUnavailable, match="retained generation recipe|cannot be reconstructed"
+    ):
+        hydrate(state, release_digest)
+    assert sorted(path.name for path in directory.iterdir()) == ["sidecar.json"]
+    assert (directory / "sidecar.json").read_bytes() == body
+    with open_database(state) as database:
+        assert contents(database.connection) == before
 
 
 def test_a_corrupt_part_fails_the_drill_with_the_alert_line(tmp_path: Path) -> None:
@@ -199,27 +317,31 @@ def _proof(state: Path, *, corrupt: bool = False) -> dict[str, Any]:
     with open_database(state) as database:
         with database.transaction() as conn:
             conn.execute(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES (?,?)",
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
                 (identifier, body.replace("2026", "2025") if corrupt else body),
             )
-    public = {"format": "release-closure-public-v1", "private_digest": identifier}
+    public = {
+        "format": "release-closure-public-v1",
+        "private_digest": identifier,
+        "selected_generations": [],
+    }
     return {**public, "digest": digest(public)}
 
 
 def test_a_closure_baseline_streams_its_proof_against_the_commitment(tmp_path: Path) -> None:
     state, scratch = tmp_path / "state", tmp_path / "var-tmp"
-    public = {"format": "release-closure-public-v1", "private_digest": "p" * 64}
+    public = _proof(state)
+    public["digest"] = "0" * 64
     build_state(state, {"mode": "closure", "closure": public})
     made = backup(state)
     # A public commitment that does not hash to its digest fails the drill.
     record = _drill(state, scratch)
     assert record["passed"] is False and "public_closure_digest_mismatch" in record["error"]
-    # The failure came after the install: the scratch keeps the restored
-    # files, not the restored database, which would refuse the next set's room.
+    # The owner job removes both the restored database and expanded files.
+    # Only the compact fetched outer manifest remains for inspection.
     failed = scratch / f"swingset-drill-{made['set_id']}"
-    assert (failed / "state" / "candidates" / "cand_base" / "BUILT").is_file()
-    assert not (failed / "state" / "state.sqlite").exists()
+    assert not (failed / "state").exists()
+    assert [path.name for path in failed.iterdir()] == ["failure.json"]
     # Another drill's failed scratch goes once it is 20 hours old, so the
     # next daily tick never meets it.
     other = scratch / "swingset-drill-set_20261001T040000Z"
@@ -240,7 +362,17 @@ def test_a_closure_proof_is_checked_by_its_bytes_not_decoded(
     build_state(state, {"mode": "partitioned", "manifest_digest": "unused"})
     public = _proof(state, corrupt=corrupt)
     meta = state / "candidates" / "cand_base" / "_meta" / "manifest.json"
-    meta.write_text(json.dumps({"release_policy": {"mode": "closure", "closure": public}}))
+    body = canonical_json(
+        {
+            "candidate_id": "cand_base",
+            "files": {},
+            "release_policy": {"mode": "closure", "closure": public},
+        }
+    )
+    meta.write_bytes(body)
+    (meta.parents[1] / "BUILT").write_bytes(
+        canonical_json({"manifest_hash": hashlib.sha256(body).hexdigest()})
+    )
     backup(state)
 
     def decoded(*args: Any, **kwargs: Any) -> Any:
@@ -267,19 +399,18 @@ def test_a_closure_proof_is_checked_by_its_bytes_not_decoded(
 
 
 def test_a_drill_while_the_backup_runs_skips_with_a_guard(tmp_path: Path) -> None:
-    from swingset.state import rwlock
-
     state, scratch = tmp_path / "state", tmp_path / "var-tmp"
     build_state(state)
     result = backup(state)
-    held = rwlock.try_loop(state, "backup")
-    assert held is not None
-    try:
-        record = _drill(state, scratch)
-        # A backup cannot start while the drill holds the lock either.
-        assert rwlock.try_loop(state, "backup") is None
-    finally:
-        held.release()
+    from swingset.backup.snapshot import BackupBusy, backup_lock
+
+    with open_database(state, lock=False) as guard:
+        with backup_lock(guard.connection):
+            record = _drill(state, scratch)
+            with open_database(state, lock=False) as other:
+                with pytest.raises(BackupBusy):
+                    with backup_lock(other.connection):
+                        pass
     assert record == {"skipped": "backup_running", "set_id": result["set_id"]}
     assert not scratch.exists() or list(scratch.iterdir()) == []
     with open_database(state, lock=False) as database:
@@ -290,9 +421,9 @@ def test_a_drill_while_the_backup_runs_skips_with_a_guard(tmp_path: Path) -> Non
     assert _drill(state, scratch, now=NOW + timedelta(hours=1))["passed"] is True
     with open_database(state, lock=False) as database:
         assert guards.get(database.connection, "loop:maintain", drill.BACKUP_RUNNING) is None
-    again = rwlock.try_loop(state, "backup")
-    assert again is not None
-    again.release()
+    with open_database(state, lock=False) as guard:
+        with backup_lock(guard.connection):
+            pass
 
 
 def test_a_killed_drill_leaves_a_started_record(
@@ -305,7 +436,7 @@ def test_a_killed_drill_leaves_a_started_record(
     def killed(*args: Any, **kwargs: Any) -> Any:
         raise KeyboardInterrupt  # stands in for SIGKILL: nothing after it runs
 
-    monkeypatch.setattr(drill, "install", killed)
+    monkeypatch.setattr(drill, "drill_set", killed)
     with pytest.raises(KeyboardInterrupt):
         _drill(state, scratch)
     drilled, body = _row(state, result["set_id"])
@@ -314,9 +445,11 @@ def test_a_killed_drill_leaves_a_started_record(
     assert started["passed"] is None and started["at"] == NOW.isoformat()
     assert started["set_id"] == result["set_id"]
     # The backup lock went with the drill.
-    held = drill.rwlock.try_loop(state, "backup")
-    assert held is not None
-    held.release()
+    from swingset.backup.snapshot import backup_lock
+
+    with open_database(state, lock=False) as guard:
+        with backup_lock(guard.connection):
+            pass
 
 
 def test_no_set_is_not_due_and_the_storage_table_parses(tmp_path: Path) -> None:
@@ -343,6 +476,56 @@ def test_the_drill_reads_the_quota_cache(tmp_path: Path) -> None:
     assert drill.free_bytes(tmp_path, quota=tmp_path / "absent") > 100
 
 
+def test_named_r2_drill_uses_its_actual_database_and_rejects_a_different_bucket(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    from swingset.backup import r2
+
+    calls = []
+
+    def configured(connection, *, read_only):
+        calls.append((connection, read_only))
+        return SimpleNamespace(name="r2:retained-backups")
+
+    monkeypatch.setattr(r2, "configured", configured)
+    with open_database(tmp_path / "state") as database:
+        source = drill.transport_for(
+            database.state_dir, "r2:retained-backups", connection=database.connection
+        )
+        assert source.name == "r2:retained-backups"
+        assert calls == [(database.connection, True)]
+        with pytest.raises(drill.DrillError, match="differs from the recorded"):
+            drill.transport_for(
+                database.state_dir, "r2:another-bucket", connection=database.connection
+            )
+
+
+def test_development_drill_cannot_use_the_unbound_operator_hf_read_path(tmp_path):
+    from types import SimpleNamespace
+
+    from swingset.backup.transport import HuggingFaceSegments
+    from swingset.state.environment import EnvironmentRefused
+
+    state = tmp_path / "state"
+    build_state(state)
+    backup(state)
+    calls = []
+
+    def outside(*args, **kwargs):
+        calls.append(args)
+        raise AssertionError("a development drill must refuse before outside I/O")
+
+    source = HuggingFaceSegments(
+        "owner/archive", token="fixture", api=SimpleNamespace(list_repo_files=outside)
+    )
+    with pytest.raises(EnvironmentRefused, match="development database"):
+        _drill(state, tmp_path / "scratch", transport=source)
+    assert calls == []
+    assert source.connection is None
+
+
 def test_a_set_a_newer_backup_pruned_mid_drill_is_skipped_not_alerted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -358,7 +541,7 @@ def test_a_set_a_newer_backup_pruned_mid_drill_is_skipped_not_alerted(
         shutil.rmtree(sets / first["set_id"])
         raise drill.SetError(f"{first['set_id']} is missing")
 
-    monkeypatch.setattr(drill, "install", pruned)
+    monkeypatch.setattr(drill, "drill_set", pruned)
     record = _drill(state, scratch)
     assert record == {"skipped": "set_pruned", "set_id": first["set_id"]}
     assert not (state / "ALERTS.log").exists()

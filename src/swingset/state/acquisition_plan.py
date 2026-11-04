@@ -8,10 +8,11 @@ acquisition decide what goes in them (D-0218).
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Sequence
 from dataclasses import astuple, dataclass, fields
 from typing import TYPE_CHECKING, Literal
+
+from swingset.state import engine
 
 if TYPE_CHECKING:
     from swingset.state.db import Database
@@ -52,45 +53,43 @@ def page_key(watch_id: str) -> str:
     return f"page:{watch_id}"
 
 
-def get(conn: sqlite3.Connection, plan_key: str) -> PlanRow | None:
+def get(conn: engine.Connection, plan_key: str) -> PlanRow | None:
     row = conn.execute(
-        f"SELECT {','.join(_COLUMNS)} FROM acquisition_plan WHERE plan_key=?", (plan_key,)
+        f"SELECT {','.join(_COLUMNS)} FROM acquisition_plan WHERE plan_key=%s", (plan_key,)
     ).fetchone()
     return None if row is None else PlanRow(*row)
 
 
-def upsert(conn: sqlite3.Connection, row: PlanRow) -> None:
+def upsert(conn: engine.Connection, row: PlanRow) -> None:
     updates = ",".join(f"{name}=excluded.{name}" for name in _COLUMNS if name != "plan_key")
     conn.execute(
-        f"INSERT INTO acquisition_plan({','.join(_COLUMNS)}) "
-        f"VALUES ({','.join('?' * len(_COLUMNS))}) "
-        f"ON CONFLICT(plan_key) DO UPDATE SET {updates}",
+        f"INSERT INTO acquisition_plan({','.join(_COLUMNS)}) VALUES ({','.join(['%s'] * len(_COLUMNS))}) ON CONFLICT(plan_key) DO UPDATE SET {updates}",
         astuple(row),
     )
 
 
-def delete(conn: sqlite3.Connection, plan_key: str) -> bool:
-    return conn.execute("DELETE FROM acquisition_plan WHERE plan_key=?", (plan_key,)).rowcount > 0
+def delete(conn: engine.Connection, plan_key: str) -> bool:
+    return (
+        conn.execute("DELETE FROM acquisition_plan WHERE plan_key = %s", (plan_key,)).rowcount > 0
+    )
 
 
-def counts_by_reason(conn: sqlite3.Connection) -> dict[tuple[str, str], int]:
+def counts_by_reason(conn: engine.Connection) -> dict[tuple[str, str], int]:
     """Rows per (kind, reason)."""
     return {
         (str(kind), str(reason)): int(count)
         for kind, reason, count in conn.execute(
-            "SELECT kind,reason,count(*) FROM acquisition_plan GROUP BY kind,reason "
-            "ORDER BY kind,reason"
+            "SELECT kind, reason, COUNT(*) AS _value_2 FROM acquisition_plan GROUP BY kind, reason ORDER BY kind NULLS FIRST, reason NULLS FIRST"
         )
     }
 
 
-def eligible_pages(conn: sqlite3.Connection) -> list[PlanRow]:
+def eligible_pages(conn: engine.Connection) -> list[PlanRow]:
     """Eligible page rows in plan order (`rank`), what acquire offers."""
     return [
         PlanRow(*row)
         for row in conn.execute(
-            f"SELECT {','.join(_COLUMNS)} FROM acquisition_plan "
-            "WHERE kind='page' AND reason=? ORDER BY rank,plan_key",
+            f"SELECT {','.join(_COLUMNS)} FROM acquisition_plan WHERE kind='page' AND reason=%s ORDER BY rank,plan_key",
             (ELIGIBLE,),
         )
     ]
@@ -121,10 +120,11 @@ def write(
                 written += 1
             if start == last:
                 deleted += conn.execute(
-                    "DELETE FROM acquisition_plan WHERE kind='year' AND run_id<>?", (run_id,)
+                    "DELETE FROM acquisition_plan WHERE kind = 'year' AND run_id <> %s", (run_id,)
                 ).rowcount
                 if prune_pages:
                     deleted += conn.execute(
-                        "DELETE FROM acquisition_plan WHERE kind='page' AND run_id<>?", (run_id,)
+                        "DELETE FROM acquisition_plan WHERE kind = 'page' AND run_id <> %s",
+                        (run_id,),
                     ).rowcount
     return {"written": written, "deleted": deleted, "transactions": len(starts)}

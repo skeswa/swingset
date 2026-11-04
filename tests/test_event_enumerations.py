@@ -1,11 +1,12 @@
 """Local source-event inventory uses admitted evidence without executing work."""
 
 import json
-import sqlite3
 from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+from helpers.corruption import corruption_connection
+from postgres_statements import empty_connections  # noqa: F401
 from test_admission import BODY, Corpus
 
 from swingset.fetch.archive import Archive
@@ -14,6 +15,7 @@ from swingset.schedule.event_evidence import request, request_id
 from swingset.schedule.event_inventory import inventory
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
+from swingset.state import engine
 from swingset.state.db import open_database
 
 
@@ -51,7 +53,7 @@ def admit_parent(f, names, *, parent=None, authority=False, result_change=lambda
     parent = parent or f.parent
     body = directory(names)
     ctx = f.corpus.snapshot(
-        "parent-" + str(f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0]),
+        "parent-" + str(f.conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]),
         body,
         spec=parent,
     )
@@ -101,8 +103,23 @@ def child(f, name):
 def test_bootstrap_is_durable_alias_independent_and_does_not_schedule_requests(event):
     f = event
     admit_parent(f, ["one.htm", "two.htm"])
-    before = tuple(f.conn.execute("SELECT * FROM watches ORDER BY watch_id"))
-    budgets = tuple(f.conn.execute("SELECT * FROM host_budget"))
+    before = tuple(
+        f.conn.execute(
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches ORDER BY watch_id NULLS FIRST"
+        )
+    )
+    budgets = tuple(
+        f.conn.execute(
+            "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM host_budget"
+        )
+    )
     finish_bootstrap(f, limit=1)
     result = view(f)
     assert result["listed_pages"] == 2 and result["acquired_pages"] == 0
@@ -110,10 +127,11 @@ def test_bootstrap_is_durable_alias_independent_and_does_not_schedule_requests(e
     assert result["canonical_event_id"] is None and not result["known_pages_accounted_for"]
     assert all(page["first_known_at"] == result["first_known_at"] for page in result["members"])
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:test','new-alias','alias',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:test', 'new-alias', 'alias', 1)"
     )
     f.conn.execute(
-        "UPDATE watches SET state='archived',paused_until='2099-01-01T00:00:00+00:00' WHERE watch_id=?",
+        "UPDATE watches SET state = 'archived', paused_until = '2099-01-01T00:00:00+00:00' WHERE watch_id = %s",
         (f.parent.watch_id,),
     )
     f.conn.execute("DELETE FROM pending_work")
@@ -123,13 +141,33 @@ def test_bootstrap_is_durable_alias_independent_and_does_not_schedule_requests(e
     assert changed["enumeration_id"] == result["enumeration_id"]
     assert changed["first_known_at"] == result["first_known_at"]
     assert changed["listed_pages"] == 2 and changed["canonical_event_id"] == "new-alias"
-    assert tuple(f.conn.execute("SELECT * FROM host_budget")) == budgets
+    assert (
+        tuple(
+            f.conn.execute(
+                "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM host_budget"
+            )
+        )
+        == budgets
+    )
     assert not f.conn.execute("SELECT 1 FROM pending_work").fetchone()
-    assert len(tuple(f.conn.execute("SELECT * FROM watches"))) == len(before)
-    with sqlite3.connect(f.db.state_dir / "state.sqlite") as reader:
-        reader.row_factory = sqlite3.Row
-        reader.execute("PRAGMA query_only=1")
-        reader.execute("BEGIN")
+    assert len(
+        tuple(
+            f.conn.execute(
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches"
+            )
+        )
+    ) == len(before)
+    with (
+        engine.connect(engine.resolve_dsn(f.db.state_dir), read_only=True) as reader,
+        reader.read_snapshot(),
+    ):
         assert (
             inventory(
                 reader, f.archive, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now()
@@ -156,7 +194,7 @@ def test_additions_and_unauthorized_omissions_preserve_old_denominator_and_wait_
     )
     assert (
         f.conn.execute(
-            "SELECT count(*) FROM source_event_enumeration_members WHERE enumeration_id=?",
+            "SELECT COUNT(*) FROM source_event_enumeration_members WHERE enumeration_id = %s",
             (first["enumeration_id"],),
         ).fetchone()[0]
         == 2
@@ -193,7 +231,9 @@ def test_revoking_latest_parent_reopens_support_without_erasing_obligations(even
     latest = admit_parent(f, ["one.htm", "two.htm"])
     finish_bootstrap(f)
     prior = view(f)
-    f.conn.execute("UPDATE source_generations SET state='revoked' WHERE generation_id=?", (latest,))
+    f.conn.execute(
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (latest,)
+    )
     current = view(f)
     assert current["enumeration_id"] == prior["enumeration_id"] and current["listed_pages"] == 2
     assert "source_generation_revoked" in current["blockers"]
@@ -213,7 +253,7 @@ def test_actual_interpretation_reopens_when_artifact_disappears(event, artifact,
     assert ready["known_pages_accounted_for"] and ready["pagination"] == "unknown"
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
     )[0]
     path = (
@@ -287,7 +327,10 @@ def test_shared_watch_supports_two_source_events_without_canonical_map(event):
     }
 
 
-def test_unadmitted_legacy_does_not_gain_completion_and_old_schema_is_explicit(event):
+def test_unadmitted_legacy_does_not_gain_completion_and_old_schema_is_explicit(
+    event,
+    empty_connections,  # noqa: F811
+):  # noqa: F811
     f = event
     f.corpus.snapshot("legacy", BODY)
     finish_bootstrap(f)
@@ -295,7 +338,7 @@ def test_unadmitted_legacy_does_not_gain_completion_and_old_schema_is_explicit(e
     assert result["enumeration_id"] is None and result["listed_pages"] is None
     assert result["interpreted_pages"] is None and result["pagination"] == "unknown"
     assert not result["known_pages_accounted_for"] and result["first_known_at"] is None
-    with sqlite3.connect(":memory:") as old:
+    with empty_connections() as old:
         assert (
             inventory(
                 old, f.archive, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now()
@@ -322,7 +365,7 @@ def test_authoritative_parent_can_remove_a_whole_disappeared_event_group(event):
     # A reviewed synthetic parent enumerates a different source event on each revision.
     # The parent URL/source unit stays the same; its own ctx ref is absent.
     parent = replace(f.parent, source_ref=None)
-    f.conn.execute("UPDATE watches SET source_ref=NULL WHERE watch_id=?", (parent.watch_id,))
+    f.conn.execute("UPDATE watches SET source_ref = NULL WHERE watch_id = %s", (parent.watch_id,))
     admit_parent(
         f, ["one.htm"], parent=parent, authority=True, result_change=group("eepro:old-group")
     )
@@ -346,7 +389,12 @@ def test_redirected_and_archive_evidence_keep_original_source_request_identity(e
     # FetchClient stores original watch.url in snapshots.url; final archive and
     # requested capture URLs live in separate columns. Redirect headers are metadata.
     f.conn.execute(
-        "UPDATE snapshots SET via='wayback',archive_url='https://web.archive.org/web/20240101000000id_/https://eepro.com/final.htm',requested_archive_url='https://web.archive.org/web/20231201000000id_/https://eepro.com/one.htm',headers_json=? WHERE snapshot_id=?",
+        (
+            "UPDATE snapshots SET via = 'wayback', archive_url = "
+            "'https://web.archive.org/web/20240101000000id_/https://eepro.com/final.htm', "
+            "requested_archive_url = 'https://web.archive.org/web/20231201000000id_/https://eepro.com/one"
+            ".htm', headers_json = %s WHERE snapshot_id = %s"
+        ),
         (json.dumps({"location": "https://eepro.com/final.htm"}), context.snapshot_id),
     )
     finish_bootstrap(f)
@@ -364,12 +412,12 @@ def test_direct_result_document_needs_no_child_request(event):
     assert not report.failures
     f.corpus.review(generation)
     assert f.corpus.admit(generation) == "accepted"
-    watches = f.conn.execute("SELECT count(*) FROM watches").fetchone()[0]
+    watches = f.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0]
     finish_bootstrap(f)
     result = view(f)
     assert result["listed_pages"] == result["acquired_pages"] == result["interpreted_pages"] == 1
     assert result["known_pages_accounted_for"]
-    assert f.conn.execute("SELECT count(*) FROM watches").fetchone()[0] == watches
+    assert f.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == watches
     assert result["members"][0]["watch_ids"] == [spec.watch_id]
 
 
@@ -391,7 +439,7 @@ def test_bootstrap_crash_rolls_back_members_and_cursor_together(event, monkeypat
     assert not f.conn.execute("SELECT 1 FROM source_event_enumeration_members").fetchone()
     assert not f.conn.execute("SELECT 1 FROM event_enumeration_inputs").fetchone()
     assert not f.conn.execute(
-        "SELECT 1 FROM cursors WHERE name=?", (event_enumerations.CURSOR,)
+        "SELECT 1 FROM cursors WHERE name = %s", (event_enumerations.CURSOR,)
     ).fetchone()
     monkeypatch.setattr(event_enumerations, "_record", original)
     finish_bootstrap(f)
@@ -443,11 +491,11 @@ def test_non_event_admissions_advance_without_decoding_registry_or_calendar(even
     assert sum(row["admissions_scanned"] for row in results) == 2
     assert not f.conn.execute("SELECT 1 FROM source_event_enumerations").fetchone()
     assert not f.conn.execute(
-        "SELECT 1 FROM source_event_inventory WHERE source IN ('wsdc_registry','wsdc_calendar')"
+        "SELECT 1 FROM source_event_inventory WHERE source IN ('wsdc_registry', 'wsdc_calendar')"
     ).fetchone()
     assert {
         tuple(row)
-        for row in f.conn.execute("SELECT generation_id,outcome FROM event_enumeration_inputs")
+        for row in f.conn.execute("SELECT generation_id, outcome FROM event_enumeration_inputs")
     } == {(i, "ignored_non_event_parent") for i in identifiers}
 
 
@@ -465,17 +513,30 @@ def test_related_revocation_reopens_accepted_copy_without_erasing_members(event,
     # different work token/unit. Revocation applies to the evidence, not its alias.
     copied = dict(
         f.conn.execute(
-            "SELECT * FROM source_generations WHERE generation_id=?", (original,)
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (original,),
         ).fetchone()
     )
     if relation == "snapshot_and_parser":
         copied["unit_key"] += ":independent-retained-unit"
         f.conn.execute(
-            "INSERT INTO source_units(unit_key,watch_id,page_kind) SELECT ?,watch_id,page_kind FROM source_units WHERE unit_key=?",
+            (
+                "INSERT INTO source_units (unit_key, watch_id, page_kind) SELECT %s, watch_id, page_kind "
+                "FROM source_units WHERE unit_key = %s"
+            ),
             (
                 copied["unit_key"],
                 f.conn.execute(
-                    "SELECT unit_key FROM source_generations WHERE generation_id=?", (original,)
+                    "SELECT unit_key FROM source_generations WHERE generation_id = %s", (original,)
                 ).fetchone()[0],
             ),
         )
@@ -497,7 +558,7 @@ def test_related_revocation_reopens_accepted_copy_without_erasing_members(event,
         "INSERT INTO source_generations ("
         + ",".join(copied)
         + ") VALUES ("
-        + ",".join("?" for _ in copied)
+        + ",".join("%s" for _ in copied)
         + ")",
         tuple(copied.values()),
     )
@@ -506,7 +567,7 @@ def test_related_revocation_reopens_accepted_copy_without_erasing_members(event,
     assert not after["known_pages_accounted_for"] and "source_evidence_revoked" in after["blockers"]
     assert (
         f.conn.execute(
-            "SELECT state FROM source_generations WHERE generation_id=?", (original,)
+            "SELECT state FROM source_generations WHERE generation_id = %s", (original,)
         ).fetchone()[0]
         == "accepted"
     )
@@ -516,14 +577,14 @@ def test_tampered_generation_result_cannot_invent_listed_pages(event):
     f = event
     identifier = admit_parent(f, ["one.htm"])
     raw = f.conn.execute(
-        "SELECT result_json FROM source_generations WHERE generation_id=?", (identifier,)
+        "SELECT result_json FROM source_generations WHERE generation_id = %s", (identifier,)
     ).fetchone()[0]
-    # Model damaged imported SQLite bytes, bypassing its normal immutable trigger.
-    f.conn.execute("DROP TRIGGER source_generation_immutable")
-    f.conn.execute(
-        "UPDATE source_generations SET result_json=? WHERE generation_id=?",
-        (raw.replace("one.htm", "invented.htm"), identifier),
-    )
+    # Only the disposable database's administrator can model damaged stored bytes.
+    with corruption_connection(f.conn) as damaged:
+        damaged.execute(
+            "UPDATE source_generations SET result_json = %s WHERE generation_id = %s",
+            (raw.replace("one.htm", "invented.htm"), identifier),
+        )
     result = bootstrap(f.db, now=f.corpus.clock.now())
     assert result["enumerations_created"] == 0
     assert result["errors"] == [
@@ -546,7 +607,19 @@ def test_latest_response_is_global_across_shared_request_watch_kinds(event, late
     member = view(f)["members"][0]
     specs = []
     for watch_id in member["watch_ids"]:
-        row = f.conn.execute("SELECT * FROM watches WHERE watch_id=?", (watch_id,)).fetchone()
+        row = f.conn.execute(
+            (
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches WHERE watch_id = %s"
+            ),
+            (watch_id,),
+        ).fetchone()
         specs.append(
             WatchSpec(
                 "",
@@ -562,7 +635,7 @@ def test_latest_response_is_global_across_shared_request_watch_kinds(event, late
     new = f.corpus.snapshot("new-kind", BODY, spec=specs[1])
     failed = new if latest_failure else old
     f.conn.execute(
-        "UPDATE snapshots SET classification='ServerError',http_status=503 WHERE snapshot_id=?",
+        "UPDATE snapshots SET classification = 'ServerError', http_status = 503 WHERE snapshot_id = %s",
         (failed.snapshot_id,),
     )
     blockers = view(f)["members"][0]["blockers"]
@@ -577,7 +650,7 @@ def test_direct_result_uses_retained_request_when_watch_metadata_changes(event):
     f.corpus.review(identifier)
     assert f.corpus.admit(identifier) == "accepted"
     f.conn.execute(
-        "UPDATE watches SET url='https://eepro.com/changed-metadata.htm' WHERE watch_id=?",
+        "UPDATE watches SET url = 'https://eepro.com/changed-metadata.htm' WHERE watch_id = %s",
         (spec.watch_id,),
     )
     finish_bootstrap(f)
@@ -690,7 +763,7 @@ def test_actual_awards_and_autoindex_legacy_purposes_remain_unassessed(event):
         assert actual["blockers"] == ["legacy_unassessed"]
         assert not actual["known_pages_accounted_for"]
     assert not f.conn.execute(
-        "SELECT 1 FROM source_event_inventory WHERE source='wsdc_registry'"
+        "SELECT 1 FROM source_event_inventory WHERE source = 'wsdc_registry'"
     ).fetchone()
     assert not f.conn.execute("SELECT 1 FROM source_event_enumerations").fetchone()
 

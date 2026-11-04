@@ -14,7 +14,6 @@ stored as the page.
 from __future__ import annotations
 
 import importlib.util
-import sqlite3
 import time
 import zlib
 from collections.abc import Callable
@@ -23,6 +22,8 @@ from datetime import datetime
 
 import httpx
 import pyarrow as pa
+
+from swingset.state import engine
 
 #: Encodings httpx always decodes, plus `identity`.
 DECODED_BY_HTTPX = frozenset({"identity", "gzip", "deflate"})
@@ -113,7 +114,7 @@ def undecoded(response: httpx.Response, limit: int) -> httpx.Response:
 
 @dataclass
 class RequestContext:
-    validate: Callable[[sqlite3.Connection, str], str | None]
+    validate: Callable[[engine.Connection, str], str | None]
     deadline: datetime
     monotonic_deadline: float
     max_attempts: int = 8
@@ -125,7 +126,7 @@ class RequestContext:
     decoded_bytes: int = 0
     received: Callable[[httpx.Response, str], None] | None = None
 
-    def check(self, conn: sqlite3.Connection, url: str, now: datetime) -> str | None:
+    def check(self, conn: engine.Connection, url: str, now: datetime) -> str | None:
         if now >= self.deadline or time.monotonic() >= self.monotonic_deadline:
             return "request deadline"
         if self.admitted_attempts >= self.max_attempts:

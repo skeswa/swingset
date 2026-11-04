@@ -1,4 +1,3 @@
-import sqlite3
 from pathlib import Path
 
 import pytest
@@ -21,6 +20,7 @@ from swingset.sources.base import ParseContext
 from swingset.sources.eepro import RoundPage as EEProRoundPage
 from swingset.sources.records import Cell, ResultRow, ResultTable, RoundSheet
 from swingset.sources.wdr.adapter import RoundsPage
+from swingset.state import engine
 from swingset.state.db import open_database
 
 EVENT = "2026-08-summer-hummer"
@@ -38,12 +38,16 @@ def sheet(
     return RoundSheet("round_sheet", "eepro:hummer", round_name, contest, round_name, (table,))
 
 
-def seed(conn: sqlite3.Connection) -> None:
+def seed(conn: engine.Connection) -> None:
     conn.execute(
-        "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
     )
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             EVENT,
             "slug-summer-hummer",
@@ -62,13 +66,16 @@ def seed(conn: sqlite3.Connection) -> None:
         ),
     )
     conn.execute(
-        "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('eepro','eepro:hummer',?,'override',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'eepro:hummer', %s, 'override', 1)"
+        ),
         (EVENT,),
     )
 
 
 def add(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     watch: str,
     snapshot: str,
     payload: RoundSheet,
@@ -80,15 +87,26 @@ def add(
 ) -> None:
     url = f"https://example/{watch}"
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES (?,?,?,'GET',?,?,?,'live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+            "(%s, %s, %s, 'GET', %s, %s, %s, 'live')"
+        ),
         (watch, source, page_kind, url, parser, source_ref),
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,?,200,1,1,'run_a','Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 1, "
+            "1, 'run_a', 'Ok')"
+        ),
         (snapshot, watch, url, fetched),
     )
     conn.execute(
-        "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,?,?,'round_sheet','source_event',?,0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, "
+            "'round_sheet', 'source_event', %s, 0, '1', '1', %s)"
+        ),
         (f"obs-{snapshot}", watch, snapshot, source_ref, encode_payload(payload)),
     )
 
@@ -168,7 +186,10 @@ def test_wdr_pro_am_roles_and_combined_couple_names(tmp_path: Path) -> None:
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', 'wdr:example', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         add(
@@ -218,7 +239,10 @@ def test_wdr_ambiguous_am_pro_roles_are_withheld(tmp_path: Path) -> None:
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', 'wdr:example', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         add(
@@ -258,7 +282,10 @@ def test_wdr_redacted_bib_only_entry_is_preserved_without_marks(tmp_path: Path) 
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', 'wdr:example', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         add(
@@ -384,7 +411,10 @@ def test_real_wdr_numeric_and_solo_contests_remain_raw_and_unsupported(tmp_path:
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', 'wdr:example', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         for i, payload in enumerate(unsupported):
@@ -431,7 +461,10 @@ def _project_scoringdance_fixture(tmp_path: Path, name: str) -> object:
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('scoringdance','scoringdance:example',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('scoringdance', 'scoringdance:example', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         for i, observation in enumerate(parsed.observations):
@@ -524,7 +557,10 @@ def test_wdr_unknown_callback_values_remain_only_in_evidence(tmp_path: Path) -> 
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', 'wdr:example', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         add(
@@ -588,7 +624,7 @@ def test_prelim_entry_survives_when_final_observation_is_removed(tmp_path: Path)
                 run_id="run_a",
                 projected_at="2026-09-08T00:00:00Z",
             )
-        db.connection.execute("DELETE FROM observations WHERE watch_id='final'")
+        db.connection.execute("DELETE FROM observations WHERE watch_id = 'final'")
         with db.transaction():
             replace_scope(
                 db.connection,
@@ -598,10 +634,10 @@ def test_prelim_entry_survives_when_final_observation_is_removed(tmp_path: Path)
                 run_id="run_a",
                 projected_at="2026-09-09T00:00:00Z",
             )
-        entry = db.connection.execute("SELECT rounds_danced,best_round FROM entries").fetchone()
+        entry = db.connection.execute("SELECT rounds_danced, best_round FROM entries").fetchone()
         assert tuple(entry) == ('["prelim"]', "prelim")
-        assert db.connection.execute("SELECT count(*) FROM placements").fetchone()[0] == 0
-        db.connection.execute("DELETE FROM observations WHERE watch_id='prelim'")
+        assert db.connection.execute("SELECT COUNT(*) FROM placements").fetchone()[0] == 0
+        db.connection.execute("DELETE FROM observations WHERE watch_id = 'prelim'")
         with db.transaction():
             replace_scope(
                 db.connection,
@@ -611,7 +647,7 @@ def test_prelim_entry_survives_when_final_observation_is_removed(tmp_path: Path)
                 run_id="run_a",
                 projected_at="2026-09-10T00:00:00Z",
             )
-        assert db.connection.execute("SELECT count(*) FROM entries").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM entries").fetchone()[0] == 0
 
 
 def test_later_equal_specificity_snapshot_wins_spelling(tmp_path: Path) -> None:
@@ -658,7 +694,12 @@ def test_alias_move_rekeys_all_event_rows_in_one_transaction(tmp_path: Path) -> 
         seed(db.connection)
         add(db.connection, "prelim", "snap_prelim", sheet("Prelim"), "2026-09-01T00:00:00Z")
         db.connection.execute(
-            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) SELECT ?,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id FROM events WHERE event_id=?",
+            (
+                "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+                "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) SELECT "
+                "%s, series_id, name, year, start_date, end_date, wsdc_status, sources, source, snapshot_id, "
+                "parser_version, first_seen_at, last_seen_at, run_id FROM events WHERE event_id = %s"
+            ),
             (moved, EVENT),
         )
         with db.transaction():
@@ -688,12 +729,12 @@ def test_alias_move_rekeys_all_event_rows_in_one_transaction(tmp_path: Path) -> 
                 )
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM contests WHERE event_id=?", (EVENT,)
+                "SELECT COUNT(*) FROM contests WHERE event_id = %s", (EVENT,)
             ).fetchone()[0]
             == 0
         )
         assert (
-            db.connection.execute("SELECT contest_id FROM contests WHERE event_id=?", (moved,))
+            db.connection.execute("SELECT contest_id FROM contests WHERE event_id = %s", (moved,))
             .fetchone()[0]
             .startswith(f"{moved}/")
         )
@@ -713,7 +754,7 @@ def test_unchanged_full_event_reprojection_does_not_advance_revision(tmp_path: P
                 projected_at="2026-09-08T00:00:00Z",
             )
         revision = db.connection.execute(
-            "SELECT value FROM revisions WHERE name='canonical'"
+            "SELECT value FROM revisions WHERE name = 'canonical'"
         ).fetchone()[0]
         with db.transaction():
             changed = replace_scope(
@@ -726,9 +767,9 @@ def test_unchanged_full_event_reprojection_does_not_advance_revision(tmp_path: P
             )
         assert not changed
         assert (
-            db.connection.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()[
-                0
-            ]
+            db.connection.execute(
+                "SELECT value FROM revisions WHERE name = 'canonical'"
+            ).fetchone()[0]
             == revision
         )
 
@@ -746,20 +787,34 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         seed(db.connection)
         db.connection.execute("DELETE FROM source_event_map")
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr',?,?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', %s, %s, 'override', 1)"
+            ),
             (source_ref, EVENT),
         )
         db.connection.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES ('wdr','wdr','event','GET',?,'wdr.rounds',?,'live')",
+            (
+                "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+                "('wdr', 'wdr', 'event', 'GET', %s, 'wdr.rounds', %s, 'live')"
+            ),
             (url, source_ref),
         )
         db.connection.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('snap_wdr','wdr','GET',?,'2026-09-09T00:00:00Z',200,1,1,'run_a','Ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification) VALUES ('snap_wdr', 'wdr', 'GET', %s, "
+                "'2026-09-09T00:00:00Z', 200, 1, 1, 'run_a', 'Ok')"
+            ),
             (url,),
         )
         for seq, observation in enumerate(parsed.observations):
             db.connection.execute(
-                "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,'wdr','snap_wdr',?,?,?,?, '1','1',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, 'wdr', "
+                    "'snap_wdr', %s, %s, %s, %s, '1', '1', %s)"
+                ),
                 (
                     f"wdr-{seq}",
                     observation.kind,
@@ -900,8 +955,10 @@ def test_scoringdance_strictly_prelim_preserves_partner_without_wsdc_id(tmp_path
     with open_database(tmp_path) as db:
         seed(db.connection)
         db.connection.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
-            "VALUES ('scoringdance','scoringdance:272',?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('scoringdance', 'scoringdance:272', %s, 'override', 1)"
+            ),
             (EVENT,),
         )
         add(

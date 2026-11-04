@@ -1,31 +1,52 @@
 # Developing Swingset
 
-The development environment uses Nix and the locked Python dependencies in
-`uv.lock`. Run these commands from the repository root:
+On the `postgres-migration` bookmark, mise pins Python and uv and manages
+native Postgres 17.11 containers. Production still runs the Nix deployment
+from `main` until the migration switch. Start from the repository root:
 
 ```sh
-nix develop
-uv sync --frozen
-uv run pytest -q
-uv run ruff check .
-uv run mypy
-uv run swingset doctor --state ./tmp/state
-uv run swingset derive --state ./tmp/state
-uv run swingset release --dry-run --state ./tmp/state
+mise install
+mise run dev
+mise run test
+mise run test -- tests/test_project_registry.py
+mise run test-watch -- tests/test_project_registry.py
+mise run check
 ```
 
-The test suite is offline. A loop tick by hand fetches (acquire) or builds
-(release `--dry-run` disables publication); it is no substitute for offline
-tests when you need to avoid source requests.
-See [fetching rules](../reference/fetching.md) before any live-source work.
+`dev` prepares the development, test and durable physical-test services,
+and creates the default bounded fixture seed. Tests get a fresh private
+database per case. The ordinary core reuses the separate physical service;
+lifecycle fault tests and CI use fresh clusters. Unexpected physical-service
+identity or database inventory blocks reuse until its retained owners are
+checked; the command never resets unknown state. A pure parser test does not start Docker. A schema,
+role, image or template-fixture change invalidates the matching template;
+source edits run directly from the checkout.
 
-The default test command runs the reviewed core; use it and the files you
-changed while iterating. Run `uv run pytest -q --full-suite` only as a final
-or important check, such as before a commit or handoff or after touching an
-area the extended suite covers, or give an explicit path to test one module. A full run writes about 15 GiB of temp; the dev shell pins
-`TMPDIR=/tmp` so pytest keeps only its last three runs. On the worker `/tmp` is
-a 13 GiB tmpfs, so pass `--basetemp` under `/var/tmp` there. The [testing guide](testing.md) owns selection rules, fixture setup
-and the measured runtime goal.
+Replay changed code on a disposable copy of the seed:
+
+```sh
+mise exec -- uv run swingset dev-replay default --event 2026-09-example-swing
+mise exec -- uv run swingset dev-replay default --unit project/dancer/1
+mise exec -- uv run swingset dev-seed correction --scenario identity-correction
+mise exec -- uv run swingset dev-drop correction
+```
+
+Replay leaves the seed unchanged and enforces its unit and time limits.
+The named scenarios cover source parsing, event projection, identity correction
+and a release-gate comparison. Development databases store their `dev` identity
+inside Postgres. Real HTTP transports and publication refuse that identity;
+the seeds use explicit fixture transports. Unsetting a shell flag cannot
+turn a development database into production.
+
+The default test command runs the reviewed core: one isolated deadline
+recovery case, then the remaining cases in four clients with four workers
+each and file affinity. Reports check that every selected case runs exactly
+once, within the same 180-second budget. Focused selections and full runs stay serial unless you
+explicitly supply worker flags. Run the files you changed
+while iterating, then `mise run test -- --full-suite` for a migration, recovery,
+backup or publication change. The [testing guide](testing.md) owns selection
+rules and the measured runtime goal. Tests keep temporary data under `/tmp`,
+where pytest prunes its old runs.
 
 ## Format and review changes
 
@@ -47,8 +68,9 @@ The [code map](../how-it-works/code-map.md) links tasks to their entry points.
 Fixtures live beside source adapters and under `tests/fixtures/`. Captured
 fixtures and generated evidence must not be reformatted.
 
-Parser and projector changes need their corresponding version updates. Runtime
-recipes also track changed source bytes. Update the relevant reference page
+Parser and projector behavior changes need their declared version updates.
+Source bytes and dependency identities are captured separately for audit;
+a Python edit alone does not change a derivation recipe. Update the relevant reference page
 when a change alters a contract; [writing guidance](../writing.md) explains where.
 
 To regenerate enum documentation, run `uv run swingset enums --write` from the

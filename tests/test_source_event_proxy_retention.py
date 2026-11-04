@@ -6,6 +6,7 @@ mapping (plan F19).
 
 from datetime import datetime
 
+from postgres_statements import assert_integrity
 from test_map_event_retention import NOW, enriched_source_event  # noqa: F401
 
 from swingset.clock import FakeClock
@@ -24,33 +25,37 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
     mapping = WorkUnit("project", "mapping", "scoringdance")
     resolution = WorkUnit("project", "resolution", event.event_id)
     with db.transaction():
-        conn.execute(
-            "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/env','fixture-runtime') "
-            "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest"
-        )
         # A scoped runtime names every project code scope (recipes fail closed).
         for kind in PROJECTORS:
             conn.execute(
-                "INSERT OR IGNORE INTO accepted_inputs VALUES ('pipeline',?,'fixture-scope')",
+                (
+                    "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, "
+                    "'fixture-scope') ON CONFLICT DO NOTHING"
+                ),
                 (f"recipe/code/project/{kind}",),
             )
         conn.execute(
-            "UPDATE source_events SET source_ref=? WHERE source_ref='109'", (proxy.unit_id,)
+            "UPDATE source_events SET source_ref = %s WHERE source_ref = '109'", (proxy.unit_id,)
         )
         conn.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
-            "VALUES ('undated','scoringdance','event','GET','https://example.test/109',"
-            "'scoringdance.event','active')"
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES ('undated', "
+            "'scoringdance', 'event', 'GET', 'https://example.test/109', 'scoringdance.event', 'active')"
         )
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-            "body_bytes,content_changed,run_id,classification) "
-            "VALUES ('retained-undated','undated','GET','https://example.test/109',?,200,0,1,'test','ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification) VALUES ('retained-undated', 'undated', "
+                "'GET', 'https://example.test/109', %s, 200, 0, 1, 'test', 'ok')"
+            ),
             (NOW,),
         )
         conn.execute(
-            "INSERT INTO observations VALUES ('undated-observation','undated',"
-            "'retained-undated','source_event','source_event',?,0,'1','1','{}')",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES "
+                "('undated-observation', 'undated', 'retained-undated', 'source_event', 'source_event', %s, "
+                "0, '1', '1', '{}')"
+            ),
             (proxy.unit_id,),
         )
     process_unit(db, WorkUnit("project", "inventory", "all"), bundle, clock, "test")
@@ -61,7 +66,7 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
     before = list(output_rows(conn, mapping))
     assert generation is not None and resolved is not None
     assert conn.execute(
-        "SELECT event_id FROM events WHERE event_id=?", (event.event_id,)
+        "SELECT event_id FROM events WHERE event_id = %s", (event.event_id,)
     ).fetchone()
     with db.transaction():
         selection = capture(conn, proxy, now=clock.now())
@@ -73,11 +78,11 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
     assert list(output_rows(conn, mapping)) == before
     assert (
         conn.execute(
-            "SELECT event_id FROM source_event_map WHERE source_ref=?", (proxy.unit_id,)
+            "SELECT event_id FROM source_event_map WHERE source_ref = %s", (proxy.unit_id,)
         ).fetchone()
         is None
     )
     assert conn.execute(
-        "SELECT start_date,end_date FROM source_events WHERE source_ref=?", (proxy.unit_id,)
+        "SELECT start_date, end_date FROM source_events WHERE source_ref = %s", (proxy.unit_id,)
     ).fetchone()[:] == (None, None)
-    assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+    assert_integrity(conn)

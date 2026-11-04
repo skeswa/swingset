@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass, field, replace
@@ -17,6 +16,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from swingset.model.schema import PUBLIC_SCOPE_TABLES
+from swingset.state import engine
 
 from .builder import BuildInput
 from .schema import PRIMARY_KEYS, SCHEMAS
@@ -97,18 +97,31 @@ def _digest(value: Any) -> str:
 
 
 def health_token(
-    conn: sqlite3.Connection, *, now: datetime, cadence_seconds: int = HEALTH_CADENCE_SECONDS
+    conn: engine.Connection, *, now: datetime, cadence_seconds: int = HEALTH_CADENCE_SECONDS
 ) -> str:
     """Daily initial cadence plus immediate material changes; no success-poll churn."""
     if now.tzinfo is None or cadence_seconds <= 0:
         raise ValueError("public health requires an aware clock and positive cadence")
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
+    }
     material: dict[str, Any] = {}
     queries = {
-        "watches": "SELECT source,kind,state,ever_ok,COUNT(*) FROM watches GROUP BY source,kind,state,ever_ok ORDER BY source,kind,state,ever_ok",
-        "source_generations": "SELECT page_kind,state,COUNT(*) FROM source_generations GROUP BY page_kind,state ORDER BY page_kind,state",
-        "findings": "SELECT source,kind,state,COUNT(*) FROM findings WHERE closed_at IS NULL GROUP BY source,kind,state ORDER BY source,kind,state",
-        "registry_verifications": "SELECT w.source,v.usable,v.reason,COUNT(*) FROM registry_verifications v JOIN watches w USING(watch_id) WHERE v.verification_id=(SELECT max(v2.verification_id) FROM registry_verifications v2 WHERE v2.watch_id=v.watch_id) GROUP BY w.source,v.usable,v.reason ORDER BY w.source,v.usable,v.reason",
+        "watches": (
+            "SELECT source, kind, state, ever_ok, COUNT(*) AS _value_4 FROM watches GROUP BY source, kind, state, ever_ok ORDER BY source NULLS FIRST, kind NULLS FIRST, state NULLS FIRST, ever_ok NULLS FIRST"
+        ),
+        "source_generations": (
+            "SELECT page_kind, state, COUNT(*) AS _value_2 FROM source_generations GROUP BY page_kind, state ORDER BY page_kind NULLS FIRST, state NULLS FIRST"
+        ),
+        "findings": (
+            "SELECT source, kind, state, COUNT(*) AS _value_3 FROM findings WHERE closed_at IS NULL GROUP BY source, kind, state ORDER BY source NULLS FIRST, kind NULLS FIRST, state NULLS FIRST"
+        ),
+        "registry_verifications": (
+            "SELECT w.source, v.usable, v.reason, COUNT(*) AS _value_3 FROM registry_verifications AS v JOIN watches AS w USING (watch_id) WHERE v.verification_id = (SELECT MAX(v2.verification_id) AS _value_0 FROM registry_verifications AS v2 WHERE v2.watch_id = v.watch_id) GROUP BY w.source, v.usable, v.reason ORDER BY w.source NULLS FIRST, v.usable NULLS FIRST, v.reason NULLS FIRST"
+        ),
     }
     for table, query in queries.items():
         if table in tables:
@@ -126,7 +139,7 @@ def health_token(
 class _Coverage:
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         data: BuildInput,
         cutoff: datetime,
         closure: Mapping[str, Any],
@@ -183,7 +196,7 @@ class _Coverage:
                             continue
                         self.selected_source_generations.add(generation_id)
                         generation = conn.execute(
-                            "SELECT unit_key FROM source_generations WHERE generation_id=?",
+                            "SELECT unit_key FROM source_generations WHERE generation_id = %s",
                             (generation_id,),
                         ).fetchone()
                         if generation is not None:
@@ -306,38 +319,59 @@ class _Coverage:
 
     def inventory(self) -> None:
         tables = {
-            row[0] for row in self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            row[0]
+            for row in self.conn.execute(
+                "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+            )
         }
         if "watches" not in tables:
             return
         latest = {
             str(row["watch_id"]): dict(row)
             for row in self.conn.execute(
-                "SELECT * FROM (SELECT s.*,row_number() OVER(PARTITION BY watch_id ORDER BY julianday(fetched_at) DESC,snapshot_id DESC) AS ordinal FROM snapshots s WHERE julianday(fetched_at)<=julianday(?)) WHERE ordinal=1",
+                (
+                    "SELECT * FROM (SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, ROW_NUMBER() OVER (PARTITION BY watch_id ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(fetched_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, snapshot_id DESC NULLS LAST) AS ordinal FROM snapshots AS s WHERE (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(fetched_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) <= (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)) WHERE ordinal = 1"
+                ),
                 (self.cutoff.isoformat(),),
             )
         }
         acquired_snapshots = {
             str(row["watch_id"]): dict(row)
             for row in self.conn.execute(
-                "SELECT * FROM (SELECT s.*,row_number() OVER(PARTITION BY watch_id ORDER BY julianday(fetched_at) DESC,snapshot_id DESC) AS ordinal FROM snapshots s WHERE body_sha256 IS NOT NULL AND http_status IN (200,304) AND julianday(fetched_at)<=julianday(?)) WHERE ordinal=1",
+                (
+                    "SELECT * FROM (SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, ROW_NUMBER() OVER (PARTITION BY watch_id ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(fetched_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, snapshot_id DESC NULLS LAST) AS ordinal FROM snapshots AS s WHERE NOT body_sha256 IS NULL AND http_status IN (200, 304) AND (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(fetched_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) <= (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)) WHERE ordinal = 1"
+                ),
                 (self.cutoff.isoformat(),),
             )
         }
         watches = {
-            str(row["watch_id"]): dict(row) for row in self.conn.execute("SELECT * FROM watches")
+            str(row["watch_id"]): dict(row)
+            for row in self.conn.execute(
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches"
+            )
         }
         units: dict[str, list[dict[str, Any]]] = defaultdict(list)
         if "source_units" in tables:
             for row in self.conn.execute(
-                "WITH newest AS (SELECT unit_key,state,json_extract(recipe_json,'$.context.snapshot_id') AS input_snapshot_id,row_number() OVER(PARTITION BY unit_key ORDER BY julianday(created_at) DESC,generation_id DESC) AS ordinal FROM source_generations WHERE julianday(created_at)<=julianday(?)) SELECT u.*,g.state AS accepted_state,n.state AS latest_state,n.input_snapshot_id FROM source_units u LEFT JOIN source_generations g ON g.generation_id=u.accepted_generation_id LEFT JOIN newest n ON n.unit_key=u.unit_key AND n.ordinal=1",
+                (
+                    "WITH newest AS (SELECT unit_key, state, JSON_EXTRACT_PATH_TEXT(CAST(recipe_json AS JSON), 'context', 'snapshot_id') AS input_snapshot_id, ROW_NUMBER() OVER (PARTITION BY unit_key ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, generation_id DESC NULLS LAST) AS ordinal FROM source_generations WHERE (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) <= (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)) SELECT u.unit_key, u.watch_id, u.page_kind, u.desired_fingerprint, u.accepted_generation_id, u.legacy_snapshot_id, u.legacy_state, g.state AS accepted_state, n.state AS latest_state, n.input_snapshot_id FROM source_units AS u LEFT JOIN source_generations AS g ON g.generation_id = u.accepted_generation_id LEFT JOIN newest AS n ON n.unit_key = u.unit_key AND n.ordinal = 1"
+                ),
                 (self.cutoff.isoformat(),),
             ):
                 units[str(row["watch_id"])].append(dict(row))
         verified: dict[str, list[dict[str, Any]]] = defaultdict(list)
         if "registry_verifications" in tables:
             for row in self.conn.execute(
-                "SELECT watch_id,snapshot_id,body_sha256,parser_version,checked_at FROM registry_verifications WHERE usable=1 AND julianday(checked_at)<=julianday(?)",
+                (
+                    "SELECT watch_id, snapshot_id, body_sha256, parser_version, checked_at FROM registry_verifications WHERE usable = 1 AND (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(checked_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) <= (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)"
+                ),
                 (self.cutoff.isoformat(),),
             ):
                 verified[str(row["watch_id"])].append(dict(row))
@@ -435,7 +469,7 @@ class _Coverage:
         source = str(item.get("source") or ("wsdc_registry" if kind == "dancer" else "unknown"))
         if kind == "snapshot":
             retained = self.conn.execute(
-                "SELECT w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=?",
+                "SELECT w.source FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE s.snapshot_id = %s",
                 (identifier,),
             ).fetchone()
             if retained is not None:
@@ -573,7 +607,7 @@ class _Coverage:
 
 
 def enrich_coverage(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     data: BuildInput,
     *,
     cutoff: datetime,

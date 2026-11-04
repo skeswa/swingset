@@ -4,7 +4,12 @@ from swingset.state.work import WorkUnit, accept_input, affected_work, complete
 
 def event(conn: object, event_id: str) -> None:
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,2026,'2026-01-01','2026-01-04','registry','[]','test','snap','1','t','t','run')",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+            "(%s, %s, %s, 2026, '2026-01-01', '2026-01-04', 'registry', '[]', 'test', 'snap', '1', 't', "
+            "'t', 'run')"
+        ),
         (event_id, event_id, event_id),
     )
 
@@ -24,10 +29,14 @@ def test_second_weights_edit_requeues_completed_and_pending_events(tmp_path) -> 
         complete(db, WorkUnit("link", "event", "a"), lambda _conn: None)
         assert [
             row[0]
-            for row in db.connection.execute("SELECT unit_id FROM pending_work WHERE stage='link'")
+            for row in db.connection.execute(
+                "SELECT unit_id FROM pending_work WHERE stage = 'link'"
+            )
         ] == ["b"]
         accept_weights(db, "two")
         assert {
             row[0]
-            for row in db.connection.execute("SELECT unit_id FROM pending_work WHERE stage='link'")
+            for row in db.connection.execute(
+                "SELECT unit_id FROM pending_work WHERE stage = 'link'"
+            )
         } == {"a", "b"}

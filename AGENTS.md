@@ -13,6 +13,18 @@ Nothing sits "deployed under hold" for more than a day. A hold names its
 owner, its reason and a review date (`docs/guides/operation.md`, holds), and
 a hold older than 48 hours is the first line of `docs/status.md`.
 
+## Local Postgres migration bookmark
+
+On `postgres-migration`, use `mise run dev`, `mise run test`,
+`mise run test-watch -- <pytest selector>` and `mise run check`. Mise pins
+Python and uv; tests use separate warm test and durable physical profiles,
+with a private database per case. Native full runs need about 30 GiB of
+scratch; keep the migration plan's 80 GiB free-disk floor. These local
+commands replace the Nix test commands below for this bookmark. Production
+continues to use the Nix configuration on `main` until the planned switch.
+See `docs/guides/development.md` and the stage 1 gate in
+`docs/plans/postgres-migration/6-stage-1.md`.
+
 ## One session at a time
 
 Run `mise run session-start -- --label <you>` before touching the checkout

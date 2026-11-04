@@ -1,7 +1,6 @@
 """Calendar and source-index projections."""
 
 import re
-import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
@@ -11,11 +10,14 @@ from swingset.model.canonical import Event
 from swingset.model.ids import event_id, series_id
 from swingset.model.observations import decode_payload
 from swingset.sources.records import CalendarRow, SourceEventRow
+from swingset.state import engine
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
 from .steprightsolutions import source_event as step_right_source_event
 from .writer import Projection
+
+VERSION = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +45,7 @@ class SourceEventEvidence:
 
 
 def project_calendar(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     scope_id: str,
     now: str,
     run_id: str,
@@ -56,15 +58,16 @@ def project_calendar(
         else [
             dict(row)
             for row in conn.execute(
-                "SELECT event_id,series_id,event_month,name,held FROM events WHERE held='held' AND series_id LIKE 'wsdc-%'"
+                "SELECT event_id, series_id, event_month, name, held FROM events WHERE held = 'held' AND "
+                "series_id ILIKE 'wsdc-%'"
             )
         ]
     )
-    current: dict[str, tuple[CalendarRow, sqlite3.Row]] = {}
+    current: dict[str, tuple[CalendarRow, engine.Row]] = {}
     for row in conn.execute(
-        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at)
-        FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='calendar' AND o.scope_id=? ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq""",
+        (
+            "SELECT o.kind, o.payload_json, o.snapshot_id, o.parser_version, w.source, COALESCE(s.observed_at, s.fetched_at) AS _value_5 FROM observations AS o JOIN watches AS w USING (watch_id) JOIN snapshots AS s USING (snapshot_id) WHERE o.scope_kind = 'calendar' AND o.scope_id = %s ORDER BY COALESCE(s.observed_at, s.fetched_at) NULLS FIRST, s.snapshot_id NULLS FIRST, o.seq NULLS FIRST"
+        ),
         (scope_id,),
     ):
         payload = decode_payload(str(row[0]), str(row[1]))
@@ -146,7 +149,7 @@ def project_calendar(
     return Projection(tuple(result))
 
 
-def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_id: str) -> bool:
+def project_source_index(conn: engine.Connection, scope_id: str, now: str, run_id: str) -> bool:
     """Reconcile one owner's membership, then select facts across all owners."""
     evidence = _source_event_evidence(conn)
     desired_keys = {
@@ -155,17 +158,21 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
     old_keys = {
         (str(row[0]), str(row[1]))
         for row in conn.execute(
-            "SELECT source,source_ref FROM source_event_scope_rows WHERE scope_id=?", (scope_id,)
+            "SELECT source, source_ref FROM source_event_scope_rows WHERE scope_id = %s",
+            (scope_id,),
         )
     }
     for key in old_keys - desired_keys:
         conn.execute(
-            "DELETE FROM source_event_scope_rows WHERE scope_id=? AND source=? AND source_ref=?",
+            "DELETE FROM source_event_scope_rows WHERE scope_id = %s AND source = %s AND source_ref = %s",
             (scope_id, *key),
         )
     for key in desired_keys:
         conn.execute(
-            "INSERT OR IGNORE INTO source_event_scope_rows(scope_id,source,source_ref) VALUES (?,?,?)",
+            (
+                "INSERT INTO source_event_scope_rows (scope_id, source, source_ref) VALUES (%s, %s, %s) ON "
+                "CONFLICT DO NOTHING"
+            ),
             (scope_id, *key),
         )
     affected = old_keys | desired_keys
@@ -174,7 +181,7 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
         candidates = [item for item in evidence if (item.source, item.payload.source_ref) == key]
         if not candidates:
             if conn.execute(
-                "DELETE FROM source_events WHERE source=? AND source_ref=?", key
+                "DELETE FROM source_events WHERE source = %s AND source_ref = %s", key
             ).rowcount:
                 changed = True
             continue
@@ -218,13 +225,18 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
             run_id,
         )
         old = conn.execute(
-            "SELECT name_raw,start_date,end_date,location_raw,url,snapshot_id,parser_version FROM source_events WHERE source=? AND source_ref=?",
+            (
+                "SELECT name_raw, start_date, end_date, location_raw, url, snapshot_id, parser_version FROM "
+                "source_events WHERE source = %s AND source_ref = %s"
+            ),
             key,
         ).fetchone()
         if old is not None and tuple(old) == values[2:9]:
             continue
         conn.execute(
-            """INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,location_raw,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source,source_ref) DO UPDATE SET name_raw=excluded.name_raw,start_date=excluded.start_date,end_date=excluded.end_date,location_raw=excluded.location_raw,url=excluded.url,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id""",
+            (
+                "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, location_raw, url, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref) DO UPDATE SET name_raw = excluded.name_raw, start_date = excluded.start_date, end_date = excluded.end_date, location_raw = excluded.location_raw, url = excluded.url, snapshot_id = excluded.snapshot_id, parser_version = excluded.parser_version, last_seen_at = excluded.last_seen_at, run_id = excluded.run_id"
+            ),
             values,
         )
         changed = True
@@ -235,7 +247,7 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
 
 
 def _replace_date_contradiction(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     evidence: SourceEventEvidence,
     start: str | None,
     end: str | None,
@@ -280,12 +292,11 @@ def _replace_date_contradiction(
     )
 
 
-def _source_event_evidence(conn: sqlite3.Connection) -> list[SourceEventEvidence]:
+def _source_event_evidence(conn: engine.Connection) -> list[SourceEventEvidence]:
     result: list[SourceEventEvidence] = []
-    for row in conn.execute("""SELECT o.kind,o.payload_json,o.scope_id,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.parser,w.url
-        FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='source_index' OR (o.scope_kind='source_event' AND w.source='steprightsolutions')
-        ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq"""):
+    for row in conn.execute(
+        "SELECT o.kind, o.payload_json, o.scope_id, o.snapshot_id, o.parser_version, w.source, COALESCE(s.observed_at, s.fetched_at) AS _value_6, w.parser, w.url FROM observations AS o JOIN watches AS w USING (watch_id) JOIN snapshots AS s USING (snapshot_id) WHERE o.scope_kind = 'source_index' OR (o.scope_kind = 'source_event' AND w.source = 'steprightsolutions') ORDER BY COALESCE(s.observed_at, s.fetched_at) NULLS FIRST, s.snapshot_id NULLS FIRST, o.seq NULLS FIRST"
+    ):
         payload = decode_payload(str(row[0]), str(row[1]))
         step_right = step_right_source_event(payload, str(row[8]))
         if step_right is not None:

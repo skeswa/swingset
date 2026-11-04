@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import httpx
+from test_event_enumerations import event as event
 
 from swingset.clock import FakeClock
 from swingset.config import Config, HostConfig, SourceConfig
@@ -44,17 +45,17 @@ def test_registry_invalid_parse_is_published_failure_and_forces_clean_retry(
         attempt = parse_snapshot(database, Archive(tmp_path), unit, clock, run_id)
         assert attempt.failed
         watch = database.connection.execute(
-            "SELECT body_sha256,fingerprint,etag,last_modified,next_check_at FROM watches"
+            "SELECT body_sha256, fingerprint, etag, last_modified, next_check_at FROM watches"
         ).fetchone()
         assert tuple(watch)[:4] == (None, None, None, None)
         snapshot = database.connection.execute(
-            "SELECT parse_status,extract_status,parser_version FROM snapshots WHERE snapshot_id=?",
+            "SELECT parse_status, extract_status, parser_version FROM snapshots WHERE snapshot_id = %s",
             (fetched.snapshot_id,),
         ).fetchone()
         assert tuple(snapshot) == ("failed", "ok", str(DancerPage.PARSER_VERSION))
         assert (
             database.connection.execute(
-                "SELECT value FROM revisions WHERE name='snapshots'"
+                "SELECT value FROM revisions WHERE name = 'snapshots'"
             ).fetchone()[0]
             == 2
         )
@@ -96,7 +97,12 @@ def test_failed_new_extractor_never_relabels_old_empty_extract_as_current(tmp_pa
         body_sha = archive.store_body(b"new actual body")
         old_extract = archive.store_extract([])
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification,extract_sha256,extract_version,parser_version,extract_status) VALUES ('s',?,'GET',?, ?,200,?,15,1,?,'Ok',?,'1','1','ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_sha256, body_bytes, content_changed, run_id, classification, extract_sha256, "
+                "extract_version, parser_version, extract_status) VALUES ('s', %s, 'GET', %s, %s, 200, %s, "
+                "15, 1, %s, 'Ok', %s, '1', '1', 'ok')"
+            ),
             (spec.watch_id, spec.url, clock.now().isoformat(), body_sha, run_id, old_extract),
         )
         monkeypatch.setattr(module, "get_page_kind", lambda _: page)
@@ -106,6 +112,56 @@ def test_failed_new_extractor_never_relabels_old_empty_extract_as_current(tmp_pa
             ).failed
         assert page.attempts == 2
         assert (
-            conn.execute("SELECT extract_sha256 FROM snapshots WHERE snapshot_id='s'").fetchone()[0]
+            conn.execute("SELECT extract_sha256 FROM snapshots WHERE snapshot_id = 's'").fetchone()[
+                0
+            ]
             is None
         )
+
+
+def test_parse_hint_reconstruction_preserves_retained_token_and_original_fetch_anchor(event):
+    from test_parse_hint_recovery import pending, ready
+
+    from swingset.state.work import recover_parse_hints
+
+    f = event
+    ready(f)
+    context, unit = pending(f)
+    original = f.conn.execute(
+        "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=%s", (unit.unit_id,)
+    ).fetchone()[0]
+    assert original == context.fetched_at
+    f.corpus.clock.sleep(3600)
+    snapshots = [
+        tuple(row) for row in f.conn.execute("SELECT * FROM snapshots ORDER BY snapshot_id")
+    ]
+    admissions = [
+        tuple(row)
+        for row in f.conn.execute("SELECT * FROM admission_decisions ORDER BY decision_id")
+    ]
+    first = recover_parse_hints(f.db, now=f.corpus.clock.now())
+    assert first["enqueued"] == 0
+    assert (
+        f.conn.execute(
+            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=%s",
+            (unit.unit_id,),
+        ).fetchone()[0]
+        == original
+    )
+    f.conn.execute("DELETE FROM pending_work WHERE stage='parse' AND unit_id=%s", (unit.unit_id,))
+    second = recover_parse_hints(f.db, now=f.corpus.clock.now())
+    assert second["enqueued"] == 1
+    assert (
+        f.conn.execute(
+            "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=%s",
+            (unit.unit_id,),
+        ).fetchone()[0]
+        == original
+    )
+    assert [
+        tuple(row) for row in f.conn.execute("SELECT * FROM snapshots ORDER BY snapshot_id")
+    ] == snapshots
+    assert [
+        tuple(row)
+        for row in f.conn.execute("SELECT * FROM admission_decisions ORDER BY decision_id")
+    ] == admissions

@@ -15,11 +15,12 @@ from swingset.build.schema import PRIMARY_KEYS, SCHEMAS
 from swingset.publish import gate
 from swingset.publish.safety import StaleCandidateError, verify_candidate_files
 from swingset.publish.service import RemoteCommit, publish
+from swingset.state.environment import FixtureIO
 
 HEADER = ",".join(gate.HEADER)
 
 
-class Hub:
+class Hub(FixtureIO):
     def __init__(self, head: str | None = None) -> None:
         self.current = head
         self.commits: dict[str, RemoteCommit] = {}
@@ -88,22 +89,54 @@ def build(
     correction: bool = False,
     parent: str | None = None,
     policy: dict[str, Any] | None = None,
+    seal: bool = False,
 ) -> BuildResult:
+    input_paths = None
+    bundle_hash = f"bundle-{name}"
+    hashes = {"overrides/release_decreases.csv": overrides}
+    schema_version = 1
+    if seal:
+        from swingset.build.identity_policy import correction_token
+        from swingset.clock import FakeClock
+        from swingset.state.db import SCHEMA_VERSION, open_database
+        from swingset.state.inputs import accept, capture
+        from swingset.versions import versions
+
+        config_dir, overrides_dir = state / "config", state / "overrides"
+        config_dir.mkdir(exist_ok=True)
+        overrides_dir.mkdir(exist_ok=True)
+        for filename in ("hosts.toml", "sources.toml"):
+            (config_dir / filename).write_text("")
+        (overrides_dir / "release_decreases.csv").write_text(HEADER + "\n" + overrides + "\n")
+        with open_database(state) as database:
+            bundle = capture(config_dir, overrides_dir, state, versions())
+            accept(database, bundle, FakeClock())
+            assert database.connection.execute("SELECT 1 FROM pending_work").fetchone() is None
+            policy = {
+                "mode": "settled",
+                "token": correction_token(database.connection),
+                "input_bundle_hash": bundle.digest,
+                "revisions": dict(database.connection.execute("SELECT name,value FROM revisions")),
+            }
+        input_paths = {"config": str(config_dir), "overrides": str(overrides_dir)}
+        bundle_hash = bundle.digest
+        hashes = {name: hashlib.sha256(body).hexdigest() for name, body in bundle.files.items()}
+        schema_version = SCHEMA_VERSION
     data = BuildInput(
         tables=rows,
         schemas=SCHEMAS,
         primary_keys=PRIMARY_KEYS,
         revisions={"canonical": 1},
         # The bundle names the override file, so a new override builds afresh.
-        captured_file_hashes={"overrides/release_decreases.csv": overrides},
-        input_bundle_hash=f"bundle-{name}",
+        captured_file_hashes=hashes,
+        input_bundle_hash=bundle_hash,
         release_policy=policy,
     )
     meta = BuildMetadata(
         run_id="run",
         repository_commit="code",
         expected_parent=parent,
-        schema_version=1,
+        schema_version=schema_version,
         versions={"parser": "1"},
         card=b"card\n",
         built_at=datetime(2026, 9, 29, tzinfo=UTC),
@@ -116,6 +149,7 @@ def build(
             if line
         ),
         correction_only=correction,
+        input_paths=input_paths,
     )
     return build_candidate(state, data, meta)
 
@@ -135,6 +169,12 @@ def verdict(candidate: BuildResult) -> dict[str, Any]:
 @pytest.fixture
 def baseline(tmp_path: Path) -> Path:
     publish_baseline(tmp_path, build(tmp_path, "base", tables(2)), "c-base")
+    return tmp_path
+
+
+@pytest.fixture
+def sealed_baseline(tmp_path: Path) -> Path:
+    publish_baseline(tmp_path, build(tmp_path, "base", tables(2), seal=True), "c-base")
     return tmp_path
 
 
@@ -160,13 +200,19 @@ def test_fewer_links_are_refused_with_the_reason_and_nothing_is_submitted(baseli
     assert publish(baseline, fewer.path, hub, dry_run=True).state == "refused"
 
 
-def test_an_exact_override_passes_and_is_named_in_the_verdict(baseline: Path) -> None:
+def test_an_exact_override_passes_and_is_named_in_the_verdict(sealed_baseline: Path) -> None:
+    baseline = sealed_baseline
     rows = [
         "confirmed_links,2,1,duplicate judge merged,owner,2026-09-29",
         "linked_judges,2,1,duplicate judge merged,owner,2026-09-29",
     ]
     passed = build(
-        baseline, "approved", tables(1, unlinked=1), overrides="\n".join(rows), parent="c-base"
+        baseline,
+        "approved",
+        tables(1, unlinked=1),
+        overrides="\n".join(rows),
+        parent="c-base",
+        seal=True,
     )
     result = verdict(passed)
     assert result["state"] == "pass"
@@ -265,8 +311,9 @@ def test_every_measure_is_judged(measure_name: str, candidate: int | None, reaso
     assert gate.evaluate(before, before)["state"] == "pass"
 
 
-def test_increases_pass(baseline: Path) -> None:
-    more = build(baseline, "more", tables(3), parent="c-base")
+def test_increases_pass(sealed_baseline: Path) -> None:
+    baseline = sealed_baseline
+    more = build(baseline, "more", tables(3), parent="c-base", seal=True)
     result = verdict(more)
     assert result["state"] == "pass"
     assert result["decreases"] == []

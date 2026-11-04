@@ -105,7 +105,7 @@ def test_eepro_coming_soon_snapshot_completes_as_legitimate_empty(tmp_path: Path
         assert unit is not None
         attempt = parse_snapshot(database, Archive(tmp_path), unit, clock, run_id)
         assert not attempt.failed
-        assert database.connection.execute("SELECT count(*) FROM observations").fetchone()[0] == 0
+        assert database.connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 0
         assert (
             database.connection.execute("SELECT parse_status FROM snapshots").fetchone()[0] == "ok"
         )
@@ -117,8 +117,8 @@ def _remap(database, bundle) -> None:
     with database.transaction():
         project_map(database.connection, bundle, "2026-09-10T00:00:00Z", "run", 11)
     events = database.connection.execute(
-        "SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='event' "
-        "UNION SELECT event_id FROM source_event_map ORDER BY 1"
+        "SELECT unit_id FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'event' UNION "
+        "SELECT event_id FROM source_event_map ORDER BY 1 NULLS FIRST"
     ).fetchall()
     for (event,) in events:
         process_unit(database, WorkUnit("project", "event", event), bundle, FakeClock(), "run")
@@ -140,14 +140,14 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
     reviewed.files = MappingProxyType({**common, "overrides/event_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-09-10',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', '2026-09-10', 0)"
         )
         database.connection.execute(
-            "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,url,"
-            "snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES "
-            "('scoringdance','scoringdance:315','City Of Angels 2026','2027-04-29',"
-            "'2027-04-29','https://scoring.dance/enUS/events/315/results/','source','4',"
-            "'2026-09-10','2026-09-10','run')"
+            "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, url, "
+            "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('scoringdance', "
+            "'scoringdance:315', 'City Of Angels 2026', '2027-04-29', '2027-04-29', "
+            "'https://scoring.dance/enUS/events/315/results/', 'source', '4', '2026-09-10', "
+            "'2026-09-10', 'run')"
         )
         result = RoundSheet(
             "round_sheet",
@@ -164,68 +164,72 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
             ),
         )
         database.connection.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) "
-            "VALUES ('round','scoringdance','round','GET','https://example/final',"
-            "'scoringdance.round','scoringdance:315','live')"
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+            "('round', 'scoringdance', 'round', 'GET', 'https://example/final', 'scoringdance.round', "
+            "'scoringdance:315', 'live')"
         )
         database.connection.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-            "body_bytes,content_changed,run_id,classification) VALUES "
-            "('round-snapshot','round','GET','https://example/final','2026-09-10',200,1,1,"
-            "'run','Ok')"
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES ('round-snapshot', 'round', "
+            "'GET', 'https://example/final', '2026-09-10', 200, 1, 1, 'run', 'Ok')"
         )
         database.connection.execute(
-            "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,"
-            "scope_id,seq,extract_version,parser_version,payload_json) VALUES "
-            "('round-observation','round','round-snapshot','round_sheet','source_event',"
-            "'scoringdance:315',0,'1','1',?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('round-observation', "
+                "'round', 'round-snapshot', 'round_sheet', 'source_event', 'scoringdance:315', 0, '1', '1', "
+                "%s)"
+            ),
             (encode_payload(result),),
         )
         _remap(database, automatic)
         old_event = database.connection.execute(
-            "SELECT event_id FROM source_event_map WHERE source='scoringdance' "
-            "AND source_ref='scoringdance:315'"
+            "SELECT event_id FROM source_event_map WHERE source = 'scoringdance' AND source_ref = 'scoringdance:315'"
         ).fetchone()[0]
         old_contest = database.connection.execute(
-            "SELECT contest_id FROM contests WHERE event_id=?", (old_event,)
+            "SELECT contest_id FROM contests WHERE event_id = %s", (old_event,)
         ).fetchone()[0]
         database.connection.execute(
-            "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,"
-            "leader_required_level,leader_allowed_level,follower_required_level,"
-            "follower_allowed_level,leader_highest_level,leader_highest_points,"
-            "follower_highest_level,follower_highest_points,recent_year,registry_internal_id,"
-            "registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,"
-            "run_id) VALUES (1,'A','Dancer','a dancer',0,'leader','novice','novice','novice',"
-            "'novice','novice',1,'novice',1,2027,1,'2026-09-10','test','snapshot','1',"
-            "'2026-09-10','2026-09-10','run')"
+            "INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, "
+            "leader_required_level, leader_allowed_level, follower_required_level, "
+            "follower_allowed_level, leader_highest_level, leader_highest_points, "
+            "follower_highest_level, follower_highest_points, recent_year, registry_internal_id, "
+            "registry_fetched_at, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+            "run_id) VALUES (1, 'A', 'Dancer', 'a dancer', 0, 'leader', 'novice', 'novice', 'novice', "
+            "'novice', 'novice', 1, 'novice', 1, 2027, 1, '2026-09-10', 'test', 'snapshot', '1', "
+            "'2026-09-10', '2026-09-10', 'run')"
         )
         database.connection.execute(
-            "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,"
-            "series_name_raw,event_month,event_id,result,points,source,snapshot_id,"
-            "parser_version,first_seen_at,last_seen_at,run_id) VALUES "
-            "(1,'leader','wcs','novice','slug-city-of-angels','City Of Angels 2026',"
-            "'2027-04-01',?,'1',1,'test','snapshot','1','2026-09-10','2026-09-10','run')",
+            (
+                "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+                "series_name_raw, event_month, event_id, result, points, source, snapshot_id, "
+                "parser_version, first_seen_at, last_seen_at, run_id) VALUES (1, 'leader', 'wcs', 'novice', "
+                "'slug-city-of-angels', 'City Of Angels 2026', '2027-04-01', %s, '1', 1, 'test', 'snapshot', "
+                "'1', '2026-09-10', '2026-09-10', 'run')"
+            ),
             (old_event,),
         )
         _remap(database, reviewed)
         mapping = database.connection.execute(
-            "SELECT event_id,match_method FROM source_event_map WHERE source='scoringdance' "
-            "AND source_ref='scoringdance:315'"
+            "SELECT event_id, match_method FROM source_event_map WHERE source = 'scoringdance' AND "
+            "source_ref = 'scoringdance:315'"
         ).fetchone()
         event = database.connection.execute(
-            "SELECT start_date,end_date,wsdc_status,snapshot_id FROM events "
-            "WHERE event_id='2026-04-city-of-angels-wcs'"
+            "SELECT start_date, end_date, wsdc_status, snapshot_id FROM events WHERE event_id = "
+            "'2026-04-city-of-angels-wcs'"
         ).fetchone()
         old_rows = database.connection.execute(
-            "SELECT (SELECT count(*) FROM events WHERE event_id=?),"
-            "(SELECT count(*) FROM contests WHERE contest_id=?)",
+            (
+                "SELECT (SELECT COUNT(*) FROM events WHERE event_id = %s) AS old_events, "
+                "(SELECT COUNT(*) FROM contests WHERE contest_id = %s) AS old_contests"
+            ),
             (old_event, old_contest),
         ).fetchone()
         new_contests = database.connection.execute(
-            "SELECT count(*) FROM contests WHERE event_id='2026-04-city-of-angels-wcs'"
+            "SELECT COUNT(*) FROM contests WHERE event_id = '2026-04-city-of-angels-wcs'"
         ).fetchone()[0]
         registry_event = database.connection.execute(
-            "SELECT event_id FROM registry_placements WHERE wsdc_id=1"
+            "SELECT event_id FROM registry_placements WHERE wsdc_id = 1"
         ).fetchone()[0]
     assert tuple(mapping) == ("2026-04-city-of-angels-wcs", "override")
     assert tuple(event) == ("2026-04-01", "2026-04-30", "unknown", "override")

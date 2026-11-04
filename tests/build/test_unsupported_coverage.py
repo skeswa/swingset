@@ -108,7 +108,8 @@ def test_numeric_projection_gap_keeps_source_interpretation_and_explicit_finding
     proof = check(f)
     assert proof["interpreted"] is True and proof["unsupported"] is False
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:test','mixed-event','alias',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:test', 'mixed-event', 'alias', 1)"
     )
     projection = project_event(
         f.conn, "mixed-event", f.corpus.clock.now().isoformat(), f.corpus.run
@@ -144,21 +145,25 @@ def test_positive_classification_rechecks_support_at_release_boundary(event, dam
         )
         path.unlink()
     elif damage == "generation":
-        f.conn.execute("DROP TRIGGER source_generation_immutable")
-        f.conn.execute(
-            "UPDATE source_generations SET report_json='{}' WHERE generation_id=?", (generation,)
-        )
+        from helpers.corruption import corruption_connection
+
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE source_generations SET report_json='{}' WHERE generation_id=%s",
+                (generation,),
+            )
     elif damage == "policy":
         f.conn.execute(
-            "UPDATE admission_policies SET contract_version='changed' WHERE page_kind='eepro.round'"
+            "UPDATE admission_policies SET contract_version = 'changed' WHERE page_kind = 'eepro.round'"
         )
     elif damage == "review":
         f.conn.execute(
-            "UPDATE admission_policies SET reviewed_report_digest=NULL WHERE page_kind='eepro.round'"
+            "UPDATE admission_policies SET reviewed_report_digest = NULL WHERE page_kind = 'eepro.round'"
         )
     else:
         f.conn.execute(
-            "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (generation,)
+            "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
+            (generation,),
         )
     with artifact_source(f.conn, f.archive), pytest.raises(ClosureError):
         event_coverage.validate(f.conn, witness, selected_support=())

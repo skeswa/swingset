@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
-from materialized_fixture import materialize_seeded_outputs
+from materialized_fixture import bootstrap_runtime, materialize_seeded_outputs
 
 from swingset.admission.contracts import contract_version
 from swingset.clock import FakeClock
@@ -40,6 +40,7 @@ CAPTURES = tuple(
 def fixture(tmp_path):
     with open_database(tmp_path) as db:
         clock = FakeClock()
+        bootstrap_runtime(db, clock)
         run = db.start_run(clock.now())
         conn = db.connection
         event = Event(
@@ -66,14 +67,21 @@ def fixture(tmp_path):
         )
         conn.execute("DELETE FROM pending_work")
         conn.execute(
-            "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES (%s, %s, %s, 'explicit', 1)"
+            ),
             (EVENT.source, EVENT.source_ref, EVENT.event_id),
         )
         conn.executemany(
-            "INSERT INTO meta VALUES (?,'true')", [("h7_deployed",), ("h10_deployed",)]
+            "INSERT INTO meta (key, value) VALUES (%s, 'true')",
+            [("h7_deployed",), ("h10_deployed",)],
         )
         conn.executemany(
-            "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+            (
+                "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+                "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained')"
+            ),
             [
                 (
                     "eepro",
@@ -98,7 +106,11 @@ def review_contract(fixture, kind="eepro.autoindex", *, version=None, mode="enfo
     version = version or contract_version(kind)
     # Explicit test-only reviewed policy. This helper never touches real state or activates a source.
     fixture.conn.execute(
-        "INSERT OR REPLACE INTO admission_policies VALUES (?,?,?,? ,?,'offline-reviewer',?)",
+        (
+            "INSERT INTO admission_policies (page_kind, contract_version, mode, "
+            "policy_revision, reviewed_report_digest, reviewed_by, reviewed_at) VALUES (%s, %s, %s, %s, "
+            "%s, 'offline-reviewer', %s) ON CONFLICT(page_kind) DO UPDATE SET contract_version=excluded.contract_version,mode=excluded.mode,policy_revision=excluded.policy_revision,reviewed_report_digest=excluded.reviewed_report_digest,reviewed_by=excluded.reviewed_by,reviewed_at=excluded.reviewed_at"
+        ),
         (
             kind,
             version,
@@ -109,7 +121,11 @@ def review_contract(fixture, kind="eepro.autoindex", *, version=None, mode="enfo
         ),
     )
     fixture.conn.execute(
-        "INSERT OR IGNORE INTO admission_reviews VALUES (?,?,?,'[]','offline-reviewer',?,'synthetic gate test')",
+        (
+            "INSERT INTO admission_reviews (report_digest, page_kind, contract_version, cohort_json, "
+            "reviewer, reviewed_at, evidence) VALUES (%s, %s, %s, '[]', 'offline-reviewer', %s, "
+            "'synthetic gate test') ON CONFLICT DO NOTHING"
+        ),
         ("test-" + kind, kind, version, fixture.clock.now().isoformat()),
     )
 
@@ -207,7 +223,7 @@ def test_wrong_kind_or_changed_inventory_cannot_reuse_acceptance(fixture):
     review_contract(fixture, "eepro.round")
     assert dispatch(fixture, recorder()).reason == "history_contract_not_enforced"
     review_contract(fixture)
-    fixture.conn.execute("UPDATE events SET end_date='2019-01-21'")
+    fixture.conn.execute("UPDATE events SET end_date = '2019-01-21'")
     assert dispatch(fixture, recorder()).reason == "pipeline_work_pending"
     materialize_seeded_outputs(fixture.db, now=fixture.clock.now(), run_id=fixture.run)
     assert dispatch(fixture, recorder()).reason == "history_year_unaccepted"
@@ -360,7 +376,7 @@ def test_the_accept_year_command_names_its_scheduler(fixture, tmp_path, monkeypa
     command = ["accept-year", "--year", "2019", "--by", "owner"]
     code = cli.main([*command, "--state", str(tmp_path), "--config", str(config)])
     recorded = fixture.conn.execute(
-        "SELECT count(*) FROM history_acceptance WHERE year=2019"
+        "SELECT COUNT(*) FROM history_acceptance WHERE year = 2019"
     ).fetchone()[0]
     assert (code, recorded) == ((0, 1) if paced else (1, 0))
 
@@ -424,7 +440,16 @@ def test_dispatch_is_atomic_resumable_priority_six_and_reserves_two_minutes(fixt
     fetcher = recorder()
     result = dispatch(fixture, fetcher)
     assert result.reason == "dispatched"
-    watch = fixture.conn.execute("SELECT * FROM watches").fetchone()
+    watch = fixture.conn.execute(
+        "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+        "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+        "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+        "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+        "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+        "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+        "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+        "FROM watches"
+    ).fetchone()
     assert (watch["priority"], watch["state"], watch["archive_url"]) == (
         6,
         "backfill",
@@ -465,13 +490,20 @@ def test_busy_work_and_deadline_preserve_controls(fixture):
     )
     assert result.reason == "wall_clock_reserve"
     fixture.conn.execute(
-        "INSERT INTO pending_work VALUES ('parse','snapshot','other',?)",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+            "'snapshot', 'other', %s)"
+        ),
         (fixture.clock.now().isoformat(),),
     )
     assert dispatch(fixture, fetcher).reason == "pipeline_work_pending"
     fixture.conn.execute("DELETE FROM pending_work")
     fixture.conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state,next_check_at,priority) VALUES ('other','eepro','index','GET','https://eepro.com/event.php','eepro.index','live',?,2)",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state, next_check_at, "
+            "priority) VALUES ('other', 'eepro', 'index', 'GET', 'https://eepro.com/event.php', "
+            "'eepro.index', 'live', %s, 2)"
+        ),
         (fixture.clock.now().isoformat(),),
     )
     assert dispatch(fixture, fetcher).reason == "other_watch_due"
@@ -481,7 +513,12 @@ def test_busy_work_and_deadline_preserve_controls(fixture):
 
 def failed_snapshot(fixture, watch_id, capture, number, *, parse="failed", status=200):
     fixture.conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification,via,archive_url,requested_archive_url,extract_status,parse_status,extract_version,parser_version) VALUES (?,?,'GET',?,?,?,?,1,1,?,?,'wayback',?,?,'ok',?,'3','1')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_sha256, body_bytes, content_changed, run_id, classification, via, archive_url, "
+            "requested_archive_url, extract_status, parse_status, extract_version, parser_version) "
+            "VALUES (%s, %s, 'GET', %s, %s, %s, %s, 1, 1, %s, %s, 'wayback', %s, %s, 'ok', %s, '3', '1')"
+        ),
         (
             f"snap-{number}",
             watch_id,
@@ -509,7 +546,7 @@ def test_three_distinct_failed_captures_then_gap_without_fourth_fetch(fixture):
     result = dispatch(fixture, fetcher)
     assert result.watch_id is None and len(fetcher.calls) == 3
     finding = fixture.conn.execute(
-        "SELECT evidence_json FROM findings WHERE kind='history_archive_gap' AND closed_at IS NULL"
+        "SELECT evidence_json FROM findings WHERE kind = 'history_archive_gap' AND closed_at IS NULL"
     ).fetchone()
     assert json.loads(finding[0])["attempts_available"] == 3
 
@@ -527,7 +564,7 @@ def test_fetch_uses_actual_gate_budget_and_no_other_host(fixture):
     accept(fixture)
     review_contract(fixture)
     fixture.conn.execute(
-        "INSERT INTO host_budget VALUES ('web.archive.org',?,200,0)",
+        "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('web.archive.org', %s, 200, 0)",
         (fixture.clock.now().date().isoformat(),),
     )
     client = FetchClient(
@@ -547,7 +584,7 @@ def test_fetch_uses_actual_gate_budget_and_no_other_host(fixture):
 
 def test_stale_planned_dates_cannot_pass_after_new_acceptance(fixture):
     plan = retained_plan(fixture.conn)
-    fixture.conn.execute("UPDATE events SET end_date='2019-01-21'")
+    fixture.conn.execute("UPDATE events SET end_date = '2019-01-21'")
     accept(fixture)
     review_contract(fixture)
     assert dispatch(fixture, recorder(), plan=plan).reason == "plan_mapping_changed"
@@ -585,12 +622,25 @@ def accepted_parent(fixture, *, existing_child=False):
         child = declared.watches[0]
         upsert_watch(fixture.conn, child, fixture.clock.now())
         fixture.conn.execute(
-            "UPDATE watches SET state='paused',next_check_at=NULL,notes='operator control',parent_watch_id=? WHERE watch_id=?",
+            (
+                "UPDATE watches SET state = 'paused', next_check_at = NULL, notes = 'operator control', "
+                "parent_watch_id = %s WHERE watch_id = %s"
+            ),
             (parent_id, child.watch_id),
         )
         preserved = dict(
             fixture.conn.execute(
-                "SELECT * FROM watches WHERE watch_id=?", (child.watch_id,)
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (child.watch_id,),
             ).fetchone()
         )
     client = FetchClient(
@@ -627,32 +677,42 @@ def test_real_archived_parent_retains_generation_and_intents_without_origin_chil
     assert len(declared.watches) == 7
     assert fixture.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == 2
     assert (
-        fixture.conn.execute("SELECT COUNT(*) FROM observations WHERE kind='file_row'").fetchone()[
-            0
-        ]
+        fixture.conn.execute(
+            "SELECT COUNT(*) FROM observations WHERE kind = 'file_row'"
+        ).fetchone()[0]
         == 7
     )
     assert (
         dict(
             fixture.conn.execute(
-                "SELECT * FROM watches WHERE watch_id=?", (preserved["watch_id"],)
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (preserved["watch_id"],),
             ).fetchone()
         )
         == preserved
     )
     generation = fixture.conn.execute(
-        "SELECT result_json FROM source_generations WHERE state='accepted'"
+        "SELECT result_json FROM source_generations WHERE state = 'accepted'"
     ).fetchone()
     assert generation and len(json.loads(generation[0])["watches"]) == 7
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM findings WHERE kind='acquisition_gate' AND closed_at IS NULL"
+            "SELECT COUNT(*) FROM findings WHERE kind = 'acquisition_gate' AND closed_at IS NULL"
         ).fetchone()[0]
         == 6
     )
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM host_budget WHERE host<>'web.archive.org'"
+            "SELECT COUNT(*) FROM host_budget WHERE host <> 'web.archive.org'"
         ).fetchone()[0]
         == 0
     )
@@ -689,7 +749,10 @@ def test_complete_parent_precedes_round_and_round_needs_its_own_contract(fixture
 
     _, declared, _ = accepted_parent(fixture)
     fixture.conn.executemany(
-        "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained-child')",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained-child')"
+        ),
         [
             (
                 "eepro",
@@ -721,13 +784,23 @@ def test_complete_parent_precedes_round_and_round_needs_its_own_contract(fixture
     result = dispatch(fixture, fetcher)
     assert result.reason == "dispatched"
     child = fixture.conn.execute(
-        "SELECT * FROM watches WHERE watch_id=?", (result.watch_id,)
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s"
+        ),
+        (result.watch_id,),
     ).fetchone()
     assert child["kind"] == "round" and child["state"] == "backfill" and child["priority"] == 6
     assert child["archive_url"].startswith("https://web.archive.org/")
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM watches WHERE kind='round' AND archive_url IS NULL"
+            "SELECT COUNT(*) FROM watches WHERE kind = 'round' AND archive_url IS NULL"
         ).fetchone()[0]
         == 0
     )
@@ -739,14 +812,14 @@ def test_cooldown_is_preserved_instead_of_reset_for_backfill(fixture):
     first = dispatch(fixture, recorder())
     future = (fixture.clock.now() + timedelta(hours=1)).isoformat()
     fixture.conn.execute(
-        "UPDATE watches SET next_check_at=? WHERE watch_id=?", (future, first.watch_id)
+        "UPDATE watches SET next_check_at = %s WHERE watch_id = %s", (future, first.watch_id)
     )
     fetcher = recorder()
     assert dispatch(fixture, fetcher).reason == "watch_cooldown"
     assert not fetcher.calls
     assert (
         fixture.conn.execute(
-            "SELECT next_check_at FROM watches WHERE watch_id=?", (first.watch_id,)
+            "SELECT next_check_at FROM watches WHERE watch_id = %s", (first.watch_id,)
         ).fetchone()[0]
         == future
     )
@@ -822,13 +895,14 @@ def test_h7_blocked_empty_table_advances_capture_even_when_transport_parse_statu
     assert not parsed.failed and parsed.selection in {"needs_review", "waiting_for_inputs"}
     assert (
         fixture.conn.execute(
-            "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (fetched.snapshot_id,)
+            "SELECT parse_status FROM snapshots WHERE snapshot_id = %s", (fetched.snapshot_id,)
         ).fetchone()[0]
         == "pending"
     )
     assert (
         fixture.conn.execute(
-            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (fetched.snapshot_id,)
+            "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
+            (fetched.snapshot_id,),
         ).fetchone()
         is None
     )
@@ -851,7 +925,10 @@ def test_paused_first_page_never_advances_capture_and_later_source_progresses(fi
         "https://scoring.dance/enUS/events/1/results/", "20190501000000", "other", "text/html", 100
     )
     fixture.conn.execute(
-        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES (%s, %s, %s, 'explicit', 1)"
+        ),
         (other.source, other.source_ref, other.event_id),
     )
     fixture.config = replace(
@@ -889,7 +966,19 @@ def test_paused_first_page_never_advances_capture_and_later_source_progresses(fi
         now=fixture.clock.now(),
     )
     before = dict(
-        fixture.conn.execute("SELECT * FROM watches WHERE watch_id=?", (first.watch_id,)).fetchone()
+        fixture.conn.execute(
+            (
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches WHERE watch_id = %s"
+            ),
+            (first.watch_id,),
+        ).fetchone()
     )
     fetcher = recorder()
     later = dispatch(fixture, fetcher, plan=plan)
@@ -898,14 +987,24 @@ def test_paused_first_page_never_advances_capture_and_later_source_progresses(fi
     assert (
         dict(
             fixture.conn.execute(
-                "SELECT * FROM watches WHERE watch_id=?", (first.watch_id,)
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (first.watch_id,),
             ).fetchone()
         )
         == before
     )
     assert (
         fixture.conn.execute(
-            "SELECT count(*) FROM snapshots WHERE watch_id=?", (first.watch_id,)
+            "SELECT COUNT(*) FROM snapshots WHERE watch_id = %s", (first.watch_id,)
         ).fetchone()[0]
         == 1
     )
@@ -927,12 +1026,15 @@ def test_allocated_offer_is_read_only_and_ignores_ordinary_backlog(fixture):
     accept(fixture)
     review_contract(fixture)
     fixture.conn.execute(
-        "INSERT INTO pending_work VALUES ('link','event','unrelated',?)",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+            "'unrelated', %s)"
+        ),
         (fixture.clock.now().isoformat(),),
     )
     offered = offer(fixture.db, fixture.config, fixture.clock)
     assert offered is not None
-    assert fixture.conn.execute("SELECT count(*) FROM watches").fetchone()[0] == 0
+    assert fixture.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == 0
     assert dispatch(fixture, recorder()).reason == "pipeline_work_pending"
     fetcher = recorder()
     deadline = fixture.clock.now() + timedelta(seconds=60)
@@ -948,7 +1050,7 @@ def test_allocated_offer_is_read_only_and_ignores_ordinary_backlog(fixture):
     )
     assert result.watch_id == offered.watch_id
     assert fetcher.calls[0][2] == deadline
-    assert fixture.conn.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 1
+    assert fixture.conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 1
 
 
 def test_all_historical_offers_are_visible_without_creating_controls(fixture):
@@ -959,7 +1061,10 @@ def test_all_historical_offers_are_visible_without_creating_controls(fixture):
         EVENT.event_id, "eepro", "eepro:other2019", 2019, EVENT.event_month, EVENT.end_date
     )
     fixture.conn.execute(
-        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES (%s, %s, %s, 'explicit', 1)"
+        ),
         (other.source, other.source_ref, other.event_id),
     )
     accept(fixture)
@@ -990,7 +1095,10 @@ def test_offers_answer_the_year_gate_once_per_year_and_stop_at_the_deadline(fixt
         EVENT.event_id, "eepro", "eepro:other2019", 2019, EVENT.event_month, EVENT.end_date
     )
     fixture.conn.execute(
-        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES (%s, %s, %s, 'explicit', 1)"
+        ),
         (other.source, other.source_ref, other.event_id),
     )
     accept(fixture)
@@ -1059,7 +1167,7 @@ def test_pause_after_offer_prevents_allocated_capture_advancement(fixture):
     )
     assert result.reason == "operator_pause"
     assert not fetcher.calls
-    assert fixture.conn.execute("SELECT count(*) FROM watches").fetchone()[0] == 0
+    assert fixture.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == 0
 
 
 def test_allocated_dispatch_evaluates_only_its_watch_and_walks_projection_once(
@@ -1073,7 +1181,10 @@ def test_allocated_dispatch_evaluates_only_its_watch_and_walks_projection_once(
         EVENT.event_id, "eepro", "eepro:other2019", 2019, EVENT.event_month, EVENT.end_date
     )
     fixture.conn.execute(
-        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES (%s, %s, %s, 'explicit', 1)"
+        ),
         (other.source, other.source_ref, other.event_id),
     )
     accept(fixture)

@@ -197,3 +197,92 @@ Provision the credential separately, then restore the acknowledged archive
 commit using a transient service with `EnvironmentFile=/etc/swingset.env`.
 Run doctor and a dry cycle before choosing one writer. The recovery machine
 remains without timers unless deliberately configured as the new writer.
+
+## Postgres migration bookmark
+
+These instructions apply to `postgres-migration`. The production worker on
+`main` keeps the preceding SQLite procedure until stage 3 switches it.
+Stage 1 does not deploy anything.
+
+The worker connects through `SWINGSET_DATABASE_URL`; controls use the
+separate `SWINGSET_CONTROL_DATABASE_URL`. Local development instead uses
+private `database.json` routing files created by `mise run dev`. Never copy
+those credentials into a backup. The database's stored environment UUID
+and `dev`/`production` value are authoritative, including when shell flags
+are absent. A real external transport refuses a development database.
+
+Production backups require an immutable `SWINGSET_RUNTIME_IMAGE` containing
+`@sha256:`. Retain that image, its migration checksum and its row catalog
+for as long as any backup names them. A newer program refuses an older
+backup's schema or runtime; restore with the retained image before applying
+an explicit forward migration under the hold.
+
+Every backup uses one filtered history COPY snapshot and its captured
+publication and hold metadata. Its owner job restores the upload into a
+fresh private Postgres database and checks the schema, foreign keys and
+typed row hashes before recording success. Publication first reserves an
+intent, completes this checked backup, records its digest in `PUBLISHING`,
+then pushes. A busy or failed backup keeps the intent and submits no push.
+Failures append `[publication-backup-failed]` to `ALERTS.log`.
+
+The loop needs bucket-scoped `AWS_ACCESS_KEY_ID` and
+`AWS_SECRET_ACCESS_KEY`, `SWINGSET_R2_ENDPOINT` (HTTPS), and
+`SWINGSET_R2_BUCKET`. It never receives the owner credential. The separate
+checker job uses `SWINGSET_SCRATCH_ADMIN_DSN` and runs:
+
+```sh
+swingset backup-check-serve --socket /run/swingset/backup-check.sock \
+  --root /var/lib/swingset/checkpoints
+```
+
+Give that job and the loops the same private socket and backup-directory
+mounts. In the loops set `SWINGSET_BACKUP_CHECK_SOCKET` to the socket and
+`SWINGSET_BACKUP_CHECK_ROOT` to the shared directory. The socket is mode
+0600; requests contain only the check kind, relative paths and manifest digest.
+A missing checker, a path outside its root or a failed audit blocks success.
+The switch stage installs these mounts and credentials; stage 1 tests the
+protocol with a separate local process.
+
+Keep the shared directory persistent, including its private `.owners`
+ledger and `.owners/checker.lock`. The checker runs as container PID 1;
+the retained namespace and process-start identities distinguish a replaced
+checker from a new process with the same PID. The singleton lock also
+prevents a second socket directory from starting another owner for that root.
+
+The weekly drill uses the same owner job to reproduce the recorded release
+from immutable generation labels and retained sidecars. It does not use
+today's admission gates or activate the restored state. Both success and
+failure remove the private database and expanded files; a failure keeps a
+small receipt. Crash cleanup requires the recorded database comment and
+directory nonce, device and inode, and waits for the whole owner process
+group to exit.
+An interrupted database creation before its ownership comment, or directory
+adoption before its nonce marker, fails closed and may need operator cleanup.
+Unknown owner records are preserved for that check.
+
+A restore requires a fresh database and a fresh state volume. Supply its
+owner DSN only to the restore job as `SWINGSET_OWNER_DATABASE_URL` and use
+the existing `restore --checkpoint` or `restore --backup-set` selector.
+Use `--environment production` for the replacement production database;
+the default is `dev`, whose real external transports remain blocked.
+An interrupted target stays fenced by `RESTORE_PENDING`; retry from another
+fresh database and volume. Restore first audits exact history, then
+reconciles baseline and pending intent against the actual Hub head. It
+fetches only the resulting baseline's files at that immutable commit and
+checks the sealed manifest's hashes. A missing or changed public file
+keeps the barrier. Observation caches come from accepted immutable source
+results; ordinary projection and link workers rebuild discarded tables.
+History generations and identity decisions keep their original keys.
+If a retained operator pause prevents rebuilding, activation fails with the
+barrier still set. An operator may explicitly resume that control under the
+barrier through the separate control role; the action records its actor and
+reason. Recovery never resumes it automatically. Rebuild and verify before
+clearing the restore barrier, and leave unrelated out-of-band holds alone
+([D-0270](../../journal/decisions/0270-allow-explicit-controls-during-staged-restore.md)).
+An unlanded pending candidate is rejected after reconciliation; a new build
+uses the verified baseline and current private evidence.
+
+The common `backup/export` advisory lock also covers the scheduled backup
+and restore drill. The next backup removes a killed run's scratch using
+its database UUID and manifest receipt, then reserves a new immutable set
+key. It never overwrites a different object at an existing key.

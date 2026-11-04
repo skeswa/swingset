@@ -1,6 +1,5 @@
 """Event blocker reporting reads state without admitting or resetting work."""
 
-import sqlite3
 from datetime import UTC, timedelta, timezone
 
 import pytest
@@ -9,7 +8,7 @@ from test_event_enumerations import event as event
 from swingset.config import Config, HostConfig, SourceConfig
 from swingset.schedule.event_readiness import report
 from swingset.schedule.fair_policy import SchedulerConfig
-from swingset.state import db as state_db
+from swingset.state import engine
 from swingset.state.controls import Selector, change_control
 
 
@@ -45,20 +44,23 @@ def test_overlapping_recorded_blockers_use_archive_host_without_mutation(event):
     future = (now + timedelta(hours=1)).isoformat()
     archive_url = "https://web.archive.org/web/20250101000000/https://eepro.com/final.htm"
     f.conn.execute(
-        "UPDATE watches SET archive_url=?,state='archived',next_check_at=?,paused_until=?,"
-        "last_checked_at=? WHERE watch_id=?",
+        (
+            "UPDATE watches SET archive_url = %s, state = 'archived', next_check_at = %s, paused_until = "
+            "%s, last_checked_at = %s WHERE watch_id = %s"
+        ),
         (archive_url, future, future, now.isoformat(), f.corpus.spec.watch_id),
     )
     f.conn.execute(
-        "UPDATE snapshots SET classification='ServerError',http_status=503 WHERE snapshot_id=?",
+        "UPDATE snapshots SET classification = 'ServerError', http_status = 503 WHERE snapshot_id = %s",
         (snapshot.snapshot_id,),
     )
     f.conn.execute(
-        "INSERT INTO hosts(host,next_allowed_at,paused_until,pause_reason) VALUES (?,?,?,'Blocked')",
+        "INSERT INTO hosts (host, next_allowed_at, paused_until, pause_reason) VALUES (%s, %s, %s, 'Blocked')",
         ("web.archive.org", future, future),
     )
     f.conn.execute(
-        "INSERT INTO host_budget VALUES ('web.archive.org',?,2,100)", (now.date().isoformat(),)
+        "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('web.archive.org', %s, 2, 100)",
+        (now.date().isoformat(),),
     )
     expected_pauses = {
         pause(f, "all", "all"),
@@ -74,10 +76,9 @@ def test_overlapping_recorded_blockers_use_archive_host_without_mutation(event):
             pending_parse_items=1, pending_parse_bytes=1, pending_work_items=1
         ),
     )
-    before = list(f.conn.iterdump())
+    before = f.conn.total_changes
     changes = f.conn.total_changes
-    f.conn.execute("PRAGMA query_only=ON")
-    f.conn.execute("BEGIN")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     try:
         result = inspect(f, config, operator_hold=True)
         assert result["supported"] and result["incomplete_gate_assessment"]
@@ -109,7 +110,7 @@ def test_overlapping_recorded_blockers_use_archive_host_without_mutation(event):
             "pending_work_items",
         }
         assert "eligible" not in result and "allowed" not in watch
-        assert list(f.conn.iterdump()) == before
+        assert f.conn.total_changes == before
         assert f.conn.total_changes == changes
     finally:
         f.conn.rollback()
@@ -120,15 +121,14 @@ def test_caller_snapshot_stays_consistent_across_external_budget_change(event):
     config = Config(
         {"eepro.com": HostConfig(daily_request_budget=2)}, {"eepro": SourceConfig(True)}
     )
-    f.conn.execute("PRAGMA query_only=ON")
-    f.conn.execute("BEGIN")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     try:
         first = inspect(f, config)
         assert first["watches"][0]["due"] is True
         assert not first["hosts"][0]["host_recorded"]
-        with sqlite3.connect(f.db.state_dir / "state.sqlite") as writer:
+        with engine.connect(engine.resolve_dsn(f.db.state_dir)) as writer:
             writer.execute(
-                "INSERT INTO host_budget VALUES ('eepro.com',?,2,0)",
+                "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('eepro.com', %s, 2, 0)",
                 (f.corpus.clock.now().date().isoformat(),),
             )
         assert inspect(f, config) == first
@@ -145,14 +145,13 @@ def test_latest_response_orders_instants_across_timezone_offsets(event):
     f.corpus.snapshot("older-offset-response")
     f.corpus.snapshot("newer-utc-response")
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at='2026-09-16T12:00:00+02:00',"
-        "classification='ServerError',http_status=503 WHERE snapshot_id='older-offset-response'"
+        "UPDATE snapshots SET fetched_at = '2026-09-16T12:00:00+02:00', classification = "
+        "'ServerError', http_status = 503 WHERE snapshot_id = 'older-offset-response'"
     )
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at='2026-09-16T11:00:00+00:00' "
-        "WHERE snapshot_id='newer-utc-response'"
+        "UPDATE snapshots SET fetched_at = '2026-09-16T11:00:00+00:00' WHERE snapshot_id = 'newer-utc-response'"
     )
-    f.conn.execute("PRAGMA query_only=ON")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     result = inspect(f, Config({}, {"eepro": SourceConfig(True)}))
     assert result["watches"][0]["latest_response"]["snapshot_id"] == "newer-utc-response"
     assert result["watches"][0]["latest_response"]["classification"] == "Ok"
@@ -165,7 +164,7 @@ def test_expired_pauses_are_ignored_without_deleting_records_and_days_reset_in_u
     config = Config({}, {"eepro": SourceConfig(True)})
     # At exact expiry, the existing control matcher stops applying the pause.
     local_now = expiry.astimezone(timezone(timedelta(hours=-7)))
-    f.conn.execute("PRAGMA query_only=ON")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     result = inspect(f, config, now=local_now)
     assert result["operator_pauses"] == []
     assert f.conn.execute("SELECT pause_id FROM operator_pauses").fetchone()[0] == pause_id
@@ -182,10 +181,10 @@ def test_expired_pauses_are_ignored_without_deleting_records_and_days_reset_in_u
 def test_unscheduled_terminal_watch_and_missing_members_remain_visible(event, state):
     f = event
     f.conn.execute(
-        "UPDATE watches SET state=?,next_check_at=NULL WHERE watch_id=?",
+        "UPDATE watches SET state = %s, next_check_at = NULL WHERE watch_id = %s",
         (state, f.corpus.spec.watch_id),
     )
-    f.conn.execute("PRAGMA query_only=ON")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     result = inspect(
         f, Config({}, {}), watch_ids=[f.corpus.spec.watch_id, "missing", f.corpus.spec.watch_id]
     )
@@ -203,33 +202,16 @@ def test_hold_without_watches_does_not_imply_execution_permission(event):
     assert result["backpressure"]["active"] is False
 
 
-def test_legacy_schema_reports_unavailable_controls_without_migration(tmp_path, monkeypatch):
-    monkeypatch.setattr(state_db, "SCHEMA_VERSION", 1)
-    with state_db.open_database(tmp_path) as db:
-        from test_admission import Corpus
-
-        corpus = Corpus(db)
-        conn = db.connection
-        before = list(conn.iterdump())
-        conn.execute("PRAGMA query_only=ON")
-        result = report(
-            conn,
-            Config({}, {}),
-            source="eepro",
-            source_ref="eepro:test",
-            watch_ids=[corpus.spec.watch_id],
-            now=corpus.clock.now(),
-            operator_hold=True,
-        )
-        assert result["supported"] and not result["operator_controls_supported"]
-        assert result["incomplete_gate_assessment"] and result["operator_hold"]
-        assert result["operator_pauses"] == []
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
-        assert list(conn.iterdump()) == before
+def test_legacy_schema_reports_unavailable_controls_without_migration(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_event_readiness.py",
+        "test_legacy_schema_reports_unavailable_controls_without_migration",
+    )
 
 
 def test_missing_schema_and_naive_time_are_explicit(event):
-    with sqlite3.connect(":memory:") as conn:
+    with engine.connect(engine.resolve_dsn(event.db.state_dir), read_only=True) as conn:
+        conn.execute("SET search_path=pg_catalog,pg_temp")
         result = report(
             conn,
             Config({}, {}),

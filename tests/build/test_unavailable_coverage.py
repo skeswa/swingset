@@ -40,7 +40,7 @@ def response(f, name="unavailable", *, classification="Gone", status=404, via="o
     )
     context = f.corpus.snapshot(name, ("response " + name).encode(), spec=spec, via=via)
     f.conn.execute(
-        "UPDATE snapshots SET classification=?,http_status=? WHERE snapshot_id=?",
+        "UPDATE snapshots SET classification = %s, http_status = %s WHERE snapshot_id = %s",
         (classification, status, context.snapshot_id),
     )
     return context
@@ -123,15 +123,18 @@ def test_latest_origin_order_is_chronological_and_conflicting_ties_are_unknown(e
     assert check(f)["unavailable"] is False
     at = f.corpus.clock.now()
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at=? WHERE snapshot_id='gone'",
+        "UPDATE snapshots SET fetched_at = %s WHERE snapshot_id = 'gone'",
         ((at + timedelta(hours=1)).isoformat(),),
     )
     assert check(f)["unavailable"] is False  # after cutoff
-    f.conn.execute("UPDATE snapshots SET fetched_at=? WHERE snapshot_id='gone'", (at.isoformat(),))
+    f.conn.execute(
+        "UPDATE snapshots SET fetched_at = %s WHERE snapshot_id = 'gone'", (at.isoformat(),)
+    )
     assert check(f)["unavailable"] is None
     earlier = (at - timedelta(seconds=1)).astimezone(timezone(timedelta(hours=-4)))
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at=? WHERE snapshot_id='transient'", (earlier.isoformat(),)
+        "UPDATE snapshots SET fetched_at = %s WHERE snapshot_id = 'transient'",
+        (earlier.isoformat(),),
     )
     assert check(f)["unavailable"] is True
 
@@ -142,16 +145,18 @@ def test_incomplete_or_invalid_evidence_is_unknown(event, damage):
     prepare(f)
     response(f)
     sha = f.conn.execute(
-        "SELECT body_sha256 FROM snapshots WHERE snapshot_id='unavailable'"
+        "SELECT body_sha256 FROM snapshots WHERE snapshot_id = 'unavailable'"
     ).fetchone()[0]
     if damage == "missing":
         f.archive.blob_path(sha).unlink()
     elif damage == "corrupt":
         f.archive.blob_path(sha).write_bytes(gzip.compress(b"different"))
     elif damage == "timestamp":
-        f.conn.execute("UPDATE snapshots SET fetched_at='invalid' WHERE snapshot_id='unavailable'")
+        f.conn.execute(
+            "UPDATE snapshots SET fetched_at = 'invalid' WHERE snapshot_id = 'unavailable'"
+        )
     elif damage == "status":
-        f.conn.execute("UPDATE snapshots SET http_status=200 WHERE snapshot_id='unavailable'")
+        f.conn.execute("UPDATE snapshots SET http_status = 200 WHERE snapshot_id = 'unavailable'")
     value = check(f, limits=Limits(candidates=1) if damage == "budget" else None)
     assert value["unavailable"] is None and value["unavailability_support"] is None
 
@@ -194,7 +199,9 @@ def test_pinned_response_rechecks_artifacts_and_metadata_at_validation(event, da
             "status": ("http_status", 403),
             "via": ("via", "wayback"),
         }[damage]
-        f.conn.execute(f"UPDATE snapshots SET {field}=? WHERE snapshot_id='unavailable'", (value,))
+        f.conn.execute(
+            f"UPDATE snapshots SET {field} = %s WHERE snapshot_id = 'unavailable'", (value,)
+        )
         assert event_coverage.fingerprint(f.conn, event_coverage.read_set(witness)) != before
     with artifact_source(f.conn, f.archive), pytest.raises(ClosureError):
         event_coverage.validate(f.conn, witness, selected_support=())
@@ -204,7 +211,9 @@ def test_restored_older_body_changes_new_observation_not_the_pinned_one(event):
     f = event
     prepare(f)
     response(f, "old", classification="Ok", status=200)
-    sha = f.conn.execute("SELECT body_sha256 FROM snapshots WHERE snapshot_id='old'").fetchone()[0]
+    sha = f.conn.execute("SELECT body_sha256 FROM snapshots WHERE snapshot_id = 'old'").fetchone()[
+        0
+    ]
     path = f.archive.blob_path(sha)
     saved = path.read_bytes()
     path.unlink()

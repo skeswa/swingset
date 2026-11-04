@@ -19,14 +19,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from swingset.state import db as db_module
-from swingset.state import derivations
+from swingset.state import derivations, engine
 from swingset.state.db import Database, open_database
 from swingset.state.work import WorkUnit
 
@@ -41,39 +39,43 @@ TOUCHED = {
 }
 
 
-def watch_and_unit(conn: sqlite3.Connection, watch_id: str = "w1") -> None:
+def watch_and_unit(conn: engine.Connection, watch_id: str = "w1") -> None:
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
-        "VALUES (?,'wsdc','dancer','GET','https://example.test/','wsdc_dancer','active')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, "
+            "'wsdc', 'dancer', 'GET', 'https://example.test/', 'wsdc_dancer', 'active')"
+        ),
         (watch_id,),
     )
     conn.execute(
-        "INSERT INTO source_units(unit_key,watch_id,page_kind) VALUES (?,?,'dancer')",
+        "INSERT INTO source_units (unit_key, watch_id, page_kind) VALUES (%s, %s, 'dancer')",
         (f"unit-{watch_id}", watch_id),
     )
 
 
-def source_generation(conn: sqlite3.Connection, run_id: str, unit_key: str = "unit-w1") -> str:
+def source_generation(conn: engine.Connection, run_id: str, unit_key: str = "unit-w1") -> str:
     generation_id = f"sg-{unit_key}"
     conn.execute(
-        "INSERT INTO source_generations(generation_id,unit_key,page_kind,contract_version,"
-        "input_fingerprint,manifest_json,recipe_json,result_json,report_json,created_at,run_id,"
-        "state,removal_authority) VALUES (?,?,'dancer','v1','fp','[]','{}','{}','{}',?,?,"
-        "'staged','none')",
+        (
+            "INSERT INTO source_generations (generation_id, unit_key, page_kind, contract_version, "
+            "input_fingerprint, manifest_json, recipe_json, result_json, report_json, created_at, "
+            "run_id, state, removal_authority) VALUES (%s, %s, 'dancer', 'v1', 'fp', '[]', '{}', '{}', "
+            "'{}', %s, %s, 'staged', 'none')"
+        ),
         (generation_id, unit_key, AT, run_id),
     )
     return generation_id
 
 
-def watch_version(conn: sqlite3.Connection, watch_id: str = "w1") -> int:
+def watch_version(conn: engine.Connection, watch_id: str = "w1") -> int:
     row = conn.execute(
-        "SELECT version FROM derivation_input_versions WHERE namespace='watch' AND input_key=?",
+        "SELECT version FROM derivation_input_versions WHERE namespace = 'watch' AND input_key = %s",
         (watch_id,),
     ).fetchone()
     return 0 if row is None else int(row[0])
 
 
-def fence(conn: sqlite3.Connection) -> int:
+def fence(conn: engine.Connection) -> int:
     return int(conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0])
 
 
@@ -95,25 +97,31 @@ class Fixture:
                 run_id=self.run_id,
             )
             self.dependency_set_id = conn.execute(
-                "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+                "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
                 (self.generation_id,),
             ).fetchone()[0]
             watch_and_unit(conn)
             self.source_generation_id = source_generation(conn, self.run_id)
 
-    def insert(self, conn: sqlite3.Connection, table: str, suffix: str = "") -> None:
+    def insert(self, conn: engine.Connection, table: str, suffix: str = "") -> None:
         if table == "derivation_recipes":
             conn.execute(
-                "INSERT INTO derivation_recipes VALUES (?,?)",
+                "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES (%s, %s)",
                 (f"recipe{suffix}", '{"recipe/test":"two"}'),
             )
         elif table == "derivation_equivalences":
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_recipes VALUES ('recipe-eq','{}')",
+                (
+                    "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES ('recipe-eq', '{}') ON "
+                    "CONFLICT DO NOTHING"
+                ),
             )
             conn.execute(
-                "INSERT INTO derivation_equivalences VALUES "
-                "('project',?,'kept',?,?,'recipe-eq',?,?,?)",
+                (
+                    "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                    "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES ('project', %s, "
+                    "'kept', %s, %s, 'recipe-eq', %s, %s, %s)"
+                ),
                 (
                     self.kind,
                     f"fp{suffix}",
@@ -125,84 +133,25 @@ class Fixture:
             )
         else:
             conn.execute(
-                "INSERT INTO source_equivalences VALUES ('unit-w1',?,?,'{}',NULL,?,?)",
+                (
+                    "INSERT INTO source_equivalences (unit_key, input_fingerprint, generation_id, recipe_json, "
+                    "work_token, created_at, run_id) VALUES ('unit-w1', %s, %s, '{}', NULL, %s, %s)"
+                ),
                 (f"fp{suffix}", self.source_generation_id, AT, self.run_id),
             )
 
 
-def test_migration_from_schema_32_adds_empty_tables_and_narrows_the_trigger(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = tmp_path / "state"
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 32)
-        with open_database(state, lock=False) as database:
-            conn = database.connection
-            assert database.schema_version == 32
-            with database.transaction():
-                watch_and_unit(conn)
-            before = watch_version(conn)
-            with database.transaction():
-                conn.execute("UPDATE source_units SET desired_fingerprint='a'")
-            # Schema 32 bumps the token on any update, which is what 33 stops.
-            assert watch_version(conn) > before
-            for table in TABLES:
-                assert (
-                    conn.execute("SELECT 1 FROM sqlite_master WHERE name=?", (table,)).fetchone()
-                    is None
-                )
-
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
-    with open_database(state, lock=False) as database:
-        conn = database.connection
-        assert database.schema_version == 33
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 33
-        for table in TABLES:
-            assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
-            for action in ("insert", "update", "delete"):
-                for name in (
-                    f"history_timing_{table}_{action}",
-                    f"publication_fence_{table}_{action}",
-                ):
-                    assert (
-                        conn.execute(
-                            "SELECT 1 FROM sqlite_master WHERE type='trigger' AND name=?", (name,)
-                        ).fetchone()
-                        is not None
-                    ), name
-        trigger = conn.execute(
-            "SELECT sql FROM sqlite_master WHERE name='derivation_source_units_update'"
-        ).fetchone()[0]
-        assert "OLD.accepted_generation_id IS NOT NEW.accepted_generation_id" in trigger
-        assert "desired_fingerprint" not in trigger
-        before = watch_version(conn)
-        with database.transaction():
-            conn.execute("UPDATE source_units SET desired_fingerprint='b'")
-        assert watch_version(conn) == before
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+def test_migration_from_schema_32_adds_empty_tables_and_narrows_the_trigger(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_equivalences.py",
+        "test_migration_from_schema_32_adds_empty_tables_and_narrows_the_trigger",
+    )
 
 
-def test_page_evidence_reads_revocations_at_schema_32(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # A read-only open skips migration, so evidence readers meet schema 32.
-    from swingset.schedule.event_evidence import admission_reason
-
-    value = {
-        "state": "accepted",
-        "recipe": {"context": {"snapshot_id": "s"}, "parser_version": "1"},
-        "unit_key": "u",
-        "input_fingerprint": "f",
-        "report": {"failures": ["unsupported"]},
-    }
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 32)
-        with open_database(tmp_path / "state", lock=False) as database:
-            assert database.schema_version == 32
-            reason = admission_reason(database.connection, value)
-    assert reason == "source_interpretation_unsupported"
-    with open_database(tmp_path / "state", lock=False) as database:
-        assert admission_reason(database.connection, value) == reason
+def test_page_evidence_reads_revocations_at_schema_32(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_equivalences.py", "test_page_evidence_reads_revocations_at_schema_32"
+    )
 
 
 @pytest.mark.parametrize("table", TABLES)
@@ -214,14 +163,19 @@ def test_rows_are_permanent_and_move_the_history_fence(tmp_path: Path, table: st
         with database.transaction():
             fixture.insert(conn, table)
         assert fence(conn) > before
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+        with pytest.raises(engine.IntegrityError, match="immutable"):
             with database.transaction():
-                conn.execute(f"UPDATE {table} SET {TOUCHED[table]}={TOUCHED[table]}")
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+                conn.execute(f"UPDATE {table} SET {TOUCHED[table]} = {TOUCHED[table]}")
+        with pytest.raises(engine.IntegrityError, match="immutable"):
             with database.transaction():
                 conn.execute(f"DELETE FROM {table}")
-        assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] >= 1
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] >= 1
+        assert (
+            conn.execute(
+                "SELECT bool_and(convalidated) FROM pg_constraint WHERE contype='f'"
+            ).fetchone()[0]
+            is True
+        )
 
 
 @pytest.mark.parametrize("table", TABLES)
@@ -231,15 +185,16 @@ def test_an_active_publication_blocks_writes(tmp_path: Path, table: str) -> None
         fixture = Fixture(database)
         with database.transaction():
             conn.execute(
-                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
-                "control_revision,all_sources,all_kinds,state) "
-                "VALUES ('publishing','publication',?,0,1,1,'active')",
+                (
+                    "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                    "all_sources, all_kinds, state) VALUES ('publishing', 'publication', %s, 0, 1, 1, 'active')"
+                ),
                 (AT,),
             )
-        with pytest.raises(sqlite3.IntegrityError, match="active publication fences"):
+        with pytest.raises(engine.IntegrityError, match="active publication fences"):
             with database.transaction():
                 fixture.insert(conn, table)
-        assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
 
 def test_only_fields_derivations_read_bump_the_watch_token(tmp_path: Path) -> None:
@@ -252,12 +207,12 @@ def test_only_fields_derivations_read_bump_the_watch_token(tmp_path: Path) -> No
         start = watch_version(conn)
         with database.transaction():
             conn.execute(
-                "UPDATE source_units SET desired_fingerprint='staged' WHERE unit_key='unit-w1'"
+                "UPDATE source_units SET desired_fingerprint = 'staged' WHERE unit_key = 'unit-w1'"
             )
         assert watch_version(conn) == start
         with database.transaction():
             conn.execute(
-                "UPDATE source_units SET accepted_generation_id=? WHERE unit_key='unit-w1'",
+                "UPDATE source_units SET accepted_generation_id = %s WHERE unit_key = 'unit-w1'",
                 (generation_id,),
             )
         bumped = watch_version(conn)
@@ -265,17 +220,17 @@ def test_only_fields_derivations_read_bump_the_watch_token(tmp_path: Path) -> No
         # Setting a field to its current value is not a change.
         with database.transaction():
             conn.execute(
-                "UPDATE source_units SET accepted_generation_id=? WHERE unit_key='unit-w1'",
+                "UPDATE source_units SET accepted_generation_id = %s WHERE unit_key = 'unit-w1'",
                 (generation_id,),
             )
         assert watch_version(conn) == bumped
 
 
 def test_only_fields_derivations_read_bump_the_source_selections_token(tmp_path: Path) -> None:
-    def version(conn: sqlite3.Connection) -> int:
+    def version(conn: engine.Connection) -> int:
         row = conn.execute(
-            "SELECT version FROM derivation_input_versions "
-            "WHERE namespace='source_selections' AND input_key='all'"
+            "SELECT version FROM derivation_input_versions WHERE namespace = 'source_selections' AND "
+            "input_key = 'all'"
         ).fetchone()
         return 0 if row is None else int(row[0])
 
@@ -289,89 +244,44 @@ def test_only_fields_derivations_read_bump_the_source_selections_token(tmp_path:
         # Every parse stages a desired fingerprint; no certificate reads it.
         with database.transaction():
             conn.execute(
-                "UPDATE source_units SET desired_fingerprint='staged' WHERE unit_key='unit-w1'"
+                "UPDATE source_units SET desired_fingerprint = 'staged' WHERE unit_key = 'unit-w1'"
             )
         assert version(conn) == start
         with database.transaction():
             conn.execute(
-                "UPDATE source_units SET accepted_generation_id=? WHERE unit_key='unit-w1'",
+                "UPDATE source_units SET accepted_generation_id = %s WHERE unit_key = 'unit-w1'",
                 (generation_id,),
             )
         assert version(conn) > start
 
 
-def test_a_checkpoint_at_schema_33_verifies_and_restores(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
-    from swingset.backup.checkpoint import (
-        create_checkpoint,
-        restore_checkpoint,
-        verify_checkpoint,
+def test_a_checkpoint_at_schema_33_verifies_and_restores(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_equivalences.py", "test_a_checkpoint_at_schema_33_verifies_and_restores"
     )
 
-    state = tmp_path / "state"
-    with open_database(state, lock=False) as database:
-        conn = database.connection
-        # An event's prerequisites read schema 35's proposals; a dancer has none.
-        fixture = Fixture(database, kind="dancer")
-        with database.transaction():
-            for table in TABLES:
-                fixture.insert(conn, table)
-        expected = {
-            table: sorted(tuple(row) for row in conn.execute(f"SELECT * FROM {table}"))
-            for table in TABLES
-        }
-        checkpoint = create_checkpoint(
-            state,
-            conn,
-            tmp_path / "checkpoint",
-            schema_version=database.schema_version,
-            versions={},
-            input_bundle_hash=None,
-        )
-    manifest = verify_checkpoint(checkpoint.path, maximum_schema_version=33)
-    assert int(manifest["schema_version"]) == 33
 
-    restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=33)
-    with open_database(restored, lock=False, allow_restore_pending=True) as database:
-        assert database.schema_version == 33
-        assert {
-            table: sorted(
-                tuple(row) for row in database.connection.execute(f"SELECT * FROM {table}")
-            )
-            for table in TABLES
-        } == expected
-
-
-def test_schema_32_code_refuses_a_schema_33_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = tmp_path / "state"
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
-    with open_database(state, lock=False) as database:
-        assert database.schema_version == 33
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 32)
-    with pytest.raises(RuntimeError, match="schema 33 is newer than supported 32"):
-        open_database(state, lock=False)
+def test_schema_32_code_refuses_a_schema_33_file(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_equivalences.py", "test_schema_32_code_refuses_a_schema_33_file"
+    )
 
 
 UNIT = WorkUnit("project", "event", "kept")
 SCOPE = ("project", "event", "kept")
 
 
-def accept_runtime(database: Database, value: str) -> None:
+def accept_versions(database: Database, value: str) -> None:
     with database.transaction():
         database.connection.execute(
-            "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/env',?) "
-            "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+            "UPDATE accepted_inputs SET digest = %s WHERE consumer = 'pipeline' AND input_name ILIKE 'recipe/code/%%'",
             (value,),
         )
-        # A scoped runtime always names the unit's code scope.
-        database.connection.execute(
-            "INSERT OR IGNORE INTO accepted_inputs "
-            "VALUES ('pipeline','recipe/code/project/event','scope')"
+        database.connection.executemany(
+            (
+                "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, %s) ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
+            ),
+            [("recipe/code/project/event", value), ("recipe/code/link", value)],
         )
 
 
@@ -391,22 +301,28 @@ def materialize(database: Database, run_id: str, marker: str) -> str:
 def equivalent(database: Database, run_id: str, fingerprint: str, generation_id: str) -> None:
     conn = database.connection
     set_id = conn.execute(
-        "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+        "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()[0]
     with database.transaction():
-        conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('recipe-eq','{}')")
         conn.execute(
-            "INSERT INTO derivation_equivalences VALUES ('project','event','kept',?,?,"
-            "'recipe-eq',?,?,?)",
+            "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES ('recipe-eq', '{}') ON "
+            "CONFLICT DO NOTHING"
+        )
+        conn.execute(
+            (
+                "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES ('project', "
+                "'event', 'kept', %s, %s, 'recipe-eq', %s, %s, %s)"
+            ),
             (fingerprint, generation_id, set_id, AT, run_id),
         )
 
 
-def pointer(conn: sqlite3.Connection) -> str | None:
+def pointer(conn: engine.Connection) -> str | None:
     row = conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes "
-        "WHERE stage='project' AND unit_kind='event' AND unit_id='kept'"
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = 'project' AND "
+        "unit_kind = 'event' AND unit_id = 'kept'"
     ).fetchone()
     return None if row is None else row[0]
 
@@ -417,11 +333,11 @@ def test_an_equivalence_for_the_selected_generation_makes_the_scope_current(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = materialize(database, run_id, "e1")
         assert derivations.current(conn, UNIT)
 
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         stale = derivations.desired(conn, UNIT)
         assert not derivations.current(conn, UNIT)
         assert stale.generation_id != kept
@@ -439,7 +355,7 @@ def test_an_equivalence_for_the_selected_generation_makes_the_scope_current(
         assert pointer(conn) == kept
 
         # A later input change is not covered by the old equivalence.
-        accept_runtime(database, "code-3")
+        accept_versions(database, "code-3")
         assert not derivations.current(conn, UNIT)
         assert not derivations.current_for(conn, UNIT)
 
@@ -450,13 +366,13 @@ def test_an_equivalence_for_another_generation_of_the_scope_does_not_count(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         first = materialize(database, run_id, "e1")
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         second = materialize(database, run_id, "e2")
         assert second != first and pointer(conn) == second
 
-        accept_runtime(database, "code-3")
+        accept_versions(database, "code-3")
         wanted = derivations.desired(conn, UNIT).fingerprint
         # The equivalence names the older generation, not the selected one.
         equivalent(database, run_id, wanted, first)
@@ -523,28 +439,28 @@ def test_a_replay_epoch_is_monotonic_and_moves_the_history_fence(tmp_path: Path)
         assert [
             tuple(row)
             for row in conn.execute(
-                "SELECT input_key,version FROM derivation_input_versions "
-                "WHERE namespace='replayed' ORDER BY input_key"
+                "SELECT input_key, version FROM derivation_input_versions WHERE namespace = 'replayed' ORDER "
+                "BY input_key NULLS FIRST"
             )
         ] == [('["link","event"]', 1), ('["project","calendar"]', 2)]
-        with pytest.raises(sqlite3.IntegrityError, match="must advance"):
+        with pytest.raises(engine.IntegrityError, match="must advance"):
             with database.transaction():
                 conn.execute(
-                    "UPDATE derivation_input_versions SET version=1 WHERE namespace='replayed'"
+                    "UPDATE derivation_input_versions SET version = 1 WHERE namespace = 'replayed'"
                 )
 
 
-def _register(conn: sqlite3.Connection, *units: tuple[str, str, str]) -> None:
+def _register(conn: engine.Connection, *units: tuple[str, str, str]) -> None:
     conn.executemany(
-        "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+        "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, %s, %s)",
         ((*unit, AT) for unit in units),
     )
 
 
-def _queued(conn: sqlite3.Connection) -> set[tuple[str, str, str]]:
+def _queued(conn: engine.Connection) -> set[tuple[str, str, str]]:
     return {
         (str(r[0]), str(r[1]), str(r[2]))
-        for r in conn.execute("SELECT stage,unit_kind,unit_id FROM pending_work")
+        for r in conn.execute("SELECT stage, unit_kind, unit_id FROM pending_work")
     }
 
 
@@ -566,7 +482,10 @@ def test_a_replay_epoch_queues_hints_for_the_kinds_that_read_it(tmp_path: Path) 
                 ("link", "event", "e1"),
                 ("link", "event", "e2"),
             )
-            conn.execute("INSERT INTO pending_work VALUES ('link','event','e2','2020-01-01')")
+            conn.execute(
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+                "'e2', '2020-01-01')"
+            )
         with database.transaction():
             derivations.bump_replay(conn, "project", "resolution", now=NOW)
         assert _queued(conn) == {
@@ -576,15 +495,15 @@ def test_a_replay_epoch_queues_hints_for_the_kinds_that_read_it(tmp_path: Path) 
         }
         assert (
             conn.execute(
-                "SELECT enqueued_at FROM pending_work WHERE unit_kind='event' AND unit_id='e2'"
+                "SELECT enqueued_at FROM pending_work WHERE unit_kind = 'event' AND unit_id = 'e2'"
             ).fetchone()[0]
             == "2020-01-01"
         )
         # A new hint carries the run's clock, not the wall clock.
         assert (
-            conn.execute("SELECT enqueued_at FROM pending_work WHERE unit_kind='year'").fetchone()[
-                0
-            ]
+            conn.execute(
+                "SELECT enqueued_at FROM pending_work WHERE unit_kind = 'year'"
+            ).fetchone()[0]
             == NOW.isoformat()
         )
         with database.transaction():
@@ -599,9 +518,8 @@ def test_a_replay_epoch_queues_hints_for_the_kinds_that_read_it(tmp_path: Path) 
         assert _queued(conn) == set()
 
 
-def test_a_derivation_code_scope_or_environment_change_queues_hints(tmp_path: Path) -> None:
-    """Project and link units are stale by fingerprint after a code-scope or
-    environment change; `affected_work` queues them so the backlog shows."""
+def test_declared_scope_changes_queue_hints_but_environment_audit_does_not(tmp_path: Path) -> None:
+    """Declared scopes queue their units; runtime audit queues nothing."""
     from swingset.state.work import affected_work
 
     with open_database(tmp_path / "state", lock=False) as database:
@@ -620,7 +538,8 @@ def test_a_derivation_code_scope_or_environment_change_queues_hints(tmp_path: Pa
         assert hinted("recipe/code/project/event") == {("project", "event", "e1")}
         assert hinted("recipe/code/link") == {("link", "event", "e1")}
         assert hinted("recipe/code/build") == set()
-        for name in ("recipe/env", "recipe/runtime"):
+        assert hinted("recipe/env") == set()
+        for name in ("recipe/runtime",):
             assert hinted(name) == {
                 ("project", "event", "e1"),
                 ("project", "dancer", "d1"),
@@ -642,10 +561,10 @@ def rerun(database: Database, run_id: str, rows, *, captured: bool = True) -> st
 ROWS = [derivations.OutputRow("entries", '["e1"]', {"entry_id": "e1"})]
 
 
-def replay_version(conn: sqlite3.Connection) -> int:
+def replay_version(conn: engine.Connection) -> int:
     row = conn.execute(
-        "SELECT version FROM derivation_input_versions WHERE namespace='replayed' "
-        'AND input_key=\'["project","event"]\''
+        "SELECT version FROM derivation_input_versions WHERE namespace = 'replayed' AND input_key = "
+        '\'["project","event"]\''
     ).fetchone()
     return 0 if row is None else int(row[0])
 
@@ -656,21 +575,20 @@ def test_an_equivalence_fingerprint_recomputes_from_its_recipe_and_root_set(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         assert rerun(database, run_id, lambda: iter(ROWS)) == kept
         assert pointer(conn) == kept
-        assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == 1
         stage, kind, unit_id, fingerprint, generation_id, recipe_json, manifest = conn.execute(
-            "SELECT e.stage,e.unit_kind,e.unit_id,e.input_fingerprint,e.generation_id,"
-            "r.recipe_json,d.manifest_json FROM derivation_equivalences e "
-            "JOIN derivation_recipes r USING(recipe_sha256) "
-            "JOIN derivation_dependency_sets d USING(dependency_set_id)"
+            "SELECT e.stage, e.unit_kind, e.unit_id, e.input_fingerprint, e.generation_id, "
+            "r.recipe_json, d.manifest_json FROM derivation_equivalences AS e JOIN derivation_recipes AS "
+            "r USING (recipe_sha256) JOIN derivation_dependency_sets AS d USING (dependency_set_id)"
         ).fetchone()
         assert generation_id == kept
         recipe = json.loads(recipe_json)
-        assert recipe["inputs"]["recipe/env"] == "code-2"
+        assert recipe["inputs"]["recipe/code/project/event"] == "code-2"
         assert (
             derivations.digest(
                 {
@@ -697,15 +615,15 @@ def test_a_one_shot_iterator_never_cuts_off(tmp_path: Path) -> None:
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         first = rerun(database, run_id, iter(ROWS))
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         second = rerun(database, run_id, iter(ROWS))
         assert second != first and pointer(conn) == second
-        assert conn.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_equivalences").fetchone()[0] == 0
         assert (
             conn.execute(
-                "SELECT previous_generation_id FROM derivation_generations WHERE generation_id=?",
+                "SELECT previous_generation_id FROM derivation_generations WHERE generation_id = %s",
                 (second,),
             ).fetchone()[0]
             == first
@@ -716,9 +634,9 @@ def test_a_cutoff_without_a_witness_moves_the_replay_epoch(tmp_path: Path) -> No
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         # desired() alone reads no witness, so the cutoff cannot tell whether
         # its replay rewrote live rows and assumes it did.
         assert rerun(database, run_id, ROWS, captured=False) == kept
@@ -733,9 +651,9 @@ def test_a_cutoff_whose_replay_moved_a_witnessed_revision_moves_the_replay_epoch
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
 
         def replayed_rows():
             return iter(ROWS)
@@ -749,7 +667,7 @@ def test_a_cutoff_whose_replay_moved_a_witnessed_revision_moves_the_replay_epoch
             )
         assert replay_version(conn) == 1
         # Findings are outside the witness.
-        accept_runtime(database, "code-3")
+        accept_versions(database, "code-3")
         with database.transaction():
             selection = derivations.capture(conn, UNIT, now=NOW)
             bump_revision(conn, "findings")
@@ -765,9 +683,9 @@ def test_a_reuse_through_an_equivalence_that_rewrote_live_rows_moves_the_replay_
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         assert rerun(database, run_id, ROWS) == kept
         before = replay_version(conn)
         # A second run at the equivalence's fingerprint reuses the kept id,
@@ -805,16 +723,16 @@ def test_a_rerun_whose_upstream_reminted_identical_output_cuts_off(tmp_path: Pat
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         with database.transaction():
             conn.execute(
-                "INSERT OR IGNORE INTO accepted_inputs "
-                "VALUES ('pipeline','recipe/code/project/resolution','scope')"
+                "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', "
+                "'recipe/code/project/resolution', 'scope') ON CONFLICT DO NOTHING"
             )
         first_upstream = run(database, run_id, upstream, events)
         kept = run(database, run_id, UNIT, ROWS)
         assert first_upstream in json.dumps(derivations.desired(conn, UNIT).dependency_sets)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         second_upstream = run(database, run_id, upstream, iter(events))
         assert second_upstream != first_upstream
         assert derivations.desired(conn, UNIT).generation_id != kept
@@ -822,7 +740,7 @@ def test_a_rerun_whose_upstream_reminted_identical_output_cuts_off(tmp_path: Pat
         assert pointer(conn) == kept
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_equivalences WHERE unit_kind='event'"
+                "SELECT COUNT(*) FROM derivation_equivalences WHERE unit_kind = 'event'"
             ).fetchone()[0]
             == 1
         )
@@ -837,17 +755,17 @@ def test_an_input_that_moves_during_the_comparison_writes_no_equivalence(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         reads = []
 
         def moving():
             # The first read is the comparison; an input moves under it.
             if not reads:
                 conn.execute(
-                    "UPDATE accepted_inputs SET digest='code-3' "
-                    "WHERE consumer='pipeline' AND input_name='recipe/env'"
+                    "UPDATE accepted_inputs SET digest = 'code-3' WHERE consumer = 'pipeline' AND input_name = "
+                    "'recipe/code/project/event'"
                 )
             reads.append(1)
             return iter(ROWS)
@@ -856,7 +774,7 @@ def test_an_input_that_moves_during_the_comparison_writes_no_equivalence(
             rerun(database, run_id, moving)
         assert reads == [1]
         assert pointer(conn) == kept
-        assert conn.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_equivalences").fetchone()[0] == 0
 
 
 def test_changed_output_is_stored_from_a_second_read_that_must_match_the_first(
@@ -865,9 +783,9 @@ def test_changed_output_is_stored_from_a_second_read_that_must_match_the_first(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         reads = iter(("e2", "e3"))
 
         def unstable():
@@ -879,7 +797,7 @@ def test_changed_output_is_stored_from_a_second_read_that_must_match_the_first(
         changed = [derivations.OutputRow("entries", '["e1"]', {"entry_id": "e2"})]
         newer = rerun(database, run_id, changed)
         assert newer != kept and pointer(conn) == newer
-        assert conn.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_equivalences").fetchone()[0] == 0
 
 
 TIER = {"events": ("coverage_tier",)}
@@ -900,7 +818,7 @@ def test_a_generation_that_recorded_a_moved_column_is_kept(tmp_path: Path) -> No
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, old)
 
         def cut(rows, moved) -> str:
@@ -910,18 +828,18 @@ def test_a_generation_that_recorded_a_moved_column_is_kept(tmp_path: Path) -> No
                     conn, selection, rows=rows, now=NOW, run_id=run_id, moved=moved
                 )
 
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         assert cut(new, TIER) == kept
         assert pointer(conn) == kept
         # A second run at the same inputs reuses the kept id and reads the
         # same output: not a nondeterminism.
         assert cut(new, TIER) == kept
         # Without the moved columns the labels differ and a generation mints.
-        accept_runtime(database, "code-3")
+        accept_versions(database, "code-3")
         minted = cut(new, {})
         assert minted != kept and pointer(conn) == minted
         # Only the moved column is left out: a changed name still mints.
-        accept_runtime(database, "code-4")
+        accept_versions(database, "code-4")
         renamed = [
             derivations.OutputRow("events", '["ev1"]', {"event_id": "ev1", "name": "Closed"})
         ]
@@ -957,25 +875,21 @@ def test_projection_materialization_leaves_the_moved_column_out_of_the_compariso
                 with materialization.materializing(conn, UNIT, now=NOW, run_id=run_id):
                     pass
 
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         run(old)
         kept = pointer(conn)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         run(new)
         assert pointer(conn) == kept
-        assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == 1
 
 
-def _watchdog_ready(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
-    import importlib.util
+def _watchdog_ready(conn: engine.Connection) -> list[tuple[object, ...]]:
+    from swingset.ops import watchdog
 
-    script = Path(__file__).resolve().parents[1] / "nix" / "watchdog.py"
-    spec = importlib.util.spec_from_file_location("swingset_watchdog_ready", script)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    # Schema 34 leaves out units waiting on a work-queue clock at :now.
-    return list(conn.execute(module.QUERIES["ready"], {"now": module._queue_at(NOW.timestamp())}))
+    return list(
+        conn.execute(watchdog.QUERIES["ready"], {"now": watchdog._queue_at(NOW.timestamp())})
+    )
 
 
 @pytest.mark.parametrize("drained", [False, True])
@@ -991,13 +905,20 @@ def test_a_reverted_deploy_leaves_no_hint_for_a_current_unit(tmp_path: Path, dra
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         rerun(database, run_id, ROWS)
 
         def deploy(code: str, at: str) -> None:
-            accept_runtime(database, code)
+            accept_versions(database, code)
             with database.transaction():
-                enqueue(conn, tuple(affected_work(conn, "recipe/env")), enqueued_at=at)
+                enqueue(
+                    conn,
+                    (
+                        *affected_work(conn, "recipe/code/project/event"),
+                        *affected_work(conn, "recipe/code/link"),
+                    ),
+                    enqueued_at=at,
+                )
 
         deploy("code-2", "2026-09-25T01:00:00Z")
         link = ("link", "event", "kept")
@@ -1007,7 +928,7 @@ def test_a_reverted_deploy_leaves_no_hint_for_a_current_unit(tmp_path: Path, dra
             # The drain cuts off to the same output and deletes its hints.
             rerun(database, run_id, ROWS)
             with database.transaction():
-                conn.execute("DELETE FROM pending_work WHERE stage='project'")
+                conn.execute("DELETE FROM pending_work WHERE stage = 'project'")
         deploy("code-1", "2026-09-25T02:00:00Z")
         assert derivations.current(conn, UNIT)
         assert SCOPE in _queued(conn)
@@ -1052,22 +973,22 @@ def test_a_staged_cutoff_moves_the_replay_epoch_only_when_its_live_write_did(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        references = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
-        accept_runtime(database, "code-2")
+        references = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
+        accept_versions(database, "code-2")
         assert staged(database, run_id, ROWS) == kept
         assert replay_version(conn) == 0
-        accept_runtime(database, "code-3")
+        accept_versions(database, "code-3")
         assert staged(database, run_id, ROWS, move=True) == kept
         assert replay_version(conn) == 1
         assert pointer(conn) == kept
-        assert conn.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[0] == 2
-        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == references
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_equivalences").fetchone()[0] == 2
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == references
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 0
         assert derivations.current(conn, UNIT)
         # Changed output after the same checks stores a new generation.
-        accept_runtime(database, "code-4")
+        accept_versions(database, "code-4")
         changed = [derivations.OutputRow("entries", '["e1"]', {"entry_id": "e2"})]
         minted = staged(database, run_id, changed)
         assert minted != kept and pointer(conn) == minted
@@ -1084,9 +1005,9 @@ def test_a_resumed_staged_cutoff_keeps_the_replay_bump_of_an_a_that_died(
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         # Attempt 1: A rewrites live rows (the witnessed revision moves) and
         # commits; the process dies before pass 1, B and C.
         with derivations.chunking(conn, UNIT):
@@ -1096,13 +1017,13 @@ def test_a_resumed_staged_cutoff_keeps_the_replay_bump_of_an_a_that_died(
                 assert derivations.stage(
                     conn, selection, output=lambda reader: iter(ROWS), now=NOW, run_id=run_id
                 )
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 1
         assert not derivations.current(conn, UNIT)
         # Attempt 2, same inputs: its A moves nothing, and its output is kept.
         assert staged(database, run_id, ROWS) == kept
         assert pointer(conn) == kept
         assert replay_version(conn) == 1
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 0
         assert derivations.current(conn, UNIT)
 
 
@@ -1115,9 +1036,9 @@ def test_an_unfinished_a_for_other_inputs_moves_the_replay_epoch_and_is_collecte
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
         with derivations.chunking(conn, UNIT):
             with database.transaction(), derivations.group(conn):
                 selection = derivations.capture(conn, UNIT, now=NOW)
@@ -1125,7 +1046,7 @@ def test_an_unfinished_a_for_other_inputs_moves_the_replay_epoch_and_is_collecte
                     conn, selection, output=lambda reader: iter(ROWS), now=NOW, run_id=run_id
                 )
         # The inputs go back to the pointer's own; the building row remains.
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         assert derivations.building(conn, UNIT)
         assert not derivations.current(conn, UNIT)
         # A single-path run reuses the pointer's generation and moves the epoch.
@@ -1205,9 +1126,9 @@ def test_derive_one_killed_between_a_and_c_still_moves_the_replay_epoch(
     state = tmp_path / "state"
     with open_database(state) as database:
         run_id = database.start_run(NOW)
-        accept_runtime(database, "code-1")
+        accept_versions(database, "code-1")
         kept = rerun(database, run_id, ROWS)
-        accept_runtime(database, "code-2")
+        accept_versions(database, "code-2")
     killed = subprocess.run(
         [
             sys.executable,
@@ -1226,7 +1147,7 @@ def test_derive_one_killed_between_a_and_c_still_moves_the_replay_epoch(
     clock = FakeClock(NOW)
     with open_database(state) as database:
         conn = database.connection
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 1
         assert replay_version(conn) == 0 and pointer(conn) == kept
         run_id = database.start_run(clock.now())
         # The dead attempt is taken over and counted; the unit backs off.
@@ -1238,4 +1159,4 @@ def test_derive_one_killed_between_a_and_c_still_moves_the_replay_epoch(
         assert pointer(conn) == kept
         # The resumed A moved nothing itself; the dead one did.
         assert replay_version(conn) == 1
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 0

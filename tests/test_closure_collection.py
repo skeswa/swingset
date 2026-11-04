@@ -1,13 +1,12 @@
 """Only release-closure proofs that nothing names are ever collected (D-0200)."""
 
 import json
-import sqlite3
 
 import pytest
 
 from swingset.build.closure_manifest import canonical
 from swingset.clock import FakeClock
-from swingset.state import closure_collection
+from swingset.state import closure_collection, engine
 from swingset.state.db import open_database
 
 
@@ -25,11 +24,19 @@ def proof(name):
 
 def generation(conn, run, identifier, stage, kind, set_id, context):
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,'all','t')",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+            "'all', 't') ON CONFLICT DO NOTHING"
+        ),
         (stage, kind),
     )
     conn.execute(
-        "INSERT INTO derivation_generations VALUES (?,?,?,'all','f',?,?,NULL,'d',0,'t',?)",
+        (
+            "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+            "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+            "row_count, created_at, run_id) VALUES (%s, %s, %s, 'all', 'f', %s, %s, NULL, 'd', 0, 't', "
+            "%s)"
+        ),
         (identifier, stage, kind, canonical({"context": context}), set_id, run),
     )
 
@@ -42,14 +49,14 @@ def state(tmp_path):
         conn = db.connection
         for name in ("failed-1", "failed-2", "by-set", "by-member", "by-recipe", "by-candidate"):
             conn.execute(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
                 (name, proof(name)),
             )
         conn.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('ordinary','[]')"
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('ordinary', '[]')"
         )
         conn.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('build-set',?)",
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('build-set', %s)",
             (canonical([{"kind": "release_closure", "fingerprint": "by-member"}]),),
         )
         generation(conn, run, "dg_project", "project", "history", "by-set", {})
@@ -102,9 +109,9 @@ def test_collect_removes_only_the_planned_proofs_and_restores_immutability(state
     assert receipt["removed_ids"] == ["failed-1", "failed-2"]
     assert remaining(db.connection) == before - {"failed-1", "failed-2"}
     assert json.loads(open(receipt["receipt"]).read())["plan_digest"] == value["digest"]
-    with pytest.raises(sqlite3.DatabaseError):
+    with pytest.raises(engine.DatabaseError):
         db.connection.execute(
-            "DELETE FROM derivation_dependency_sets WHERE dependency_set_id='ordinary'"
+            "DELETE FROM derivation_dependency_sets WHERE dependency_set_id = 'ordinary'"
         )
     assert closure_collection.plan(db.connection, db.state_dir)["collectable"] == []
 
@@ -113,7 +120,7 @@ def test_collect_refuses_a_plan_that_moved(state):
     db, clock = state
     value = closure_collection.plan(db.connection, db.state_dir)
     db.connection.execute(
-        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('failed-3',?)",
+        "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('failed-3', %s)",
         (proof("failed-3"),),
     )
     with pytest.raises(closure_collection.ClosureCollectionError, match="plan moved"):

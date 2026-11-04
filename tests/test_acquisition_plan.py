@@ -120,7 +120,8 @@ def test_the_facts_only_gate_skips_the_pending_question_and_names_the_closed_fac
         enqueued_at=state.clock.now().isoformat(),
     )
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='mapping'"
+        "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = 'project' AND "
+        "unit_kind = 'mapping'"
     )
     assert pending_inventory_projection(conn) and not phase_two_allowed(conn, 2019)
     with facts_only_year_gate():
@@ -130,9 +131,9 @@ def test_the_facts_only_gate_skips_the_pending_question_and_names_the_closed_fac
         with pytest.raises(ValueError, match="projection is pending"):
             accept_year(conn, 2019, accepted_by="owner", accepted_at=state.clock.now().isoformat())
         assert year_gate_reason(conn, 2019) is None
-        conn.execute("DELETE FROM meta WHERE key='h10_deployed'")
+        conn.execute("DELETE FROM meta WHERE key = 'h10_deployed'")
         assert year_gate_reason(conn, 2019) == "h7_h10_not_deployed"
-        conn.execute("UPDATE events SET start_date='2019-01-03' WHERE year=2019")
+        conn.execute("UPDATE events SET start_date = '2019-01-03' WHERE year = 2019")
         assert year_gate_reason(conn, 2019) == "acceptance_digest_changed"
         assert not phase_two_allowed(conn, 2019)
         assert year_gate_reason(conn, 2018) == "year_unaccepted"

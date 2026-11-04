@@ -6,7 +6,6 @@ day (D-0242).
 """
 
 import gzip
-import sqlite3
 import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -19,6 +18,7 @@ from protego import Protego
 
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 DAY = timedelta(days=1)
 
@@ -30,7 +30,7 @@ class RobotsPolicy:
 
 
 class Robots:
-    def __init__(self, connection: sqlite3.Connection, archive: Archive, clock: Clock) -> None:
+    def __init__(self, connection: engine.Connection, archive: Archive, clock: Clock) -> None:
         self.connection = connection
         self.archive = archive
         self.clock = clock
@@ -41,8 +41,7 @@ class Robots:
         """Bounded, verified cache read without fetch, recovery, or cache mutation."""
         host = urlsplit(url).hostname or ""
         row = self.connection.execute(
-            "SELECT robots_sha256,robots_fetched_at,robots_status,pause_streak FROM hosts "
-            "WHERE host=?",
+            "SELECT robots_sha256, robots_fetched_at, robots_status, pause_streak FROM hosts WHERE host = %s",
             (host,),
         ).fetchone()
         if row is None or not row[0] or not row[1] or row[2] is None:
@@ -68,8 +67,7 @@ class Robots:
         host = parsed.hostname or ""
         conn = self.connection
         row = conn.execute(
-            "SELECT robots_sha256,robots_fetched_at,robots_status,pause_streak FROM hosts "
-            "WHERE host=?",
+            "SELECT robots_sha256, robots_fetched_at, robots_status, pause_streak FROM hosts WHERE host = %s",
             (host,),
         ).fetchone()
         if (
@@ -83,9 +81,9 @@ class Robots:
             status = response.status_code if response is not None else 599
             body = response.content if response is not None else b""
             sha = self.archive.store_body(body)
-            conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (host,))
+            conn.execute("INSERT INTO hosts (host) VALUES (%s) ON CONFLICT DO NOTHING", (host,))
             conn.execute(
-                "UPDATE hosts SET robots_sha256=?,robots_fetched_at=?,robots_status=? WHERE host=?",
+                "UPDATE hosts SET robots_sha256 = %s, robots_fetched_at = %s, robots_status = %s WHERE host = %s",
                 (sha, self.clock.now().isoformat(), status, host),
             )
             conn.commit()
@@ -96,13 +94,13 @@ class Robots:
         delay = result.crawl_delay
         # Apply a newly learned delay to the request immediately following robots.
         cached = conn.execute(
-            "SELECT robots_fetched_at,next_allowed_at FROM hosts WHERE host=?", (host,)
+            "SELECT robots_fetched_at, next_allowed_at FROM hosts WHERE host = %s", (host,)
         ).fetchone()
         if cached and cached[0] and delay:
             due = datetime.fromisoformat(cached[0]) + timedelta(seconds=delay)
             if not cached[1] or datetime.fromisoformat(cached[1]) < due:
                 conn.execute(
-                    "UPDATE hosts SET next_allowed_at=? WHERE host=?", (due.isoformat(), host)
+                    "UPDATE hosts SET next_allowed_at = %s WHERE host = %s", (due.isoformat(), host)
                 )
         return result
 
@@ -131,7 +129,7 @@ def retry_at(fetched: datetime, status: int, streak: int) -> datetime:
     return fetched + min(DAY, timedelta(seconds=900 * 2 ** min(max(streak, 1) - 1, 7)))
 
 
-def blocked(connection: sqlite3.Connection, now: datetime) -> dict[str, datetime]:
+def blocked(connection: engine.Connection, now: datetime) -> dict[str, datetime]:
     """Hosts whose last robots read failed, each with when it is read again.
 
     One query; the fair scheduler leaves these hosts out until then, so a
@@ -139,8 +137,8 @@ def blocked(connection: sqlite3.Connection, now: datetime) -> dict[str, datetime
     """
     held: dict[str, datetime] = {}
     for host, fetched, status, streak in connection.execute(
-        "SELECT host,robots_fetched_at,robots_status,pause_streak FROM hosts "
-        "WHERE robots_fetched_at IS NOT NULL AND robots_status>=500"
+        "SELECT host, robots_fetched_at, robots_status, pause_streak FROM hosts WHERE NOT "
+        "robots_fetched_at IS NULL AND robots_status >= 500"
     ):
         try:
             retry = retry_at(datetime.fromisoformat(fetched), int(status), int(streak or 0))

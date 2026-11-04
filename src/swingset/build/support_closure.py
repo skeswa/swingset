@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from swingset.admission.support import interpretation_support
+from swingset.state import engine
 
 Rows = dict[str, list[Mapping[str, Any]]]
 #: Rows of any mapping type; the methods below only read and replace them.
@@ -84,7 +84,7 @@ class Revocations:
     events left) computed first. Counters accumulate across calls.
     """
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: engine.Connection) -> None:
         self.conn = conn
         self.cache: dict[tuple[str, str], bool] = {}
         self.reasons: Counter[str] = Counter()
@@ -164,7 +164,7 @@ class Revocations:
 
 
 def close_revoked_support(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     baseline_tables: Mapping[str, Sequence[Mapping[str, Any]]],
 ) -> SupportClosure:
     """Close explicit revocations without changing the supplied baseline.

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from typing import TYPE_CHECKING
+
+from swingset.state import engine
 
 from .event_enumerations import memberships
 from .event_request_kind import purpose as source_event_purpose
@@ -42,16 +43,16 @@ def purpose(parser: str | None, *, listed: bool) -> str:
     return "other"
 
 
-def _available(conn: sqlite3.Connection) -> bool:
+def _available(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='scheduler_capacity_service'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relkind='r' AND relname = 'scheduler_capacity_service' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
 
 
-def choose(conn: sqlite3.Connection, config: Config, choices: Sequence[WatchChoice]) -> WatchChoice:
+def choose(conn: engine.Connection, config: Config, choices: Sequence[WatchChoice]) -> WatchChoice:
     """Select a subcategory, then an event, without changing host/class ranking."""
     if not choices:
         raise ValueError("listed-page capacity requires eligible choices")
@@ -63,7 +64,7 @@ def choose(conn: sqlite3.Connection, config: Config, choices: Sequence[WatchChoi
     members = memberships(conn, keys)
     parsers = dict(
         conn.execute(
-            "SELECT watch_id,parser FROM watches WHERE watch_id IN (SELECT value FROM json_each(?))",
+            "SELECT watch_id, parser FROM watches WHERE watch_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb))",
             (json.dumps(keys),),
         )
     )
@@ -73,7 +74,7 @@ def choose(conn: sqlite3.Connection, config: Config, choices: Sequence[WatchChoi
         lane = "listed_result" if purposes[choice.key] == "listed_result" else "discovery"
         lanes[lane].append(choice)
     row = conn.execute(
-        "SELECT credit FROM scheduler_capacity_service WHERE selected_host=?", (choices[0].host,)
+        "SELECT credit FROM scheduler_capacity_service WHERE selected_host = %s", (choices[0].host,)
     ).fetchone()
     credit = int(row[0]) if row else 0
     competing = all(lanes.values())
@@ -105,7 +106,7 @@ def choose(conn: sqlite3.Connection, config: Config, choices: Sequence[WatchChoi
     )
 
 
-def record(conn: sqlite3.Connection, choice: WatchChoice, *, action_id: str) -> None:
+def record(conn: engine.Connection, choice: WatchChoice, *, action_id: str) -> None:
     """One purpose per actual issued request; borrowing never creates share debt."""
     selected = choice.capacity
     if selected is None:
@@ -113,25 +114,30 @@ def record(conn: sqlite3.Connection, choice: WatchChoice, *, action_id: str) -> 
     if not conn.in_transaction:
         raise RuntimeError("capacity accounting requires the host debit transaction")
     conn.execute(
-        "INSERT OR IGNORE INTO scheduler_capacity_policies VALUES (?,?)",
+        "INSERT INTO scheduler_capacity_policies (digest, policy_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
         (selected.policy_digest, selected.policy_json),
     )
     conn.execute(
-        "INSERT OR IGNORE INTO scheduler_capacity_service(selected_host) VALUES (?)", (choice.host,)
+        "INSERT INTO scheduler_capacity_service (selected_host) VALUES (%s) ON CONFLICT DO NOTHING",
+        (choice.host,),
     )
     before = int(
         conn.execute(
-            "SELECT credit FROM scheduler_capacity_service WHERE selected_host=?", (choice.host,)
+            "SELECT credit FROM scheduler_capacity_service WHERE selected_host = %s", (choice.host,)
         ).fetchone()[0]
     )
     after = before
     if selected.competing:
         after += selected.listed_page_percent - (100 if selected.lane == "listed_result" else 0)
     conn.execute(
-        "UPDATE scheduler_capacity_service SET credit=? WHERE selected_host=?", (after, choice.host)
+        "UPDATE scheduler_capacity_service SET credit = %s WHERE selected_host = %s",
+        (after, choice.host),
     )
     conn.execute(
-        "INSERT INTO scheduler_capacity_requests VALUES (?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO scheduler_capacity_requests (action_id, selected_host, lane, purpose, reason, "
+            "policy_digest, credit_before, credit_after) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             action_id,
             choice.host,

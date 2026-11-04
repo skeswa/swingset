@@ -1,0 +1,68 @@
+{
+  "format": "swingset-pinned-two-client-core-probe-v1",
+  "timestamp": "2026-11-05T03:14:33.071434+00:00",
+  "complete": false,
+  "stop_reason": "Authorized graceful SIGINT after the180-second budget failed; not a core pass.",
+  "wall_seconds_including_cleanup_and_reports": 446.7066,
+  "source_revision": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "source_binding_sha256": "9876f82794f11061d35f130baa98ef765fa43f36a9c15af88eedc50aa2a99b76",
+  "source_stable": true,
+  "kernel_limits": {
+    "memory_per_client": 2147483648,
+    "memory_plus_swap_per_client": 2147483648,
+    "cpus_per_client": 4,
+    "workers_per_client": 4,
+    "postgres_memory": 2147483648
+  },
+  "image": "sha256:7f3ae98a9c1521c36f740bb88b7e43fbded024438a49d0530d235becea111761",
+  "collection": {
+    "selected": 2389,
+    "assigned": [
+      1303,
+      1086
+    ],
+    "membership_sha256": "6fd71a7cf76384108e22658f6821b9022286c2c5d8bfd323091db39c8037b3af",
+    "workers_per_client": 4,
+    "full_selected_same_all8": true,
+    "partitions_disjoint_exact_union": true
+  },
+  "executed_before_stop": {
+    "passed": 951,
+    "failed": 2,
+    "error": 0,
+    "skipped": 0
+  },
+  "failures": [
+    "tests/test_large_values.py::test_large_manifest_byte_windows_stay_bounded[67108864] - AssertionError: {'bytes': 67108864, 'expected_bytes': 67108864, 'complete': True, 'sha256': '42ef3a50fe506ced865473b082c8b28f6ce254e6e2b01266b6a563531a6267bc', ...}",
+    "tests/test_crash_recovery.py::test_restart_at_pipeline_checkpoint[after-project_calendar_completed] - subprocess.TimeoutExpired: Command '['/app/.venv/bin/python', 'tests/helpers/crash_cycle.py', '/tmp/pytest-of-swingset/pytest-0/popen-gw0/test_restart_at_pipeline_check12/crashed', '/tmp/pytest-of-swingset/pytest-0/popen-gw0/uninterrupted-cycle0/overrides', '/tmp/pytest-of-swingset/pytest-0/popen-gw0/uninterrupted-cycle0/config', 'after:44', '']' timed out after 15 seconds"
+  ],
+  "client_peak_working_bytes": {
+    "swingset-linux-two-0f8960654d3e-0": 1257295872,
+    "swingset-linux-two-0f8960654d3e-1": 1328435200
+  },
+  "client_peak_swap_bytes": {
+    "swingset-linux-two-0f8960654d3e-0": 0,
+    "swingset-linux-two-0f8960654d3e-1": 0
+  },
+  "client_oom_kills": {
+    "swingset-linux-two-0f8960654d3e-0": 0,
+    "swingset-linux-two-0f8960654d3e-1": 0
+  },
+  "cleanup": [
+    {
+      "complete": true,
+      "remaining_helpers": [],
+      "remaining_run_records": 0,
+      "test_runs_reaped": 0
+    },
+    {
+      "complete": true,
+      "remaining_helpers": [],
+      "remaining_run_records": 0,
+      "test_runs_reaped": 0
+    }
+  ],
+  "raw_sha256": "36c45ecdd629dac8e9dc1404cd130fe5dc1204edc4fd7ea29efcf35f343f0668",
+  "raw_bytes": 3936244,
+  "next_trigger": "A representative20iteration Macbind-versus-Linux-staged pair was negative (1.5345vs1.6223seconds); do not adopt staging from that evidence. Profile actual early core workers and inherited armed subprocess to locate the remaining cost before another optimization or default-executor change."
+}

@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
+from helpers.state_digest import state_digest
 from test_event_enumerations import admit_parent, finish_bootstrap
 from test_event_enumerations import event as event_fixture
 from test_event_pressure import config, enroll
@@ -27,7 +28,10 @@ def test_real_doctor_json_human_and_summary_preserve_timing_state(
     source, ref = "eepro", "eepro:test"
     if state == "legacy_unknown":
         f.conn.execute(
-            "INSERT INTO source_event_inventory VALUES (?,?,NULL,NULL,'legacy_watch')",
+            (
+                "INSERT INTO source_event_inventory (source, source_ref, enumeration_id, first_known_at, "
+                "bootstrap_basis) VALUES (%s, %s, NULL, NULL, 'legacy_watch')"
+            ),
             (source, ref),
         )
     else:
@@ -58,9 +62,9 @@ def test_real_doctor_json_human_and_summary_preserve_timing_state(
         )
         if state == "blocked":
             effective = load_config(Path("config"))
-            f.conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES ('eepro.com')")
+            f.conn.execute("INSERT INTO hosts (host) VALUES ('eepro.com') ON CONFLICT DO NOTHING")
             f.conn.execute(
-                "INSERT INTO host_budget VALUES ('eepro.com',?,?,0)",
+                "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('eepro.com', %s, %s, 0)",
                 (clock.now().date().isoformat(), effective.host("eepro.com").daily_request_budget),
             )
             grant, until = Gate(f.conn, effective, clock).assess("eepro.com", source=source)
@@ -88,7 +92,7 @@ def test_real_doctor_json_human_and_summary_preserve_timing_state(
         "--source-event",
         ref,
     ]
-    before = list(f.conn.iterdump())
+    before = state_digest(f.conn)
     assert cli.main(["doctor", *args, "--json"]) == 0
     machine = json.loads(capsys.readouterr().out)
     assert cli.main(["doctor", *args]) == 0
@@ -102,7 +106,7 @@ def test_real_doctor_json_human_and_summary_preserve_timing_state(
     logged_inventory, _ = json.JSONDecoder().raw_decode(line.split("event_inventory=", 1)[1])
     inventory = machine["event_inventory"]
     assert human_object["event_inventory"] == inventory == logged_inventory
-    assert list(f.conn.iterdump()) == before
+    assert state_digest(f.conn) == before
 
     timing = inventory["detail"]["acquisition_timing"]
     assert timing["eligible_service_age_seconds"] is None

@@ -18,7 +18,6 @@ tables it fences, still skip.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager, suppress
@@ -33,7 +32,7 @@ from swingset.clock import Clock
 from swingset.fetch.archive import canonical, durable_write
 from swingset.log import log
 from swingset.model.ids import run_id as make_run_id
-from swingset.state import loop_state, queue, write_deadline
+from swingset.state import engine, loop_state, queue, write_deadline
 from swingset.state.db import Database, open_for_loop, reset_write_counters
 from swingset.state.inputs import InputBundle
 from swingset.state.publication_fence import FULL, PUBLICATION_KINDS, kinds_sql
@@ -58,7 +57,7 @@ PUBLICATION_IN_FLIGHT = "publication_in_flight"
 INPUTS_NOT_ACCEPTED = "inputs_not_accepted"
 
 
-def publication_active(conn: sqlite3.Connection, *, narrow: bool = False) -> bool:
+def publication_active(conn: engine.Connection, *, narrow: bool = False) -> bool:
     """Whether a publication whose fence stops the loops is active (F6).
 
     A narrow (partitioned) publication fences only its own tables and is
@@ -67,8 +66,7 @@ def publication_active(conn: sqlite3.Connection, *, narrow: bool = False) -> boo
     kinds = PUBLICATION_KINDS if narrow else FULL
     return (
         conn.execute(
-            "SELECT 1 FROM execution_admissions WHERE state='active' "
-            f"AND action_kind IN {kinds_sql(kinds)} LIMIT 1"
+            f"SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN {kinds_sql(kinds)} LIMIT 1"
         ).fetchone()
         is not None
     )
@@ -129,7 +127,7 @@ def note_skip(tick: Tick, reason: str, *, skipped: bool) -> None:
         elif guards.get(database.connection, f"loop:{tick.loop}", reason) is not None:
             with database.transaction() as conn:
                 guards.loop_ran(conn, tick.loop, reason)
-    except (sqlite3.Error, write_deadline.WriteDeadlineExceeded) as exc:
+    except (engine.Error, write_deadline.WriteDeadlineExceeded) as exc:
         tick.summary["guard_error"] = f"{type(exc).__name__}: {exc}"[:200]
 
 
@@ -190,25 +188,22 @@ def _settle_dead_admissions(database: Database, loop: str, *, now: datetime) -> 
 
     conn = database.connection
     rows = conn.execute(
-        "SELECT a.action_id,a.action_kind FROM execution_admissions a "
-        "JOIN runs r ON r.run_id=a.run_id "
-        "WHERE r.loop=? AND r.finished_at IS NULL AND a.state='active'",
+        (
+            "SELECT a.action_id, a.action_kind FROM execution_admissions AS a JOIN runs AS r ON r.run_id "
+            "= a.run_id WHERE r.loop = %s AND r.finished_at IS NULL AND a.state = 'active'"
+        ),
         (loop,),
     ).fetchall()
     orphan_before = now - ORPHAN_ADMISSION_AGE
     for row in conn.execute(
-        "SELECT a.action_id,a.action_kind,a.admitted_at,a.run_id,r.run_id AS known,"
-        "r.loop,r.finished_at FROM execution_admissions a LEFT JOIN runs r ON r.run_id=a.run_id "
-        f"WHERE a.state='active' AND a.action_kind NOT IN {kinds_sql(PUBLICATION_KINDS)} "
-        "AND NOT (r.loop IS NOT NULL AND r.finished_at IS NULL)"
+        f"SELECT a.action_id,a.action_kind,a.admitted_at,a.run_id,r.run_id AS known,r.loop,r.finished_at FROM execution_admissions a LEFT JOIN runs r ON r.run_id=a.run_id WHERE a.state='active' AND a.action_kind NOT IN {kinds_sql(PUBLICATION_KINDS)} AND NOT (r.loop IS NOT NULL AND r.finished_at IS NULL)"
     ):
         finished = row["known"] is not None and row["finished_at"] is not None
         if finished or datetime.fromisoformat(row["admitted_at"]) < orphan_before:
             rows.append(row)
     if loop == "release":
         rows += conn.execute(
-            "SELECT action_id,action_kind FROM execution_admissions "
-            f"WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)}"
+            f"SELECT action_id,action_kind FROM execution_admissions WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)}"
         ).fetchall()
     if not rows:
         return 0
@@ -244,7 +239,7 @@ def _recover_dead_runs(
     conn = database.connection
     counts = {"runs": 0, "completed_from_record": 0, "attempts": 0, "leases": 0}
     dead = conn.execute(
-        "SELECT run_id,summary_json FROM runs WHERE loop=? AND finished_at IS NULL AND run_id<>?",
+        "SELECT run_id, summary_json FROM runs WHERE loop = %s AND finished_at IS NULL AND run_id <> %s",
         (loop, run_id),
     ).fetchall()
     for row in dead:
@@ -279,12 +274,20 @@ def _recover_dead_runs(
             )
             durable_write(path, canonical(record))
         conn.execute(
-            "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+            "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
             (record["finished_at"], json.dumps(record, sort_keys=True), dead_id),
         )
         counts["runs"] += 1
         for attempt in conn.execute(
-            "SELECT * FROM work_attempts WHERE run_id=? AND outcome='running' ORDER BY attempt_id",
+            (
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts WHERE run_id = %s AND outcome = 'running' "
+                "ORDER BY attempt_id NULLS FIRST"
+            ),
             (dead_id,),
         ).fetchall():
             # A death counts as a failure of the unit, so a unit that kills
@@ -294,7 +297,7 @@ def _recover_dead_runs(
             if failure.quarantined:
                 counts["quarantined"] = counts.get("quarantined", 0) + 1
         for lease in conn.execute(
-            "SELECT stage,unit_kind,unit_id FROM work_queue WHERE lease_owner=?",
+            "SELECT stage, unit_kind, unit_id FROM work_queue WHERE lease_owner = %s",
             (f"{loop}:{dead_id}",),
         ).fetchall():
             unit = WorkUnit(*lease)
@@ -345,7 +348,7 @@ def _finish(
     try:
         with database.transaction() as conn:
             conn.execute(
-                "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+                "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
                 (summary["finished_at"], json.dumps(summary, sort_keys=True), tick.run_id),
             )
             previous = loop_state.get(conn, tick.loop)
@@ -369,7 +372,7 @@ def _finish(
                     ),
                 ),
             )
-    except (sqlite3.Error, write_deadline.WriteDeadlineExceeded) as exc:
+    except (engine.Error, write_deadline.WriteDeadlineExceeded) as exc:
         # The record file stands; the loop's next tick copies it into the row.
         summary["record_error"] = f"{type(exc).__name__}: {exc}"[:200]
         log("loop_record_failed", loop=tick.loop, run_id=tick.run_id, error=str(exc)[:300])
@@ -431,9 +434,9 @@ def tick(
             try:
                 with database.transaction() as conn:
                     run_id = database.start_run(started, dry_run=dry_run)
-                    conn.execute("UPDATE runs SET loop=? WHERE run_id=?", (name, run_id))
+                    conn.execute("UPDATE runs SET loop = %s WHERE run_id = %s", (name, run_id))
                     recovered = _recover_dead_runs(database, name, run_id, now=started)
-            except sqlite3.DatabaseError as exc:
+            except engine.DatabaseError as exc:
                 # A publication admitted since the check fences the run's start.
                 if "active publication fences" not in str(exc):
                     raise
@@ -469,7 +472,7 @@ def tick(
             if name in ACCEPTS_INPUTS:
                 try:
                     current.summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
-                except sqlite3.DatabaseError as exc:
+                except engine.DatabaseError as exc:
                     # A narrow publication fences a changed bundle or journal:
                     # the acceptance rolled back whole, and the units run on
                     # the accepted inputs; the next tick accepts.
@@ -479,7 +482,7 @@ def tick(
                     current.summary["inputs_deferred"] = PUBLICATION_IN_FLIGHT
             elif name in NEEDS_ACCEPTED:
                 row = database.connection.execute(
-                    "SELECT value FROM meta WHERE key='input_bundle_hash'"
+                    "SELECT value FROM meta WHERE key = 'input_bundle_hash'"
                 ).fetchone()
                 if row is None or str(row[0]) != bundle.digest:
                     current.skipped = INPUTS_NOT_ACCEPTED

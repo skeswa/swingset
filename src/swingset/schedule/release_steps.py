@@ -7,7 +7,6 @@ unless a dry run, `record_verdict` stores its gate verdict, and the two
 """
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import datetime
@@ -20,6 +19,7 @@ from swingset.clock import Clock
 from swingset.config import Config
 from swingset.log import log
 from swingset.publish.service import Hub, publish
+from swingset.state import engine
 from swingset.state.control_scopes import for_publication
 from swingset.state.controls import operation
 from swingset.state.db import Database
@@ -95,7 +95,9 @@ def correct(
     summary["correction_verdict"] = record_verdict(database, correction)
     if not dry_run:
         assert hub is not None
-        corrected = publish(database.state_dir, correction.path, hub)
+        corrected = publish(
+            database.state_dir, correction.path, hub, connection=database.connection
+        )
         summary["correction_publication"] = asdict(corrected)
         if corrected.commit:
             summary["correction_commit"] = corrected.commit
@@ -155,7 +157,9 @@ def build_and_publish(
     if not dry_run:
         if hub is None:
             raise ValueError("publication enabled but no Hub adapter configured")
-        published = publish(database.state_dir, candidate.path, hub, dry_run=False)
+        published = publish(
+            database.state_dir, candidate.path, hub, dry_run=False, connection=database.connection
+        )
         summary["publication"] = asdict(published)
         if published.commit:
             summary["publish_commit"] = published.commit
@@ -183,7 +187,7 @@ def build_deferred_for_backlog(
     return age < config.scheduler.backlog_publish_interval_seconds
 
 
-def build_deferred_for_interval(conn: sqlite3.Connection, config: Config, *, now: datetime) -> bool:
+def build_deferred_for_interval(conn: engine.Connection, config: Config, *, now: datetime) -> bool:
     """Whether a build was admitted within the configured build interval.
 
     Every admitted attempt counts, failed or reused: each one selects and
@@ -194,7 +198,7 @@ def build_deferred_for_interval(conn: sqlite3.Connection, config: Config, *, now
     if interval is None:
         return False
     row = conn.execute(
-        "SELECT MAX(admitted_at) FROM execution_admissions WHERE action_kind='build'"
+        "SELECT MAX(admitted_at) AS _value_0 FROM execution_admissions WHERE action_kind = 'build'"
     ).fetchone()
     if row is None or row[0] is None:
         return False

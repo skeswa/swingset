@@ -3,14 +3,13 @@
 import ast
 import json
 import os
-import sqlite3
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from swingset.state import read_sets
+from swingset.state import engine, read_sets
 from swingset.state.read_sets import (
     EFFECT_ONLY,
     OWN_OUTPUT,
@@ -29,19 +28,31 @@ SRC = ROOT / "src/swingset"
 
 
 @pytest.fixture
-def conn():
-    connection = sqlite3.connect(":memory:", isolation_level=None)
-    connection.executescript(
-        "CREATE TABLE events(event_id TEXT PRIMARY KEY, year INTEGER);"
-        "CREATE TABLE contests(contest_id TEXT PRIMARY KEY, event_id TEXT);"
-        "CREATE TABLE findings(finding_id TEXT PRIMARY KEY, event_id TEXT);"
-        "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);"
-        "CREATE TABLE audit(n INTEGER);"
-        "CREATE TRIGGER contests_audit AFTER INSERT ON contests "
-        "BEGIN INSERT INTO audit SELECT count(*) FROM findings; END;"
-        "INSERT INTO events VALUES ('e1',2026);"
-        "INSERT INTO contests VALUES ('c1','e1');"
+def conn(tmp_path):
+    from swingset.dev.services import ensure_service
+    from swingset.state.db import open_database
+
+    with open_database(tmp_path / "state", lock=False) as database:
+        with ensure_service().connect(database.connection.info.dbname) as admin:
+            dsn, password = admin.info.dsn, admin.info.password
+    connection = engine.connect(dsn, password=password)
+    connection.execute("CREATE SCHEMA read_fixture")
+    connection.execute(
+        "SELECT set_config('search_path','read_fixture,pg_catalog',false) AS search_path"
     )
+    connection.execute("""
+        CREATE TABLE events(event_id TEXT PRIMARY KEY, year BIGINT);
+        CREATE TABLE contests(contest_id TEXT PRIMARY KEY,event_id TEXT);
+        CREATE TABLE findings(finding_id TEXT PRIMARY KEY,event_id TEXT);
+        CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT);
+        CREATE TABLE audit(n BIGINT);
+        CREATE FUNCTION contests_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN INSERT INTO audit SELECT count(*) FROM findings; RETURN NEW; END $$;
+        CREATE TRIGGER contests_audit AFTER INSERT ON contests
+        FOR EACH ROW EXECUTE FUNCTION contests_audit();
+        INSERT INTO events(event_id,year) VALUES('e1',2026);
+        INSERT INTO contests(contest_id,event_id) VALUES('c1','e1');
+    """)
     yield connection
     connection.close()
 
@@ -62,10 +73,10 @@ def rules(**tables):
     return {("project", "event"): tables}
 
 
-def test_the_authorizer_records_every_table_of_a_join(conn, production):
+def test_runtime_uses_declared_tables_for_a_join(conn, production):
     with recording(conn, EVENT, rules(events="e", contests="c")) as recorder:
         conn.execute(
-            "SELECT c.contest_id FROM contests c JOIN events e ON e.event_id=c.event_id"
+            "SELECT c.contest_id FROM contests AS c JOIN events AS e ON e.event_id = c.event_id"
         ).fetchall()
         conn.execute("SELECT 1 FROM meta").fetchall()
     assert recorder.tables == {"events", "contests"}
@@ -74,26 +85,26 @@ def test_the_authorizer_records_every_table_of_a_join(conn, production):
 
 def test_a_table_read_only_as_a_filter_is_recorded(conn, production):
     with recording(conn, EVENT, rules(events="e", contests="c")) as recorder:
-        conn.execute("SELECT count(*) FROM events, contests").fetchall()
+        conn.execute("SELECT COUNT(*) FROM events CROSS JOIN contests").fetchall()
     assert recorder.tables == {"events", "contests"}
 
 
-def test_armed_mode_finds_a_using_join_the_authorizer_misses(conn, monkeypatch):
-    statement = "SELECT count(*) FROM contests JOIN events USING(event_id)"
+def test_armed_planner_finds_using_join_relations(conn, monkeypatch):
+    statement = "SELECT COUNT(*) FROM contests JOIN events USING (event_id)"
     monkeypatch.delenv("SWINGSET_READS_ARMED", raising=False)
     with recording(conn, EVENT, rules(events="e", contests="c")) as recorder:
         conn.execute(statement).fetchall()
-    # SQLite's documented gap: no column of either table is named.
-    assert recorder.tables == set()
+    # Production uses the declared set, independent of the query shape.
+    assert recorder.tables == {"events", "contests"}
     monkeypatch.setenv("SWINGSET_READS_ARMED", "1")
     with recording(conn, EVENT, rules(events="e", contests="c")) as recorder:
         conn.execute(statement).fetchall()
     assert recorder.tables == recorder.blind == {"events", "contests"}
 
 
-def test_reads_inside_a_trigger_are_the_writes_bookkeeping(conn, production):
+def test_reads_inside_a_trigger_are_the_writes_bookkeeping(conn, armed):
     with recording(conn, EVENT, rules(contests=OWN_OUTPUT)) as recorder:
-        conn.execute("INSERT INTO contests VALUES ('c2','e1')")
+        conn.execute("INSERT INTO contests(contest_id,event_id) VALUES ('c2','e1')")
     assert "findings" not in recorder.tables
 
 
@@ -110,36 +121,34 @@ def test_a_nested_recording_shares_the_outer_recorder(conn, production):
     assert read_sets.active(conn) is None
 
 
-def test_the_previous_authorizer_is_chained_and_restored(conn, production):
+def test_an_existing_query_observer_is_chained_and_restored(conn, armed):
     seen = []
 
-    def deny_meta(action, table, column, database, source):
-        seen.append(table)
-        return sqlite3.SQLITE_DENY if table == "meta" else sqlite3.SQLITE_OK
+    def deny_meta(query, params):
+        relations = conn.planned_relations(query, params)
+        seen.extend(relations)
+        if "meta" in relations:
+            raise PermissionError("meta is not authorized")
 
-    read_sets.set_authorizer(conn, deny_meta)
-    try:
+    with conn.observing(deny_meta):
         with recording(conn, EVENT, rules(events="e")):
             conn.execute("SELECT year FROM events").fetchall()
-            with pytest.raises(sqlite3.DatabaseError, match="prohibited|not authorized"):
+            with pytest.raises(PermissionError, match="not authorized"):
                 conn.execute("SELECT value FROM meta").fetchall()
         seen.clear()
-        with pytest.raises(sqlite3.DatabaseError, match="prohibited|not authorized"):
+        with pytest.raises(PermissionError, match="not authorized"):
             conn.execute("SELECT value FROM meta WHERE key='restored'").fetchall()
         assert "meta" in seen
-    finally:
-        read_sets.set_authorizer(conn, None)
     conn.execute("SELECT value FROM meta WHERE key='cleared'").fetchall()
 
 
-def test_an_unmapped_table_is_counted_and_logged_but_never_fails(conn, production, capsys):
+def test_runtime_does_not_claim_to_observe_undeclared_reads(conn, production, capsys):
     with recording(conn, EVENT, rules(events="e")) as recorder:
         conn.execute("SELECT year FROM events").fetchall()
         conn.execute("SELECT finding_id FROM findings").fetchall()
-    assert recorder.tables == {"events", "findings"}
-    assert read_sets.drain() == {"project/event:findings": 1}
+    assert recorder.tables == {"events"}
     assert read_sets.drain() == {}
-    assert "read_undeclared" in capsys.readouterr().err
+    assert "read_undeclared" not in capsys.readouterr().err
 
 
 def test_effect_only_reads_are_not_reported(conn, production, capsys):
@@ -173,7 +182,7 @@ def test_armed_mode_raises_on_a_body_read_outside_recording(conn, armed):
             infrastructure["check"](conn)
             try:
                 namespace["body"](conn)
-            except sqlite3.DatabaseError:
+            except UnrecordedRead:
                 pass  # A body that swallows the denial still fails the window.
     with guarding(conn):
         with recording(conn, EVENT, rules(events="e")):
@@ -188,8 +197,65 @@ def test_production_mode_never_guards(conn, production):
         "def body(conn):\n    return conn.execute('SELECT year FROM events').fetchall()", namespace
     )
     with guarding(conn):
-        assert namespace["body"](conn) == [(2026,)]
+        assert [tuple(row) for row in namespace["body"](conn)] == [(2026,)]
     record(conn, "ignored")
+
+
+def test_planner_resolves_view_cte_and_bound_parameters(conn, armed):
+    conn.execute("CREATE VIEW chosen_events AS SELECT event_id,year FROM events")
+    with recording(conn, EVENT, rules(events="events")) as recorder:
+        conn.execute(
+            "WITH chosen AS (SELECT * FROM chosen_events WHERE event_id=%s) SELECT year FROM chosen",
+            ("e1",),
+        ).fetchall()
+    assert recorder.tables == {"events"}
+
+
+def test_planner_cache_invalidates_after_view_definition_changes(conn, armed):
+    conn.execute("CREATE VIEW chosen AS SELECT event_id AS identifier FROM events")
+    with recording(conn, EVENT, rules(events="events")) as recorder:
+        conn.execute("SELECT identifier FROM chosen").fetchall()
+    assert recorder.tables == {"events"}
+    conn.execute("DROP VIEW chosen")
+    conn.execute("CREATE VIEW chosen AS SELECT finding_id AS identifier FROM findings")
+    with recording(conn, EVENT, rules(findings="findings")) as recorder:
+        conn.execute("SELECT identifier FROM chosen").fetchall()
+    assert recorder.tables == {"findings"}
+
+
+@pytest.mark.parametrize("rollback", [False, True])
+def test_planner_cache_tracks_bound_search_path_and_local_rollback(conn, rollback):
+    conn.execute("CREATE VIEW chosen AS SELECT event_id AS identifier FROM events")
+    conn.execute("CREATE SCHEMA alternate_reads")
+    conn.execute(
+        "CREATE VIEW alternate_reads.chosen AS SELECT finding_id AS identifier FROM read_fixture.findings"
+    )
+    query = "SELECT identifier FROM chosen"
+    assert conn.planned_relations(query) == frozenset({"events"})
+
+    class AbandonSettings(Exception):
+        pass
+
+    with conn.transaction():
+        try:
+            with conn.transaction():
+                conn.execute(
+                    "SELECT set_config(%s,%s,true)",
+                    ("search_path", "alternate_reads,read_fixture,pg_catalog"),
+                )
+                assert conn.planned_relations(query) == frozenset({"findings"})
+                if rollback:
+                    raise AbandonSettings()
+        except AbandonSettings:
+            pass
+        assert conn.planned_relations(query) == frozenset({"events" if rollback else "findings"})
+    assert conn.planned_relations(query) == frozenset({"events"})
+
+
+def test_armed_queries_with_nested_leading_comments_are_planned(conn, armed):
+    with recording(conn, EVENT, rules(events="events")) as recorder:
+        conn.execute("/* outer /* inner */ done */ -- line\n SELECT year FROM events").fetchall()
+    assert recorder.tables == {"events"}
 
 
 def _dependency_keys():

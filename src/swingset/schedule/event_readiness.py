@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlsplit
 
 from swingset.config import Config
+from swingset.state import engine
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ActionScope, matching_pauses
 
@@ -20,11 +20,18 @@ def _future(value: str | None, now: datetime) -> bool:
     return bool(value and datetime.fromisoformat(value) > now)
 
 
-def _host(conn: sqlite3.Connection, config: Config, host: str, now: datetime) -> dict[str, Any]:
-    row = conn.execute("SELECT * FROM hosts WHERE host=?", (host,)).fetchone()
+def _host(conn: engine.Connection, config: Config, host: str, now: datetime) -> dict[str, Any]:
+    row = conn.execute(
+        (
+            "SELECT hosts.host, hosts.next_allowed_at, hosts.paused_until, hosts.pause_reason, "
+            "hosts.pause_streak, hosts.robots_sha256, hosts.robots_fetched_at, hosts.robots_status FROM "
+            "hosts WHERE host = %s"
+        ),
+        (host,),
+    ).fetchone()
     recorded = dict(row) if row else {}
     usage = conn.execute(
-        "SELECT requests,bytes FROM host_budget WHERE host=? AND day=?",
+        "SELECT requests, bytes FROM host_budget WHERE host = %s AND day = %s",
         (host, now.date().isoformat()),
     ).fetchone()
     requests, size = tuple(usage) if usage else (0, 0)
@@ -57,7 +64,7 @@ def _host(conn: sqlite3.Connection, config: Config, host: str, now: datetime) ->
 
 
 def report(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
     *,
     source: str,
@@ -74,7 +81,12 @@ def report(
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("event readiness requires an aware timestamp")
     now = now.astimezone(UTC)
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
+    }
     required = {"watches", "hosts", "host_budget", "snapshots", "pending_work"}
     missing = sorted(required - tables)
     result: dict[str, Any] = {
@@ -118,7 +130,17 @@ def report(
     hosts = set()
     watches = []
     for row in conn.execute(
-        "SELECT * FROM watches WHERE watch_id IN (SELECT value FROM json_each(?)) ORDER BY watch_id",
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY watch_id NULLS "
+            "FIRST"
+        ),
         (json.dumps(identifiers),),
     ):
         found.add(row["watch_id"])
@@ -137,8 +159,9 @@ def report(
         )
         pauses.update((pause["pause_id"], pause) for pause in watch_pauses)
         latest = conn.execute(
-            "SELECT snapshot_id,fetched_at,http_status,classification FROM snapshots "
-            "WHERE watch_id=? ORDER BY julianday(fetched_at) DESC,snapshot_id DESC LIMIT 1",
+            (
+                "SELECT snapshot_id, fetched_at, http_status, classification FROM snapshots WHERE watch_id = %s ORDER BY (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(fetched_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) DESC NULLS LAST, snapshot_id DESC NULLS LAST LIMIT 1"
+            ),
             (row["watch_id"],),
         ).fetchone()
         watches.append(

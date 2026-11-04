@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter
 from datetime import datetime
 from typing import Any
+
+from swingset.state import engine
 
 from .control_scopes import for_requirement, for_unit
 from .control_time import ControlTime
@@ -25,14 +26,14 @@ def _age(value: str | None, now: datetime) -> float | None:
         return None
 
 
-def _derivation_inventory(conn: sqlite3.Connection, tables: set[str]) -> dict[str, Any]:
+def _derivation_inventory(conn: engine.Connection, tables: set[str]) -> dict[str, Any]:
     if "derivation_scopes" not in tables:
         return {
             "basis": "legacy pending work until H15 fingerprints",
             "pending": [
                 dict(row)
                 for row in conn.execute(
-                    "SELECT stage,count(*) AS count FROM pending_work GROUP BY stage"
+                    "SELECT stage, COUNT(*) AS count FROM pending_work GROUP BY stage"
                 )
             ],
         }
@@ -46,23 +47,22 @@ def _derivation_inventory(conn: sqlite3.Connection, tables: set[str]) -> dict[st
         "registered_scopes": [
             dict(row)
             for row in conn.execute(
-                "SELECT stage,count(*) AS count,sum(materialized_generation_id IS NULL) AS unassessed "
-                "FROM derivation_scopes GROUP BY stage ORDER BY stage"
+                "SELECT stage, COUNT(*) AS count, CAST(SUM(CAST(materialized_generation_id IS NULL AS INTEGER)) AS BIGINT) AS unassessed FROM derivation_scopes GROUP BY stage ORDER BY stage NULLS FIRST"
             )
         ],
         "retained_generations": [
             dict(row)
             for row in conn.execute(
-                "SELECT stage,count(*) AS count FROM derivation_generations GROUP BY stage ORDER BY stage"
+                "SELECT stage, COUNT(*) AS count FROM derivation_generations GROUP BY stage ORDER BY stage NULLS FIRST"
             )
         ],
         "build_materializations": [
             dict(row)
             for row in conn.execute(
-                "SELECT s.unit_kind,s.unit_id,g.generation_id,g.input_fingerprint,g.created_at "
-                "FROM derivation_scopes s JOIN derivation_generations g "
-                "ON g.generation_id=s.materialized_generation_id WHERE s.stage='build' "
-                "ORDER BY s.unit_kind,s.unit_id"
+                "SELECT s.unit_kind, s.unit_id, g.generation_id, g.input_fingerprint, g.created_at FROM "
+                "derivation_scopes AS s JOIN derivation_generations AS g ON g.generation_id = "
+                "s.materialized_generation_id WHERE s.stage = 'build' ORDER BY s.unit_kind NULLS FIRST, "
+                "s.unit_id NULLS FIRST"
             )
         ],
         "build_basis": "last durable candidate materialization; this does not establish publication",
@@ -70,7 +70,7 @@ def _derivation_inventory(conn: sqlite3.Connection, tables: set[str]) -> dict[st
 
 
 def _active_attempts(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     tables: set[str],
     source: str | None,
     kind: str | None,
@@ -81,9 +81,9 @@ def _active_attempts(
         return 0
     count = 0
     for row in conn.execute(
-        "SELECT a.stage,a.unit_kind,a.unit_id,a.requirement_id,w.source "
-        "FROM work_attempts a LEFT JOIN snapshots s ON a.stage='parse' AND s.snapshot_id=a.unit_id "
-        "LEFT JOIN watches w ON w.watch_id=s.watch_id WHERE a.outcome='running'"
+        "SELECT a.stage, a.unit_kind, a.unit_id, a.requirement_id, w.source FROM work_attempts AS a "
+        "LEFT JOIN snapshots AS s ON a.stage = 'parse' AND s.snapshot_id = a.unit_id LEFT JOIN "
+        "watches AS w ON w.watch_id = s.watch_id WHERE a.outcome = 'running'"
     ):
         if source is not None and row["source"] != source:
             continue
@@ -104,7 +104,7 @@ def _active_attempts(
 
 
 def inventory(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     now: datetime,
     *,
     source: str | None = None,
@@ -112,7 +112,12 @@ def inventory(
     requirement_id: str | None = None,
     stale_after: float = 1800,
 ) -> dict[str, Any]:
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
+    }
     if "requirement_scan" not in tables:
         return {
             "schema_version": 1,
@@ -121,12 +126,16 @@ def inventory(
             "reason": "requirement migration pending",
             "stale": True,
         }
-    selected = "(? IS NULL OR source=?) AND (? IS NULL OR kind=?) AND (? IS NULL OR finding_id=?)"
+    selected = "(CAST(%s AS TEXT) IS NULL OR source=%s) AND (CAST(%s AS TEXT) IS NULL OR kind=%s) AND (CAST(%s AS TEXT) IS NULL OR finding_id=%s)"
     values = (source, source, kind, kind, requirement_id, requirement_id)
     rows = [dict(row) for row in conn.execute(f"SELECT * FROM findings WHERE {selected}", values)]
     pauses = [
         dict(row)
-        for row in conn.execute("SELECT * FROM operator_pauses")
+        for row in conn.execute(
+            "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+            "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+            "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses"
+        )
         if row["until_at"] is None
         or (_age(row["until_at"], now) == 0 and datetime.fromisoformat(row["until_at"]) > now)
     ]
@@ -135,7 +144,7 @@ def inventory(
     paused_hosts.update(
         row["host"]
         for row in conn.execute(
-            "SELECT host,paused_until FROM hosts WHERE paused_until IS NOT NULL"
+            "SELECT host, paused_until FROM hosts WHERE NOT paused_until IS NULL"
         )
         if datetime.fromisoformat(row["paused_until"]) > now
     )
@@ -169,7 +178,13 @@ def inventory(
         row["age_seconds"] = _age(row["opened_at"], now)
         row["status_age_seconds"] = _age(row["status_at"] or row["opened_at"], now)
     states = Counter(row["state"] for row in rows)
-    snapshot = dict(conn.execute("SELECT * FROM requirement_scan WHERE singleton=1").fetchone())
+    snapshot = dict(
+        conn.execute(
+            "SELECT requirement_scan.singleton, requirement_scan.cursor, requirement_scan.started_at, "
+            "requirement_scan.last_scanned_at, requirement_scan.last_completed_at, "
+            "requirement_scan.scanned FROM requirement_scan WHERE singleton = 1"
+        ).fetchone()
+    )
     lag = _age(snapshot["last_completed_at"] or snapshot["started_at"], now)
     closing = sum(row["state"] in UNMET for row in rows)
     unresolved_ages = [
@@ -192,7 +207,7 @@ def inventory(
         and row["no_progress_clock"]["unpaused_seconds"] > stale_after
     ]
     last_run = conn.execute(
-        "SELECT started_at,finished_at FROM runs ORDER BY started_at DESC LIMIT 1"
+        "SELECT started_at, finished_at FROM runs ORDER BY started_at DESC NULLS LAST LIMIT 1"
     ).fetchone()
     worker_state = (
         "stopped_or_stale"

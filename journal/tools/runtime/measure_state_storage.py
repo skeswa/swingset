@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib
+import importlib.util
 import json
 import shutil
 import sqlite3
@@ -773,6 +773,22 @@ def checkpoint_manifest_sha256(state_dir: Path) -> str | None:
     return sha(manifest) if manifest.is_file() else None
 
 
+def legacy_checkpoint() -> Any:
+    """Load the frozen local-copy format, independent of live Postgres backup APIs."""
+    name = "_swingset_legacy_sqlite_checkpoint"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(
+        name, Path(__file__).with_name("legacy_sqlite_checkpoint.py")
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("frozen SQLite checkpoint helper is missing")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _timed_backup(
     module: Any, state_dir: Path, destination: Path, schema_version: int
 ) -> dict[str, Any]:
@@ -818,7 +834,7 @@ def time_backup(target: Path, scratch: Path) -> dict[str, Any]:
         f"free disk {free_bytes} is under the {required_bytes} bytes this run needs: two copies "
         f"of the {tree_bytes}-byte state tree, one checkpoint and one restore",
     )
-    checkpoint_module = importlib.import_module("swingset.backup.checkpoint")
+    checkpoint_module = legacy_checkpoint()
     scratch.mkdir(mode=0o700, parents=True)
     destination = scratch / "checkpoint"
     restored = scratch / "restored"

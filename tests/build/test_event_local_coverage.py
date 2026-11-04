@@ -4,6 +4,7 @@ import gzip
 import json
 
 import pytest
+from postgres_statements import empty_connections as empty_connections
 from test_event_enumerations import admit_parent, child, finish_bootstrap
 from test_event_enumerations import event as event
 from test_h16_acceptance import release_state as release_state
@@ -153,7 +154,7 @@ def test_actual_completion_rechecks_files_after_cached_sql_proof(
         candidates.append(result)
         before = list(
             f.conn.execute(
-                "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+                "SELECT generation_id FROM derivation_generations ORDER BY generation_id NULLS FIRST"
             )
         )
 
@@ -180,7 +181,7 @@ def test_actual_completion_rechecks_files_after_cached_sql_proof(
             assert (
                 list(
                     f.conn.execute(
-                        "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+                        "SELECT generation_id FROM derivation_generations ORDER BY generation_id NULLS FIRST"
                     )
                 )
                 == before
@@ -203,7 +204,8 @@ def test_proof_cache_rechecks_local_admission_outside_output_graph(event):
     readset = event_coverage.read_set(witness)
     before = event_coverage.fingerprint(f.conn, readset)
     f.conn.execute(
-        "UPDATE admission_decisions SET state='needs_review' WHERE generation_id=?", (generation,)
+        "UPDATE admission_decisions SET state = 'needs_review' WHERE generation_id = %s",
+        (generation,),
     )
     assert event_coverage.fingerprint(f.conn, readset) != before
     with (
@@ -213,8 +215,7 @@ def test_proof_cache_rechecks_local_admission_outside_output_graph(event):
         event_coverage.validate(f.conn, witness, selected_support=())
 
 
-def test_provider_is_connection_bound_and_required_for_local_proof(event):
-    import sqlite3
+def test_provider_is_connection_bound_and_required_for_local_proof(event, empty_connections):
     from contextlib import closing
 
     f = event
@@ -222,7 +223,7 @@ def test_provider_is_connection_bound_and_required_for_local_proof(event):
     witness = capture(f)
     with pytest.raises(ClosureError, match="provider_missing"):
         event_coverage.validate(f.conn, witness, selected_support=())
-    with closing(sqlite3.connect(":memory:")) as other, artifact_source(other, f.archive):
+    with closing(empty_connections()) as other, artifact_source(other, f.archive):
         with pytest.raises(ClosureError, match="provider_missing"):
             event_coverage.validate(f.conn, witness, selected_support=())
 
@@ -232,7 +233,7 @@ def test_superseded_generation_keeps_exact_historical_support(event):
     _, generation = prepare(f)
     witness = capture(f)
     f.conn.execute(
-        "UPDATE source_generations SET state='superseded' WHERE generation_id=?", (generation,)
+        "UPDATE source_generations SET state = 'superseded' WHERE generation_id = %s", (generation,)
     )
     with artifact_source(f.conn, f.archive):
         event_coverage.validate(f.conn, witness, selected_support=())
@@ -297,7 +298,7 @@ def test_unchanged_sql_proof_does_not_skip_second_file_check(release_state):
 def test_acquisition_only_body_is_also_a_positive_file_claim(event):
     f = event
     _, generation = prepare(f)
-    f.conn.execute("DELETE FROM admission_decisions WHERE generation_id=?", (generation,))
+    f.conn.execute("DELETE FROM admission_decisions WHERE generation_id = %s", (generation,))
     witness = capture(f)
     assert row(witness)["acquired_pages"] == 1 and row(witness)["interpreted_pages"] == 0
     page = next(p for p in witness["local_pages"]["pages"].values() if p["acquired"])
@@ -315,14 +316,14 @@ def test_local_support_readset_covers_mutable_semantics_not_only_body_hash(event
     before = event_coverage.fingerprint(f.conn, evidence)
     if mutation == "classification":
         f.conn.execute(
-            "UPDATE snapshots SET classification='NotFound' WHERE snapshot_id=?",
+            "UPDATE snapshots SET classification = 'NotFound' WHERE snapshot_id = %s",
             (context.snapshot_id,),
         )
     elif mutation == "source_owner":
-        f.conn.execute("UPDATE watches SET source='wdr' WHERE watch_id=?", (context.watch_id,))
+        f.conn.execute("UPDATE watches SET source = 'wdr' WHERE watch_id = %s", (context.watch_id,))
     else:
         f.conn.execute(
-            "UPDATE admission_decisions SET decided_at='2099-01-01T00:00:00+00:00' WHERE generation_id=?",
+            "UPDATE admission_decisions SET decided_at = '2099-01-01T00:00:00+00:00' WHERE generation_id = %s",
             (generation,),
         )
     assert event_coverage.fingerprint(f.conn, evidence) != before
@@ -337,7 +338,11 @@ def test_later_accepted_decision_does_not_replace_the_pinned_decision(event):
     evidence = event_coverage.read_set(witness)
     before = event_coverage.fingerprint(f.conn, evidence)
     f.conn.execute(
-        "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) SELECT generation_id,state,reason,'2099-01-01T00:00:00+00:00',policy_revision FROM admission_decisions WHERE generation_id=? AND state='accepted'",
+        (
+            "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+            "SELECT generation_id, state, reason, '2099-01-01T00:00:00+00:00', policy_revision FROM "
+            "admission_decisions WHERE generation_id = %s AND state = 'accepted'"
+        ),
         (generation,),
     )
     assert event_coverage.fingerprint(f.conn, evidence) == before
@@ -467,3 +472,33 @@ def test_page_reads_get_their_own_time_window_after_a_slow_closure_walk(event):
         budget = check_artifacts(f.conn, witness)
         budget.deadline = time.monotonic() - 1
         event_coverage.validate(f.conn, witness, selected_support=(), local_budget=budget)
+
+
+def test_sealed_render_reuses_exact_local_page_observation_time(event):
+    from swingset.build.event_artifacts import observation_time
+
+    f = event
+    prepare(f)
+    sealed = f.corpus.clock.now()
+
+    def rendered():
+        with (
+            f.db.transaction(immediate=False),
+            artifact_source(f.conn, f.archive, clock=f.corpus.clock),
+        ):
+            assert observation_time(f.conn) == f.corpus.clock.now()
+            with artifact_source(f.conn, f.archive, observed_at=sealed):
+                witness = event_coverage.capture(
+                    f.conn, cutoff=sealed.isoformat(), selected_support=()
+                )
+            assert observation_time(f.conn) == f.corpus.clock.now()
+            return witness
+
+    original = rendered()
+    assert original["local_pages"]["pages"]
+    assert row(original)["interpreted_pages"] == 1
+    assert row(original)["usable_verified_at"] == sealed
+    f.corpus.clock.sleep(300)
+    replayed = rendered()
+    assert replayed == original
+    assert row(replayed) == row(original)

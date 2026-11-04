@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+from swingset.state import engine
 
 from .work import WorkUnit
 
@@ -59,7 +60,7 @@ def base_certificate(
 
 
 def certificate(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     recipe: Mapping[str, str],
     context: Mapping[str, Any],
@@ -73,7 +74,7 @@ def certificate(
 
     def token(namespace: str, key: str) -> None:
         row = conn.execute(
-            "SELECT version FROM derivation_input_versions WHERE namespace=? AND input_key=?",
+            "SELECT version FROM derivation_input_versions WHERE namespace = %s AND input_key = %s",
             (namespace, key),
         ).fetchone()
         basis.append((namespace, key, int(row[0]) if row else 0))
@@ -105,7 +106,10 @@ def certificate(
     def raw(kind: str, identifier: str) -> None:
         token("raw", _json((kind, identifier)))
         for row in conn.execute(
-            "SELECT DISTINCT watch_id FROM observations WHERE scope_kind=? AND scope_id=? ORDER BY watch_id",
+            (
+                "SELECT DISTINCT watch_id FROM observations WHERE scope_kind = %s AND scope_id = %s ORDER BY "
+                "watch_id NULLS FIRST"
+            ),
             (kind, identifier),
         ):
             token("watch", row[0])
@@ -124,7 +128,7 @@ def certificate(
         token("mapping", identifier)
         token("watch_sources", "all")
         for row in conn.execute(
-            "SELECT DISTINCT source_ref FROM source_event_map WHERE event_id=? ORDER BY source_ref",
+            "SELECT DISTINCT source_ref FROM source_event_map WHERE event_id = %s ORDER BY source_ref NULLS FIRST",
             (identifier,),
         ):
             raw("source_event", row[0])
@@ -136,23 +140,24 @@ def certificate(
                 token(name, "all")
             # Any accepted source selection can replace shared reference evidence.
             for row in conn.execute(
-                "SELECT DISTINCT o.watch_id FROM observations o WHERE o.scope_kind='source_index' ORDER BY o.watch_id"
+                "SELECT DISTINCT o.watch_id FROM observations AS o WHERE o.scope_kind = 'source_index' ORDER "
+                "BY o.watch_id NULLS FIRST"
             ):
                 token("watch", row[0])
         elif kind in {"calendar", "dancer"}:
             raw_row = conn.execute(
-                "SELECT version FROM derivation_input_versions WHERE namespace='raw' AND input_key=?",
+                "SELECT version FROM derivation_input_versions WHERE namespace = 'raw' AND input_key = %s",
                 (_json((kind, unit.unit_id)),),
             ).fetchone()
             source_row = conn.execute(
-                "SELECT version FROM derivation_input_versions WHERE namespace='watch_sources' AND input_key='all'"
+                "SELECT version FROM derivation_input_versions WHERE namespace = 'watch_sources' AND input_key = 'all'"
             ).fetchone()
             watches = (
                 (str(row[0]), int(row[1]))
                 for row in conn.execute(
-                    "SELECT DISTINCT o.watch_id,coalesce(v.version,0) FROM observations o "
-                    "LEFT JOIN derivation_input_versions v ON v.namespace='watch' AND v.input_key=o.watch_id "
-                    "WHERE o.scope_kind=? AND o.scope_id=? ORDER BY o.watch_id",
+                    (
+                        "SELECT DISTINCT o.watch_id, COALESCE(v.version, 0) AS _value_1 FROM observations AS o LEFT JOIN derivation_input_versions AS v ON v.namespace = 'watch' AND v.input_key = o.watch_id WHERE o.scope_kind = %s AND o.scope_id = %s ORDER BY o.watch_id NULLS FIRST"
+                    ),
                     (kind, unit.unit_id),
                 )
             )
@@ -200,7 +205,7 @@ def certificate(
             raw(kind, unit.unit_id)
             token("source_mapping", unit.unit_id)
             for row in conn.execute(
-                "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref=? ORDER BY event_id",
+                "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref = %s ORDER BY event_id NULLS FIRST",
                 (unit.unit_id,),
             ):
                 resolution(row[0])

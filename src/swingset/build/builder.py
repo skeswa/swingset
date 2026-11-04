@@ -6,7 +6,6 @@ import json
 import math
 import os
 import shutil
-import sqlite3
 import tempfile
 import uuid
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
@@ -25,6 +24,7 @@ from swingset.build.files import canonical_json, durable_write, fsync_dir, sha25
 from swingset.build.suppression import SuppressionPolicy, apply_suppressions
 from swingset.model import enums
 from swingset.model.history import HISTORY_START, in_history
+from swingset.state import engine
 
 PUBLISHED_TABLES = (
     "events",
@@ -852,7 +852,7 @@ def build_candidate(
         raise
 
 
-def assert_settled(connection: sqlite3.Connection) -> None:
-    pending = connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()
+def assert_settled(connection: engine.Connection) -> None:
+    pending = connection.execute("SELECT COUNT(*) AS _value_0 FROM pending_work").fetchone()
     if pending is not None and int(pending[0]) != 0:
         raise BuildError("build is blocked by pending parse, project, or link work")

@@ -1,0 +1,343 @@
+{
+  "adopted_local_choice": {
+    "application": {
+      "applied_at": 1793850996.5838552,
+      "development_container_id": "76bd2bc0481f88d60a863414694dfcf3551e0a0c0528a58076434df88148687c",
+      "development_resources_unchanged": true,
+      "exact_database_inventory_unchanged": true,
+      "test_container_id": "1f9a123f7ba1757164de3ee697eddde59d988849792d2d80d463b000c3c19cd2",
+      "test_cpu_after": 4000000000,
+      "test_cpu_before": 2000000000,
+      "test_database_count": 5,
+      "test_memory": 2147483648,
+      "test_memory_swap": 4294967296,
+      "test_tmpfs": {
+        "/var/lib/postgresql/data": "rw,size=1536m"
+      }
+    },
+    "production_development_lifecycle_changed": false,
+    "reason": "Parent adopted the reversible TEST-only CPU4 resource choice using this bounded positive pair and high macro utilization, without claiming quota causality; the complete workflow remains the acceptance gate.",
+    "services_sha256": "d035dc20ef7454d952422e46972d2a3decce6df949b4c464fde99e9f6191c835",
+    "validation": "38 passed in 7.21s"
+  },
+  "bindings": {
+    "connection_source_sha256": "9ee0b5216b5921f00088c892bb5727d45a2c65da7d614a8832e30525e9c89dcf",
+    "fixed_dependencies_sha256": "6ee0d1d808ab86398e756ab4ec86ab2fa745c3c523b444ed0751b8fb3e9b72a8",
+    "fixture_sha256": "c9d436990f83c8f687659584c4825c9bf7577774bd547836072ffc61fdb743a5",
+    "uv_lock_sha256": "71b9cc76361a910cbd1d9c1f3b1854d4d96407d092ba9eddf3b53054f340ce0f"
+  },
+  "client_limits": {
+    "cpus": 4,
+    "memory": 2147483648,
+    "memory_plus_swap": 2147483648
+  },
+  "conclusion": "CPU4 was 9.46% faster in this bounded pair, with exact outcome and source agreement. Actual CPU2 throttling was absent; this is insufficient by itself to claim that the remaining complete-core bottleneck is the CPU cap. No source configuration changed.",
+  "container_id": "1f9a123f7ba1757164de3ee697eddde59d988849792d2d80d463b000c3c19cd2",
+  "container_labels": {
+    "io.swingset.development": "test",
+    "io.swingset.development.configuration": "c0c8ea7962ff78c48046af03ccccc1b7c8491d6fac91754720f92eb9e35bb584"
+  },
+  "development_or_production_changed": false,
+  "expected_incomplete_fixture": true,
+  "limitations": [
+    "One ordered 2-then-4 pair is not a repeatability or full-core measurement.",
+    "PostgreSQL nr_throttled and throttled_usec increased by zero in BOTH body intervals: the microload did not demonstrate actual CPU2 quota throttling. The timing difference alone cannot establish CPU-cap causality.",
+    "Setup is excluded from the exact shared body timing and reported separately; host metric-envelope time includes release/poll overhead.",
+    "Deadline GUC counts legitimately vary with exact floored-millisecond memo timing; all nondeadline driver counts and domain outcomes matched."
+  ],
+  "measured_at": "2026-11-05T03:53:07.770183+00:00",
+  "nondeadline_driver_calls_each": 10108,
+  "original_600_iteration_coverage_unchanged": true,
+  "postgres_image": "postgres:17.11@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+  "postgres_memory_limit": 2147483648,
+  "probe_sha256": {
+    "swingset-cpu-cohort-client.py": "4d14a542c7279dd4b8a67c7fd0864e0a86caa95c17eb0a507b0f3bf86bcf82c5",
+    "swingset-cpu-cohort-measure.py": "be053e1ec7216f567f4af19d7c85fc24caa8deaa24a571c3d2b3e510a6379af0",
+    "swingset-test-cpu-pair.py": "daf70368ec9f6a83b9efe65fb7e533b38ea50da609c6bee60097e069dde5b2f0"
+  },
+  "protocol": "Four concurrent unchanged cohort fixtures, each stopped at the approved 20 iterations. All four setups complete before a shared release; all four bodies complete before teardown release. PostgreSQL cpu.stat and memory bracket only that shared body interval.",
+  "relative_body_gain": 0.0946303010091103,
+  "restored_test_cpu2": true,
+  "runs": [
+    {
+      "body_envelope_seconds": 1.626015291083604,
+      "cohorts": [
+        {
+          "body_finished": 1016862.198204885,
+          "body_seconds": 1.347510993015021,
+          "body_started": 1016860.850693892,
+          "counts": {
+            "deadline_setting_statements": 1246,
+            "driver_execute_calls": 11354
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case0",
+          "phase_durations": {
+            "call": 1.744390501989983,
+            "setup": 0.13327780703548342,
+            "teardown": 0.008396058925427496
+          }
+        },
+        {
+          "body_finished": 1016862.274391632,
+          "body_seconds": 1.4182991329580545,
+          "body_started": 1016860.856092499,
+          "counts": {
+            "deadline_setting_statements": 1295,
+            "driver_execute_calls": 11403
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case1",
+          "phase_durations": {
+            "call": 1.7430156520567834,
+            "setup": 0.13354001799598336,
+            "teardown": 0.008903524023480713
+          }
+        },
+        {
+          "body_finished": 1016862.360674083,
+          "body_seconds": 1.5044638740364462,
+          "body_started": 1016860.856210209,
+          "counts": {
+            "deadline_setting_statements": 1369,
+            "driver_execute_calls": 11477
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case2",
+          "phase_durations": {
+            "call": 1.7420061820885167,
+            "setup": 0.133871313999407,
+            "teardown": 0.00876135507132858
+          }
+        },
+        {
+          "body_finished": 1016862.227465611,
+          "body_seconds": 1.3712554438970983,
+          "body_started": 1016860.856210167,
+          "counts": {
+            "deadline_setting_statements": 1250,
+            "driver_execute_calls": 11358
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case3",
+          "phase_durations": {
+            "call": 1.742614438990131,
+            "setup": 0.12938630196731538,
+            "teardown": 0.008784604957327247
+          }
+        }
+      ],
+      "exact_concurrent_body_seconds": 1.5099801910109818,
+      "overall_seconds": 3.752355916891247,
+      "postgres_after": {
+        "cpu": {
+          "burst_usec": 0,
+          "nice_usec": 0,
+          "nr_bursts": 0,
+          "nr_periods": 21416,
+          "nr_throttled": 1507,
+          "system_usec": 331500983,
+          "throttled_usec": 232957394,
+          "usage_usec": 1412487562,
+          "user_usec": 1080986579
+        },
+        "memory": [
+          432037888,
+          1409667072,
+          0
+        ],
+        "memory_events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0,
+          "sock_throttled": 0
+        }
+      },
+      "postgres_before": {
+        "cpu": {
+          "burst_usec": 0,
+          "nice_usec": 0,
+          "nr_bursts": 0,
+          "nr_periods": 21400,
+          "nr_throttled": 1507,
+          "system_usec": 331035676,
+          "throttled_usec": 232957394,
+          "usage_usec": 1410387916,
+          "user_usec": 1079352240
+        },
+        "memory": [
+          383934464,
+          1409667072,
+          0
+        ],
+        "memory_events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0,
+          "sock_throttled": 0
+        }
+      },
+      "postgres_cpu_delta": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 16,
+        "nr_throttled": 0,
+        "system_usec": 465307,
+        "throttled_usec": 0,
+        "usage_usec": 2099646,
+        "user_usec": 1634339
+      },
+      "postgres_cpus": 2,
+      "setup_seconds_excluded": 1.7336492920294404
+    },
+    {
+      "body_envelope_seconds": 1.4602111661806703,
+      "cohorts": [
+        {
+          "body_finished": 1016865.754131486,
+          "body_seconds": 1.2853534560417756,
+          "body_started": 1016864.46877803,
+          "counts": {
+            "deadline_setting_statements": 1197,
+            "driver_execute_calls": 11305
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case0",
+          "phase_durations": {
+            "call": 1.5885259659262374,
+            "setup": 0.08602707297541201,
+            "teardown": 0.008554853033274412
+          }
+        },
+        {
+          "body_finished": 1016865.758815126,
+          "body_seconds": 1.2893542120000347,
+          "body_started": 1016864.469460914,
+          "counts": {
+            "deadline_setting_statements": 1197,
+            "driver_execute_calls": 11305
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case1",
+          "phase_durations": {
+            "call": 1.5868599050445482,
+            "setup": 0.08428630291018635,
+            "teardown": 0.008484851103276014
+          }
+        },
+        {
+          "body_finished": 1016865.749242302,
+          "body_seconds": 1.2781103270826861,
+          "body_started": 1016864.471131975,
+          "counts": {
+            "deadline_setting_statements": 1188,
+            "driver_execute_calls": 11296
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case2",
+          "phase_durations": {
+            "call": 1.5876687479903921,
+            "setup": 0.08624561701435596,
+            "teardown": 0.008395017008297145
+          }
+        },
+        {
+          "body_finished": 1016865.835868341,
+          "body_seconds": 1.3649282429832965,
+          "body_started": 1016864.470940098,
+          "counts": {
+            "deadline_setting_statements": 1249,
+            "driver_execute_calls": 11357
+          },
+          "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+          "phase": "case3",
+          "phase_durations": {
+            "call": 1.5875088709872216,
+            "setup": 0.08520818804390728,
+            "teardown": 0.00909190101083368
+          }
+        }
+      ],
+      "exact_concurrent_body_seconds": 1.3670903110178187,
+      "overall_seconds": 3.348124624695629,
+      "postgres_after": {
+        "cpu": {
+          "burst_usec": 0,
+          "nice_usec": 0,
+          "nr_bursts": 0,
+          "nr_periods": 21437,
+          "nr_throttled": 1507,
+          "system_usec": 331975416,
+          "throttled_usec": 232957394,
+          "usage_usec": 1414711522,
+          "user_usec": 1082736105
+        },
+        "memory": [
+          431984640,
+          1409667072,
+          0
+        ],
+        "memory_events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0,
+          "sock_throttled": 0
+        }
+      },
+      "postgres_before": {
+        "cpu": {
+          "burst_usec": 0,
+          "nice_usec": 0,
+          "nr_bursts": 0,
+          "nr_periods": 21422,
+          "nr_throttled": 1507,
+          "system_usec": 331599860,
+          "throttled_usec": 232957394,
+          "usage_usec": 1412675725,
+          "user_usec": 1081075864
+        },
+        "memory": [
+          383848448,
+          1409667072,
+          0
+        ],
+        "memory_events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0,
+          "sock_throttled": 0
+        }
+      },
+      "postgres_cpu_delta": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 15,
+        "nr_throttled": 0,
+        "system_usec": 375556,
+        "throttled_usec": 0,
+        "usage_usec": 2035797,
+        "user_usec": 1660241
+      },
+      "postgres_cpus": 4,
+      "setup_seconds_excluded": 1.497925582807511
+    }
+  ],
+  "same_outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+  "selected_test": "tests/test_event_completion_cohort.py::test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh",
+  "source_revision": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "source_stable": true
+}

@@ -8,9 +8,9 @@ and for each page whose archive offer stops at `capture_gap_exhausted` or
 proposal. It also lists every existing `history_origin_intents` row, which the
 request gate still refuses (fail closed).
 
-Safety: it refuses `/var/lib/swingset` and a state whose `state.lock` another
-process holds, takes that lock for the run, opens the database read-only and
-reads inside one transaction that it rolls back. No transport exists, so no
+Safety: it refuses `/var/lib/swingset` and a state whose native advisory state
+lock another process holds. It takes that lock for the run and reads the
+database inside one read-only repeatable snapshot. No transport exists, so no
 request can be sent; `candidate` runs without a run id, so the per-cycle
 cadence is not judged.
 
@@ -25,9 +25,7 @@ reviewed row to `overrides/source_urls.csv`. The tool writes nothing else.
 from __future__ import annotations
 
 import argparse
-import fcntl
 import json
-import sqlite3
 import sys
 from collections import Counter
 from collections.abc import Iterator
@@ -41,8 +39,9 @@ from swingset.history.backfill import _options, page_watch_id
 from swingset.history.origin_dispatch import available, candidate
 from swingset.history.platform import retained_plan
 from swingset.project.history import facts_only_year_gate, projection_answer_cached
-from swingset.state.db import Database
-from swingset.state.rwlock import STATE_INTENT, STATE_LOCK
+from swingset.state import engine
+from swingset.state.db import Database, DatabaseLockedError, open_database
+from swingset.state.environment import EnvironmentRefused, ensure_dev
 
 #: Archive stop reasons after which the retired fallback asked the origin.
 FALLBACK_REASONS = frozenset({"capture_gap_exhausted", "operator_pause"})
@@ -53,10 +52,6 @@ class Refused(RuntimeError):
     """The state path is not a copy this tool may read."""
 
 
-def _database_path(state: Path) -> Path:
-    return state if state.suffix in {".sqlite", ".db"} else state / "state.sqlite"
-
-
 def _is_production(path: Path) -> bool:
     resolved = path.resolve()
     return any(
@@ -65,59 +60,24 @@ def _is_production(path: Path) -> bool:
 
 
 @contextmanager
-def _probe_locks(state_dir: Path) -> Iterator[None]:
-    """Hold `state.intent` and `state.lock` exclusively, if they exist.
-
-    Opens each existing file read-only and never creates one, so the copy's
-    listing is unchanged. A file another process holds refuses the run.
-    """
-    handles = []
-    try:
-        for name in (STATE_INTENT, STATE_LOCK):
-            path = state_dir / name
-            if not path.is_file():
-                continue
-            handle = path.open("rb")
-            handles.append(handle)
-            try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as error:
-                raise Refused(f"state.lock is held by another process ({name})") from error
-        yield
-    finally:
-        for handle in reversed(handles):
-            handle.close()
-
-
-@contextmanager
 def open_copy(state: Path) -> Iterator[Database]:
-    """A read-only handle on a state copy, holding its existing lock files for the run.
-
-    Every read runs inside one transaction that is rolled back on exit. The
-    tool creates no file in the state directory.
-    """
-    database = _database_path(state)
-    if _is_production(database):
-        raise Refused(f"refusing the production state: {database}")
-    if not database.is_file():
-        raise FileNotFoundError(f"no state database at {database}")
-    state_dir = database.parent
-    with _probe_locks(state_dir):
-        wal = database.with_name(database.name + "-wal")
-        # `immutable` skips locking and the -shm file; it would ignore
-        # committed frames still in a WAL, so plain `mode=ro` then.
-        flags = "mode=ro" if wal.is_file() and wal.stat().st_size else "mode=ro&immutable=1"
-        conn = sqlite3.connect(f"file:{database}?{flags}", uri=True, isolation_level=None)
+    """Hold the copy's native state lock and one read-only repeatable snapshot."""
+    directory = engine.state_directory(state)
+    if _is_production(directory):
+        raise Refused(f"refusing the production state: {directory}")
+    if not (directory / "database.json").is_file():
+        raise FileNotFoundError(f"no configured state database at {directory}")
+    try:
+        database = open_database(directory, read_only=True, lock_timeout=0)
+    except DatabaseLockedError as error:
+        raise Refused(f"state.lock is held by another process: {directory}") from error
+    with database:
         try:
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA query_only = ON")
-            conn.execute("BEGIN")
-            try:
-                yield Database(state_dir, conn, None)
-            finally:
-                conn.execute("ROLLBACK")
-        finally:
-            conn.close()
+            ensure_dev(database.connection)
+        except EnvironmentRefused as error:
+            raise Refused(str(error)) from error
+        with database.connection.read_snapshot():
+            yield database
 
 
 def _proposal(proposal: Any) -> dict[str, Any] | None:
@@ -191,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=Path("config"))
     parser.add_argument("--out", type=Path, help="write the JSON report here, outside the state")
     args = parser.parse_args(argv)
-    state_dir = _database_path(args.state).parent.resolve()
+    state_dir = engine.state_directory(args.state).resolve()
     if args.out is not None and (
         args.out.resolve() == state_dir or state_dir in args.out.resolve().parents
     ):

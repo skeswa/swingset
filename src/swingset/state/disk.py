@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import contextlib
 import shutil
-import sqlite3
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+from swingset.state import engine
+
+from .engine.usage import database_usage
 
 #: Root's cached reading of the btrfs quota.
 QUOTA_FILE = Path("/run/swingset-disk")
@@ -97,28 +100,18 @@ def free_bytes(directory: Path, *, quota_file: Path | None = None) -> int:
 
 
 @contextlib.contextmanager
-def fast_delete(conn: sqlite3.Connection) -> Iterator[int]:
-    """`PRAGMA secure_delete = OFF` on this connection for the duration.
+def fast_delete(conn: engine.Connection) -> Iterator[int]:
+    """Keep the deletion context API; Postgres manages dead tuples through MVCC.
 
-    The worker's SQLite (nixpkgs) is built with `SQLITE_SECURE_DELETE`, so
-    every freed page is zeroed through the WAL: a `DROP TABLE` of 30 GB wrote
-    a 30 GB WAL (W2). The state holds public data and reclaim rewrites the
-    file, so nothing needs zeroing. Yields the setting in force (0 when it
-    took). The pragma is per connection and cannot change inside a
-    transaction, so it is set and put back outside one.
+    Application delete authorities and immutable-row triggers still apply.
+    There is no session secure-delete switch in Postgres.
     """
-    previous = int(conn.execute("PRAGMA secure_delete").fetchone()[0])
-    if previous and not conn.in_transaction:
-        conn.execute("PRAGMA secure_delete=OFF")
-    try:
-        yield int(conn.execute("PRAGMA secure_delete").fetchone()[0])
-    finally:
-        if previous and not conn.in_transaction:
-            conn.execute(f"PRAGMA secure_delete={previous}")
+    yield 0
 
 
 __all__ = [
     "fast_delete",
+    "database_usage",
     "QUOTA_FILE",
     "REFRESH",
     "STALE",

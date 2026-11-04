@@ -14,14 +14,24 @@ OLD = datetime(2019, 4, 1, tzinfo=UTC)
 def fixture(db):
     conn = db.connection
     conn.execute(
-        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+        (
+            "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+            "%s, NULL, 1, NULL)"
+        ),
         (NOW.isoformat(),),
     )
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state,current_observation_snapshot_id,ever_ok) VALUES ('watch','eepro','round','GET','https://example.test/round','eepro.round','eepro:event','live','old',1)"
+        "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state, "
+        "current_observation_snapshot_id, ever_ok) VALUES ('watch', 'eepro', 'round', 'GET', "
+        "'https://example.test/round', 'eepro.round', 'eepro:event', 'live', 'old', 1)"
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification,via,observed_at) VALUES ('old','watch','GET','https://example.test/round',?,200,'digest',10,1,'run','Ok','wayback',?)",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_sha256, body_bytes, content_changed, run_id, classification, via, observed_at) VALUES "
+            "('old', 'watch', 'GET', 'https://example.test/round', %s, 200, 'digest', 10, 1, 'run', "
+            "'Ok', 'wayback', %s)"
+        ),
         (NOW.isoformat(), OLD.isoformat()),
     )
     tables = {name: [] for name in SCHEMAS}
@@ -162,7 +172,11 @@ def test_failed_check_does_not_erase_retained_acquisition_or_refresh_claim_time(
     with open_database(tmp_path) as db:
         data = fixture(db)
         db.connection.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('error','watch','GET','https://example.test/round',?,503,0,0,'run','ServerError')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification) VALUES ('error', 'watch', 'GET', "
+                "'https://example.test/round', %s, 503, 0, 0, 'run', 'ServerError')"
+            ),
             ((NOW + timedelta(seconds=1)).isoformat(),),
         )
         first = enrich_coverage(db.connection, data, cutoff=NOW, sources=("eepro",))
@@ -179,18 +193,29 @@ def test_health_cadence_ignores_identical_success_poll_times_but_not_failures(tm
         fixture(db)
         conn = db.connection
         conn.execute(
-            "INSERT INTO registry_verifications(watch_id,checked_at,http_status,body_sha256,snapshot_id,outcome,usable,reason) VALUES ('watch',?,200,'digest','old','found',1,'verified')",
+            (
+                "INSERT INTO registry_verifications (watch_id, checked_at, http_status, body_sha256, "
+                "snapshot_id, outcome, usable, reason) VALUES ('watch', %s, 200, 'digest', 'old', 'found', "
+                "1, 'verified')"
+            ),
             (NOW.isoformat(),),
         )
         token = health_token(conn, now=NOW)
         conn.execute(
-            "INSERT INTO registry_verifications(watch_id,checked_at,http_status,body_sha256,snapshot_id,outcome,usable,reason) VALUES ('watch',?,304,'digest','old','found',1,'verified')",
+            (
+                "INSERT INTO registry_verifications (watch_id, checked_at, http_status, body_sha256, "
+                "snapshot_id, outcome, usable, reason) VALUES ('watch', %s, 304, 'digest', 'old', 'found', "
+                "1, 'verified')"
+            ),
             ((NOW + timedelta(minutes=1)).isoformat(),),
         )
         assert health_token(conn, now=NOW + timedelta(minutes=1)) == token
         assert health_token(conn, now=NOW + timedelta(days=1)) != token
         conn.execute(
-            "INSERT INTO registry_verifications(watch_id,checked_at,http_status,usable,reason) VALUES ('watch',?,503,0,'content_check_failed')",
+            (
+                "INSERT INTO registry_verifications (watch_id, checked_at, http_status, usable, reason) "
+                "VALUES ('watch', %s, 503, 0, 'content_check_failed')"
+            ),
             ((NOW + timedelta(minutes=2)).isoformat(),),
         )
         assert health_token(conn, now=NOW + timedelta(minutes=2)) != token
@@ -217,7 +242,12 @@ def test_selected_accepted_generation_remains_interpreted_when_newer_input_is_bl
         tables["snapshots"] = [
             dict(item)
             for item in db.connection.execute(
-                "SELECT s.*,w.source FROM snapshots s JOIN watches w USING(watch_id)"
+                "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+                "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+                "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+                "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+                "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, w.source "
+                "FROM snapshots AS s JOIN watches AS w USING (watch_id)"
             )
         ]
         data = replace(data, tables=tables)
@@ -290,7 +320,8 @@ def test_selected_mapping_and_verification_cutoff_do_not_follow_newer_state(tmp_
         ]
         data = replace(data, tables=tables)
         db.connection.execute(
-            "INSERT INTO source_event_map VALUES ('eepro','eepro:event','newer-event','explicit',1)"
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'eepro:event', 'newer-event', 'explicit', 1)"
         )
         for checked, status, usable, parser, body in [
             (NOW - timedelta(minutes=1), 200, 1, "1", "digest"),
@@ -300,7 +331,11 @@ def test_selected_mapping_and_verification_cutoff_do_not_follow_newer_state(tmp_
             (NOW, 503, 0, "1", "digest"),
         ]:
             db.connection.execute(
-                "INSERT INTO registry_verifications(watch_id,checked_at,http_status,body_sha256,snapshot_id,parser_version,outcome,usable,reason) VALUES ('watch',?,?,?,'old',?,'found',?,'synthetic verification')",
+                (
+                    "INSERT INTO registry_verifications (watch_id, checked_at, http_status, body_sha256, "
+                    "snapshot_id, parser_version, outcome, usable, reason) VALUES ('watch', %s, %s, %s, 'old', "
+                    "%s, 'found', %s, 'synthetic verification')"
+                ),
                 (checked.isoformat(), status, body, parser, usable),
             )
         result = enrich_coverage(

@@ -13,9 +13,21 @@ from swingset.schedule.event_pressure_probe import Limits, probe
 
 def check(f, **kwargs):
     enumeration = f.conn.execute(
-        "SELECT enumeration_id FROM source_event_inventory WHERE source_ref='eepro:test'"
+        "SELECT enumeration_id FROM source_event_inventory WHERE source_ref = 'eepro:test'"
     ).fetchone()[0]
     return probe(f.conn, f.archive, enumeration_id=enumeration, now=f.corpus.clock.now(), **kwargs)
+
+
+def fault_update(f, sql, *params):
+    """Construct corrupt retained input through the explicit test-only owner."""
+    from swingset.dev.services import ensure_service
+
+    with ensure_service().connect(f.conn.info.dbname) as fault:
+        fault.execute(
+            'SET search_path=pg_catalog,"fetch",plan,evidence,derive,project,release,ops,pg_temp'
+        )
+        fault.execute("SET session_replication_role=replica")
+        fault.execute(sql, params)
 
 
 def test_admitted_pages_and_aliases_are_read_only(event, monkeypatch):
@@ -39,7 +51,8 @@ def test_admitted_pages_and_aliases_are_read_only(event, monkeypatch):
     assert result["end_of_enumeration"] and result["pagination"] == "unknown"
     assert f.conn.total_changes == before
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:test','different-alias','alias',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:test', 'different-alias', 'alias', 1)"
     )
     assert check(f) == result
 
@@ -91,13 +104,15 @@ def test_missing_artifact_and_related_revocation_never_clear_pressure(event):
     assert check(f)["interpreted"] == 1
     f.archive.blob_path(
         f.conn.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (context.snapshot_id,)
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (context.snapshot_id,)
         ).fetchone()[0]
     ).write_bytes(gzip.compress(b"incorrect"))
     damaged = check(f)
     assert damaged["acquired"] == damaged["interpreted"] == 0
     assert damaged["reasons"]["body_artifact_unavailable"]
-    f.conn.execute("UPDATE source_generations SET state='revoked' WHERE generation_id=?", (parent,))
+    f.conn.execute(
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (parent,)
+    )
     assert check(f)["parent_valid"] is False
 
 
@@ -105,9 +120,11 @@ def test_generation_json_is_capped_before_decoder(event, monkeypatch):
     f = event
     parent = admit_parent(f, ["one.htm"])
     finish_bootstrap(f)
-    f.conn.execute("DROP TRIGGER source_generation_immutable")
-    f.conn.execute(
-        "UPDATE source_generations SET result_json=? WHERE generation_id=?", ("x" * 10000, parent)
+    fault_update(
+        f,
+        "UPDATE source_generations SET result_json = %s WHERE generation_id = %s",
+        "x" * 10000,
+        parent,
     )
     import swingset.schedule.event_pressure_probe as module
 
@@ -124,11 +141,21 @@ def test_candidate_history_cap_is_unknown_not_missing(event):
     admit_parent(f, ["one.htm"])
     child(f, "one.htm")
     snapshot = dict(
-        f.conn.execute("SELECT * FROM snapshots WHERE snapshot_id='child-one.htm'").fetchone()
+        f.conn.execute(
+            "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+            "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+            "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+            "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+            "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+            "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+            "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+            "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+            "snapshots.extract_recipe_sha256 FROM snapshots WHERE snapshot_id = 'child-one.htm'"
+        ).fetchone()
     )
     snapshot["snapshot_id"] = "second-child-response"
     f.conn.execute(
-        f"INSERT INTO snapshots ({','.join(snapshot)}) VALUES ({','.join('?' for _ in snapshot)})",
+        f"INSERT INTO snapshots ({','.join(snapshot)}) VALUES ({','.join('%s' for _ in snapshot)})",
         tuple(snapshot.values()),
     )
     finish_bootstrap(f)
@@ -180,20 +207,22 @@ def test_cooperative_deadline_keeps_cursor_and_unknown(event, monkeypatch):
 
 
 def test_old_schema_and_readonly_settings_are_untouched(event, tmp_path):
-    import sqlite3
+    from swingset.state import engine
 
     f = event
     admit_parent(f, ["one.htm"])
     finish_bootstrap(f)
-    f.conn.execute("PRAGMA query_only=ON")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     before = f.conn.total_changes
-    length_limit = f.conn.getlimit(sqlite3.SQLITE_LIMIT_LENGTH)
+    statement_timeout = f.conn.execute("SHOW statement_timeout").fetchone()[0]
     result = check(f)
     assert result["parent_valid"] is True
     assert f.conn.total_changes == before
-    assert f.conn.execute("PRAGMA query_only").fetchone()[0] == 1
-    assert f.conn.getlimit(sqlite3.SQLITE_LIMIT_LENGTH) == length_limit
-    with sqlite3.connect(":memory:") as legacy:
+    assert f.conn.execute("SHOW transaction_read_only").fetchone()[0] == "on"
+    assert f.conn.execute("SHOW statement_timeout").fetchone()[0] == statement_timeout
+    f.conn.execute("ROLLBACK")
+    with engine.connect(engine.resolve_dsn(event.db.state_dir), read_only=True) as legacy:
+        legacy.execute("SET search_path=pg_catalog,pg_temp")
         result = probe(
             legacy, Archive(tmp_path), enumeration_id="missing", now=f.corpus.clock.now()
         )
@@ -210,12 +239,16 @@ def test_direct_result_and_archive_redirect_identity(event):
     f.corpus.review(generation)
     assert f.corpus.admit(generation) == "accepted"
     f.conn.execute(
-        "UPDATE snapshots SET via='wayback',archive_url='https://web.archive.org/web/20200101000000id_/https://example.org/redirected' WHERE snapshot_id=?",
+        (
+            "UPDATE snapshots SET via = 'wayback', archive_url = "
+            "'https://web.archive.org/web/20200101000000id_/https://example.org/redirected' WHERE "
+            "snapshot_id = %s"
+        ),
         (context.snapshot_id,),
     )
     finish_bootstrap(f)
     enumeration = f.conn.execute(
-        "SELECT enumeration_id FROM source_event_inventory WHERE enumeration_id IS NOT NULL"
+        "SELECT enumeration_id FROM source_event_inventory WHERE NOT enumeration_id IS NULL"
     ).fetchone()[0]
     result = probe(f.conn, f.archive, enumeration_id=enumeration, now=f.corpus.clock.now())
     assert result["parent_valid"] is True
@@ -233,19 +266,31 @@ def test_related_revoked_copy_is_not_usable(event):
     finish_bootstrap(f)
     row = dict(
         f.conn.execute(
-            "SELECT * FROM source_generations WHERE generation_id=?", (parent,)
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (parent,),
         ).fetchone()
     )
     row.update(generation_id="revoked-evidence-copy", state="revoked")
     f.conn.execute(
-        f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('?' for _ in row)})",
+        f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('%s' for _ in row)})",
         tuple(row.values()),
     )
     result = check(f)
     assert result["parent_valid"] is False and result["reasons"]["source_evidence_revoked"]
 
 
-@pytest.mark.parametrize("damage", ["truncated", "wrong_digest", "invalid_extract", "result_blob"])
+@pytest.mark.parametrize(
+    "damage", ["truncated", "wrong_digest", "invalid_extract", "result_invalid"]
+)
 def test_parent_corruption_is_explicit_and_never_healthy(event, damage):
     f = event
     parent = admit_parent(f, ["one.htm"])
@@ -253,7 +298,7 @@ def test_parent_corruption_is_explicit_and_never_healthy(event, damage):
     import json
 
     row = f.conn.execute(
-        "SELECT manifest_json FROM source_generations WHERE generation_id=?", (parent,)
+        "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (parent,)
     ).fetchone()
     member = json.loads(row[0])[0]
     if damage == "truncated":
@@ -264,9 +309,11 @@ def test_parent_corruption_is_explicit_and_never_healthy(event, damage):
     elif damage == "invalid_extract":
         f.archive.extract_path(member["extract_sha256"]).write_bytes(b"{broken")
     else:
-        f.conn.execute("DROP TRIGGER source_generation_immutable")
-        f.conn.execute(
-            "UPDATE source_generations SET result_json=? WHERE generation_id=?", (b"{}", parent)
+        fault_update(
+            f,
+            "UPDATE source_generations SET result_json = %s WHERE generation_id = %s",
+            "[]",
+            parent,
         )
     result = check(f)
     assert result["parent_valid"] is False
@@ -279,13 +326,23 @@ def test_many_revocations_are_unknown_even_when_first_one_is_unrelated(event):
     finish_bootstrap(f)
     row = dict(
         f.conn.execute(
-            "SELECT * FROM source_generations WHERE generation_id=?", (parent,)
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (parent,),
         ).fetchone()
     )
     for i in range(3):
         row.update(generation_id=f"copy-{i}", state="revoked")
         f.conn.execute(
-            f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('?' for _ in row)})",
+            f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('%s' for _ in row)})",
             tuple(row.values()),
         )
     result = check(f, limits=Limits(candidates=2))
@@ -297,7 +354,7 @@ def test_policy_change_reopens_parent(event):
     admit_parent(f, ["one.htm"])
     finish_bootstrap(f)
     f.conn.execute(
-        "UPDATE admission_policies SET contract_version='changed' WHERE page_kind='eepro.autoindex'"
+        "UPDATE admission_policies SET contract_version = 'changed' WHERE page_kind = 'eepro.autoindex'"
     )
     result = check(f)
     assert result["parent_valid"] is False and result["reasons"]["admission_policy_changed"]
@@ -312,7 +369,7 @@ def test_bounded_reads_include_gzip_members_and_extract_json(event, monkeypatch)
     import json
 
     row = f.conn.execute(
-        "SELECT manifest_json FROM source_generations WHERE generation_id=?", (parent,)
+        "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (parent,)
     ).fetchone()
     member = json.loads(row[0])[0]
     path = f.archive.blob_path(member["body_sha256"])
@@ -358,7 +415,7 @@ def test_gzip_expansion_stops_at_total_decoded_limit(event, monkeypatch):
     import json
 
     row = f.conn.execute(
-        "SELECT manifest_json FROM source_generations WHERE generation_id=?", (parent,)
+        "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (parent,)
     ).fetchone()
     member = json.loads(row[0])[0]
     # Deliberately wrong digest, but it must stop as unknown BEFORE consuming
@@ -384,13 +441,14 @@ def test_oversized_member_and_unsupported_member_are_unknown_and_do_not_trap_cur
     f = event
     admit_parent(f, ["one.htm", "two.htm", "unsupported.pdf"])
     finish_bootstrap(f)
-    f.conn.execute("DROP TRIGGER event_enumeration_member_no_update")
     key = f.conn.execute(
-        "SELECT request_id FROM source_event_enumeration_members ORDER BY request_id LIMIT 1"
+        "SELECT request_id FROM source_event_enumeration_members ORDER BY request_id NULLS FIRST LIMIT 1"
     ).fetchone()[0]
-    f.conn.execute(
-        "UPDATE source_event_enumeration_members SET request_json=? WHERE request_id=?",
-        ("x" * 10000, key),
+    fault_update(
+        f,
+        "UPDATE source_event_enumeration_members SET request_json = %s WHERE request_id = %s",
+        "x" * 10000,
+        key,
     )
     result = check(f, limits=Limits(json_bytes=8000))
     assert result["checked"] == 3 and result["unknown"] >= 1
@@ -409,7 +467,19 @@ def test_manifest_member_limit_applies_to_content_valid_admitted_generation(even
     # support. Its content address and accepted decision are real, independent
     # of the probe's configurable traversal limit.
     row = dict(
-        f.conn.execute("SELECT * FROM source_generations WHERE generation_id=?", (old,)).fetchone()
+        f.conn.execute(
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
+            (old,),
+        ).fetchone()
     )
     manifest = json.loads(row["manifest_json"]) * 2
     row["manifest_json"] = canonical(manifest).decode()
@@ -430,16 +500,23 @@ def test_manifest_member_limit_applies_to_content_valid_admitted_generation(even
         )
     )
     f.conn.execute(
-        f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('?' for _ in row)})",
+        f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('%s' for _ in row)})",
         tuple(row.values()),
     )
     decision = dict(
-        f.conn.execute("SELECT * FROM admission_decisions WHERE generation_id=?", (old,)).fetchone()
+        f.conn.execute(
+            (
+                "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                "admission_decisions.policy_revision FROM admission_decisions WHERE generation_id = %s"
+            ),
+            (old,),
+        ).fetchone()
     )
     del decision["decision_id"]
     decision["generation_id"] = row["generation_id"]
     f.conn.execute(
-        f"INSERT INTO admission_decisions ({','.join(decision)}) VALUES ({','.join('?' for _ in decision)})",
+        f"INSERT INTO admission_decisions ({','.join(decision)}) VALUES ({','.join('%s' for _ in decision)})",
         tuple(decision.values()),
     )
     finish_bootstrap(f)

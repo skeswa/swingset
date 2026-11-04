@@ -35,19 +35,18 @@ label per transaction, before the output move. A plan names the target rows
 whether or not they are already packed, so a resume keeps its digest.
 `pack_bodies` is the maintain loop's bounded version.
 
-The move rebuilds the table rather than deleting 41 million references under
-their triggers: dropping a table fires no row trigger, so the move bumps the
-history dispatch fence once itself, and it checks that every index and trigger
-came back with the same SQL in the same order (SQLite fires the newest trigger
-first).
+The move retains every index and trigger. Row guards require the transaction's
+storage eviction authority, and the history dispatch fence advances through
+its existing row triggers. A crash rolls back the move and its receipt.
+
 """
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import hashlib
 import json
-import sqlite3
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -56,6 +55,7 @@ from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write
+from swingset.state import engine
 
 from . import body_packs, disk, guards, objects, output_packs
 from .control_lock import control_lock
@@ -63,7 +63,7 @@ from .db import SCHEMA_VERSION, Database
 from .derivations import CHUNK_ROWS
 from .objects import ObjectUnavailable, Store
 from .publication_fence import PUBLICATION_KINDS, kinds_sql
-from .retention_apply import receipt_directory, sqlite_temp_directory
+from .retention_apply import receipt_directory, temporary_directory
 
 PLAN_FORMAT = "storage-plan-v1"
 RECEIPT_FORMAT = "storage-apply-receipt-v1"
@@ -111,12 +111,14 @@ def _stage(name: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _require(conn: sqlite3.Connection) -> None:
+def _require(conn: engine.Connection) -> None:
     if not output_packs.available(conn):
         raise StorageError("storage needs schema 36; run `swingset migrate` first")
 
 
-def _drop_temporary(conn: sqlite3.Connection) -> None:
+def _drop_temporary(conn: engine.Connection) -> None:
+    if conn.closed:
+        return
     for name in (
         "storage_evict",
         "storage_keep",
@@ -126,70 +128,58 @@ def _drop_temporary(conn: sqlite3.Connection) -> None:
         "storage_labels",
         "storage_body_digests",
     ):
-        conn.execute(f"DROP TABLE IF EXISTS temp.{name}")
+        conn.execute(f"DROP TABLE IF EXISTS pg_temp.{name}")
     body_packs.drop_temporary(conn)
 
 
-def _hot(conn: sqlite3.Connection) -> Iterator[tuple[str, str]]:
+def _hot(conn: engine.Connection) -> Iterator[tuple[str, str]]:
     """Hot generations `(generation_id, why)`, sorted, one row per generation."""
     for generation_id, pointer in conn.execute(
-        "SELECT generation_id,max(pointer) FROM ("
-        "SELECT materialized_generation_id AS generation_id,1 AS pointer FROM derivation_scopes "
-        "WHERE materialized_generation_id IS NOT NULL "
-        "UNION ALL SELECT generation_id,0 FROM derivation_building) "
-        "GROUP BY generation_id ORDER BY generation_id"
+        "SELECT generation_id, MAX(pointer) AS _value_1 FROM (SELECT materialized_generation_id AS generation_id, 1 AS pointer FROM derivation_scopes WHERE NOT materialized_generation_id IS NULL UNION ALL SELECT generation_id, 0 AS _value_1 FROM derivation_building) GROUP BY generation_id ORDER BY generation_id NULLS FIRST"
     ):
         yield str(generation_id), "pointer" if pointer else "building"
 
 
-def hot_digest(conn: sqlite3.Connection) -> str:
+def hot_digest(conn: engine.Connection) -> str:
     hasher = hashlib.sha256()
     for generation_id, why in _hot(conn):
         hasher.update(f"{generation_id}\t{why}\n".encode())
     return hasher.hexdigest()
 
 
-def _groups(conn: sqlite3.Connection) -> Iterator[tuple[str, int, int, int]]:
+def _groups(conn: engine.Connection) -> Iterator[tuple[str, int, int, int]]:
     """Per generation with references: (id, count, max ordinal + 1, missing payloads)."""
     for generation_id, count, top, missing in conn.execute(
-        "SELECT r.generation_id,count(*),max(r.ordinal)+1,"
-        "count(*)-count(p.payload_sha256) FROM derivation_row_refs r "
-        "LEFT JOIN derivation_payloads p ON p.payload_sha256=r.payload_sha256 "
-        "GROUP BY r.generation_id ORDER BY r.generation_id"
+        "SELECT r.generation_id, COUNT(*) AS _value_1, MAX(r.ordinal) + 1 AS _value_2, COUNT(*) - COUNT(p.payload_sha256) AS _value_3 FROM derivation_row_refs AS r LEFT JOIN derivation_payloads AS p ON p.payload_sha256 = r.payload_sha256 GROUP BY r.generation_id ORDER BY r.generation_id NULLS FIRST"
     ):
         yield str(generation_id), int(count), int(top), int(missing)
 
 
-def _labels(conn: sqlite3.Connection) -> Iterator[tuple[str, str, int, bool, str | None]]:
+def _labels(conn: engine.Connection) -> Iterator[tuple[str, str, int, bool, str | None]]:
     """Every label, sorted: (id, output digest, rows, evicted, hot reason or None)."""
     for generation_id, output_digest, row_count, evicted, pointer, building in conn.execute(
-        "SELECT g.generation_id,g.output_digest,g.row_count,"
-        "EXISTS(SELECT 1 FROM derivation_evicted e WHERE e.generation_id=g.generation_id),"
-        "EXISTS(SELECT 1 FROM derivation_scopes s "
-        "WHERE s.materialized_generation_id=g.generation_id),"
-        "EXISTS(SELECT 1 FROM derivation_building b WHERE b.generation_id=g.generation_id) "
-        "FROM derivation_generations g ORDER BY g.generation_id"
+        "SELECT g.generation_id, g.output_digest, g.row_count, CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_evicted AS e WHERE e.generation_id = g.generation_id) AS INTEGER) AS _value_3, CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_scopes AS s WHERE s.materialized_generation_id = g.generation_id) AS INTEGER) AS _value_4, CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_building AS b WHERE b.generation_id = g.generation_id) AS INTEGER) AS _value_5 FROM derivation_generations AS g ORDER BY g.generation_id NULLS FIRST"
     ):
         hot = "pointer" if pointer else "building" if building else None
         yield str(generation_id), str(output_digest), int(row_count), bool(evicted), hot
 
 
-def _classify(conn: sqlite3.Connection) -> dict[str, Any]:
+def _classify(conn: engine.Connection) -> dict[str, Any]:
     """Stream labels and reference groups once, merged by id; fill the temp tables.
 
-    `temp.storage_evict` gets every evictable generation and `temp.storage_keep`
+    `pg_temp.storage_evict` gets every evictable generation and `pg_temp.storage_keep`
     every other generation that has references in the file, with whether it is
     resident, so the move can copy exactly those back. Runs in one read
     transaction, so both streams see the same state.
     """
     _drop_temporary(conn)
     conn.execute(
-        "CREATE TEMP TABLE storage_evict(generation_id TEXT PRIMARY KEY, "
-        "output_digest TEXT NOT NULL, row_count INTEGER NOT NULL)"
+        "CREATE TEMPORARY TABLE storage_evict (generation_id TEXT PRIMARY KEY, output_digest TEXT "
+        "NOT NULL, row_count INT NOT NULL)"
     )
     conn.execute(
-        "CREATE TEMP TABLE storage_keep(generation_id TEXT PRIMARY KEY, why TEXT NOT NULL, "
-        "refs INTEGER NOT NULL, resident INTEGER NOT NULL)"
+        "CREATE TEMPORARY TABLE storage_keep (generation_id TEXT PRIMARY KEY, why TEXT NOT NULL, "
+        "refs INT NOT NULL, resident INT NOT NULL)"
     )
     evict_hash, keep_hash, evicted_hash = hashlib.sha256(), hashlib.sha256(), hashlib.sha256()
     counts = {"pointer": 0, "building": 0, "partial": 0, "unlabelled": 0}
@@ -198,8 +188,8 @@ def _classify(conn: sqlite3.Connection) -> dict[str, Any]:
     keep_batch: list[tuple[str, str, int, int]] = []
 
     def flush() -> None:
-        conn.executemany("INSERT INTO temp.storage_evict VALUES (?,?,?)", evict_batch)
-        conn.executemany("INSERT INTO temp.storage_keep VALUES (?,?,?,?)", keep_batch)
+        conn.executemany("INSERT INTO pg_temp.storage_evict VALUES (%s, %s, %s)", evict_batch)
+        conn.executemany("INSERT INTO pg_temp.storage_keep VALUES (%s, %s, %s, %s)", keep_batch)
         evict_batch.clear()
         keep_batch.clear()
 
@@ -211,7 +201,7 @@ def _classify(conn: sqlite3.Connection) -> dict[str, Any]:
             kept_refs += refs
             keep_batch.append((generation_id, why, refs, int(resident)))
 
-    conn.execute("BEGIN")
+    conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
     try:
         groups = _groups(conn)
         group = next(groups, None)
@@ -249,14 +239,16 @@ def _classify(conn: sqlite3.Connection) -> dict[str, Any]:
             group = next(groups, None)
         flush()
         packs = int(
-            conn.execute("SELECT count(DISTINCT output_digest) FROM temp.storage_evict").fetchone()[
-                0
-            ]
+            conn.execute(
+                "SELECT COUNT(DISTINCT output_digest) AS _value_0 FROM pg_temp.storage_evict"
+            ).fetchone()[0]
         )
         hot = hot_digest(conn)
-        conn.execute("COMMIT")
+        conn.commit()
     except BaseException:
-        conn.execute("ROLLBACK")
+        if not conn.closed:
+            with contextlib.suppress(engine.Error):
+                conn.rollback()
         _drop_temporary(conn)
         raise
     return {
@@ -280,7 +272,7 @@ def _classify(conn: sqlite3.Connection) -> dict[str, Any]:
     }
 
 
-def retained(conn: sqlite3.Connection, state_dir: Path) -> tuple[list[str], list[str]]:
+def retained(conn: engine.Connection, state_dir: Path) -> tuple[list[str], list[str]]:
     """Source generations retained closure-mode candidates' closures name, and the
     build generations whose output names a retained candidate.
 
@@ -307,7 +299,7 @@ def retained(conn: sqlite3.Connection, state_dir: Path) -> tuple[list[str], list
                 raise StorageError(f"candidate {candidate.name} names no closure proof")
             if (
                 conn.execute(
-                    "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                    "SELECT 1 AS _value_0 FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                     (private,),
                 ).fetchone()
                 is None
@@ -319,11 +311,13 @@ def retained(conn: sqlite3.Connection, state_dir: Path) -> tuple[list[str], list
             sources.update(
                 str(row[0])
                 for row in conn.execute(
-                    "SELECT DISTINCT j.value FROM derivation_dependency_sets d, "
-                    "json_tree(d.manifest_json) j "
-                    "WHERE d.dependency_set_id=? AND j.key='generation_id' AND j.type='text' "
-                    "AND EXISTS(SELECT 1 FROM source_generations g "
-                    "WHERE g.generation_id=j.value)",
+                    (
+                        "SELECT DISTINCT j.value #>> '{}' FROM derivation_dependency_sets d "
+                        "CROSS JOIN LATERAL jsonb_path_query(d.manifest_json::jsonb, "
+                        "'lax $.**.generation_id ? (@.type() == \"string\")') j(value) "
+                        "WHERE d.dependency_set_id=%s AND EXISTS(SELECT 1 FROM source_generations g "
+                        "WHERE g.generation_id=j.value #>> '{}')"
+                    ),
                     (private,),
                 )
             )
@@ -332,8 +326,8 @@ def retained(conn: sqlite3.Connection, state_dir: Path) -> tuple[list[str], list
     builds: list[str] = []
     if names:
         for (generation_id,) in conn.execute(
-            "SELECT generation_id FROM derivation_generations WHERE stage='build' "
-            "ORDER BY generation_id"
+            "SELECT generation_id FROM derivation_generations WHERE stage = 'build' ORDER BY "
+            "generation_id NULLS FIRST"
         ).fetchall():
             for name in names:
                 try:
@@ -346,19 +340,19 @@ def retained(conn: sqlite3.Connection, state_dir: Path) -> tuple[list[str], list
     return sorted(sources), builds
 
 
-def _protected_counts(conn: sqlite3.Connection, table: str) -> dict[str, int]:
+def _protected_counts(conn: engine.Connection, table: str) -> dict[str, int]:
     return {
         str(why): int(count)
         for why, count in conn.execute(
-            f"SELECT why,count(*) FROM temp.{table} GROUP BY why ORDER BY why"
+            f"SELECT why,count(*) FROM pg_temp.{table} GROUP BY why ORDER BY why"
         )
     }
 
 
 def _targets(
-    conn: sqlite3.Connection, table: str, rows: Iterator[tuple[str, bool]]
+    conn: engine.Connection, table: str, rows: Iterator[tuple[str, bool]]
 ) -> dict[str, Any]:
-    """Stream target ids into a sha256 and `temp.<table>`; packed ones count apart."""
+    """Stream target ids into a sha256 and `pg_temp.<table>`; packed ones count apart."""
     conn.execute(
         f"CREATE TEMP TABLE {table}(generation_id TEXT PRIMARY KEY, packed INTEGER NOT NULL)"
     )
@@ -370,15 +364,15 @@ def _targets(
         hasher.update(f"{generation_id}\n".encode())
         batch.append((generation_id, int(packed)))
         if len(batch) >= 1000:
-            conn.executemany(f"INSERT INTO temp.{table} VALUES (?,?)", batch)
+            conn.executemany(f"INSERT INTO pg_temp.{table} VALUES (%s,%s)", batch)
             batch.clear()
-    conn.executemany(f"INSERT INTO temp.{table} VALUES (?,?)", batch)
+    conn.executemany(f"INSERT INTO pg_temp.{table} VALUES (%s,%s)", batch)
     return {"generations": count, "digest": hasher.hexdigest()}
 
 
-def _classify_bodies(conn: sqlite3.Connection, state_dir: Path, before: str) -> dict[str, Any]:
+def _classify_bodies(conn: engine.Connection, state_dir: Path, before: str) -> dict[str, Any]:
     """The parse and label stages' targets, in one read transaction (temp tables only)."""
-    conn.execute("BEGIN")
+    conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
     try:
         sources, builds = retained(conn, state_dir)
         body_packs.protect_sources(conn, before=before, candidates=sources)
@@ -394,14 +388,16 @@ def _classify_bodies(conn: sqlite3.Connection, state_dir: Path, before: str) -> 
             "protected": _protected_counts(conn, "label_protected"),
             **_targets(conn, "storage_labels", body_packs.label_targets(conn)),
         }
-        conn.execute("COMMIT")
+        conn.commit()
     except BaseException:
-        conn.execute("ROLLBACK")
+        if not conn.closed:
+            with contextlib.suppress(engine.Error):
+                conn.rollback()
         raise
     return {"parse_body": parse, "label_body": label}
 
 
-def _compute(conn: sqlite3.Connection, state_dir: Path, before: str) -> dict[str, Any]:
+def _compute(conn: engine.Connection, state_dir: Path, before: str) -> dict[str, Any]:
     """The plan's content; `before` is the bodies' `young` boundary."""
     _require(conn)
     classified = _classify(conn)
@@ -417,58 +413,38 @@ def _compute(conn: sqlite3.Connection, state_dir: Path, before: str) -> dict[str
     return {**content, "digest": hashlib.sha256(canonical_json(content)).hexdigest()}
 
 
-def _btree_bytes(conn: sqlite3.Connection, table: str) -> int | None:
-    """Pages of a table and its indexes, from `dbstat`; None without it."""
-    names = [table] + [
-        str(row[0])
-        for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=?", (table,)
-        )
-    ]
-    total = 0
-    try:
-        for name in names:
-            total += int(
-                conn.execute(
-                    "SELECT coalesce(sum(pgsize),0) FROM dbstat WHERE name=?", (name,)
-                ).fetchone()[0]
-            )
-    except sqlite3.Error:
-        return None
-    return total
+def _btree_bytes(conn: engine.Connection, table: str) -> int | None:
+    """Allocated table, TOAST and index bytes from the native catalog."""
+    row = conn.execute("SELECT pg_total_relation_size(to_regclass(%s))", (table,)).fetchone()
+    return None if row is None or row[0] is None else int(row[0])
 
 
-def _estimate(conn: sqlite3.Connection, content: dict[str, Any]) -> dict[str, Any]:
+def _estimate(conn: engine.Connection, content: dict[str, Any]) -> dict[str, Any]:
     """What the apply would free and write. Outside the digest: it reads page sizes."""
     total_refs = int(conn.execute(f"SELECT count(*) FROM {_TABLE}").fetchone()[0])
     moved_refs = total_refs - int(content["keep"]["references"])
     ref_bytes = _btree_bytes(conn, _TABLE)
-    conn.execute("CREATE TEMP TABLE storage_kept_payloads(payload_sha256 TEXT PRIMARY KEY)")
+    conn.execute("CREATE TEMPORARY TABLE storage_kept_payloads (payload_sha256 TEXT PRIMARY KEY)")
     conn.execute(
-        "INSERT OR IGNORE INTO temp.storage_kept_payloads SELECT r.payload_sha256 "
-        f"FROM temp.storage_keep k JOIN {_TABLE} r ON r.generation_id=k.generation_id"
+        f"INSERT INTO pg_temp.storage_kept_payloads SELECT r.payload_sha256 FROM pg_temp.storage_keep k JOIN {_TABLE} r ON r.generation_id=k.generation_id ON CONFLICT DO NOTHING"
     )
     payloads, payload_bytes = conn.execute(
-        "SELECT count(*),coalesce(sum(octet_length(payload_json)),0) FROM derivation_payloads "
-        "WHERE payload_sha256 NOT IN (SELECT payload_sha256 FROM temp.storage_kept_payloads)"
+        "SELECT COUNT(*) AS _value_0, COALESCE(CAST(SUM(OCTET_LENGTH(payload_json)) AS BIGINT), 0) AS _value_1 FROM derivation_payloads WHERE NOT payload_sha256 IN (SELECT payload_sha256 FROM pg_temp.storage_kept_payloads)"
     ).fetchone()
-    conn.execute("DROP TABLE temp.storage_kept_payloads")
+    conn.execute("DROP TABLE pg_temp.storage_kept_payloads")
     missing = int(
         conn.execute(
-            "SELECT count(*) FROM (SELECT DISTINCT output_digest FROM temp.storage_evict) d "
-            "WHERE NOT EXISTS(SELECT 1 FROM objects o WHERE o.class=? AND o.digest=d.output_digest)",
+            (
+                "SELECT COUNT(*) AS _value_0 FROM (SELECT DISTINCT output_digest FROM pg_temp.storage_evict) AS d WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM objects AS o WHERE o.class = %s AND o.digest = d.output_digest)"
+            ),
             (output_packs.CLASS,),
         ).fetchone()[0]
     )
-    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
     bodies = conn.execute(
-        "SELECT count(*),coalesce(sum(octet_length(g.manifest_json)+octet_length(g.report_json)"
-        "+octet_length(g.result_json)),0) FROM temp.storage_bodies t "
-        "JOIN source_generations g USING(generation_id) WHERE NOT t.packed"
+        "SELECT COUNT(*) AS _value_0, COALESCE(CAST(SUM(OCTET_LENGTH(g.manifest_json) + OCTET_LENGTH(g.report_json) + OCTET_LENGTH(g.result_json)) AS BIGINT), 0) AS _value_1 FROM pg_temp.storage_bodies AS t JOIN source_generations AS g USING (generation_id) WHERE t.packed=0"
     ).fetchone()
     labels = conn.execute(
-        "SELECT count(*),coalesce(sum(octet_length(g.recipe_json)),0) FROM temp.storage_labels t "
-        "JOIN derivation_generations g USING(generation_id) WHERE NOT t.packed"
+        "SELECT COUNT(*) AS _value_0, COALESCE(CAST(SUM(OCTET_LENGTH(g.recipe_json)) AS BIGINT), 0) AS _value_1 FROM pg_temp.storage_labels AS t JOIN derivation_generations AS g USING (generation_id) WHERE t.packed=0"
     ).fetchone()
     return {
         "parse_bodies_to_pack": int(bodies[0]),
@@ -484,12 +460,12 @@ def _estimate(conn: sqlite3.Connection, content: dict[str, Any]) -> dict[str, An
         "payloads_removed": int(payloads),
         "payload_text_bytes_removed": int(payload_bytes),
         "packs_to_write": missing,
-        "free_list_bytes": page_size * int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
+        "free_list_bytes": None,
     }
 
 
 def plan(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     *,
     estimate: bool = True,
@@ -503,7 +479,7 @@ def plan(
     still applies after midnight.
     """
     moment = now if now is not None else datetime.now(UTC)
-    with sqlite_temp_directory(conn, state_dir):
+    with temporary_directory(conn, state_dir):
         try:
             content = _compute(conn, state_dir, body_packs.cutoff(moment))
             return Plan(content, _estimate(conn, content) if estimate else None)
@@ -524,18 +500,22 @@ def write_plan(state_dir: Path, value: Plan) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def _note(conn: sqlite3.Connection, plan_digest: str) -> sqlite3.Row | None:
-    found: sqlite3.Row | None = conn.execute(
-        "SELECT * FROM storage_applies WHERE plan_digest=?", (plan_digest,)
+def _note(conn: engine.Connection, plan_digest: str) -> engine.Row | None:
+    found: engine.Row | None = conn.execute(
+        (
+            "SELECT storage_applies.plan_digest, storage_applies.kind, storage_applies.started_at, "
+            "storage_applies.finished_at, storage_applies.receipt_json FROM storage_applies WHERE "
+            "plan_digest = %s"
+        ),
+        (plan_digest,),
     ).fetchone()
     return found
 
 
-def publication_active(conn: sqlite3.Connection) -> bool:
+def publication_active(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM execution_admissions WHERE state='active' "
-            f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
+            f"SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
         ).fetchone()
         is not None
     )
@@ -573,15 +553,12 @@ def _plan_before(written: dict[str, Any] | None, now: datetime) -> str:
 
 
 def move_need(
-    conn: sqlite3.Connection, fresh: dict[str, Any], written: dict[str, Any] | None
+    conn: engine.Connection, fresh: dict[str, Any], written: dict[str, Any] | None
 ) -> dict[str, Any]:
-    """Free space the move needs, from the reference b-tree's size.
+    """Conservative room for deleting reference tuples and recording their WAL.
 
-    The kept references are copied twice (a temporary table under
-    `<state>/tmp` and the rebuilt table, through the WAL), plus a margin.
-    With `secure_delete` on, the dropped b-tree is also zeroed through the
-    WAL (W2), so the whole of it counts. The written plan's estimate gives
-    the size; without one it is read from `dbstat`.
+    Both copies of the allocated relation count, plus the existing margin;
+    this budget does not assume that dead tuples have already been reclaimed.
     """
     estimate = (written or {}).get("estimate") or {}
     reference_bytes = estimate.get("reference_bytes")
@@ -592,8 +569,8 @@ def move_need(
     )
     kept = int(fresh["keep"]["references"])
     kept_bytes = reference_bytes * kept // total if total else 0
-    secure = int(conn.execute("PRAGMA secure_delete").fetchone()[0])
-    need = 2 * kept_bytes + MOVE_MARGIN_BYTES + (reference_bytes if secure else 0)
+    secure = 0
+    need = 2 * reference_bytes + MOVE_MARGIN_BYTES
     return {
         "reference_bytes": reference_bytes,
         "kept_reference_bytes": kept_bytes,
@@ -611,9 +588,8 @@ def apply(
     Rerunning one that stopped part way recomputes the plan, which is the same
     while nothing moved, and resumes: packs are content-addressed and kept.
 
-    The move runs with `secure_delete` off and refuses before it starts when
-    the disk, quota included (`state.disk`), has less room than `move_need`;
-    the WAL is truncated after it commits.
+    The move refuses before it starts when the disk, quota included
+    (`state.disk`), has less room than the conservative `move_need` budget.
     """
     if not database.holds_writer_lock:
         raise StorageError("storage apply needs the writer lock; open the state for writing")
@@ -629,8 +605,8 @@ def apply(
         raise StorageError("storage apply cannot run inside a transaction; nothing was moved")
     written = _written_plan(state_dir, plan_digest)
     with (
-        control_lock(state_dir, timeout=timeout),
-        sqlite_temp_directory(conn, state_dir),
+        control_lock(state_dir, connection=conn, timeout=timeout),
+        temporary_directory(conn, state_dir),
         disk.fast_delete(conn),
     ):
         recorded = _note(conn, plan_digest)
@@ -656,8 +632,7 @@ def apply(
             if recorded is None:
                 with database.transaction() as txn:
                     txn.execute(
-                        "INSERT INTO storage_applies(plan_digest,kind,started_at) "
-                        "VALUES (?,'storage',?)",
+                        "INSERT INTO storage_applies (plan_digest, kind, started_at) VALUES (%s, 'storage', %s)",
                         (plan_digest, started_at),
                     )
             else:
@@ -696,13 +671,11 @@ def apply(
             _move(conn, fresh, receipt, seconds, now=now)
         finally:
             _drop_temporary(conn)
-    # The move's frames leave the WAL now, not at the next loop's checkpoint.
-    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
     return _write_receipt(state_dir, plan_digest, receipt)
 
 
 def _room(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     fresh: dict[str, Any],
     written: dict[str, Any] | None,
@@ -725,13 +698,14 @@ def _room(
     return measured
 
 
-def _evict_digests(conn: sqlite3.Connection) -> Iterator[tuple[str, str, int]]:
+def _evict_digests(conn: engine.Connection) -> Iterator[tuple[str, str, int]]:
     """Distinct output digests to evict, each with one generation and its row count."""
     after = ""
     while True:
         page = conn.execute(
-            "SELECT output_digest,min(generation_id),max(row_count) FROM temp.storage_evict "
-            "WHERE output_digest>? GROUP BY output_digest ORDER BY output_digest LIMIT ?",
+            (
+                "SELECT output_digest, MIN(generation_id) AS _value_1, MAX(row_count) AS _value_2 FROM pg_temp.storage_evict WHERE output_digest > %s GROUP BY output_digest ORDER BY output_digest NULLS FIRST LIMIT %s"
+            ),
             (after, PAGE),
         ).fetchall()
         if not page:
@@ -741,12 +715,12 @@ def _evict_digests(conn: sqlite3.Connection) -> Iterator[tuple[str, str, int]]:
         after = str(page[-1][0])
 
 
-def _pack_all(conn: sqlite3.Connection, store: Store, now: datetime) -> dict[str, int]:
+def _pack_all(conn: engine.Connection, store: Store, now: datetime) -> dict[str, int]:
     """One pack per distinct output; an indexed pack whose file is there is kept."""
     written = kept = raw_bytes = stored_bytes = 0
     for output_digest, generation_id, _ in _evict_digests(conn):
         present = conn.execute(
-            "SELECT raw_bytes FROM objects WHERE class=? AND digest=?",
+            "SELECT raw_bytes FROM objects WHERE class = %s AND digest = %s",
             (output_packs.CLASS, output_digest),
         ).fetchone()
         if present is not None and store.exists(output_packs.CLASS, output_digest):
@@ -756,7 +730,7 @@ def _pack_all(conn: sqlite3.Connection, store: Store, now: datetime) -> dict[str
                 raise StorageError(f"pack of {generation_id} is not named by its label")
             written += 1
         row = conn.execute(
-            "SELECT raw_bytes,stored_bytes FROM objects WHERE class=? AND digest=?",
+            "SELECT raw_bytes, stored_bytes FROM objects WHERE class = %s AND digest = %s",
             (output_packs.CLASS, output_digest),
         ).fetchone()
         raw_bytes += int(row[0])
@@ -778,7 +752,7 @@ def verify_pack(store: Store, output_digest: str, row_count: int) -> None:
         )
 
 
-def _verify_all(conn: sqlite3.Connection, store: Store, now: datetime) -> dict[str, int]:
+def _verify_all(conn: engine.Connection, store: Store, now: datetime) -> dict[str, int]:
     """Every pack once, before anything leaves the file.
 
     A kept pack that fails is written again from its resident generation
@@ -796,15 +770,14 @@ def _verify_all(conn: sqlite3.Connection, store: Store, now: datetime) -> dict[s
     return {"verified": count, "repaired": repaired}
 
 
-def _unpacked(conn: sqlite3.Connection, table: str) -> Iterator[str]:
+def _unpacked(conn: engine.Connection, table: str) -> Iterator[str]:
     """Target ids not packed at plan time, a page at a time."""
     after = ""
     while True:
         page = [
             str(row[0])
             for row in conn.execute(
-                f"SELECT generation_id FROM temp.{table} WHERE NOT packed AND generation_id>? "
-                "ORDER BY generation_id LIMIT ?",
+                f"SELECT generation_id FROM pg_temp.{table} WHERE packed=0 AND generation_id>%s ORDER BY generation_id LIMIT %s",
                 (after, PAGE),
             ).fetchall()
         ]
@@ -824,10 +797,10 @@ def _pack_bodies(database: Database, store: Store, now: datetime) -> dict[str, A
     object. A row already packed is skipped, so a resume continues.
     """
     conn = database.connection
-    conn.execute("DROP TABLE IF EXISTS temp.storage_body_digests")
+    conn.execute("DROP TABLE IF EXISTS pg_temp.storage_body_digests")
     conn.execute(
-        "CREATE TEMP TABLE storage_body_digests(kind TEXT NOT NULL, generation_id TEXT NOT NULL, "
-        "digest TEXT NOT NULL, PRIMARY KEY(kind,generation_id))"
+        "CREATE TEMPORARY TABLE storage_body_digests (kind TEXT NOT NULL, generation_id TEXT NOT "
+        "NULL, digest TEXT NOT NULL, PRIMARY KEY (kind, generation_id))"
     )
     stages = (
         ("parse_body", "storage_bodies", body_packs.write_source, body_packs.PARSE),
@@ -841,7 +814,7 @@ def _pack_bodies(database: Database, store: Store, now: datetime) -> dict[str, A
             written += int(new)
             kept += int(not new)
             conn.execute(
-                "INSERT INTO temp.storage_body_digests VALUES (?,?,?)",
+                "INSERT INTO pg_temp.storage_body_digests VALUES (%s, %s, %s)",
                 (kind, generation_id, digest),
             )
         result[kind] = {"written": written, "kept": kept}
@@ -849,7 +822,7 @@ def _pack_bodies(database: Database, store: Store, now: datetime) -> dict[str, A
     for kind, _, _, cls in stages:
         verified = raw_bytes = stored_bytes = 0
         for (digest,) in conn.execute(
-            "SELECT DISTINCT digest FROM temp.storage_body_digests WHERE kind=? ORDER BY digest",
+            "SELECT DISTINCT digest FROM pg_temp.storage_body_digests WHERE kind = %s ORDER BY digest NULLS FIRST",
             (kind,),
         ).fetchall():
             try:
@@ -857,7 +830,7 @@ def _pack_bodies(database: Database, store: Store, now: datetime) -> dict[str, A
             except ObjectUnavailable as error:
                 raise StorageError(f"{error}; nothing was stubbed") from error
             row = conn.execute(
-                "SELECT raw_bytes,stored_bytes FROM objects WHERE class=? AND digest=?",
+                "SELECT raw_bytes, stored_bytes FROM objects WHERE class = %s AND digest = %s",
                 (cls, str(digest)),
             ).fetchone()
             verified += 1
@@ -874,8 +847,9 @@ def _pack_bodies(database: Database, store: Store, now: datetime) -> dict[str, A
         after = ""
         while True:
             page = conn.execute(
-                "SELECT generation_id,digest FROM temp.storage_body_digests "
-                "WHERE kind=? AND generation_id>? ORDER BY generation_id LIMIT ?",
+                (
+                    "SELECT generation_id, digest FROM pg_temp.storage_body_digests WHERE kind = %s AND generation_id > %s ORDER BY generation_id NULLS FIRST LIMIT %s"
+                ),
                 (kind, after, size),
             ).fetchall()
             if not page:
@@ -889,36 +863,42 @@ def _pack_bodies(database: Database, store: Store, now: datetime) -> dict[str, A
     return result
 
 
-def _schema(conn: sqlite3.Connection) -> list[tuple[str, str, str | None]]:
-    """The table's schema entries in creation order: the table, its indexes and triggers."""
+def _schema(conn: engine.Connection) -> list[tuple[str, str, str | None]]:
+    """Stable native index and trigger definitions; no schema objects are replaced."""
     return [
-        (str(kind), str(name), None if sql is None else str(sql))
-        for kind, name, sql in conn.execute(
-            "SELECT type,name,sql FROM sqlite_master WHERE tbl_name=? ORDER BY rowid", (_TABLE,)
+        (str(kind), str(name), str(definition))
+        for kind, name, definition in conn.execute(
+            "SELECT 'index',c.relname,pg_get_indexdef(c.oid) FROM pg_class c "
+            "JOIN pg_index i ON i.indexrelid=c.oid WHERE i.indrelid=to_regclass(%s) "
+            "UNION ALL SELECT 'trigger',t.tgname,pg_get_triggerdef(t.oid) FROM pg_trigger t "
+            "WHERE t.tgrelid=to_regclass(%s) ORDER BY 1,2",
+            (_TABLE, _TABLE),
         )
     ]
 
 
-def _revision(conn: sqlite3.Connection) -> int:
+def _revision(conn: engine.Connection) -> int:
     return int(
-        conn.execute("SELECT revision FROM history_dispatch_fence WHERE singleton=1").fetchone()[0]
+        conn.execute("SELECT revision FROM history_dispatch_fence WHERE singleton = 1").fetchone()[
+            0
+        ]
     )
 
 
-def _free_bytes(conn: sqlite3.Connection) -> int:
-    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
-    return page_size * int(conn.execute("PRAGMA freelist_count").fetchone()[0])
+def _free_bytes(conn: engine.Connection) -> int | None:
+    # Postgres dead-tuple space is not an exactly measurable SQLite free list.
+    return None
 
 
 def _move(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     fresh: dict[str, Any],
     receipt: dict[str, Any],
     seconds: dict[str, float],
     *,
     now: datetime,
 ) -> None:
-    """One exclusive transaction: rebuild the reference table with the kept rows.
+    """One writer transaction: delete eligible references without changing guards.
 
     Not `Database.transaction`: this is an operator step under the hold, and
     its 60-second bound is for loop writes (D-0217). The note is finished in
@@ -926,50 +906,42 @@ def _move(
     and its receipt.
     """
     started = time.monotonic()
-    conn.execute("BEGIN EXCLUSIVE")
+    conn.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+    from .engine.locks import acquire_writer
+
     try:
+        acquire_writer(conn)
         if hot_digest(conn) != fresh["hot_digest"]:
             raise StorageError("the hot set moved after the plan; nothing was moved")
         before = _schema(conn)
         free_before = _free_bytes(conn)
         revision = _revision(conn)
         total_refs = int(conn.execute(f"SELECT count(*) FROM {_TABLE}").fetchone()[0])
-        table_sql = str(next(sql for kind, _, sql in before if kind == "table"))
-        rebuilt = [sql for kind, _, sql in before if kind != "table" and sql is not None]
         evicted = int(fresh["evict"]["generations"])
         payloads = payload_bytes = 0
         kept = total_refs
         if evicted:
-            conn.execute(
-                f"CREATE TEMP TABLE storage_kept_refs AS SELECT r.* FROM {_TABLE} r WHERE 0"
+            kept = int(
+                conn.execute(
+                    f"SELECT count(*) FROM {_TABLE} r JOIN pg_temp.storage_keep k USING(generation_id)"
+                ).fetchone()[0]
             )
-            conn.execute(
-                f"INSERT INTO temp.storage_kept_refs SELECT r.* FROM temp.storage_keep k "
-                f"JOIN {_TABLE} r ON r.generation_id=k.generation_id "
-                "ORDER BY r.generation_id,r.ordinal"
-            )
-            kept = int(conn.execute("SELECT count(*) FROM temp.storage_kept_refs").fetchone()[0])
             if kept != int(fresh["keep"]["references"]):
                 raise StorageError("the kept references moved after the plan; nothing was moved")
-            # No deferred foreign key is outstanding yet, so the drop deletes no
-            # rows one by one; it fires no trigger either.
-            conn.execute(f"DROP TABLE {_TABLE}")
-            _stage("dropped")
-            conn.execute(table_sql)
             conn.execute(
-                f"INSERT INTO {_TABLE} SELECT * FROM temp.storage_kept_refs "
-                "ORDER BY generation_id,ordinal"
+                "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) VALUES(1,%s,%s)",
+                (_REASON + str(receipt["plan_digest"]), objects.stamp(now)),
             )
-            # Indexes and triggers after the rows, in their old order, so the
-            # copy fires nothing and the triggers fire as before.
-            for sql in rebuilt:
-                conn.execute(sql)
-            conn.execute("DROP TABLE temp.storage_kept_refs")
-            conn.execute("UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1")
+            conn.execute(
+                f"DELETE FROM {_TABLE} WHERE generation_id NOT IN "
+                "(SELECT generation_id FROM pg_temp.storage_keep)"
+            )
+            _stage("deleted")
             moved_revision = _revision(conn)
             conn.execute(
-                "INSERT INTO derivation_evicted(generation_id,evicted_at) "
-                "SELECT generation_id,? FROM temp.storage_evict ORDER BY generation_id",
+                (
+                    "INSERT INTO derivation_evicted (generation_id, evicted_at) SELECT generation_id, %s FROM pg_temp.storage_evict ORDER BY generation_id NULLS FIRST"
+                ),
                 (objects.stamp(now),),
             )
             _stage("marked")
@@ -984,13 +956,7 @@ def _move(
                 ).fetchone()
             )
             conn.execute(
-                "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
-                "VALUES (1,?,?)",
-                (_REASON + str(receipt["plan_digest"]), objects.stamp(now)),
-            )
-            conn.execute(
-                "DELETE FROM derivation_payloads WHERE payload_sha256 IN "
-                f"(SELECT p.payload_sha256 {orphaned})"
+                f"DELETE FROM derivation_payloads WHERE payload_sha256 IN (SELECT p.payload_sha256 {orphaned})"
             )
             conn.execute("DELETE FROM storage_eviction_authority")
             _check(conn, before, revision, moved_revision)
@@ -1006,41 +972,44 @@ def _move(
                 "free_list_bytes": [free_before, _free_bytes(conn)],
                 "seconds": dict(seconds),
                 "finished_at": objects.stamp(datetime.now(UTC)),
-                "next": "gc --reclaim rewrites the file so the freed pages leave it",
+                "next": "gc --reclaim rewrites application tables to return dead-tuple space",
             }
         )
         conn.execute(
-            "UPDATE storage_applies SET finished_at=?,receipt_json=? "
-            "WHERE plan_digest=? AND finished_at IS NULL",
+            (
+                "UPDATE storage_applies SET finished_at = %s, receipt_json = %s WHERE plan_digest = %s AND "
+                "finished_at IS NULL"
+            ),
             (objects.stamp(now), canonical_json(receipt).decode(), receipt["plan_digest"]),
         )
         _stage("finished")
-        conn.execute("COMMIT")
+        conn.commit()
     except BaseException:
-        conn.execute("ROLLBACK")
+        if not conn.closed:
+            with contextlib.suppress(engine.Error):
+                conn.rollback()
         raise
 
 
 def _check(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     before: list[tuple[str, str, str | None]],
     revision: int,
     moved_revision: int,
 ) -> None:
     """Inside the move: everything that has to hold before it may commit."""
     if _schema(conn) != before:
-        raise StorageError("the rebuilt reference table's indexes or triggers differ")
-    if moved_revision != revision + 1:
-        raise StorageError("the history dispatch fence did not move exactly once")
+        raise StorageError("the reference table's indexes or triggers differ")
+    if moved_revision < revision:
+        raise StorageError("the history dispatch fence moved backwards")
     for (generation_id,) in conn.execute(
-        "SELECT generation_id FROM temp.storage_keep WHERE resident=1 ORDER BY generation_id"
+        "SELECT generation_id FROM pg_temp.storage_keep WHERE resident = 1 ORDER BY generation_id NULLS FIRST"
     ).fetchall():
         if not output_packs.resident(conn, str(generation_id)):
             raise StorageError(f"kept generation {generation_id} is not resident after the move")
-    for table in (_TABLE, "derivation_evicted"):
-        found = conn.execute(f"PRAGMA foreign_key_check({table})").fetchall()
-        if found:
-            raise StorageError(f"the move violates foreign keys: {[tuple(r) for r in found[:5]]}")
+    # Force deferred foreign-key validation before recording the receipt.
+    conn.execute("SET CONSTRAINTS ALL IMMEDIATE")
+    conn.execute("SET CONSTRAINTS ALL DEFERRED")
 
 
 # ---------------------------------------------------------------------------
@@ -1048,34 +1017,26 @@ def _check(
 # ---------------------------------------------------------------------------
 
 
-def _leftovers(conn: sqlite3.Connection) -> list[str]:
+def _leftovers(conn: engine.Connection) -> list[str]:
     """Evicted generations whose references a stopped tick left behind."""
     return [
         str(row[0])
         for row in conn.execute(
-            "SELECT e.generation_id FROM derivation_evicted e WHERE EXISTS("
-            f"SELECT 1 FROM {_TABLE} r WHERE r.generation_id=e.generation_id) "
-            "ORDER BY e.generation_id"
+            f"SELECT e.generation_id FROM derivation_evicted e WHERE EXISTS(SELECT 1 FROM {_TABLE} r WHERE r.generation_id=e.generation_id) ORDER BY e.generation_id"
         )
     ]
 
 
-def _candidates(conn: sqlite3.Connection, cutoff: str) -> Iterator[str]:
+def _candidates(conn: engine.Connection, cutoff: str) -> Iterator[str]:
     """Old generations that are neither hot nor evicted, by id, a page at a time."""
     after = ""
     while True:
         page = [
             str(row[0])
             for row in conn.execute(
-                "SELECT g.generation_id FROM derivation_generations g "
-                "WHERE g.generation_id>? AND julianday(g.created_at)<julianday(?) "
-                "AND NOT EXISTS(SELECT 1 FROM derivation_evicted e "
-                "WHERE e.generation_id=g.generation_id) "
-                "AND NOT EXISTS(SELECT 1 FROM derivation_scopes s "
-                "WHERE s.materialized_generation_id=g.generation_id) "
-                "AND NOT EXISTS(SELECT 1 FROM derivation_building b "
-                "WHERE b.generation_id=g.generation_id) "
-                "ORDER BY g.generation_id LIMIT ?",
+                (
+                    "SELECT g.generation_id FROM derivation_generations AS g WHERE g.generation_id > %s AND (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(g.created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_evicted AS e WHERE e.generation_id = g.generation_id) AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_scopes AS s WHERE s.materialized_generation_id = g.generation_id) AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_building AS b WHERE b.generation_id = g.generation_id) ORDER BY g.generation_id NULLS FIRST LIMIT %s"
+                ),
                 (after, cutoff, PAGE),
             )
         ]
@@ -1085,10 +1046,11 @@ def _candidates(conn: sqlite3.Connection, cutoff: str) -> Iterator[str]:
         after = page[-1]
 
 
-def _is_hot(conn: sqlite3.Connection, generation_id: str) -> bool:
+def _is_hot(conn: engine.Connection, generation_id: str) -> bool:
     found = conn.execute(
-        "SELECT EXISTS(SELECT 1 FROM derivation_scopes WHERE materialized_generation_id=?) "
-        "OR EXISTS(SELECT 1 FROM derivation_building WHERE generation_id=?)",
+        (
+            "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_scopes WHERE materialized_generation_id = %s) OR EXISTS(SELECT 1 AS _value_0 FROM derivation_building WHERE generation_id = %s) AS INTEGER) AS _value_0"
+        ),
         (generation_id, generation_id),
     ).fetchone()
     return bool(found[0])
@@ -1109,30 +1071,27 @@ def _shed(database: Database, generation_id: str, limit: int, *, mark: bool, now
             # Marking one already marked, or shedding one no longer marked.
             return -1
         chunk = conn.execute(
-            f"SELECT ordinal,payload_sha256 FROM {_TABLE} WHERE generation_id=? "
-            "ORDER BY ordinal DESC LIMIT ?",
+            f"SELECT ordinal,payload_sha256 FROM {_TABLE} WHERE generation_id=%s ORDER BY ordinal DESC LIMIT %s",
             (generation_id, limit),
         ).fetchall()
         if mark:
             conn.execute(
-                "INSERT INTO derivation_evicted(generation_id,evicted_at) VALUES (?,?)",
+                "INSERT INTO derivation_evicted (generation_id, evicted_at) VALUES (%s, %s)",
                 (generation_id, objects.stamp(now)),
             )
         if chunk:
             conn.execute(
-                "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
-                "VALUES (1,?,?)",
+                "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, %s, %s)",
                 ("evict " + generation_id, objects.stamp(now)),
             )
             try:
                 conn.execute(
-                    f"DELETE FROM {_TABLE} WHERE generation_id=? AND ordinal>=?",
+                    f"DELETE FROM {_TABLE} WHERE generation_id=%s AND ordinal>=%s",
                     (generation_id, int(chunk[-1][0])),
                 )
                 for (payload_sha256,) in sorted({(str(row[1]),) for row in chunk}):
                     conn.execute(
-                        "DELETE FROM derivation_payloads WHERE payload_sha256=? AND NOT EXISTS("
-                        f"SELECT 1 FROM {_TABLE} WHERE payload_sha256=?)",
+                        f"DELETE FROM derivation_payloads WHERE payload_sha256=%s AND NOT EXISTS(SELECT 1 FROM {_TABLE} WHERE payload_sha256=%s)",
                         (payload_sha256, payload_sha256),
                     )
             finally:
@@ -1165,7 +1124,7 @@ RETRY_FILE = Path("gc") / "evict-retry.json"
 RETRY_KEPT = 10_000
 
 
-def _failure(conn: sqlite3.Connection, now: datetime, reason: str, failed: int) -> None:
+def _failure(conn: engine.Connection, now: datetime, reason: str, failed: int) -> None:
     """Note or clear a storage pass's guard, in the caller's transaction."""
     if failed:
         guards.clocked(conn, GUARD_SUBJECT, reason, loop="maintain", now=now, clock=GUARD_CLOCK)
@@ -1229,13 +1188,13 @@ class _Retries:
         if self.entries.pop(generation_id, None) is not None:
             self.changed = True
 
-    def prune(self, conn: sqlite3.Connection) -> None:
+    def prune(self, conn: engine.Connection) -> None:
         """Forget generations that are gone, hot or evicted since they failed."""
         for generation_id in list(self.entries):
             row = conn.execute(
-                "SELECT 1 FROM derivation_generations g WHERE g.generation_id=? "
-                "AND NOT EXISTS(SELECT 1 FROM derivation_evicted e "
-                "WHERE e.generation_id=g.generation_id)",
+                (
+                    "SELECT 1 AS _value_0 FROM derivation_generations AS g WHERE g.generation_id = %s AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_evicted AS e WHERE e.generation_id = g.generation_id)"
+                ),
                 (generation_id,),
             ).fetchone()
             if row is None or _is_hot(conn, generation_id):
@@ -1280,8 +1239,7 @@ def restore_lost(
                 page = [
                     str(row[0])
                     for row in conn.execute(
-                        "SELECT digest FROM objects WHERE class=? AND digest>? "
-                        "ORDER BY digest LIMIT ?",
+                        "SELECT digest FROM objects WHERE class = %s AND digest > %s ORDER BY digest NULLS FIRST LIMIT %s",
                         (cls, after, PAGE),
                     ).fetchall()
                 ]
@@ -1310,18 +1268,13 @@ def restore_lost(
     return result
 
 
-def _remaining(conn: sqlite3.Connection, cutoff: str, after: str) -> int:
+def _remaining(conn: engine.Connection, cutoff: str, after: str) -> int:
     """Old generations neither hot nor evicted, after `after` by id."""
     return int(
         conn.execute(
-            "SELECT count(*) FROM derivation_generations g "
-            "WHERE g.generation_id>? AND julianday(g.created_at)<julianday(?) "
-            "AND NOT EXISTS(SELECT 1 FROM derivation_evicted e "
-            "WHERE e.generation_id=g.generation_id) "
-            "AND NOT EXISTS(SELECT 1 FROM derivation_scopes s "
-            "WHERE s.materialized_generation_id=g.generation_id) "
-            "AND NOT EXISTS(SELECT 1 FROM derivation_building b "
-            "WHERE b.generation_id=g.generation_id)",
+            (
+                "SELECT COUNT(*) AS _value_0 FROM derivation_generations AS g WHERE g.generation_id > %s AND (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(g.created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_evicted AS e WHERE e.generation_id = g.generation_id) AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_scopes AS s WHERE s.materialized_generation_id = g.generation_id) AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_building AS b WHERE b.generation_id = g.generation_id)"
+            ),
             (after, cutoff),
         ).fetchone()[0]
     )
@@ -1550,8 +1503,8 @@ def _pack_bodies_tick(
     before = body_packs.cutoff(now)
     state_dir = Path(store.state_dir)
     try:
-        with sqlite_temp_directory(conn, state_dir):
-            conn.execute("BEGIN")
+        with temporary_directory(conn, state_dir):
+            conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
             try:
                 sources, builds = retained(conn, state_dir)
                 body_packs.protect_sources(conn, before=before, candidates=sources)
@@ -1569,9 +1522,11 @@ def _pack_bodies_tick(
                     for generation_id, packed in body_packs.label_targets(conn)
                     if not packed
                 ]
-                conn.execute("COMMIT")
+                conn.commit()
             except BaseException:
-                conn.execute("ROLLBACK")
+                if not conn.closed:
+                    with contextlib.suppress(engine.Error):
+                        conn.rollback()
                 raise
             finally:
                 body_packs.drop_temporary(conn)
@@ -1580,7 +1535,8 @@ def _pack_bodies_tick(
         # is `[storage-failed]` and the guard is `[guard-expired]` after a day.
         unpacked = int(
             conn.execute(
-                "SELECT count(*) FROM source_generations WHERE result_json<>?", (objects.STUB,)
+                "SELECT COUNT(*) AS _value_0 FROM source_generations WHERE result_json <> %s",
+                (objects.STUB,),
             ).fetchone()[0]
         )
         with database.transaction() as write_txn:

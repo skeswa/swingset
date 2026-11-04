@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
 from collections.abc import Collection
 from datetime import date
 from typing import Any
 
 from swingset.history.catalog import CALENDAR_PATHS, Target
 from swingset.sources import get_page_kind
+from swingset.state import engine
 from swingset.state.findings import Finding, replace_findings
 
 NEWSLETTER_ISSUE_RE = re.compile(r"/uploads/(20\d\d)/\d\d/")
@@ -39,7 +39,7 @@ def affected_years(target: Target, final_year: int) -> set[int]:
 
 
 def year_gaps(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     targets: tuple[Target, ...],
     ledger: dict[str, dict[str, Any]],
     *,
@@ -53,7 +53,8 @@ def year_gaps(
     warnings: dict[str, list[dict[str, Any]]] = {}
     reviewed: set[str] = set()
     for row in conn.execute(
-        "SELECT snapshot_id,summary,evidence_json,kind,subject_id FROM findings WHERE closed_at IS NULL AND owner_kind IN ('parse','parse_failure','phase1_capture')"
+        "SELECT snapshot_id, summary, evidence_json, kind, subject_id FROM findings WHERE closed_at "
+        "IS NULL AND owner_kind IN ('parse', 'parse_failure', 'phase1_capture')"
     ):
         if (str(row[3]), str(row[4])) in dismissed:
             # A reviewer looked at this warning and found it does not affect
@@ -68,7 +69,7 @@ def year_gaps(
         notes = list(warnings.get(str(receipt.get("snapshot_id")), []))
         if receipt["status"] in {"parsed", "empty", "duplicate"}:
             parsed = conn.execute(
-                "SELECT parser_version FROM snapshots WHERE snapshot_id=?",
+                "SELECT parser_version FROM snapshots WHERE snapshot_id = %s",
                 (receipt.get("snapshot_id"),),
             ).fetchone()
             if parsed is None or str(parsed[0]) != str(get_page_kind(target.parser).PARSER_VERSION):
@@ -93,7 +94,9 @@ def year_gaps(
             # Printed years in diagnostic rows can identify later editions in a
             # long horizon; a malformed year never narrows the capture horizon.
             for row in conn.execute(
-                "SELECT DISTINCT substr(json_extract(payload_json,'$.end_date_raw'),1,4) FROM observations WHERE snapshot_id=? AND kind='calendar_row'",
+                (
+                    "SELECT DISTINCT SUBSTRING(JSON_EXTRACT_PATH_TEXT(CAST(payload_json AS JSON), 'end_date_raw') FROM 1 FOR 4) AS _value_0 FROM observations WHERE snapshot_id = %s AND kind = 'calendar_row'"
+                ),
                 (receipt.get("snapshot_id"),),
             ):
                 if row[0] and str(row[0]).isdigit():
@@ -105,7 +108,7 @@ def year_gaps(
             ]
             relevant.update(
                 int(year)
-                for year in re.findall(r"(?<!\d)(20\d{2})(?!\d)", json.dumps(printed))
+                for year in re.findall("(%s<!\\d)(20\\d{2})(%s!\\d)", json.dumps(printed))
                 if history_start.year <= int(year) <= final_year
             )
         gap = {
@@ -124,7 +127,10 @@ def year_gaps(
         completed = {
             str(row[0])
             for row in conn.execute(
-                "SELECT prefix FROM archive_queries WHERE source='wsdc_calendar' AND year=? AND completed_at IS NOT NULL",
+                (
+                    "SELECT prefix FROM archive_queries WHERE source = 'wsdc_calendar' AND year = %s AND NOT "
+                    "completed_at IS NULL"
+                ),
                 (year,),
             )
         }
@@ -141,7 +147,7 @@ def year_gaps(
 
 
 def synchronize_year_findings(
-    conn: sqlite3.Connection, gaps: dict[int, list[dict[str, Any]]], *, now: str, run_id: str
+    conn: engine.Connection, gaps: dict[int, list[dict[str, Any]]], *, now: str, run_id: str
 ) -> None:
     for year, pending in gaps.items():
         findings = (

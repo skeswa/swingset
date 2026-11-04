@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import shutil
-import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -12,7 +11,7 @@ import pytest
 from helpers.loop_ticks import ACCEPTED_FIRST, run_round
 
 from swingset.clock import FakeClock
-from swingset.state import guards
+from swingset.state import engine, guards
 from swingset.state.db import open_database
 
 AT = "2026-09-25T00:00:00Z"
@@ -46,11 +45,13 @@ def test_guard_rows_round_trip_and_count_by_reason(tmp_path: Path) -> None:
 
 def test_a_guard_needs_its_expiry(tmp_path: Path) -> None:
     with open_database(tmp_path / "state", lock=False) as database:
-        with pytest.raises(sqlite3.IntegrityError, match="NOT NULL"):
+        with pytest.raises(engine.IntegrityError, match="SQLSTATE 23502"):
             with database.transaction() as conn:
                 conn.execute(
-                    "INSERT INTO guard_reasons(subject,reason,loop,since,last_seen_at) "
-                    "VALUES ('loop:derive','publication_in_flight','derive',?,?)",
+                    (
+                        "INSERT INTO guard_reasons (subject, reason, loop, since, last_seen_at) VALUES "
+                        "('loop:derive', 'publication_in_flight', 'derive', %s, %s)"
+                    ),
                     (AT, AT),
                 )
 
@@ -98,8 +99,8 @@ def test_a_host_pause_expires_an_hour_after_it_ends(tmp_path: Path) -> None:
         )
         with database.transaction():
             conn.execute(
-                "INSERT INTO hosts(host,paused_until,pause_reason) VALUES "
-                "('a.test','2026-09-26T03:00:00+00:00','Blocked')"
+                "INSERT INTO hosts (host, paused_until, pause_reason) VALUES ('a.test', "
+                "'2026-09-26T03:00:00+00:00', 'Blocked')"
             )
         for reason in ("Throttled", "ServerError", "Blocked"):
             assert guards.rule(reason) == guards.Rule("host")
@@ -113,8 +114,8 @@ def test_an_operator_guard_expires_with_its_pause(tmp_path: Path) -> None:
         conn = database.connection
         with database.transaction():
             conn.execute(
-                "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason) VALUES "
-                "('host','a.test','2026-09-29T00:00:00+00:00','maintenance')"
+                "INSERT INTO operator_pauses (scope_kind, scope_id, until_at, reason) VALUES ('host', "
+                "'a.test', '2026-09-29T00:00:00+00:00', 'maintenance')"
             )
         end = datetime(2026, 9, 29, tzinfo=UTC)
         assert guards.expires_at(conn, "host:a.test", "operator", SINCE, now=SINCE) == end
@@ -124,8 +125,7 @@ def test_an_operator_guard_expires_with_its_pause(tmp_path: Path) -> None:
         ) == datetime(2026, 9, 26, tzinfo=UTC)
         with database.transaction():
             conn.execute(
-                "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason) VALUES "
-                "('all','all',NULL,'hold')"
+                "INSERT INTO operator_pauses (scope_kind, scope_id, until_at, reason) VALUES ('all', 'all', NULL, 'hold')"
             )
         assert guards.expires_at(conn, "host:a.test", "operator", SINCE, now=SINCE) == (
             SINCE + timedelta(hours=48)
@@ -310,7 +310,9 @@ def test_the_acquire_tick_records_and_clears_guards(tmp_path: Path) -> None:
     with open_database(tmp_path / "state") as database:
         with database.transaction() as conn:
             # Budget spent on an earlier day with no spacing row (D-0190).
-            conn.execute("INSERT INTO host_budget VALUES ('worldsdc.com','2025-12-31',1,0)")
+            conn.execute(
+                "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('worldsdc.com', '2025-12-31', 1, 0)"
+            )
         held = run_round(
             database,
             config_dir=config,
@@ -326,7 +328,7 @@ def test_the_acquire_tick_records_and_clears_guards(tmp_path: Path) -> None:
         assert row is not None and row.loop == "acquire"
         assert row.expires_at == guards.at(clock.now() + timedelta(hours=1))
         with database.transaction() as conn:
-            conn.execute("DELETE FROM host_budget WHERE day='2025-12-31'")
+            conn.execute("DELETE FROM host_budget WHERE day = '2025-12-31'")
         clock.sleep(60)
         cleared = run_round(
             database, config_dir=config, overrides_dir=overrides, clock=clock, transport=transport

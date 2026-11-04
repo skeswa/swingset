@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import gzip
-import hashlib
 import json
-import sqlite3
 import zlib
-from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -53,7 +50,8 @@ class LocalCheckpointRecovery:
                 manifest = json.loads(manifest_body)
                 # A checkpoint without this exact artifact cannot restore it and
                 # need not spend time validating its unrelated file closure.
-                if relative.as_posix() not in manifest["files"]:
+                key_name = "database/files/" + relative.as_posix()
+                if key_name not in manifest["files"]:
                     continue
                 key = checkpoint, manifest_hash
                 if key not in self._qualified:
@@ -61,9 +59,9 @@ class LocalCheckpointRecovery:
                     self._qualified[key] = manifest
                 else:
                     manifest = self._qualified[key]
-                path = self._contained(checkpoint, relative.as_posix())
+                path = self._contained(checkpoint, key_name)
                 body = path.read_bytes()
-                self._physical(body, manifest["files"][relative.as_posix()])
+                self._physical(body, manifest["files"][key_name])
                 decoded = gzip.decompress(body) if kind == "body" else body
                 if digest(decoded) != sha256:
                     raise ValueError("artifact logical digest does not match requested history")
@@ -86,7 +84,6 @@ class LocalCheckpointRecovery:
                 TypeError,
                 EOFError,
                 zlib.error,
-                sqlite3.Error,
             ) as exc:
                 failures.append({"checkpoint": str(checkpoint), "reason": str(exc)})
         raise ArtifactUnavailable(
@@ -113,59 +110,11 @@ class LocalCheckpointRecovery:
             raise ValueError("checkpoint file size or digest does not match its manifest")
 
     def _qualify(self, root: Path, manifest: dict[str, Any]) -> None:
-        if (
-            manifest.get("format") != 1
-            or type(manifest.get("schema_version")) is not int
-            or not 1 <= manifest["schema_version"] <= self.maximum_schema_version
-        ):
-            raise ValueError("unsupported checkpoint format or schema")
-        expected = manifest["files"]
-        actual = {
-            path.relative_to(root).as_posix()
-            for path in root.rglob("*")
-            if path.is_file() and path != root / "checkpoint.json"
-        }
-        if actual != set(expected):
-            raise ValueError("checkpoint file closure differs from its manifest")
-        for relative, record in expected.items():
-            path = self._contained(root, relative)
-            # Stream large databases and published tables; only the requested
-            # artifact is subsequently materialized for decompression/JSON.
-            if (
-                not isinstance(record, dict)
-                or set(record) != {"size", "sha256"}
-                or type(record["size"]) is not int
-                or path.stat().st_size != record["size"]
-            ):
-                raise ValueError("checkpoint file size differs from its manifest")
-            with path.open("rb") as stream:
-                if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
-                    raise ValueError("checkpoint file digest differs from its manifest")
-        database = self._contained(root, "state.sqlite")
-        with closing(sqlite3.connect(database.as_uri() + "?mode=ro&immutable=1", uri=True)) as conn:
-            schema = conn.execute("PRAGMA user_version").fetchone()[0]
-            metadata = conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-            if (
-                schema != manifest["schema_version"]
-                or metadata is None
-                or int(metadata[0]) != schema
-            ):
-                raise ValueError("checkpoint declared schema differs from its actual database")
-            if (
-                conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok"
-                or conn.execute("PRAGMA foreign_key_check").fetchone()
-            ):
-                raise ValueError("checkpoint database integrity failure")
-            from swingset.state.retention import RetentionError, artifact_closure
+        from swingset.backup.checkpoint import CheckpointError, verify_checkpoint
 
-            candidates = set()
-            for field in ("baseline_candidate", "pending_candidate"):
-                if identifier := manifest.get(field):
-                    candidate = self._contained(root, f"candidates/{identifier}")
-                    if not (candidate / "BUILT").is_file():
-                        raise ValueError("checkpoint candidate is incomplete")
-                    candidates.add(candidate)
-            try:
-                artifact_closure(root, conn, candidates)
-            except RetentionError as exc:
-                raise ValueError(str(exc)) from exc
+        try:
+            verified = verify_checkpoint(root, maximum_schema_version=self.maximum_schema_version)
+        except CheckpointError as error:
+            raise ValueError(str(error)) from error
+        if verified != manifest:
+            raise ValueError("checkpoint manifest changed during qualification")

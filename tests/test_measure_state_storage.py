@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -11,14 +12,36 @@ from pathlib import Path
 
 import pytest
 
-from swingset.backup.checkpoint import create_checkpoint, verify_checkpoint
-from swingset.state.db import SCHEMA_VERSION, open_database
-
 MODULE_PATH = Path("journal/tools/runtime/measure_state_storage.py")
 SPEC = importlib.util.spec_from_file_location("measure_state_storage", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MEASURE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MEASURE)
+
+LEGACY = MEASURE.legacy_checkpoint()
+create_checkpoint, verify_checkpoint = LEGACY.create_checkpoint, LEGACY.verify_checkpoint
+SCHEMA_VERSION = 37
+
+
+@contextlib.contextmanager
+def open_database(directory: Path):
+    """An explicitly frozen SQLite fixture; never the runtime state opener."""
+    from types import SimpleNamespace
+
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "state.sqlite"
+    fresh = not path.exists()
+    connection = sqlite3.connect(path)
+    if fresh:
+        connection.executescript(Path("tests/fixtures/postgres/schema37.sql").read_text())
+        connection.execute("PRAGMA user_version=37")
+    connection.execute("PRAGMA foreign_keys=ON")
+    try:
+        yield SimpleNamespace(connection=connection, transaction=lambda: connection)
+        connection.commit()
+    finally:
+        connection.close()
+
 
 NOW = "2026-09-18T00:00:00+00:00"
 # Two payload bodies shared across six rows make the distinct-to-total ratio 2/6.

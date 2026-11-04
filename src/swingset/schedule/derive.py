@@ -1,6 +1,5 @@
 """One isolated derivation with durable evidence and atomic attempt completion."""
 
-import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
@@ -9,7 +8,7 @@ from swingset import cutoff
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive, ArtifactUnavailable
 from swingset.schedule.parse import parse_snapshot
-from swingset.state import queue
+from swingset.state import engine, queue
 from swingset.state.attempts import (
     Attempt,
     Outcome,
@@ -94,11 +93,13 @@ def _same_error(
     return replace(failure, counted=False, repeat=True)
 
 
-def _parse_error(conn: sqlite3.Connection, snapshot_id: str) -> str | None:
+def _parse_error(conn: engine.Connection, snapshot_id: str) -> str | None:
     """The message of the snapshot's open parse failure, which `parse_snapshot` wrote."""
     row = conn.execute(
-        "SELECT summary FROM findings WHERE snapshot_id=? AND owner_kind='parse_failure' "
-        "AND closed_at IS NULL ORDER BY opened_at DESC LIMIT 1",
+        (
+            "SELECT summary FROM findings WHERE snapshot_id = %s AND owner_kind = 'parse_failure' AND "
+            "closed_at IS NULL ORDER BY opened_at DESC NULLS LAST LIMIT 1"
+        ),
         (snapshot_id,),
     ).fetchone()
     return str(row[0]) if row is not None and row[0] else None
@@ -143,7 +144,7 @@ def _failed(
 
 def _fenced(exc: BaseException) -> bool:
     """A write that met an active publication's fence (state/publication_fence)."""
-    return isinstance(exc, sqlite3.DatabaseError) and "active publication fences" in str(exc)
+    return isinstance(exc, engine.DatabaseError) and "active publication fences" in str(exc)
 
 
 def _close_fenced(database: Database, attempt: Attempt, clock: Clock, reason: str) -> None:
@@ -168,14 +169,13 @@ def _close_fenced(database: Database, attempt: Attempt, clock: Clock, reason: st
                 now=clock.now(),
                 retry_at=max(failure.next_attempt_at, clock.now() + queue.DEFAULT.takeover_retry),
             )
-    except (sqlite3.Error, WriteDeadlineExceeded, ValueError):
+    except (engine.Error, WriteDeadlineExceeded, ValueError):
         pass
 
 
 def _locked(exc: BaseException) -> bool:
-    """`BEGIN IMMEDIATE` or a write outwaited the busy timeout behind another process."""
-    message = str(exc).lower()
-    return isinstance(exc, sqlite3.OperationalError) and ("locked" in message or "busy" in message)
+    """The Postgres writer or row lock exceeded its configured deadline."""
+    return isinstance(exc, engine.LockTimeout)
 
 
 def _admission_failed(
@@ -190,6 +190,9 @@ def _admission_failed(
     """
     from swingset.state.work_fingerprints import input_fingerprint
 
+    reason = (
+        "write_deadline_exceeded" if isinstance(exc, WriteDeadlineExceeded) else "unit_exception"
+    )
     try:
         fingerprint: str | None = input_fingerprint(database.connection, unit)
     except Exception:
@@ -199,7 +202,7 @@ def _admission_failed(
             failure = queue.fail(
                 conn,
                 unit,
-                reason="unit_exception",
+                reason=reason,
                 fingerprint=fingerprint,
                 now=clock.now(),
                 exception=type(exc).__name__,
@@ -211,7 +214,7 @@ def _admission_failed(
         if _locked(recorded):
             return DerivationOutcome(reason=queue.LOCK_REASON)
         raise
-    return DerivationOutcome(failed=True, reason="unit_exception", quarantined=failure.quarantined)
+    return DerivationOutcome(failed=True, reason=reason, quarantined=failure.quarantined)
 
 
 def derive_one(
@@ -222,7 +225,7 @@ def derive_one(
     clock: Clock,
     run_id: str,
     *,
-    on_admit: Callable[[sqlite3.Connection], None] | None = None,
+    on_admit: Callable[[engine.Connection], None] | None = None,
 ) -> DerivationOutcome:
     """Derive one unit: lease and admit it, run it, and record its outcome.
 
@@ -231,10 +234,10 @@ def derive_one(
     a unit that kills its process does not keep its group first).
 
     The admission writes no ledger row and takes no control lock (D-0238):
-    one `BEGIN IMMEDIATE` checks the unit's pauses, captures its inputs and
-    begins its attempt. A pause commits with `BEGIN IMMEDIATE` on the same
-    database, so it either lands first and holds the unit, or lands after
-    and sees the lease as draining.
+    one transaction takes writer lock C before it checks the unit's pauses,
+    captures its inputs and begins its attempt. A pause takes the same writer
+    lock, so it either lands first and holds the unit, or lands after and sees
+    the lease as draining.
 
     Outcomes that admitted nothing carry only a reason: `operator_pause`,
     `lease_busy`, `publication_fenced` and `write_lock_timeout` (the unit
@@ -273,7 +276,7 @@ def derive_one(
         try:
             with database.transaction() as write:
                 queue.release(write, unit, clock.now())
-        except (sqlite3.Error, WriteDeadlineExceeded):
+        except (engine.Error, WriteDeadlineExceeded):
             pass
         return DerivationOutcome(reason=reason)
 
@@ -286,7 +289,9 @@ def derive_one(
         # pause that appeared in between gets its scope read there (I2).
         scope = (
             for_unit(database.connection, unit)
-            if database.connection.execute("SELECT 1 FROM operator_pauses LIMIT 1").fetchone()
+            if database.connection.execute(
+                "SELECT 1 AS _value_0 FROM operator_pauses LIMIT 1"
+            ).fetchone()
             else None
         )
         with database.transaction() as conn:
@@ -294,7 +299,7 @@ def derive_one(
                 matching_pauses(
                     conn, scope if scope is not None else for_unit(conn, unit), now=clock.now()
                 )
-                if conn.execute("SELECT 1 FROM operator_pauses LIMIT 1").fetchone()
+                if conn.execute("SELECT 1 AS _value_0 FROM operator_pauses LIMIT 1").fetchone()
                 else []
             )
             if pauses:
@@ -326,7 +331,7 @@ def derive_one(
         return _admission_failed(database, unit, clock, exc)
     source_row = (
         database.connection.execute(
-            "SELECT w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=?",
+            "SELECT w.source FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE s.snapshot_id = %s",
             (unit.unit_id,),
         ).fetchone()
         if unit.stage == "parse"
@@ -335,7 +340,7 @@ def derive_one(
     source = str(source_row[0]) if source_row else None
     from swingset.state import derivations
 
-    def succeeded(conn: sqlite3.Connection) -> None:
+    def succeeded(conn: engine.Connection) -> None:
         finish_attempt(
             database,
             attempt,
@@ -354,7 +359,7 @@ def derive_one(
             ):
                 with database.transaction() as conn:
                     queued = conn.execute(
-                        "SELECT enqueued_at FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                        "SELECT enqueued_at FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
                         (unit.stage, unit.unit_kind, unit.unit_id),
                     ).fetchone()
                     if unit.stage == "parse":
@@ -410,8 +415,10 @@ def derive_one(
                         # Step A of a staged completion (WP4): the unit is not done
                         # until step C, so its hint stays until then.
                         conn.execute(
-                            "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
-                            "VALUES (?,?,?,?)",
+                            (
+                                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES (%s, %s, %s, %s) "
+                                "ON CONFLICT DO NOTHING"
+                            ),
                             (unit.stage, unit.unit_kind, unit.unit_id, queued[0]),
                         )
                 if chunk.deferred is not None:
@@ -423,7 +430,7 @@ def derive_one(
                 # is settled (I6). Housekeeping; a failure is retried next run.
                 try:
                     derivations.collect_orphans(database, unit, keep=None)
-                except (sqlite3.Error, WriteDeadlineExceeded):
+                except (engine.Error, WriteDeadlineExceeded):
                     pass
             return DerivationOutcome(source)
         except ArtifactUnavailable as exc:

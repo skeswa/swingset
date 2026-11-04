@@ -32,6 +32,18 @@ do not assume the script can recreate it from this checkout alone.
 
 [Artifact formats](../../evidence/formats.md) describe the columns and limitations.
 
+Current state reports use the configured Postgres database and one read-only
+snapshot. The origin-candidates tool requires a development copy and takes
+its native state lock. Live event-site requests obey the stored environment
+guard; development databases allow fixture transports.
+
+Phase-one bootstrap uses the ordinary Postgres owner restore job, including
+public-head verification and the cache rebuild gate. Configure a fresh target
+database and its private credentials first; the default identity is `dev`.
+The command accepts `--environment production` for an explicitly operated
+production restore. It no longer copies a SQLite file. See the
+[restore guide](../../../docs/guides/backup-and-restore.md).
+
 ## Event-site review
 
 `python -m journal.tools.collection.event_site_review --state <copy>
@@ -44,7 +56,7 @@ parser, then copy the line into `overrides/source_urls.csv`. Rules:
 
 ## Event-site links
 
-`python -m journal.tools.collection.event_site_links --state <db or copy>
+`python -m journal.tools.collection.event_site_links --state <state or copy>
 [--from 2026-01-01] [--to <today>] [--event <id> ...] [--limit 20] [--pages 2]
 [--gap 5] [--max-requests 20] [--overrides overrides/source_urls.csv]
 [--out file.jsonl] [--list]` picks held `wsdc-*` events with a calendar

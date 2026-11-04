@@ -1,19 +1,22 @@
 """Per-contract activation requires an externally reviewed frozen corpus."""
 
 import json
-import sqlite3
 from pathlib import Path
 
 from swingset.fetch.archive import canonical, digest
+from swingset.state import engine
 
 
-def corpus_digest(conn: sqlite3.Connection, generation_ids: tuple[str, ...]) -> str:
+def corpus_digest(conn: engine.Connection, generation_ids: tuple[str, ...]) -> str:
     if not generation_ids or len(set(generation_ids)) != len(generation_ids):
         raise ValueError("Review requires a nonempty, unique generation cohort")
     rows = []
     for identifier in sorted(generation_ids):
         row = conn.execute(
-            "SELECT generation_id,page_kind,contract_version,input_fingerprint,report_json FROM source_generations WHERE generation_id=?",
+            (
+                "SELECT generation_id, page_kind, contract_version, input_fingerprint, report_json FROM "
+                "source_generations WHERE generation_id = %s"
+            ),
             (identifier,),
         ).fetchone()
         if row is None:
@@ -23,7 +26,7 @@ def corpus_digest(conn: sqlite3.Connection, generation_ids: tuple[str, ...]) -> 
 
 
 def record_review(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_ids: tuple[str, ...],
     *,
     reviewer: str,
@@ -38,7 +41,7 @@ def record_review(
     passing = False
     for identifier in generation_ids:
         row = conn.execute(
-            "SELECT page_kind,contract_version,report_json FROM source_generations WHERE generation_id=?",
+            "SELECT page_kind, contract_version, report_json FROM source_generations WHERE generation_id = %s",
             (identifier,),
         ).fetchone()
         contracts.add((row[0], row[1]))
@@ -57,7 +60,9 @@ def record_review(
     if version == "unassessed":
         raise ValueError("Unassessed contracts cannot be activated")
     conn.execute(
-        "INSERT INTO admission_reviews(report_digest,page_kind,contract_version,cohort_json,reviewer,reviewed_at,evidence) VALUES (?,?,?,?,?,?,?) ON CONFLICT(report_digest) DO NOTHING",
+        (
+            "INSERT INTO admission_reviews (report_digest, page_kind, contract_version, cohort_json, reviewer, reviewed_at, evidence) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT(report_digest) DO NOTHING"
+        ),
         (
             report_digest,
             page_kind,
@@ -72,7 +77,7 @@ def record_review(
 
 
 def record_corpus_review(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     directory: Path,
     page_kind: str,
     *,
@@ -116,7 +121,9 @@ def record_corpus_review(
     }
     report_digest = digest(canonical(cohort))
     conn.execute(
-        "INSERT INTO admission_reviews(report_digest,page_kind,contract_version,cohort_json,reviewer,reviewed_at,evidence) VALUES (?,?,?,?,?,?,?) ON CONFLICT(report_digest) DO NOTHING",
+        (
+            "INSERT INTO admission_reviews (report_digest, page_kind, contract_version, cohort_json, reviewer, reviewed_at, evidence) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT(report_digest) DO NOTHING"
+        ),
         (
             report_digest,
             page_kind,
@@ -130,9 +137,14 @@ def record_corpus_review(
     return report_digest
 
 
-def activate_contract(conn: sqlite3.Connection, page_kind: str, reviewed_digest: str) -> None:
+def activate_contract(conn: engine.Connection, page_kind: str, reviewed_digest: str) -> None:
     review = conn.execute(
-        "SELECT * FROM admission_reviews WHERE report_digest=? AND page_kind=?",
+        (
+            "SELECT admission_reviews.report_digest, admission_reviews.page_kind, "
+            "admission_reviews.contract_version, admission_reviews.cohort_json, "
+            "admission_reviews.reviewer, admission_reviews.reviewed_at, admission_reviews.evidence FROM "
+            "admission_reviews WHERE report_digest = %s AND page_kind = %s"
+        ),
         (reviewed_digest, page_kind),
     ).fetchone()
     if review is None:
@@ -146,7 +158,9 @@ def activate_contract(conn: sqlite3.Connection, page_kind: str, reviewed_digest:
     if actual != reviewed_digest:
         raise ValueError("Reviewed corpus changed")
     conn.execute(
-        "INSERT INTO admission_policies(page_kind,contract_version,mode,policy_revision,reviewed_report_digest,reviewed_by,reviewed_at) VALUES (?,?,'enforce',?,?,?,?) ON CONFLICT(page_kind) DO UPDATE SET contract_version=excluded.contract_version,mode='enforce',policy_revision=excluded.policy_revision,reviewed_report_digest=excluded.reviewed_report_digest,reviewed_by=excluded.reviewed_by,reviewed_at=excluded.reviewed_at",
+        (
+            "INSERT INTO admission_policies (page_kind, contract_version, mode, policy_revision, reviewed_report_digest, reviewed_by, reviewed_at) VALUES (%s, %s, 'enforce', %s, %s, %s, %s) ON CONFLICT(page_kind) DO UPDATE SET contract_version = excluded.contract_version, mode = 'enforce', policy_revision = excluded.policy_revision, reviewed_report_digest = excluded.reviewed_report_digest, reviewed_by = excluded.reviewed_by, reviewed_at = excluded.reviewed_at"
+        ),
         (
             page_kind,
             review["contract_version"],
@@ -159,10 +173,12 @@ def activate_contract(conn: sqlite3.Connection, page_kind: str, reviewed_digest:
     # Activation replays retained evidence only. Existing newer work tokens
     # survive, and no watch/fetch schedule is changed.
     conn.execute(
-        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) SELECT 'parse','snapshot',s.snapshot_id,? FROM snapshots s JOIN watches w USING(watch_id) WHERE w.parser=? AND s.body_sha256 IS NOT NULL ON CONFLICT(stage,unit_kind,unit_id) DO NOTHING",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) SELECT 'parse', 'snapshot', s.snapshot_id, %s FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE w.parser = %s AND NOT s.body_sha256 IS NULL ON CONFLICT(stage, unit_kind, unit_id) DO NOTHING"
+        ),
         (review["reviewed_at"], page_kind),
     )
 
 
-def pause_contract(conn: sqlite3.Connection, page_kind: str) -> None:
-    conn.execute("UPDATE admission_policies SET mode='paused' WHERE page_kind=?", (page_kind,))
+def pause_contract(conn: engine.Connection, page_kind: str) -> None:
+    conn.execute("UPDATE admission_policies SET mode = 'paused' WHERE page_kind = %s", (page_kind,))

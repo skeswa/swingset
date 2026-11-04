@@ -1,10 +1,8 @@
 """Pressure hints gate new event entry without granting acquisition authority."""
 
 import json
-import sqlite3
 from dataclasses import replace
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from test_event_enumerations import admit_parent, child, finish_bootstrap, view
@@ -25,7 +23,15 @@ from swingset.schedule import event_pressure_refresh as worker
 from swingset.schedule.fair_policy import SchedulerConfig
 from swingset.schedule.fairness import next_delay, next_watch, prepare_event_turns
 from swingset.schedule.watches import upsert_watch
-from swingset.state.db import SCHEMA_VERSION
+from swingset.state import engine
+from swingset.state.db import SCHEMA_VERSION, open_database
+from swingset.state.environment import FixtureIO
+from swingset.state.postgres_schema import semantic_columns
+
+
+class EmptyHub(FixtureIO):
+    def head(self):
+        return None
 
 
 def config(**settings):
@@ -96,9 +102,9 @@ def test_unfetched_indexes_never_create_initial_admission_deadlock(event):
         sweep=False,
     )
     assert isinstance(grant, Grant)
-    row = f.conn.execute("SELECT source_ref,start_basis FROM event_pressure_subjects").fetchone()
+    row = f.conn.execute("SELECT source_ref, start_basis FROM event_pressure_subjects").fetchone()
     assert tuple(row) == ("eepro:0", "issued_request")
-    assert f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 1
+    assert f.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 1
 
 
 def test_pressure_stage_off_opens_the_gate_and_writes_nothing(event):
@@ -130,7 +136,12 @@ def test_pressure_stage_off_opens_the_gate_and_writes_nothing(event):
 
     def tables():
         return {
-            table: sorted(tuple(row) for row in f.conn.execute(f"SELECT * FROM {table}"))
+            table: sorted(
+                tuple(row)
+                for row in f.conn.execute(
+                    f"SELECT {','.join(semantic_columns(table))} FROM {table}"
+                )
+            )
             for table in (
                 "event_pressure_dirty",
                 "event_pressure_subjects",
@@ -179,6 +190,11 @@ def test_restore_invalidates_observations_before_activation(
     from swingset.state.controls import ActionScope, admission
 
     f, policy = event, config()
+    from test_event_completion_restore import retain_configuration
+
+    retain_configuration(
+        f, f.db.state_dir.parent / (f.db.state_dir.name + "-inputs"), pressure=True
+    )
     settled(f, policy)
     refresh(f, policy)
     assert gate(f, policy)["states"] == {"locally_accounted": 1}
@@ -192,6 +208,9 @@ def test_restore_invalidates_observations_before_activation(
         ):
             pass
     durable_rows = evidence_rows(f.conn)
+    durable_rows["cursors"] = [
+        row for row in durable_rows["cursors"] if row[0] != "event_pressure_inventory_after"
+    ]
     saved = create_checkpoint(
         f.db.state_dir,
         f.conn,
@@ -200,10 +219,10 @@ def test_restore_invalidates_observations_before_activation(
         versions={},
         input_bundle_hash=None,
     )
-    checkpoint_hash = sha256_file(saved.path / "state.sqlite")
+    checkpoint_hash = sha256_file(saved.path / "database" / "history.json")
     restored = f.db.state_dir / "restored"
     restore_checkpoint(saved.path, restored, maximum_schema_version=SCHEMA_VERSION)
-    verify_restored_public(restored, SimpleNamespace(head=lambda: None))
+    verify_restored_public(restored, EmptyHub())
     marker = restored / "RESTORE_PENDING"
     if interrupted:
         unlink = Path.unlink
@@ -216,25 +235,38 @@ def test_restore_invalidates_observations_before_activation(
         with monkeypatch.context() as patch:
             patch.setattr(Path, "unlink", fail_barrier_removal)
             with pytest.raises(OSError, match="interrupted activation"):
-                activate_restored_state(restored)
+                activate_restored_state(restored, clock=f.corpus.clock)
         assert marker.is_file()
-    activate_restored_state(restored)
+    activate_restored_state(restored, clock=f.corpus.clock)
     assert not marker.exists()
-    with sqlite3.connect(restored / "state.sqlite") as conn:
-        conn.row_factory = sqlite3.Row
-        assert pressure.admission(conn, policy, host="eepro.com", now=f.corpus.clock.now())[
-            "states"
-        ] == {"changed": 1}
+    with engine.connect(engine.resolve_dsn(restored), read_only=True) as conn:
+        gate_after_restore = pressure.admission(
+            conn, policy, host="eepro.com", now=f.corpus.clock.now()
+        )
+        assert gate_after_restore["states"] == {}
+        assert gate_after_restore["metadata_pending"] and gate_after_restore["deferred"]
         restored_rows = evidence_rows(conn)
+        restored_rows["cursors"] = [
+            row for row in restored_rows["cursors"] if row[0] != "event_pressure_inventory_after"
+        ]
         if publication:
             assert tuple(
                 conn.execute(
-                    "SELECT state,outcome FROM execution_admissions WHERE action_id='interrupted-publication'"
+                    "SELECT state, outcome FROM execution_admissions WHERE action_id = 'interrupted-publication'"
                 ).fetchone()
             ) == ("uncertain", "receipt_reconciliation_required")
             del restored_rows["execution_admissions"], durable_rows["execution_admissions"]
         assert restored_rows == durable_rows
-    assert sha256_file(saved.path / "state.sqlite") == checkpoint_hash
+    with open_database(restored) as database:
+        for _ in range(10):
+            batch = pressure.bootstrap(database, policy, now=f.corpus.clock.now())
+            if not batch["metadata_pending"]:
+                break
+        assert not batch["metadata_pending"]
+        assert pressure.admission(
+            database.connection, policy, host="eepro.com", now=f.corpus.clock.now()
+        )["states"] == {"unknown": 1}
+    assert sha256_file(saved.path / "database" / "history.json") == checkpoint_hash
     assert gate(f, policy)["states"] == {"locally_accounted": 1}
 
 
@@ -250,7 +282,7 @@ def test_pressure_keeps_continuations_and_borrowing_but_excludes_new_indexes(eve
     upsert_watch(f.conn, essential, f.corpus.clock.now())
     # Block all listed results, leaving eligible discovery to borrow their share.
     f.conn.execute(
-        "UPDATE watches SET paused_until='2099-01-01T00:00:00+00:00' WHERE parser='eepro.round'"
+        "UPDATE watches SET paused_until = '2099-01-01T00:00:00+00:00' WHERE parser = 'eepro.round'"
     )
     selected_ids = {newcomer.watch_id, continuation.watch_id, essential.watch_id}
     excluded = {row[0] for row in f.conn.execute("SELECT watch_id FROM watches")} - selected_ids
@@ -315,7 +347,7 @@ def test_admitted_unfetched_index_alone_cannot_bypass_expansion(event):
     f, policy = event, config()
     cohort(f, policy)
     parent = replace(f.parent, source_ref=None)
-    f.conn.execute("UPDATE watches SET source_ref=NULL WHERE watch_id=?", (parent.watch_id,))
+    f.conn.execute("UPDATE watches SET source_ref = NULL WHERE watch_id = %s", (parent.watch_id,))
 
     def index_only(result):
         return replace(
@@ -334,13 +366,13 @@ def test_admitted_unfetched_index_alone_cannot_bypass_expansion(event):
     finish_bootstrap(f)
     enroll(f, policy)
     newcomer = f.conn.execute(
-        "SELECT watch_id FROM watches WHERE source_ref='eepro:new-index'"
+        "SELECT watch_id FROM watches WHERE source_ref = 'eepro:new-index'"
     ).fetchone()[0]
     assert f.conn.execute(
-        "SELECT 1 FROM source_event_inventory WHERE source_ref='eepro:new-index' AND enumeration_id IS NOT NULL"
+        "SELECT 1 FROM source_event_inventory WHERE source_ref = 'eepro:new-index' AND NOT enumeration_id IS NULL"
     ).fetchone()
     assert not f.conn.execute(
-        "SELECT 1 FROM event_pressure_subjects WHERE source_ref='eepro:new-index'"
+        "SELECT 1 FROM event_pressure_subjects WHERE source_ref = 'eepro:new-index'"
     ).fetchone()
     assert gate(f, policy)["deferred"]
     assert (
@@ -390,36 +422,51 @@ def test_changed_inputs_invalidate_even_when_enumeration_does_not_change(event, 
     original_enum = view(f)["enumeration_id"]
     if change == "snapshot":
         f.conn.execute(
-            "UPDATE snapshots SET body_sha256=? WHERE snapshot_id='child-one.htm'", ("0" * 64,)
+            "UPDATE snapshots SET body_sha256 = %s WHERE snapshot_id = 'child-one.htm'", ("0" * 64,)
         )
     elif change == "admission":
         row = f.conn.execute(
-            "SELECT generation_id,policy_revision FROM admission_decisions LIMIT 1"
+            "SELECT generation_id, policy_revision FROM admission_decisions LIMIT 1"
         ).fetchone()
         f.conn.execute(
-            "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) VALUES (?,'accepted','test',?,?)",
+            (
+                "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+                "VALUES (%s, 'accepted', 'test', %s, %s)"
+            ),
             (row[0], f.corpus.clock.now().isoformat(), row[1]),
         )
     elif change == "revocation":
         f.conn.execute(
-            "UPDATE source_generations SET state='revoked' WHERE generation_id=(SELECT generation_id FROM source_generations LIMIT 1)"
+            "UPDATE source_generations SET state = 'revoked' WHERE generation_id = (SELECT generation_id "
+            "FROM source_generations LIMIT 1)"
         )
     elif change == "revocation_insert":
-        row = dict(f.conn.execute("SELECT * FROM source_generations LIMIT 1").fetchone())
+        row = dict(
+            f.conn.execute(
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "LIMIT 1"
+            ).fetchone()
+        )
         row.update(generation_id="copied-revoked-evidence", state="revoked")
         f.conn.execute(
-            f"INSERT INTO source_generations({','.join(row)}) VALUES ({','.join('?' for _ in row)})",
+            f"INSERT INTO source_generations ({','.join(row)}) VALUES ({','.join('%s' for _ in row)})",
             tuple(row.values()),
         )
     elif change == "policy":
-        f.conn.execute("UPDATE admission_policies SET policy_revision='new-policy'")
+        f.conn.execute("UPDATE admission_policies SET policy_revision = 'new-policy'")
     elif change == "bundle":
         f.conn.execute(
-            "INSERT INTO meta VALUES ('input_bundle_hash','new-runtime') ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+            "INSERT INTO meta (key, value) VALUES ('input_bundle_hash', 'new-runtime') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
         )
     elif change == "host":
         f.conn.execute(
-            "UPDATE watches SET archive_url='https://other.test/capture' WHERE url LIKE '%one.htm'"
+            "UPDATE watches SET archive_url = 'https://other.test/capture' WHERE url ILIKE '%one.htm'"
         )
     else:
         admit_parent(f, ["one.htm", "two.htm"])
@@ -437,16 +484,17 @@ def test_mapping_and_publication_do_not_reopen_local_pressure(event):
     settled(f, policy)
     refresh(f, policy)
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:test','canonical','test',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:test', 'canonical', 'test', 1)"
     )
-    f.conn.execute("INSERT INTO meta VALUES ('last_published_build','new-release')")
+    f.conn.execute("INSERT INTO meta (key, value) VALUES ('last_published_build', 'new-release')")
     assert gate(f, policy)["states"] == {"locally_accounted": 1}
 
 
 def test_shared_parent_admission_invalidates_without_event_watch_membership(event):
     f, policy = event, config()
     parent = replace(f.parent, source_ref=None)
-    f.conn.execute("UPDATE watches SET source_ref=NULL WHERE watch_id=?", (parent.watch_id,))
+    f.conn.execute("UPDATE watches SET source_ref = NULL WHERE watch_id = %s", (parent.watch_id,))
 
     def event_group(result):
         return replace(
@@ -464,13 +512,16 @@ def test_shared_parent_admission_invalidates_without_event_watch_membership(even
     refresh(f, policy)
     assert gate(f, policy)["states"] == {"locally_accounted": 1}
     assert not f.conn.execute(
-        "SELECT 1 FROM event_pressure_watches WHERE watch_id=?", (parent.watch_id,)
+        "SELECT 1 FROM event_pressure_watches WHERE watch_id = %s", (parent.watch_id,)
     ).fetchone()
     assert f.conn.execute(
-        "SELECT 1 FROM event_pressure_parents WHERE watch_id=?", (parent.watch_id,)
+        "SELECT 1 FROM event_pressure_parents WHERE watch_id = %s", (parent.watch_id,)
     ).fetchone()
     f.conn.execute(
-        "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) VALUES (?,'accepted','new parent decision',?,'test')",
+        (
+            "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+            "VALUES (%s, 'accepted', 'new parent decision', %s, 'test')"
+        ),
         (generation, f.corpus.clock.now().isoformat()),
     )
     assert gate(f, policy)["states"] == {"changed": 1}
@@ -550,9 +601,10 @@ def test_input_changes_between_probe_and_commit_discard_observation(event, monke
 
     def concurrent(*args, **kwargs):
         batch = original(*args, **kwargs)
-        with sqlite3.connect(f.db.state_dir / "state.sqlite") as writer:
+        with engine.connect(engine.resolve_dsn(f.db.state_dir)) as writer:
             writer.execute(
-                "UPDATE snapshots SET body_sha256=? WHERE snapshot_id='child-one.htm'", ("0" * 64,)
+                "UPDATE snapshots SET body_sha256 = %s WHERE snapshot_id = 'child-one.htm'",
+                ("0" * 64,),
             )
         return batch
 
@@ -600,9 +652,8 @@ def test_expired_manual_denial_then_middle_band_refresh_keeps_latch_across_resta
     assert f.conn.execute("SELECT deferred FROM event_pressure_latches").fetchone()[0] == 0
     pressure.refresh(f.db, f.archive, policy, now=f.corpus.clock.now(), max_events=1)
     assert gate(f, policy)["pressure_subjects"] == 2 and gate(f, policy)["deferred"]
-    with sqlite3.connect(f.db.state_dir / "state.sqlite") as restarted:
-        restarted.row_factory = sqlite3.Row
-        restarted.execute("PRAGMA query_only=ON")
+    with engine.connect(engine.resolve_dsn(f.db.state_dir)) as restarted:
+        restarted.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
         assert pressure.admission(restarted, policy, host="eepro.com", now=f.corpus.clock.now())[
             "deferred"
         ]
@@ -634,8 +685,9 @@ def test_unknown_page_checkpoint_advances_to_later_members(event, monkeypatch):
 
 
 def test_old_schema_is_read_only_unsupported_and_config_bounds_are_explicit(event):
-    with sqlite3.connect(":memory:") as conn:
-        conn.execute("PRAGMA query_only=ON")
+    with engine.connect(engine.resolve_dsn(event.db.state_dir), read_only=True) as conn:
+        conn.execute("SET search_path=pg_catalog,pg_temp")
+        conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
         assert pressure.report(conn, config(), now=event.corpus.clock.now())["supported"] is False
         assert (
             pressure.request_denial(
@@ -650,3 +702,49 @@ def test_old_schema_is_read_only_unsupported_and_config_bounds_are_explicit(even
     ):
         with pytest.raises(ValueError):
             SchedulerConfig(**setting)
+
+
+def test_catalog_bootstrap_reenrolls_retired_subjects_without_current_watch(event):
+    from test_source_event_retirement import withdrawn
+
+    f = event
+    withdrawn(f)
+    original = [
+        tuple(row)
+        for row in f.conn.execute("SELECT * FROM source_event_inventory ORDER BY source,source_ref")
+    ]
+    with f.db.transaction() as conn:
+        conn.execute("DELETE FROM event_pressure_watches")
+        conn.execute("DELETE FROM event_pressure_hosts")
+        conn.execute("DELETE FROM event_pressure_parents")
+        conn.execute("DELETE FROM event_pressure_subjects")
+        conn.execute("DELETE FROM cursors WHERE name='event_pressure_inventory_after'")
+    first = pressure.bootstrap(f.db, config(), now=f.corpus.clock.now(), limit=1)
+    assert first["catalog_processed"] == 1 and first["metadata_pending"]
+    for _ in range(len(original) + 1):
+        result = pressure.bootstrap(f.db, config(), now=f.corpus.clock.now(), limit=1)
+        assert result["catalog_processed"] <= 1
+        if not result["metadata_pending"]:
+            break
+    assert not result["metadata_pending"]
+    subjects = [
+        tuple(row)
+        for row in f.conn.execute(
+            "SELECT source,source_ref,revision,scan_json,observation_json FROM event_pressure_subjects ORDER BY source,source_ref"
+        )
+    ]
+    assert subjects == [(row[0], row[1], 0, None, None) for row in original]
+    assert [
+        tuple(row)
+        for row in f.conn.execute("SELECT * FROM source_event_inventory ORDER BY source,source_ref")
+    ] == original
+    assert (
+        pressure.bootstrap(f.db, config(), now=f.corpus.clock.now(), limit=1)["catalog_processed"]
+        == 0
+    )
+    assert [
+        tuple(row)
+        for row in f.conn.execute(
+            "SELECT source,source_ref,revision,scan_json,observation_json FROM event_pressure_subjects ORDER BY source,source_ref"
+        )
+    ] == subjects

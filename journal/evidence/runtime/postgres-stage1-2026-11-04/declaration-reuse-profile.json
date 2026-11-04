@@ -1,0 +1,67 @@
+{
+  "declared_output_sha256": "489d51801ead99b537770b55aed192f8b70d062c7905ba63985e89d9386c32df",
+  "fixture": "complete current captured runtime; no DB or filesystem writes",
+  "format": 1,
+  "limits": [
+    "Standalone native Mac function timings, not a Linux/core acceptance result.",
+    "Every declared scope/version output equals the original; no database operations.",
+    "Prototype temporarily replaces helpers only inside this scratch process; checkout recipe_scope source is unchanged."
+  ],
+  "local_literal_cache": [
+    {
+      "currsize": 18,
+      "hits": 46,
+      "maxsize": 64,
+      "misses": 18
+    },
+    {
+      "currsize": 18,
+      "hits": 46,
+      "maxsize": 64,
+      "misses": 18
+    },
+    {
+      "currsize": 18,
+      "hits": 46,
+      "maxsize": 64,
+      "misses": 18
+    }
+  ],
+  "measured_at": "2026-11-05T05:37:21.335788+00:00",
+  "median_improvement_fraction": 0.738107497697903,
+  "medians": {
+    "baseline": 0.07174158282577991,
+    "one_graph_and_local_literals": 0.018788582645356655
+  },
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "profile_receipt": "current-recipe-profile.json",
+  "prototype_sha256": "c82e8da060e61dbab3b4fc6e930108038ffeac51be11558242295f291e1e4897",
+  "rows": [
+    {
+      "mode": "baseline",
+      "seconds": 0.07571779191493988
+    },
+    {
+      "mode": "one_graph_and_local_literals",
+      "seconds": 0.01936687482520938
+    },
+    {
+      "mode": "baseline",
+      "seconds": 0.06936695799231529
+    },
+    {
+      "mode": "one_graph_and_local_literals",
+      "seconds": 0.0186061249114573
+    },
+    {
+      "mode": "baseline",
+      "seconds": 0.07174158282577991
+    },
+    {
+      "mode": "one_graph_and_local_literals",
+      "seconds": 0.018788582645356655
+    }
+  ],
+  "runtime_manifest_sha256": "03f8ba1d18dd05167aeb94e3600e067ab905d2e1dacedf16651b5745acaa64f9",
+  "source_sha256": "3daec7deaa78655ea83992c172625207dbcd7fa39df3cc968c3c47d5e7571f6c"
+}

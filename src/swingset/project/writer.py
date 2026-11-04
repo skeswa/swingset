@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
 from swingset.model.canonical import CanonicalRecord
 from swingset.model.schema import RECORD_TABLE, TABLES
+from swingset.state import engine
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
@@ -38,7 +38,7 @@ _DELETE_ORDER = tuple(reversed(_INSERT_ORDER))
 
 
 def replace_scope(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     scope_kind: str,
     scope_id: str,
@@ -55,7 +55,7 @@ def replace_scope(
         desired.setdefault(table, {})[key_json] = record
     existing: dict[str, set[str]] = {}
     for row in conn.execute(
-        "SELECT table_name,record_key FROM canonical_scope_rows WHERE scope_kind=? AND scope_id=?",
+        "SELECT table_name, record_key FROM canonical_scope_rows WHERE scope_kind = %s AND scope_id = %s",
         (scope_kind, scope_id),
     ):
         existing.setdefault(str(row[0]), set()).add(str(row[1]))
@@ -65,14 +65,17 @@ def replace_scope(
         schema = TABLES[table]
         for key_json in removed:
             key = json.loads(key_json)
-            where = " AND ".join(f"{column}=?" for column in schema.primary_key)
+            where = " AND ".join(f"{column}=%s" for column in schema.primary_key)
             conn.execute(
-                "DELETE FROM canonical_scope_rows WHERE scope_kind=? AND scope_id=? AND table_name=? AND record_key=?",
+                (
+                    "DELETE FROM canonical_scope_rows WHERE scope_kind = %s AND scope_id = %s AND table_name = "
+                    "%s AND record_key = %s"
+                ),
                 (scope_kind, scope_id, table, key_json),
             )
             if (
                 conn.execute(
-                    "SELECT 1 FROM canonical_scope_rows WHERE table_name=? AND record_key=? LIMIT 1",
+                    "SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE table_name = %s AND record_key = %s LIMIT 1",
                     (table, key_json),
                 ).fetchone()
                 is not None
@@ -81,11 +84,11 @@ def replace_scope(
             if table in {"entries", "judges"}:
                 subject_kind = "entry" if table == "entries" else "judge"
                 removed_links = conn.execute(
-                    "DELETE FROM identity_links WHERE subject_kind=? AND subject_id=?",
+                    "DELETE FROM identity_links WHERE subject_kind = %s AND subject_id = %s",
                     (subject_kind, key[0]),
                 ).rowcount
                 removed_candidates = conn.execute(
-                    "DELETE FROM link_candidates WHERE subject_kind=? AND subject_id=?",
+                    "DELETE FROM link_candidates WHERE subject_kind = %s AND subject_id = %s",
                     (subject_kind, key[0]),
                 ).rowcount
                 if removed_links or removed_candidates:
@@ -97,7 +100,7 @@ def replace_scope(
                 # projection that follows creates the registry-backed event
                 # and links the placement to it again (D-0191).
                 conn.execute(
-                    "UPDATE registry_placements SET event_id=NULL WHERE event_id=?", (key[0],)
+                    "UPDATE registry_placements SET event_id = NULL WHERE event_id = %s", (key[0],)
                 )
             conn.execute(f"DELETE FROM {table} WHERE {where}", tuple(key))
             changed = True
@@ -105,7 +108,10 @@ def replace_scope(
         for key_json, record in desired.get(table, {}).items():
             changed |= _upsert(conn, table, record)
             conn.execute(
-                "INSERT OR IGNORE INTO canonical_scope_rows(scope_kind,scope_id,table_name,record_key) VALUES (?,?,?,?)",
+                (
+                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES (%s, "
+                    "%s, %s, %s) ON CONFLICT DO NOTHING"
+                ),
                 (scope_kind, scope_id, table, key_json),
             )
     finding_change = replace_findings(
@@ -132,12 +138,12 @@ def replace_scope(
 
 
 def replace_source_event_map(
-    conn: sqlite3.Connection, rows: tuple[tuple[str, str, str, str, float], ...]
+    conn: engine.Connection, rows: tuple[tuple[str, str, str, str, float], ...]
 ) -> tuple[str, ...]:
     """Replace the matching map and return affected old and new event ids."""
     old = {
         (str(row[0]), str(row[1])): str(row[2])
-        for row in conn.execute("SELECT source,source_ref,event_id FROM source_event_map")
+        for row in conn.execute("SELECT source, source_ref, event_id FROM source_event_map")
     }
     new = {(source, source_ref): event for source, source_ref, event, _method, _confidence in rows}
     affected = sorted(
@@ -147,26 +153,30 @@ def replace_source_event_map(
     current_full = [
         tuple(row)
         for row in conn.execute(
-            "SELECT source,source_ref,event_id,match_method,match_confidence FROM source_event_map ORDER BY source,source_ref"
+            "SELECT source, source_ref, event_id, match_method, match_confidence FROM source_event_map "
+            "ORDER BY source NULLS FIRST, source_ref NULLS FIRST"
         )
     ]
     desired_full = sorted(rows)
     if current_full != desired_full:
         conn.execute("DELETE FROM source_event_map")
         conn.executemany(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES (?,?,?,?,?)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES (%s, %s, %s, %s, %s)"
+            ),
             desired_full,
         )
         bump_revision(conn, "source_event_map")
     return tuple(affected)
 
 
-def _upsert(conn: sqlite3.Connection, table: str, record: CanonicalRecord) -> bool:
+def _upsert(conn: engine.Connection, table: str, record: CanonicalRecord) -> bool:
     values = {
         field.name: _sql_value(getattr(record, field.name)) for field in dataclasses.fields(record)
     }
     schema = TABLES[table]
-    where = " AND ".join(f"{column}=?" for column in schema.primary_key)
+    where = " AND ".join(f"{column}=%s" for column in schema.primary_key)
     key_values = tuple(values[column] for column in schema.primary_key)
     old = conn.execute(f"SELECT * FROM {table} WHERE {where}", key_values).fetchone()
     if old is not None:
@@ -177,7 +187,7 @@ def _upsert(conn: sqlite3.Connection, table: str, record: CanonicalRecord) -> bo
         if all(old[column] == values[column] for column in semantic_columns):
             return False
     columns = tuple(values)
-    placeholders = ",".join("?" for _ in columns)
+    placeholders = ",".join("%s" for _ in columns)
     updates = ",".join(
         f"{column}=excluded.{column}" for column in columns if column not in schema.primary_key
     )

@@ -3,21 +3,21 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import defaultdict
 from typing import Any
 
+from swingset.state import engine
 from swingset.state.work import bump_revision
 
 TIERS = ("registry_only", "index_only", "sheets_partial", "sheets_complete")
 
 
-def rebuild_coverage(conn: sqlite3.Connection, *, now: str) -> None:
+def rebuild_coverage(conn: engine.Connection, *, now: str) -> None:
     """Rebuild every year's coverage rows and sheet tiers (the legacy global pass)."""
     _rebuild(conn, now=now, year=None)
 
 
-def rebuild_year_coverage(conn: sqlite3.Connection, year: int, *, now: str) -> bool:
+def rebuild_year_coverage(conn: engine.Connection, year: int, *, now: str) -> bool:
     """Rebuild one year's coverage rows and its events' sheet tiers.
 
     The same rules as `rebuild_coverage`, reading only that year's events, their
@@ -30,18 +30,18 @@ def rebuild_year_coverage(conn: sqlite3.Connection, year: int, *, now: str) -> b
     return _rebuild(conn, now=now, year=year)
 
 
-def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
+def _rebuild(conn: engine.Connection, *, now: str, year: int | None) -> bool:
     from .history import _inventory_digest
 
     # One year, or every year. The event filter names the events whose rows
     # count; placements, contests, entries and rounds follow their event.
-    events_where, parameters = ("WHERE year=?", (year,)) if year is not None else ("", ())
+    events_where, parameters = ("WHERE year=%s", (year,)) if year is not None else ("", ())
     owned = (
-        " AND event_id IN (SELECT event_id FROM events WHERE year=?)" if year is not None else ""
+        " AND event_id IN (SELECT event_id FROM events WHERE year=%s)" if year is not None else ""
     )
     events = {
         str(row["event_id"]): dict(row)
-        for row in conn.execute("SELECT * FROM events " + events_where, parameters)
+        for row in conn.execute(("SELECT * FROM events ") + events_where, parameters)
     }
     groups: dict[tuple[int, str, str], dict[str, set[str]]] = defaultdict(
         lambda: {name: set() for name in ("events", "contests", "rounds", "entries")}
@@ -55,8 +55,8 @@ def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
     for event_id, event in events.items():
         record("events", event_id, event_id, str(event["source"]), str(event["snapshot_id"]))
     for registry_record in conn.execute(
-        "SELECT DISTINCT event_id,source,snapshot_id FROM registry_placements "
-        "WHERE event_id IS NOT NULL" + owned,
+        "SELECT DISTINCT event_id,source,snapshot_id FROM registry_placements WHERE event_id IS NOT NULL"
+        + owned,
         parameters,
     ):
         record(
@@ -68,14 +68,15 @@ def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
         )
     for table, key in (("contests", "contest_id"), ("entries", "entry_id")):
         for row in conn.execute(
-            f"SELECT event_id,{key},source,snapshot_id FROM {table} WHERE 1" + owned, parameters
+            f"SELECT event_id,{key},source,snapshot_id FROM {table} WHERE TRUE" + owned, parameters
         ):
             record(table, *(str(value) for value in row))
     round_events: dict[str, set[str]] = defaultdict(set)
     for round_record in conn.execute(
-        "SELECT c.event_id,r.round_id,r.source,r.snapshot_id FROM rounds r "
-        "JOIN contests c USING(contest_id)"
-        + (" WHERE c.event_id IN (SELECT event_id FROM events WHERE year=?)" if owned else ""),
+        (
+            "SELECT c.event_id,r.round_id,r.source,r.snapshot_id FROM rounds r JOIN contests c USING(contest_id)"
+        )
+        + (" WHERE c.event_id IN (SELECT event_id FROM events WHERE year=%s)" if owned else ""),
         parameters,
     ):
         record("rounds", *(str(value) for value in round_record))
@@ -92,13 +93,14 @@ def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
     for event_id, event in events.items():
         if round_events[event_id] and event["coverage_tier"] in {"registry_only", "index_only"}:
             conn.execute(
-                "UPDATE events SET coverage_tier='sheets_partial' WHERE event_id=?", (event_id,)
+                "UPDATE events SET coverage_tier = 'sheets_partial' WHERE event_id = %s",
+                (event_id,),
             )
             event["coverage_tier"] = "sheets_partial"
 
     old = {
         tuple(row[field] for field in ("year", "source", "via")): dict(row)
-        for row in conn.execute("SELECT * FROM coverage " + events_where, parameters)
+        for row in conn.execute(("SELECT * FROM coverage ") + events_where, parameters)
     }
     desired: dict[tuple[int, str, str], dict[str, Any]] = {}
     acceptance = {
@@ -115,9 +117,10 @@ def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
     year_findings = {
         int(row[0]): int(row[1])
         for row in conn.execute(
-            "SELECT owner_id,COUNT(*) FROM findings WHERE owner_kind IN ('history_year','phase1_year') "
-            "AND closed_at IS NULL"
-            + (" AND owner_id=?" if year is not None else "")
+            (
+                "SELECT owner_id, COUNT(*) AS _value_1 FROM findings WHERE owner_kind IN ('history_year', 'phase1_year') AND closed_at IS NULL"
+            )
+            + (" AND owner_id=%s" if year is not None else "")
             + " GROUP BY owner_id",
             (str(year),) if year is not None else (),
         )
@@ -161,7 +164,7 @@ def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
     conn.execute("DELETE FROM coverage " + events_where, parameters)
     for persisted in desired.values():
         columns = ",".join(persisted)
-        placeholders = ",".join("?" for _ in persisted)
+        placeholders = ",".join("%s" for _ in persisted)
         conn.execute(
             f"INSERT INTO coverage({columns}) VALUES ({placeholders})", tuple(persisted.values())
         )
@@ -169,18 +172,17 @@ def _rebuild(conn: sqlite3.Connection, *, now: str, year: int | None) -> bool:
     return True
 
 
-def _transport(conn: sqlite3.Connection, snapshots: set[str], *, whole: bool) -> dict[str, str]:
+def _transport(conn: engine.Connection, snapshots: set[str], *, whole: bool) -> dict[str, str]:
     """How each snapshot was fetched; one year reads only its own snapshots."""
     if whole:
         return {
             str(row[0]): str(row[1])
-            for row in conn.execute("SELECT snapshot_id,via FROM snapshots")
+            for row in conn.execute("SELECT snapshot_id, via FROM snapshots")
         }
     return {
         str(row[0]): str(row[1])
         for row in conn.execute(
-            "SELECT snapshot_id,via FROM snapshots WHERE snapshot_id IN "
-            "(SELECT value FROM json_each(?))",
+            "SELECT snapshot_id, via FROM snapshots WHERE snapshot_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb))",
             (json.dumps(sorted(snapshots)),),
         )
     }

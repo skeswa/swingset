@@ -9,7 +9,6 @@ from __future__ import annotations
 import gzip
 import json
 import re
-import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import date
@@ -18,6 +17,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 from swingset.fetch.archive import Archive, digest
 from swingset.fetch.wayback import parse_cdx
+from swingset.state import engine
 
 WORDS = ("result", "score", "callback", "prelim", "final")
 HTML_FILTER = "original:.*(result|score|callback|prelim|final).*"
@@ -146,7 +146,7 @@ def _matches(site: Site, url: str) -> bool:
 
 
 def _receipt_hits(
-    archive: Archive, query: sqlite3.Row, receipt_path: Path, site: Site
+    archive: Archive, query: engine.Row, receipt_path: Path, site: Site
 ) -> tuple[Hit, ...]:
     if receipt_path.stat().st_size > 128 * 1024:
         raise ValueError("CDX receipt exceeds review bound")
@@ -194,13 +194,19 @@ def _receipt_hits(
 
 
 def retained_hits(
-    conn: sqlite3.Connection, archive: Archive, site: Site, *, deadline: float | None = None
+    conn: engine.Connection, archive: Archive, site: Site, *, deadline: float | None = None
 ) -> tuple[Hit, ...]:
     """Verify the actual filtered CDX request and exact retained body for each hit."""
     hits = set()
     receipts = 0
     for query in conn.execute(
-        "SELECT * FROM archive_queries WHERE source='event_sites' AND prefix=? AND year IN (?,?) ORDER BY year,query_id",
+        (
+            "SELECT archive_queries.query_id, archive_queries.source, archive_queries.prefix, "
+            "archive_queries.year, archive_queries.next_page, archive_queries.total_pages, "
+            "archive_queries.completed_at, archive_queries.started_at FROM archive_queries WHERE source "
+            "= 'event_sites' AND prefix = %s AND year IN (%s, %s) ORDER BY year NULLS FIRST, query_id "
+            "NULLS FIRST"
+        ),
         (site.prefix, site.year, site.year + 1),
     ):
         identifier = str(query["query_id"])
@@ -225,7 +231,9 @@ def retained_hits(
                 # query retains its own raw page receipt as independent provenance.
                 if (
                     conn.execute(
-                        "SELECT 1 FROM archive_captures WHERE source='event_sites' AND url=? AND timestamp=? AND digest=? AND mimetype=? AND status=200",
+                        (
+                            "SELECT 1 AS _value_0 FROM archive_captures WHERE source = 'event_sites' AND url = %s AND timestamp = %s AND digest = %s AND mimetype = %s AND status = 200"
+                        ),
                         (hit.url, hit.timestamp, hit.digest, hit.mimetype),
                     ).fetchone()
                     is None

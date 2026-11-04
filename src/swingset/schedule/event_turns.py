@@ -8,12 +8,13 @@ the existing request ledger separately charges that actual host exactly once.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any
+
+from swingset.state import engine
 
 if TYPE_CHECKING:
     from swingset.config import Config
@@ -36,15 +37,17 @@ class Selection:
     reason: str
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='scheduler_event_turns'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'scheduler_event_turns' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
 
 
 def _owners(
-    conn: sqlite3.Connection, choices: Sequence[WatchChoice]
+    conn: engine.Connection, choices: Sequence[WatchChoice]
 ) -> dict[str, list[dict[str, Any]]]:
     from .event_enumerations import memberships
 
@@ -71,7 +74,7 @@ def _owners(
 
 
 def prepare(
-    conn: sqlite3.Connection, config: Config, choices: Sequence[WatchChoice], *, now: datetime
+    conn: engine.Connection, config: Config, choices: Sequence[WatchChoice], *, now: datetime
 ) -> None:
     """Enroll eligible demand at the tail; preserve skipped owners and usage."""
     if not available(conn):
@@ -88,18 +91,30 @@ def prepare(
         separators=(",", ":"),
     )
     digest = sha256(body.encode()).hexdigest()
-    conn.execute("INSERT OR IGNORE INTO scheduler_event_policies VALUES (?,?)", (digest, body))
+    conn.execute(
+        "INSERT INTO scheduler_event_policies (digest, policy_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+        (digest, body),
+    )
     # Rotate exhausted turns before enrolling arrivals. A restarted worker
     # cannot refund the previous fetch chain or put new work ahead of waiters.
     for row in conn.execute(
-        "SELECT * FROM scheduler_event_turns WHERE used>=target_requests ORDER BY host,category,position"
+        "SELECT scheduler_event_turns.host, scheduler_event_turns.category, "
+        "scheduler_event_turns.owner_key, scheduler_event_turns.source, "
+        "scheduler_event_turns.source_ref, scheduler_event_turns.position, "
+        "scheduler_event_turns.used, scheduler_event_turns.policy_digest, "
+        "scheduler_event_turns.target_requests, scheduler_event_turns.enrolled_at, "
+        "scheduler_event_turns.last_issued_at FROM scheduler_event_turns WHERE used >= "
+        "target_requests ORDER BY host NULLS FIRST, category NULLS FIRST, position NULLS FIRST"
     ).fetchall():
         position = conn.execute(
-            "SELECT coalesce(max(position),0)+1 FROM scheduler_event_turns WHERE host=? AND category=?",
+            "SELECT COALESCE(MAX(position), 0) + 1 AS _value_0 FROM scheduler_event_turns WHERE host = %s AND category = %s",
             (row["host"], row["category"]),
         ).fetchone()[0]
         conn.execute(
-            "UPDATE scheduler_event_turns SET position=?,used=0,policy_digest=?,target_requests=? WHERE host=? AND category=? AND owner_key=?",
+            (
+                "UPDATE scheduler_event_turns SET position = %s, used = 0, policy_digest = %s, "
+                "target_requests = %s WHERE host = %s AND category = %s AND owner_key = %s"
+            ),
             (
                 position,
                 digest,
@@ -113,8 +128,12 @@ def prepare(
     for choice in choices:
         for owner in owners[choice.key]:
             conn.execute(
-                "INSERT OR IGNORE INTO scheduler_event_turns(host,category,owner_key,source,source_ref,position,policy_digest,target_requests,enrolled_at) "
-                "VALUES (?,?,?,?,?,(SELECT coalesce(max(position),0)+1 FROM scheduler_event_turns WHERE host=? AND category=?),?,?,?)",
+                (
+                    "INSERT INTO scheduler_event_turns (host, category, owner_key, source, source_ref, position, "
+                    "policy_digest, target_requests, enrolled_at) VALUES (%s, %s, %s, %s, %s, (SELECT "
+                    "COALESCE(MAX(position), 0) + 1 FROM scheduler_event_turns WHERE host = %s AND category = "
+                    "%s), %s, %s, %s) ON CONFLICT DO NOTHING"
+                ),
                 (
                     choice.host,
                     choice.category,
@@ -130,7 +149,7 @@ def prepare(
             )
 
 
-def choose(conn: sqlite3.Connection, choices: Sequence[WatchChoice]) -> WatchChoice:
+def choose(conn: engine.Connection, choices: Sequence[WatchChoice]) -> WatchChoice:
     """Select an enrolled owner without changing its place or claiming service."""
     if not choices:
         raise ValueError("event rotation needs eligible choices")
@@ -141,7 +160,15 @@ def choose(conn: sqlite3.Connection, choices: Sequence[WatchChoice]) -> WatchCho
     for choice in choices:
         for owner in owners[choice.key]:
             row = conn.execute(
-                "SELECT * FROM scheduler_event_turns WHERE host=? AND category=? AND owner_key=?",
+                (
+                    "SELECT scheduler_event_turns.host, scheduler_event_turns.category, "
+                    "scheduler_event_turns.owner_key, scheduler_event_turns.source, "
+                    "scheduler_event_turns.source_ref, scheduler_event_turns.position, "
+                    "scheduler_event_turns.used, scheduler_event_turns.policy_digest, "
+                    "scheduler_event_turns.target_requests, scheduler_event_turns.enrolled_at, "
+                    "scheduler_event_turns.last_issued_at FROM scheduler_event_turns WHERE host = %s AND "
+                    "category = %s AND owner_key = %s"
+                ),
                 (choice.host, choice.category, owner["owner_key"]),
             ).fetchone()
             if row is None:
@@ -162,7 +189,7 @@ def choose(conn: sqlite3.Connection, choices: Sequence[WatchChoice]) -> WatchCho
     return min(selected, key=lambda item: item[:3])[3] if selected else choices[0]
 
 
-def record(conn: sqlite3.Connection, choice: WatchChoice, *, action_id: str, now: datetime) -> None:
+def record(conn: engine.Connection, choice: WatchChoice, *, action_id: str, now: datetime) -> None:
     """Charge one issued request atomically with its existing host debit."""
     selection = choice.turn
     if selection is None:
@@ -170,7 +197,10 @@ def record(conn: sqlite3.Connection, choice: WatchChoice, *, action_id: str, now
     if not conn.in_transaction:
         raise RuntimeError("event usage requires the host debit transaction")
     changed = conn.execute(
-        "UPDATE scheduler_event_turns SET used=used+1,last_issued_at=? WHERE host=? AND category=? AND owner_key=? AND position=? AND policy_digest=?",
+        (
+            "UPDATE scheduler_event_turns SET used = used + 1, last_issued_at = %s WHERE host = %s AND "
+            "category = %s AND owner_key = %s AND position = %s AND policy_digest = %s"
+        ),
         (
             now.isoformat(),
             choice.host,
@@ -183,7 +213,11 @@ def record(conn: sqlite3.Connection, choice: WatchChoice, *, action_id: str, now
     if changed.rowcount != 1:
         raise ValueError("selected event turn changed before request issuance")
     conn.execute(
-        "INSERT INTO scheduler_event_requests VALUES (?,?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO scheduler_event_requests (action_id, selected_host, category, owner_key, "
+            "source, source_ref, enumeration_id, turn_position, policy_digest, reason) VALUES (%s, %s, "
+            "%s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             action_id,
             choice.host,

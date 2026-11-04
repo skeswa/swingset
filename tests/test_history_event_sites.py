@@ -20,7 +20,7 @@ PDF = "https://dance.example/festival/2019-finals.pdf"
 
 @pytest.fixture
 def sites(fixture):
-    fixture.conn.execute("UPDATE events SET website=?", (SITE.website,))
+    fixture.conn.execute("UPDATE events SET website = %s", (SITE.website,))
     accept(fixture)
     return fixture
 
@@ -57,7 +57,10 @@ def retained(f, *, year=2019, mime="application/pdf", urls=(PDF,), bad_filter=Fa
     }
     durable_write(f.db.state_dir / "archive-cdx" / identifier / "0.json", canonical(receipt))
     f.conn.execute(
-        "INSERT INTO archive_queries VALUES (?,?,?, ?,1,1,?,?)",
+        (
+            "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, total_pages, "
+            "completed_at, started_at) VALUES (%s, %s, %s, %s, 1, 1, %s, %s)"
+        ),
         (
             identifier,
             "event_sites",
@@ -68,7 +71,10 @@ def retained(f, *, year=2019, mime="application/pdf", urls=(PDF,), bad_filter=Fa
         ),
     )
     f.conn.executemany(
-        "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,?)",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, %s)"
+        ),
         [
             (
                 "event_sites",

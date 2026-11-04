@@ -51,12 +51,13 @@ from __future__ import annotations
 import codecs
 import hashlib
 import json
-import sqlite3
 import zlib
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
+
+from swingset.state import engine
 
 from . import objects
 from .objects import ObjectUnavailable, Store
@@ -119,16 +120,17 @@ def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+def _has_table(conn: engine.Connection, name: str) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = %s) AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))",
+            (name,),
         ).fetchone()
         is not None
     )
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     """Whether this schema can pack bodies (36 and later)."""
     return _has_table(conn, "source_generation_packs")
 
@@ -229,18 +231,18 @@ def pack_manifest(store: Store, digest: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def source_pack(conn: sqlite3.Connection, generation_id: str) -> str | None:
+def source_pack(conn: engine.Connection, generation_id: str) -> str | None:
     if not available(conn):
         return None
     found = conn.execute(
-        "SELECT pack_digest FROM source_generation_packs WHERE generation_id=?",
+        "SELECT pack_digest FROM source_generation_packs WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     return None if found is None else str(found[0])
 
 
 def packed_body(
-    conn: sqlite3.Connection, generation_id: str, *, store: Store | None = None
+    conn: engine.Connection, generation_id: str, *, store: Store | None = None
 ) -> SourceBody:
     """A packed row's body from its object, verified; raises `BodyUnavailable`."""
     digest = source_pack(conn, generation_id)
@@ -250,12 +252,11 @@ def packed_body(
 
 
 def source_body(
-    conn: sqlite3.Connection, generation_id: str, *, store: Store | None = None
+    conn: engine.Connection, generation_id: str, *, store: Store | None = None
 ) -> SourceBody | None:
     """The three body columns as written, from the row or its pack; None if no row."""
     row = conn.execute(
-        "SELECT manifest_json,report_json,result_json FROM source_generations "
-        "WHERE generation_id=?",
+        "SELECT manifest_json, report_json, result_json FROM source_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     if row is None:
@@ -268,7 +269,7 @@ def source_body(
     return packed_body(conn, generation_id, store=store)
 
 
-def resolve(conn: sqlite3.Connection, generation_id: str, row: Mapping[str, Any]) -> dict[str, Any]:
+def resolve(conn: engine.Connection, generation_id: str, row: Mapping[str, Any]) -> dict[str, Any]:
     """`row` as a dict, with any stubbed body column replaced from the pack."""
     value = dict(row)
     if any(is_stub(value.get(name)) for name in COLUMNS):
@@ -277,19 +278,19 @@ def resolve(conn: sqlite3.Connection, generation_id: str, row: Mapping[str, Any]
     return value
 
 
-def label_pack(conn: sqlite3.Connection, generation_id: str) -> str | None:
+def label_pack(conn: engine.Connection, generation_id: str) -> str | None:
     if not available(conn):
         return None
     found = conn.execute(
-        "SELECT pack_digest FROM label_body_packs WHERE generation_id=?", (generation_id,)
+        "SELECT pack_digest FROM label_body_packs WHERE generation_id = %s", (generation_id,)
     ).fetchone()
     return None if found is None else str(found[0])
 
 
-def recipe(conn: sqlite3.Connection, generation_id: str, *, store: Store | None = None) -> str:
+def recipe(conn: engine.Connection, generation_id: str, *, store: Store | None = None) -> str:
     """A derivation label's `recipe_json` as written, from the row or its pack."""
     row = conn.execute(
-        "SELECT recipe_json FROM derivation_generations WHERE generation_id=?", (generation_id,)
+        "SELECT recipe_json FROM derivation_generations WHERE generation_id = %s", (generation_id,)
     ).fetchone()
     if row is None:
         raise BodyUnavailable(f"no label for generation {generation_id}")
@@ -304,7 +305,7 @@ def recipe(conn: sqlite3.Connection, generation_id: str, *, store: Store | None 
         raise BodyUnavailable(f"{LABEL}/{digest} is not text") from error
 
 
-def revocation_blockers(conn: sqlite3.Connection, generation_id: str) -> list[str]:
+def revocation_blockers(conn: engine.Connection, generation_id: str) -> list[str]:
     """Packed generations a revocation of `generation_id` would read.
 
     `admission.select.revoke_generation` reads the predecessor chain back to
@@ -313,8 +314,10 @@ def revocation_blockers(conn: sqlite3.Connection, generation_id: str) -> list[st
     if not available(conn):
         return []
     row = conn.execute(
-        "SELECT g.previous_generation_id,u.accepted_generation_id FROM source_generations g "
-        "JOIN source_units u USING(unit_key) WHERE g.generation_id=?",
+        (
+            "SELECT g.previous_generation_id, u.accepted_generation_id FROM source_generations AS g JOIN "
+            "source_units AS u USING (unit_key) WHERE g.generation_id = %s"
+        ),
         (generation_id,),
     ).fetchone()
     if row is None or row[1] != generation_id:
@@ -325,8 +328,7 @@ def revocation_blockers(conn: sqlite3.Connection, generation_id: str) -> list[st
     while predecessor is not None and predecessor not in seen:
         seen.add(str(predecessor))
         candidate = conn.execute(
-            "SELECT state,previous_generation_id,result_json FROM source_generations "
-            "WHERE generation_id=?",
+            "SELECT state, previous_generation_id, result_json FROM source_generations WHERE generation_id = %s",
             (predecessor,),
         ).fetchone()
         if candidate is None:
@@ -339,7 +341,7 @@ def revocation_blockers(conn: sqlite3.Connection, generation_id: str) -> list[st
     return found
 
 
-def check_revocation(conn: sqlite3.Connection, generation_id: str) -> None:
+def check_revocation(conn: engine.Connection, generation_id: str) -> None:
     """Raise `BodyPacked` with the restore hint when a revocation would read a pack."""
     blockers = revocation_blockers(conn, generation_id)
     if blockers:
@@ -355,61 +357,69 @@ def check_revocation(conn: sqlite3.Connection, generation_id: str) -> None:
 
 
 def _fill(
-    conn: sqlite3.Connection, table: str, rules: Iterable[tuple[str, str, tuple[Any, ...]]]
+    conn: engine.Connection, table: str, rules: Iterable[tuple[str, str, tuple[Any, ...]]]
 ) -> None:
-    conn.execute(f"DROP TABLE IF EXISTS temp.{table}")
-    conn.execute(
-        f"CREATE TEMP TABLE {table}(generation_id TEXT PRIMARY KEY, why TEXT NOT NULL) "
-        "WITHOUT ROWID"
-    )
+    conn.execute(f"DROP TABLE IF EXISTS pg_temp.{table}")
+    conn.execute(f"CREATE TEMP TABLE {table}(generation_id TEXT PRIMARY KEY, why TEXT NOT NULL) ")
     for why, select, parameters in rules:
         conn.execute(
-            f"INSERT OR IGNORE INTO temp.{table}(generation_id,why) "
-            f"SELECT generation_id,'{why}' FROM ({select}) WHERE generation_id IS NOT NULL",
+            f"INSERT INTO pg_temp.{table}(generation_id,why) SELECT generation_id,'{why}' FROM ({select}) WHERE generation_id IS NOT NULL ON CONFLICT DO NOTHING",
             parameters,
         )
 
 
-def _candidate_table(conn: sqlite3.Connection, table: str, generation_ids: Iterable[str]) -> None:
-    conn.execute(f"DROP TABLE IF EXISTS temp.{table}")
-    conn.execute(f"CREATE TEMP TABLE {table}(generation_id TEXT PRIMARY KEY) WITHOUT ROWID")
+def _candidate_table(conn: engine.Connection, table: str, generation_ids: Iterable[str]) -> None:
+    conn.execute(f"DROP TABLE IF EXISTS pg_temp.{table}")
+    conn.execute(f"CREATE TEMP TABLE {table}(generation_id TEXT PRIMARY KEY)")
     conn.executemany(
-        f"INSERT OR IGNORE INTO temp.{table} VALUES (?)", ((str(g),) for g in generation_ids)
+        f"INSERT INTO pg_temp.{table} VALUES (%s) ON CONFLICT DO NOTHING",
+        ((str(g),) for g in generation_ids),
     )
 
 
 #: The predecessor chain revocation walks, from each accepted generation.
 _CHAIN = (
-    "WITH RECURSIVE chain(generation_id,state) AS ("
-    "SELECT p.generation_id,p.state FROM source_units u "
-    "JOIN source_generations a ON a.generation_id=u.accepted_generation_id "
-    "JOIN source_generations p ON p.generation_id=a.previous_generation_id "
-    "UNION SELECT p.generation_id,p.state FROM chain c "
-    "JOIN source_generations g ON g.generation_id=c.generation_id "
-    "JOIN source_generations p ON p.generation_id=g.previous_generation_id "
-    "WHERE c.state<>'accepted') SELECT generation_id FROM chain"
+    "WITH RECURSIVE chain(generation_id, state) AS (SELECT p.generation_id, p.state FROM "
+    "source_units AS u JOIN source_generations AS a ON a.generation_id = "
+    "u.accepted_generation_id JOIN source_generations AS p ON p.generation_id = "
+    "a.previous_generation_id UNION SELECT p.generation_id, p.state FROM chain AS c JOIN "
+    "source_generations AS g ON g.generation_id = c.generation_id JOIN source_generations AS p "
+    "ON p.generation_id = g.previous_generation_id WHERE c.state <> 'accepted') SELECT "
+    "generation_id FROM chain"
 )
 
 
 #: Generations the `event_*` subsystem reads (D-0204 keeps its rows; open
 #: owner decision 2 keeps the subsystem): enumerations, their parents and
 #: their members' claims.
-_EVENT = (
-    "SELECT generation_id FROM source_event_enumerations "
-    "UNION SELECT j.key FROM source_event_enumerations e, json_each(e.parent_support_json) j "
-    "WHERE json_valid(e.parent_support_json) AND json_type(e.parent_support_json)='object' "
-    "UNION SELECT j.value FROM source_event_enumeration_members m, json_tree(m.support_json) j "
-    "WHERE json_valid(m.support_json) AND j.key='generation_id' AND j.type='text'"
+def _json_container(expression: str, kind: str) -> str:
+    """A guarded cast: legacy invalid JSON cannot reach a Postgres JSON operator."""
+    empty = "{}" if kind == "object" else "[]"
+    return (
+        f"CASE WHEN pg_input_is_valid({expression},'jsonb') THEN "
+        f"CASE WHEN jsonb_typeof({expression}::jsonb)='{kind}' THEN {expression}::jsonb "
+        f"ELSE '{empty}'::jsonb END ELSE '{empty}'::jsonb END"
+    )
+
+
+_PARENTS = "jsonb_object_keys(" + _json_container("e.parent_support_json", "object") + ") AS j(key)"
+_COHORT = "jsonb_array_elements(" + _json_container("r.cohort_json", "array") + ") AS j(value)"
+_SUPPORT = (
+    "jsonb_path_query(CASE WHEN pg_input_is_valid(m.support_json,'jsonb') "
+    "THEN m.support_json::jsonb ELSE 'null'::jsonb END, "
+    "'lax $.**.generation_id ? (@.type() == \"string\")') AS j(value)"
 )
-#: Rows appended since a snapshot (both tables are append-only, migration 16).
+_EVENT = (
+    "SELECT generation_id FROM source_event_enumerations UNION "
+    f"SELECT j.key FROM source_event_enumerations e CROSS JOIN LATERAL {_PARENTS} UNION "
+    "SELECT j.value #>> '{}' FROM source_event_enumeration_members m CROSS JOIN LATERAL " + _SUPPORT
+)
 _EVENT_SINCE = (
-    "SELECT EXISTS(SELECT 1 FROM source_event_enumerations WHERE rowid>:e AND generation_id=:g) "
-    "OR EXISTS(SELECT 1 FROM source_event_enumerations e, json_each(e.parent_support_json) j "
-    "WHERE e.rowid>:e AND json_valid(e.parent_support_json) "
-    "AND json_type(e.parent_support_json)='object' AND j.key=:g) "
-    "OR EXISTS(SELECT 1 FROM source_event_enumeration_members m, json_tree(m.support_json) j "
-    "WHERE m.rowid>:m AND json_valid(m.support_json) AND j.key='generation_id' "
-    "AND j.type='text' AND j.value=:g)"
+    "SELECT EXISTS(SELECT 1 FROM source_event_enumerations WHERE rowid>%(e)s AND generation_id=%(g)s) "
+    f"OR EXISTS(SELECT 1 FROM source_event_enumerations e CROSS JOIN LATERAL {_PARENTS} "
+    "WHERE e.rowid>%(e)s AND j.key=%(g)s) OR EXISTS(SELECT 1 FROM "
+    f"source_event_enumeration_members m CROSS JOIN LATERAL {_SUPPORT} "
+    "WHERE m.rowid>%(m)s AND j.value #>> '{}'=%(g)s)"
 )
 
 
@@ -424,11 +434,10 @@ class EventReads:
     members: int
 
 
-def event_reads(conn: sqlite3.Connection) -> EventReads:
+def event_reads(conn: engine.Connection) -> EventReads:
     """The `event` rule's whole set, in the caller's read transaction."""
     enumerations, members = conn.execute(
-        "SELECT (SELECT coalesce(max(rowid),0) FROM source_event_enumerations),"
-        "(SELECT coalesce(max(rowid),0) FROM source_event_enumeration_members)"
+        "SELECT (SELECT COALESCE(MAX(rowid), 0) AS _value_0 FROM source_event_enumerations) AS _value_0, (SELECT COALESCE(MAX(rowid), 0) AS _value_0 FROM source_event_enumeration_members) AS _value_1"
     ).fetchone()
     return EventReads(
         frozenset(str(row[0]) for row in conn.execute(_EVENT) if row[0] is not None),
@@ -437,7 +446,7 @@ def event_reads(conn: sqlite3.Connection) -> EventReads:
     )
 
 
-def event_protected(conn: sqlite3.Connection, generation_id: str, reads: EventReads) -> bool:
+def event_protected(conn: engine.Connection, generation_id: str, reads: EventReads) -> bool:
     """Whether the `event` rule holds now: in the snapshot or in a row added since."""
     if generation_id in reads.generations:
         return True
@@ -448,9 +457,9 @@ def event_protected(conn: sqlite3.Connection, generation_id: str, reads: EventRe
 
 
 def protect_sources(
-    conn: sqlite3.Connection, *, before: str, candidates: Iterable[str] = ()
+    conn: engine.Connection, *, before: str, candidates: Iterable[str] = ()
 ) -> None:
-    """Fill `temp.body_protected(generation_id, why)` with every protected source generation.
+    """Fill `pg_temp.body_protected(generation_id, why)` with every protected source generation.
 
     `before` is the `young` boundary (`cutoff`); `candidates` are the source
     generations retained closure-mode candidates name. Each row keeps the
@@ -460,52 +469,58 @@ def protect_sources(
     rules: list[tuple[str, str, tuple[Any, ...]]] = [
         (
             "state",
-            "SELECT generation_id FROM source_generations "
-            "WHERE state NOT IN ('accepted','superseded')",
+            "SELECT generation_id FROM source_generations WHERE NOT state IN ('accepted', 'superseded')",
             (),
         ),
         ("accepted", "SELECT accepted_generation_id AS generation_id FROM source_units", ()),
         (
             "newest",
-            "SELECT (SELECT g.generation_id FROM source_generations g WHERE g.unit_key=u.unit_key "
-            "ORDER BY g.created_at DESC,g.generation_id DESC LIMIT 1) AS generation_id "
-            "FROM source_units u",
+            (
+                "SELECT (SELECT g.generation_id FROM source_generations AS g WHERE g.unit_key = u.unit_key "
+                "ORDER BY g.created_at DESC NULLS LAST, g.generation_id DESC NULLS LAST LIMIT 1) AS "
+                "generation_id FROM source_units AS u"
+            ),
             (),
         ),
         (
             "shadow",
-            "SELECT g.generation_id FROM source_generations g WHERE NOT EXISTS("
-            "SELECT 1 FROM admission_decisions d WHERE d.generation_id=g.generation_id)",
+            (
+                "SELECT g.generation_id FROM source_generations AS g WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM admission_decisions AS d WHERE d.generation_id = g.generation_id)"
+            ),
             (),
         ),
         ("chain", _CHAIN, ()),
         ("equivalence", "SELECT DISTINCT generation_id FROM source_equivalences", ()),
         (
             "finding",
-            "SELECT g.generation_id FROM finding_support_references r "
-            "JOIN findings f USING(finding_id) "
-            "JOIN source_generations g ON g.generation_id=r.sha256 "
-            "WHERE f.closed_at IS NULL AND r.kind='generation'",
+            (
+                "SELECT g.generation_id FROM finding_support_references AS r JOIN findings AS f USING "
+                "(finding_id) JOIN source_generations AS g ON g.generation_id = r.sha256 WHERE f.closed_at "
+                "IS NULL AND r.kind = 'generation'"
+            ),
             (),
         ),
         (
             "review",
-            "SELECT j.value AS generation_id FROM admission_reviews r, json_each(r.cohort_json) j "
-            "WHERE json_valid(r.cohort_json) AND json_type(r.cohort_json)='array' "
-            "AND j.type='text'",
+            (
+                f"SELECT j.value #>> '{{}}' AS generation_id FROM admission_reviews r "
+                f"CROSS JOIN LATERAL {_COHORT} WHERE jsonb_typeof(j.value)='string'"
+            ),
             (),
         ),
         ("event", _EVENT, ()),
         (
             "candidate",
-            "SELECT c.generation_id FROM temp.body_candidate_sources c "
-            "JOIN source_generations g USING(generation_id)",
+            (
+                "SELECT c.generation_id FROM pg_temp.body_candidate_sources AS c JOIN source_generations AS g USING (generation_id)"
+            ),
             (),
         ),
         (
             "young",
-            "SELECT generation_id FROM source_generations "
-            "WHERE NOT julianday(created_at)<julianday(?)",
+            (
+                "SELECT generation_id FROM source_generations WHERE NOT (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)"
+            ),
             (before,),
         ),
     ]
@@ -513,35 +528,32 @@ def protect_sources(
 
 
 def source_targets(
-    conn: sqlite3.Connection, *, unpacked: bool = False, limit: int = -1
+    conn: engine.Connection, *, unpacked: bool = False, limit: int = -1
 ) -> Iterator[tuple[str, bool]]:
     """Unprotected source generations `(id, packed)`, by id; after `protect_sources`."""
     for generation_id, stub in conn.execute(
-        "SELECT g.generation_id,g.result_json=? AS stub FROM source_generations g "
-        "WHERE NOT EXISTS(SELECT 1 FROM temp.body_protected p "
-        "WHERE p.generation_id=g.generation_id) AND (NOT ? OR g.result_json<>?) "
-        "ORDER BY g.generation_id LIMIT ?",
-        (STUB, int(unpacked), STUB, limit),
+        (
+            "SELECT g.generation_id, CAST(g.result_json = %s AS INT) AS stub FROM source_generations AS g WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM pg_temp.body_protected AS p WHERE p.generation_id = g.generation_id) AND (NOT %s OR g.result_json <> %s) ORDER BY g.generation_id NULLS FIRST LIMIT %s"
+        ),
+        (STUB, unpacked, STUB, None if limit < 0 else limit),
     ):
         yield str(generation_id), bool(stub)
 
 
-def source_backlog(conn: sqlite3.Connection) -> int:
+def source_backlog(conn: engine.Connection) -> int:
     """Unprotected source generations not yet packed; after `protect_sources`."""
     return int(
         conn.execute(
-            "SELECT count(*) FROM source_generations g WHERE NOT EXISTS("
-            "SELECT 1 FROM temp.body_protected p WHERE p.generation_id=g.generation_id) "
-            "AND g.result_json<>?",
+            (
+                "SELECT COUNT(*) AS _value_0 FROM source_generations AS g WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM pg_temp.body_protected AS p WHERE p.generation_id = g.generation_id) AND g.result_json <> %s"
+            ),
             (STUB,),
         ).fetchone()[0]
     )
 
 
-def protect_labels(
-    conn: sqlite3.Connection, *, before: str, candidates: Iterable[str] = ()
-) -> None:
-    """Fill `temp.label_protected` with every protected build label.
+def protect_labels(conn: engine.Connection, *, before: str, candidates: Iterable[str] = ()) -> None:
+    """Fill `pg_temp.label_protected` with every protected build label.
 
     `candidates` are the build generations whose output names a retained
     candidate.
@@ -550,47 +562,47 @@ def protect_labels(
     rules: list[tuple[str, str, tuple[Any, ...]]] = [
         (
             "pointer",
-            "SELECT materialized_generation_id AS generation_id FROM derivation_scopes "
-            "WHERE stage='build'",
+            "SELECT materialized_generation_id AS generation_id FROM derivation_scopes WHERE stage = 'build'",
             (),
         ),
-        ("building", "SELECT generation_id FROM derivation_building WHERE stage='build'", ()),
-        ("candidate", "SELECT generation_id FROM temp.body_candidate_builds", ()),
+        ("building", "SELECT generation_id FROM derivation_building WHERE stage = 'build'", ()),
+        ("candidate", "SELECT generation_id FROM pg_temp.body_candidate_builds", ()),
         (
             "young",
-            "SELECT generation_id FROM derivation_generations "
-            "WHERE stage='build' AND NOT julianday(created_at)<julianday(?)",
+            (
+                "SELECT generation_id FROM derivation_generations WHERE stage = 'build' AND NOT (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)"
+            ),
             (before,),
         ),
     ]
     _fill(conn, "label_protected", rules)
 
 
-def label_targets(conn: sqlite3.Connection) -> Iterator[tuple[str, bool]]:
+def label_targets(conn: engine.Connection) -> Iterator[tuple[str, bool]]:
     """Unprotected large build labels `(id, packed)`, by id; after `protect_labels`."""
     for generation_id, stub in conn.execute(
-        "SELECT g.generation_id,g.recipe_json=? FROM derivation_generations g "
-        "WHERE g.stage='build' AND (octet_length(g.recipe_json)>? OR EXISTS("
-        "SELECT 1 FROM label_body_packs p WHERE p.generation_id=g.generation_id)) "
-        "AND NOT EXISTS(SELECT 1 FROM temp.label_protected p "
-        "WHERE p.generation_id=g.generation_id) ORDER BY g.generation_id",
+        (
+            "SELECT g.generation_id, CAST(g.recipe_json = %s AS INT) AS _value_1 FROM derivation_generations AS g WHERE g.stage = 'build' AND (OCTET_LENGTH(g.recipe_json) > %s OR EXISTS(SELECT 1 AS _value_0 FROM label_body_packs AS p WHERE p.generation_id = g.generation_id)) AND NOT EXISTS(SELECT 1 AS _value_0 FROM pg_temp.label_protected AS p WHERE p.generation_id = g.generation_id) ORDER BY g.generation_id NULLS FIRST"
+        ),
         (STUB, LABEL_MIN_BYTES),
     ):
         yield str(generation_id), bool(stub)
 
 
-def drop_temporary(conn: sqlite3.Connection) -> None:
+def drop_temporary(conn: engine.Connection) -> None:
+    if conn.closed:
+        return
     for name in (
         "body_protected",
         "label_protected",
         "body_candidate_sources",
         "body_candidate_builds",
     ):
-        conn.execute(f"DROP TABLE IF EXISTS temp.{name}")
+        conn.execute(f"DROP TABLE IF EXISTS pg_temp.{name}")
 
 
 def source_protection(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     *,
     before: str,
@@ -604,9 +616,9 @@ def source_protection(
     `event` rule's snapshot (`event_reads`); without it the whole set is read.
     """
     row = conn.execute(
-        "SELECT g.state,g.unit_key,u.accepted_generation_id,"
-        "NOT julianday(g.created_at)<julianday(?) FROM source_generations g "
-        "JOIN source_units u USING(unit_key) WHERE g.generation_id=?",
+        (
+            "SELECT g.state, g.unit_key, u.accepted_generation_id, CAST(NOT (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(g.created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) AS INT) AS _value_3 FROM source_generations AS g JOIN source_units AS u USING (unit_key) WHERE g.generation_id = %s"
+        ),
         (before, generation_id),
     ).fetchone()
     if row is None:
@@ -617,8 +629,10 @@ def source_protection(
     if accepted == generation_id:
         return "accepted"
     newest = conn.execute(
-        "SELECT generation_id FROM source_generations WHERE unit_key=? "
-        "ORDER BY created_at DESC,generation_id DESC LIMIT 1",
+        (
+            "SELECT generation_id FROM source_generations WHERE unit_key = %s ORDER BY created_at DESC "
+            "NULLS LAST, generation_id DESC NULLS LAST LIMIT 1"
+        ),
         (unit_key,),
     ).fetchone()
     if newest is not None and newest[0] == generation_id:
@@ -626,19 +640,24 @@ def source_protection(
     checks = (
         (
             "shadow",
-            "SELECT NOT EXISTS(SELECT 1 FROM admission_decisions WHERE generation_id=?)",
+            "SELECT CAST(NOT EXISTS(SELECT 1 AS _value_0 FROM admission_decisions WHERE generation_id = %s) AS INT) AS _value_0",
         ),
-        ("equivalence", "SELECT EXISTS(SELECT 1 FROM source_equivalences WHERE generation_id=?)"),
+        (
+            "equivalence",
+            "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM source_equivalences WHERE generation_id = %s) AS INT) AS _value_0",
+        ),
         (
             "finding",
-            "SELECT EXISTS(SELECT 1 FROM finding_support_references r JOIN findings f "
-            "USING(finding_id) WHERE r.kind='generation' AND r.sha256=? AND f.closed_at IS NULL)",
+            (
+                "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM finding_support_references AS r JOIN findings AS f USING (finding_id) WHERE r.kind = 'generation' AND r.sha256 = %s AND f.closed_at IS NULL) AS INT) AS _value_0"
+            ),
         ),
         (
             "review",
-            "SELECT EXISTS(SELECT 1 FROM admission_reviews r, json_each(r.cohort_json) j "
-            "WHERE json_valid(r.cohort_json) AND json_type(r.cohort_json)='array' "
-            "AND j.value=?)",
+            (
+                f"SELECT EXISTS(SELECT 1 FROM admission_reviews r CROSS JOIN LATERAL {_COHORT} "
+                "WHERE jsonb_typeof(j.value)='string' AND j.value #>> '{}'=%s)"
+            ),
         ),
     )
     for why, sql in checks[:1]:
@@ -658,9 +677,10 @@ def source_protection(
     return None
 
 
-def _in_chain(conn: sqlite3.Connection, accepted: str, generation_id: str) -> bool:
+def _in_chain(conn: engine.Connection, accepted: str, generation_id: str) -> bool:
     row = conn.execute(
-        "SELECT previous_generation_id FROM source_generations WHERE generation_id=?", (accepted,)
+        "SELECT previous_generation_id FROM source_generations WHERE generation_id = %s",
+        (accepted,),
     ).fetchone()
     predecessor = None if row is None else row[0]
     seen: set[str] = set()
@@ -669,7 +689,7 @@ def _in_chain(conn: sqlite3.Connection, accepted: str, generation_id: str) -> bo
             return True
         seen.add(str(predecessor))
         found = conn.execute(
-            "SELECT state,previous_generation_id FROM source_generations WHERE generation_id=?",
+            "SELECT state, previous_generation_id FROM source_generations WHERE generation_id = %s",
             (predecessor,),
         ).fetchone()
         if found is None or found[0] == "accepted":
@@ -679,13 +699,12 @@ def _in_chain(conn: sqlite3.Connection, accepted: str, generation_id: str) -> bo
 
 
 def label_protection(
-    conn: sqlite3.Connection, generation_id: str, *, before: str, candidates: frozenset[str]
+    conn: engine.Connection, generation_id: str, *, before: str, candidates: frozenset[str]
 ) -> str | None:
     row = conn.execute(
-        "SELECT EXISTS(SELECT 1 FROM derivation_scopes WHERE materialized_generation_id=?),"
-        "EXISTS(SELECT 1 FROM derivation_building WHERE generation_id=?),"
-        "NOT julianday(created_at)<julianday(?) FROM derivation_generations "
-        "WHERE generation_id=? AND stage='build'",
+        (
+            "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_scopes WHERE materialized_generation_id = %s) AS INT) AS _value_0, CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_building WHERE generation_id = %s) AS INT) AS _value_1, CAST(NOT (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) AS INT) AS _value_2 FROM derivation_generations WHERE generation_id = %s AND stage = 'build'"
+        ),
         (generation_id, generation_id, before, generation_id),
     ).fetchone()
     if row is None:
@@ -706,10 +725,9 @@ def label_protection(
 # ---------------------------------------------------------------------------
 
 
-def source_columns(conn: sqlite3.Connection, generation_id: str) -> tuple[str, str, str]:
+def source_columns(conn: engine.Connection, generation_id: str) -> tuple[str, str, str]:
     row = conn.execute(
-        "SELECT manifest_json,report_json,result_json FROM source_generations "
-        "WHERE generation_id=?",
+        "SELECT manifest_json, report_json, result_json FROM source_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     if row is None:
@@ -720,14 +738,14 @@ def source_columns(conn: sqlite3.Connection, generation_id: str) -> tuple[str, s
     return values
 
 
-def _indexed(conn: sqlite3.Connection, store: Store, cls: str, digest: str) -> bool:
+def _indexed(conn: engine.Connection, store: Store, cls: str, digest: str) -> bool:
     return conn.execute(
-        "SELECT 1 FROM objects WHERE class=? AND digest=?", (cls, digest)
+        "SELECT 1 AS _value_0 FROM objects WHERE class = %s AND digest = %s", (cls, digest)
     ).fetchone() is not None and store.exists(cls, digest)
 
 
 def write_source(
-    conn: sqlite3.Connection, store: Store, generation_id: str, *, now: datetime
+    conn: engine.Connection, store: Store, generation_id: str, *, now: datetime
 ) -> tuple[str, bool]:
     """Write a source row's parse body object and its `objects` row.
 
@@ -745,20 +763,18 @@ def write_source(
     return digest, True
 
 
-def _grant(conn: sqlite3.Connection, reason: str, now: datetime) -> None:
+def _grant(conn: engine.Connection, reason: str, now: datetime) -> None:
     conn.execute(
-        "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) VALUES (1,?,?)",
+        "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, %s, %s)",
         (reason, objects.stamp(now)),
     )
 
 
-def _revoke(conn: sqlite3.Connection) -> None:
+def _revoke(conn: engine.Connection) -> None:
     conn.execute("DELETE FROM storage_eviction_authority")
 
 
-def stub_source(
-    conn: sqlite3.Connection, generation_id: str, digest: str, *, now: datetime
-) -> bool:
+def stub_source(conn: engine.Connection, generation_id: str, digest: str, *, now: datetime) -> bool:
     """In the caller's transaction: name the pack and stub the three columns.
 
     The row's body must still hash to `digest`, and the object must be
@@ -773,20 +789,24 @@ def stub_source(
     if hashlib.sha256(raw).hexdigest() != digest:
         raise BodyUnavailable(f"source generation {generation_id} is not parse body {digest}")
     if (
-        conn.execute("SELECT 1 FROM objects WHERE class=? AND digest=?", (PARSE, digest)).fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM objects WHERE class = %s AND digest = %s", (PARSE, digest)
+        ).fetchone()
         is None
     ):
         raise BodyUnavailable(f"{PARSE}/{digest} is not indexed")
     stamp = objects.stamp(now)
     conn.execute(
-        "INSERT INTO source_generation_packs(generation_id,pack_digest,packed_at) VALUES (?,?,?)",
+        "INSERT INTO source_generation_packs (generation_id, pack_digest, packed_at) VALUES (%s, %s, %s)",
         (generation_id, digest, stamp),
     )
     _grant(conn, "pack body " + generation_id, now)
     try:
         conn.execute(
-            "UPDATE source_generations SET manifest_json=?,report_json=?,result_json=? "
-            "WHERE generation_id=?",
+            (
+                "UPDATE source_generations SET manifest_json = %s, report_json = %s, result_json = %s WHERE "
+                "generation_id = %s"
+            ),
             (STUB, STUB, STUB, generation_id),
         )
     finally:
@@ -795,7 +815,7 @@ def stub_source(
 
 
 def restore_source(
-    conn: sqlite3.Connection, generation_id: str, *, now: datetime, store: Store | None = None
+    conn: engine.Connection, generation_id: str, *, now: datetime, store: Store | None = None
 ) -> bool:
     """In the caller's transaction: write a packed row's body back; False if not packed.
 
@@ -811,19 +831,23 @@ def restore_source(
     _grant(conn, "restore body " + generation_id, now)
     try:
         conn.execute(
-            "UPDATE source_generations SET manifest_json=?,report_json=?,result_json=? "
-            "WHERE generation_id=?",
+            (
+                "UPDATE source_generations SET manifest_json = %s, report_json = %s, result_json = %s WHERE "
+                "generation_id = %s"
+            ),
             (body.manifest_json, body.report_json, body.result_json, generation_id),
         )
-        conn.execute("DELETE FROM source_generation_packs WHERE generation_id=?", (generation_id,))
+        conn.execute(
+            "DELETE FROM source_generation_packs WHERE generation_id = %s", (generation_id,)
+        )
     finally:
         _revoke(conn)
     return True
 
 
-def recipe_bytes(conn: sqlite3.Connection, generation_id: str) -> bytes:
+def recipe_bytes(conn: engine.Connection, generation_id: str) -> bytes:
     row = conn.execute(
-        "SELECT recipe_json FROM derivation_generations WHERE generation_id=? AND stage='build'",
+        "SELECT recipe_json FROM derivation_generations WHERE generation_id = %s AND stage = 'build'",
         (generation_id,),
     ).fetchone()
     if row is None:
@@ -834,7 +858,7 @@ def recipe_bytes(conn: sqlite3.Connection, generation_id: str) -> bytes:
 
 
 def write_label(
-    conn: sqlite3.Connection, store: Store, generation_id: str, *, now: datetime
+    conn: engine.Connection, store: Store, generation_id: str, *, now: datetime
 ) -> tuple[str, bool]:
     """Write a build label's recipe as a `label_body` object and its `objects` row."""
     raw = recipe_bytes(conn, generation_id)
@@ -848,7 +872,7 @@ def write_label(
     return digest, True
 
 
-def stub_label(conn: sqlite3.Connection, generation_id: str, digest: str, *, now: datetime) -> bool:
+def stub_label(conn: engine.Connection, generation_id: str, digest: str, *, now: datetime) -> bool:
     """In the caller's transaction: name the pack and stub the build label's recipe."""
     if not conn.in_transaction:
         raise ValueError("stubbing must share the caller's transaction")
@@ -857,18 +881,20 @@ def stub_label(conn: sqlite3.Connection, generation_id: str, digest: str, *, now
     if hashlib.sha256(recipe_bytes(conn, generation_id)).hexdigest() != digest:
         raise BodyUnavailable(f"build label {generation_id} is not label body {digest}")
     if (
-        conn.execute("SELECT 1 FROM objects WHERE class=? AND digest=?", (LABEL, digest)).fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM objects WHERE class = %s AND digest = %s", (LABEL, digest)
+        ).fetchone()
         is None
     ):
         raise BodyUnavailable(f"{LABEL}/{digest} is not indexed")
     conn.execute(
-        "INSERT INTO label_body_packs(generation_id,pack_digest,packed_at) VALUES (?,?,?)",
+        "INSERT INTO label_body_packs (generation_id, pack_digest, packed_at) VALUES (%s, %s, %s)",
         (generation_id, digest, objects.stamp(now)),
     )
     _grant(conn, "pack recipe " + generation_id, now)
     try:
         conn.execute(
-            "UPDATE derivation_generations SET recipe_json=? WHERE generation_id=?",
+            "UPDATE derivation_generations SET recipe_json = %s WHERE generation_id = %s",
             (STUB, generation_id),
         )
     finally:
@@ -877,7 +903,7 @@ def stub_label(conn: sqlite3.Connection, generation_id: str, digest: str, *, now
 
 
 def restore_label(
-    conn: sqlite3.Connection, generation_id: str, *, now: datetime, store: Store | None = None
+    conn: engine.Connection, generation_id: str, *, now: datetime, store: Store | None = None
 ) -> bool:
     """In the caller's transaction: write a packed build recipe back; False if not packed."""
     if not conn.in_transaction:
@@ -888,16 +914,16 @@ def restore_label(
     _grant(conn, "restore recipe " + generation_id, now)
     try:
         conn.execute(
-            "UPDATE derivation_generations SET recipe_json=? WHERE generation_id=?",
+            "UPDATE derivation_generations SET recipe_json = %s WHERE generation_id = %s",
             (text, generation_id),
         )
-        conn.execute("DELETE FROM label_body_packs WHERE generation_id=?", (generation_id,))
+        conn.execute("DELETE FROM label_body_packs WHERE generation_id = %s", (generation_id,))
     finally:
         _revoke(conn)
     return True
 
 
-def restore(conn: sqlite3.Connection, generation_id: str, *, now: datetime) -> str | None:
+def restore(conn: engine.Connection, generation_id: str, *, now: datetime) -> str | None:
     """Restore whichever kind of row `generation_id` names; returns the kind or None."""
     if restore_source(conn, generation_id, now=now):
         return "source"

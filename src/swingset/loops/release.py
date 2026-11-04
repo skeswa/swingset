@@ -103,6 +103,13 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
     bundle, hub, dry_run = tick.bundle, tick.hub, tick.dry_run
     conn = database.connection
     summary.update(dry_run=dry_run, stages=[], held_operations=[])
+    from swingset.state.release_verification import blocked
+
+    verification = blocked(conn, database.state_dir)
+    if verification is not None:
+        summary["verification"] = verification
+        tick.skipped = "verification"
+        return
     if not _disk(tick, disk_file):
         return
 
@@ -112,7 +119,9 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
         )
 
     if hub is not None:
-        reconciled = reconcile(database.state_dir, hub, dry_run=dry_run)
+        reconciled = reconcile(
+            database.state_dir, hub, dry_run=dry_run, connection=database.connection
+        )
         summary["reconciliation"] = asdict(reconciled)
         if reconciled.commit:
             summary["publish_commit"] = reconciled.commit
@@ -161,6 +170,7 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
         try:
             heavy = rwlock.heavy_exclusive(
                 database.state_dir,
+                connection=database.connection,
                 timeout=min(rwlock.HEAVY_TIMEOUT_SECONDS, tick.remaining()),
                 clock=clock,
             )

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -11,6 +10,7 @@ from typing import Any
 from swingset.build.files import sha256_file
 from swingset.build.identity_policy import correction_token
 from swingset.publish.safety import StaleCandidateError, verify_candidate_files
+from swingset.state import engine
 
 
 def _object(path: Path) -> dict[str, Any]:
@@ -33,7 +33,7 @@ def _age(value: Any, now: datetime) -> float | None:
     return max(0.0, (now - parsed).total_seconds()) if parsed else None
 
 
-def _current(conn: sqlite3.Connection, policy: dict[str, Any]) -> bool:
+def _current(conn: engine.Connection, policy: dict[str, Any]) -> bool:
     closure = policy.get("closure") if policy.get("mode") == "closure" else None
     if closure is not None:
         from swingset.build.closure import ClosureError, validate
@@ -48,7 +48,7 @@ def _current(conn: sqlite3.Connection, policy: dict[str, Any]) -> bool:
         expected = policy.get("input_file_hashes", {}).get(name)
         if expected is not None:
             row = conn.execute(
-                "SELECT digest FROM accepted_inputs WHERE consumer='pipeline' AND input_name=?",
+                "SELECT digest FROM accepted_inputs WHERE consumer = 'pipeline' AND input_name = %s",
                 (name,),
             ).fetchone()
             if row is None or row[0] != expected:
@@ -56,8 +56,8 @@ def _current(conn: sqlite3.Connection, policy: dict[str, Any]) -> bool:
     return True
 
 
-def _inputs_match(conn: sqlite3.Connection, built: dict[str, Any], policy: dict[str, Any]) -> bool:
-    row = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+def _inputs_match(conn: engine.Connection, built: dict[str, Any], policy: dict[str, Any]) -> bool:
+    row = conn.execute("SELECT value FROM meta WHERE key = 'input_bundle_hash'").fetchone()
     if row is None or row[0] != policy.get("input_bundle_hash"):
         return False
     paths = built.get("input_paths")
@@ -70,7 +70,7 @@ def _inputs_match(conn: sqlite3.Connection, built: dict[str, Any], policy: dict[
     return True
 
 
-def publication_report(conn: sqlite3.Connection, state_dir: Path, now: datetime) -> dict[str, Any]:
+def publication_report(conn: engine.Connection, state_dir: Path, now: datetime) -> dict[str, Any]:
     """Files and receipts supply evidence; no writes, source calls, or local proof adoption."""
     if now.tzinfo is None:
         raise ValueError("publication reporting requires a timezone-aware clock")

@@ -1,0 +1,17 @@
+.git
+.jj
+.venv
+.env
+.env.*
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+tmp
+result
+result-*
+journal/evidence/**
+!journal/evidence/admission/
+!journal/evidence/admission/fixture-exception/
+!journal/evidence/admission/fixture-exception/v2-new-source-fixture-targets-2026-09-13.json

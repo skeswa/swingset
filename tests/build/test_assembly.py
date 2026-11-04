@@ -16,6 +16,7 @@ from test_h16_acceptance import release_state as release_state
 
 from swingset.build import assembly, service
 from swingset.build.assembly import Meter, close_keys
+from swingset.fetch.archive import canonical
 from swingset.state.inputs import accept
 from swingset.state.work import WorkUnit
 
@@ -39,7 +40,30 @@ def both(f, bundle, clock, run):
     whole = service.build_release(f.db, on(bundle, "whole"), clock, run)
     streamed = service.build_release(f.db, on(bundle, "partitioned"), clock, run)
     assert not whole.reused and not streamed.reused
+    for candidate in (whole, streamed):
+        assert_render_basis(f.db, candidate)
     return whole, streamed
+
+
+def assert_render_basis(database, candidate):
+    """Each path seals its own complete recipe and dependency witness."""
+    recipe_json, dependencies_json = database.connection.execute(
+        "SELECT g.recipe_json,d.manifest_json FROM derive.derivation_generations g "
+        "JOIN derive.derivation_rows r ON r.generation_id=g.generation_id "
+        "JOIN derive.derivation_dependency_sets d ON d.dependency_set_id=g.dependency_set_id "
+        "WHERE g.stage='build' AND r.table_name='artifact' AND r.record_key=%s",
+        (candidate.candidate_id,),
+    ).fetchone()
+    recipe = json.loads(recipe_json)
+    context = dict(recipe["context"])
+    render = context.pop("render")
+    manifest = json.loads((candidate.path / "_meta/manifest.json").read_bytes())
+    policy = manifest["release_policy"]
+    assert policy["render"] == render
+    assert policy["build_trigger"] == context["build_trigger"]
+    assert manifest["expected_parent"] == context["expected_parent"]
+    basis = {**recipe, "context": context, "dependencies": json.loads(dependencies_json)}
+    assert policy["render_basis"] == sha256(canonical(basis)).hexdigest()
 
 
 def assert_same_rows(whole, streamed):
@@ -58,10 +82,14 @@ def assert_same_rows(whole, streamed):
     assert left["row_counts"] == right["row_counts"]
     for key in ("source_snapshot_counts", "calendar_horizon", "latest_event_covered"):
         assert left[key] == right[key], key
-    # The policies differ only in the path and its trigger.
+    # The path and trigger also change the complete sealed render basis.
+    # Both bases were checked against their immutable build receipts above;
+    # the literal render inputs and all remaining policy fields stay equal.
+    assert left["release_policy"]["render_basis"] != right["release_policy"]["render_basis"]
     for value in (left["release_policy"], right["release_policy"]):
         value.pop("path")
         value.pop("build_trigger")
+        value.pop("render_basis")
     assert left["release_policy"] == right["release_policy"]
     assert (whole.path / "README.md").read_bytes() == (streamed.path / "README.md").read_bytes()
     assert right["release_policy"]["mode"] == "partitioned"

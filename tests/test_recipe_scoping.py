@@ -13,7 +13,7 @@ from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.state import inputs, recipe_scope
 from swingset.state.db import open_database
-from swingset.state.recipes import capture_runtime, captured_recipe_inputs
+from swingset.state.recipes import capture_runtime, captured_audit_inputs, captured_recipe_inputs
 
 PREFIX = recipe_scope.PREFIX
 START = "2010-01-01"
@@ -61,9 +61,10 @@ DISPATCH_ONLY = {
 # Imports of a shallow parse module that fall outside some parse scope. Each
 # was reviewed: it is storage, scheduling or a watch clock, not a writer of
 # parse output. A new one needs the same review, or a `PARSE_WRITERS` entry.
+# The native connection dependency reaches db and clock through deep storage
+# modules already included in every parse scope; they are no longer outside.
 SHALLOW_OUTSIDE = {
     "swingset.admission.select": {
-        "swingset.state.db",
         "swingset.state.event_progress",
         "swingset.state.work",
     },
@@ -77,7 +78,6 @@ SHALLOW_OUTSIDE = {
         "swingset.project.history",
     },
     "swingset.history.origin_dispatch": {
-        "swingset.clock",
         "swingset.config",
         "swingset.history.backfill",
         "swingset.history.captures",
@@ -86,13 +86,10 @@ SHALLOW_OUTSIDE = {
         "swingset.schedule.watches",
         "swingset.state.control_scopes",
         "swingset.state.controls",
-        "swingset.state.db",
     },
-    "swingset.schedule.parse": set(DISPATCH_ONLY),
-    "swingset.state": {"swingset.state.db"},
+    "swingset.schedule.parse": {"swingset.state.work"},
     "swingset.state.findings": {"swingset.state.retention", "swingset.state.work"},
     "swingset.state.observations": {"swingset.schedule.watches", "swingset.state.work"},
-    "swingset.state.verification": {"swingset.state.db"},
 }
 
 
@@ -113,7 +110,7 @@ def code(files):
     """The code and environment digests a sealed bundle yields."""
     return {
         name: value
-        for name, value in captured_recipe_inputs(files, history_start=START).items()
+        for name, value in captured_audit_inputs(files).items()
         if name.startswith("recipe/")
     }
 
@@ -195,6 +192,8 @@ def synthetic(tmp_path):
         ),
         "sources/alpha/__init__.py": "",
         "sources/alpha/adapter.py": (
+            "class Page:\n    kind = 'alpha.page'\n    EXTRACT_VERSION = 1\n    PARSER_VERSION = 1\n"
+            "class ListPage:\n    kind = 'alpha.list'\n    EXTRACT_VERSION = 1\n    PARSER_VERSION = 1\n"
             "from ..base import *\n"
             "def parse():\n"
             "    from swingset.sources.alpha import rules\n"
@@ -205,9 +204,9 @@ def synthetic(tmp_path):
         "sources/alpha/tables/names.csv": "name\n",
         "sources/alpha/fixtures/page.html": "<p>fixture</p>\n",
         "sources/beta/__init__.py": "",
-        "sources/beta/adapter.py": "from swingset.sources.base import *\n",
+        "sources/beta/adapter.py": "from swingset.sources.base import *\nclass Page:\n    kind = 'beta.page'\n    EXTRACT_VERSION = 1\n    PARSER_VERSION = 1\n",
         "admission/__init__.py": "",
-        "admission/contracts.py": "from .report import *\n",
+        "admission/contracts.py": "from .report import *\nPARSE_CORE_VERSION = 1\n",
         "admission/report.py": "",
         "admission/generations.py": "",
         "model/__init__.py": "",
@@ -349,9 +348,11 @@ def _watch(conn, source, parser, number, now, run_id):
     spec = WatchSpec("", source, "round", "GET", f"https://{source}.example/{number}", parser)
     upsert_watch(conn, spec, now)
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-        "body_bytes,content_changed,run_id,classification,parse_status,parsed_at,parser_version) "
-        "VALUES (?,?,'GET',?,?,200,0,1,?,'Ok','parsed',?,'1')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification, parse_status, parsed_at, "
+            "parser_version) VALUES (%s, %s, 'GET', %s, %s, 200, 0, 1, %s, 'Ok', 'parsed', %s, '1')"
+        ),
         (
             f"{parser}-{number}",
             spec.watch_id,
@@ -370,12 +371,11 @@ def _accept(database, files, clock, monkeypatch):
     return inputs.accept(database, bundle, clock)
 
 
-def test_an_adapter_edit_requeues_only_its_kinds_and_a_versions_edit_no_parse(
+def test_adapter_and_runtime_byte_edits_update_audit_without_requeueing_parse(
     package, tmp_path, monkeypatch
 ):
     now = datetime(2026, 9, 25, tzinfo=UTC)
     clock = FakeClock(now)
-    eepro = {"eepro.round", "eepro.index", "eepro.autoindex"}
     with open_database(tmp_path / "state") as database:
         conn = database.connection
         _accept(database, package, clock, monkeypatch)
@@ -383,22 +383,24 @@ def test_an_adapter_edit_requeues_only_its_kinds_and_a_versions_edit_no_parse(
         rounds = _watch(conn, "eepro", "eepro.round", 1, now, run_id)
         index = _watch(conn, "eepro", "eepro.index", 2, now, run_id)
         calendar = _watch(conn, "wsdc_calendar", "wsdc_calendar.events", 3, now, run_id)
-        conn.execute("UPDATE watches SET extract_version='cached'")
+        conn.execute("UPDATE watches SET extract_version = 'cached'")
         conn.execute("DELETE FROM pending_work")
 
         edited = edit(package, "sources/eepro/adapter.py")
         accepted = _accept(database, edited, clock, monkeypatch)
-        assert accepted == {
-            f"recipe/code/{stage}/{kind}" for stage in ("extract", "parse") for kind in eepro
-        }
-        versions = dict(conn.execute("SELECT watch_id,extract_version FROM watches"))
-        assert versions[rounds] is None and versions[index] is None
-        assert versions[calendar] == "cached"
-        pending = {
-            str(row[0])
-            for row in conn.execute("SELECT unit_id FROM pending_work WHERE stage='parse'")
-        }
-        assert pending == {"eepro.round-1", "eepro.index-2"}
+        assert accepted <= {"recipe/code/build"}
+        versions = dict(conn.execute("SELECT watch_id, extract_version FROM watches"))
+        assert versions[rounds] == versions[index] == versions[calendar] == "cached"
+        assert (
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'").fetchone()[0]
+            == 0
+        )
+        audit = dict(
+            conn.execute("SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'audit'")
+        )
+        assert (
+            audit["recipe/code/parse/eepro.round"] == code(edited)["recipe/code/parse/eepro.round"]
+        )
 
         # Acceptance: a code-only change to a non-parser module re-queues no parse.
         conn.execute("DELETE FROM pending_work")
@@ -409,7 +411,8 @@ def test_an_adapter_edit_requeues_only_its_kinds_and_a_versions_edit_no_parse(
             for name in accepted
         )
         assert (
-            conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='parse'").fetchone()[0] == 0
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage = 'parse'").fetchone()[0]
+            == 0
         )
         # A scheduler edit changes no recipe and queues nothing (F4).
         queued = conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
@@ -509,9 +512,14 @@ def test_a_parse_writer_edit_changes_every_parse_recipe_and_no_extract_recipe(pa
 
 
 def test_a_new_migration_changes_no_parse_recipe(package):
-    added = seal({**package, PREFIX + "state/migrations/0099_later.sql": b"SELECT 1;\n"})
+    added = seal({**package, PREFIX + "state/postgres_migrations/0099_later.sql": b"SELECT 1;\n"})
     difference = changed(code(package), code(added))
-    assert difference and not {name for name in difference if "/parse/" in name}
+    assert difference
+    # Native engine audit scopes may include schema metadata. Declared
+    # transform identities, which queue work, remain exactly unchanged.
+    old = captured_recipe_inputs(package, history_start=START)
+    new = captured_recipe_inputs(added, history_start=START)
+    assert changed(old, new) <= {"recipe/code/build"}
 
 
 def test_an_old_bundle_reproduces_its_runtime_recipe(package):
@@ -520,7 +528,7 @@ def test_an_old_bundle_reproduces_its_runtime_recipe(package):
     assert names["recipe/runtime"] == digest(old["recipes/runtime.json"])
     assert not any(name.startswith(("recipe/code/", "recipe/env")) for name in names)
     scoped = captured_recipe_inputs(package, history_start=START)
-    assert "recipe/runtime" not in scoped and "recipe/env" in scoped
+    assert "recipe/runtime" not in scoped and "recipe/env" not in scoped
     # A scoped file edited without a new manifest is refused.
     tampered = dict(package)
     tampered[PREFIX + "sources/eepro/adapter.py"] += b"# unsealed\n"
@@ -599,7 +607,8 @@ def test_a_source_registration_changes_only_its_own_kinds_scopes(package):
             b'CONTRACTS: dict[str, str] = {\n    "later.page": "swingset.admission.later_contract",',
         ),
         PREFIX + "sources/later/__init__.py": b"",
-        PREFIX + "sources/later/adapter.py": b"from swingset.sources.base import ParseResult\n",
+        PREFIX
+        + "sources/later/adapter.py": b"from swingset.sources.base import ParseResult\nclass Page:\n    kind = 'later.page'\n    EXTRACT_VERSION = 1\n    PARSER_VERSION = 1\n",
         PREFIX + "admission/later_contract.py": b'VERSIONS = {"later.page": "1"}\n',
     }
     after = code(seal(added))

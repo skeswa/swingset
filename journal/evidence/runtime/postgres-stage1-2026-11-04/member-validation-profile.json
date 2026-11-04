@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "limitations": [
+    "Standalone native Mac function measurements, not a complete core result.",
+    "Every original validation is executed, with repeated member paths sharing only a local digest.",
+    "The checkout and current runtime file map are unchanged by this prototype."
+  ],
+  "local_cache": [
+    {
+      "currsize": 202,
+      "hits": 2855,
+      "maxsize": null,
+      "misses": 202
+    },
+    {
+      "currsize": 202,
+      "hits": 2855,
+      "maxsize": null,
+      "misses": 202
+    },
+    {
+      "currsize": 202,
+      "hits": 2855,
+      "maxsize": null,
+      "misses": 202
+    }
+  ],
+  "measured_at": "2026-11-05T06:06:07.968059+00:00",
+  "median_improvement_fraction": 0.5347295354633843,
+  "medians": {
+    "baseline": 0.06035870919004083,
+    "one_digest_per_member": 0.028083124663680792
+  },
+  "output_sha256": "92ba22f20e539b4667700aea41ce471cc5b74fd94aa8fea2e8a32af67f04c170",
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "prototype_sha256": "a9e023884e1856caa8c0d6f84592f4afeae224a6cd25bd06a671d1de94cc94eb",
+  "rows": [
+    {
+      "mode": "baseline",
+      "seconds": 0.06035870919004083
+    },
+    {
+      "mode": "one_digest_per_member",
+      "seconds": 0.028083124663680792
+    },
+    {
+      "mode": "baseline",
+      "seconds": 0.059982916340231895
+    },
+    {
+      "mode": "one_digest_per_member",
+      "seconds": 0.02828975021839142
+    },
+    {
+      "mode": "baseline",
+      "seconds": 0.06050112470984459
+    },
+    {
+      "mode": "one_digest_per_member",
+      "seconds": 0.028032334055751562
+    }
+  ],
+  "runtime_manifest_sha256": "48c7270badb179a4847636f214a849fb3c400ab78d3ae026cb745265a30ceb20",
+  "source_sha256": "7b38b411f946b76a5f6ba22b4a878364ea1bd2d19edf62bcbe938b14ca4f1e6d"
+}

@@ -49,7 +49,7 @@ def observe(
         checked = []
         for candidate in tied:
             rows = checker.reader.read(
-                "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=? AND w.source=?",
+                "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=%s AND w.source=%s",
                 (candidate["snapshot_id"], checker.request["source"]),
                 COLUMNS,
                 cap=1,
@@ -133,7 +133,7 @@ def revalidate(observation: Mapping[str, Any], *, budget: Budget) -> bool:
         return True
     expected, identity = observation["unavailability_support"], observation["request"]
     rows = budget.read(
-        "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=? AND w.source=?",
+        "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=%s AND w.source=%s",
         (expected["snapshot_id"], identity["source"]),
         COLUMNS,
         cap=1,

@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
 
+from postgres_statements import assert_integrity
 from test_h15_acceptance import drain_project, pointers
 from test_h15_acceptance import source_fixture as source_fixture
 
@@ -36,7 +37,7 @@ def test_reprojecting_unchanged_overrides_keeps_placeholder_events(tmp_path: Pat
     )
     with open_database(tmp_path, lock=False) as database:
         database.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_a', '2026-09-08T00:00:00Z', 0)"
         )
         with database.transaction():
             assert project_map(database.connection, bundle, "2026-09-08T00:00:00Z", "run_a", 2)
@@ -72,9 +73,11 @@ def _event(identifier, name, start, end, *, status="registry", source="wsdc_cale
 
 def _listing(conn, source, ref, name, start, end, snapshot="listing"):
     conn.execute(
-        "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,url,"
-        "snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-        "VALUES (?,?,?,?,?,'https://example.test/',?,'4',?,?,'test')",
+        (
+            "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, url, "
+            "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, %s, %s, %s, "
+            "%s, 'https://example.test/', %s, '4', %s, %s, 'test')"
+        ),
         (source, ref, name, start, end, snapshot, NOW, NOW),
     )
 
@@ -106,7 +109,9 @@ def test_mapping_and_resolution_follow_every_rule_of_the_map(tmp_path):
     bundle = SimpleNamespace(files={"overrides/event_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _calendar(
                 conn,
@@ -125,8 +130,10 @@ def test_mapping_and_resolution_follow_every_rule_of_the_map(tmp_path):
         generated = event_id(date(2026, 6, 7), "New Weekend")
         assert _rows(
             conn,
-            "SELECT source,source_ref,event_id,match_method,match_confidence "
-            "FROM source_event_map ORDER BY 1,2",
+            (
+                "SELECT source, source_ref, event_id, match_method, match_confidence FROM source_event_map "
+                "ORDER BY 1 NULLS FIRST, 2 NULLS FIRST"
+            ),
         ) == [
             ("eepro", "e:match", "catalog-a", "name_date", 1.0),
             ("eepro", "e:new", generated, "name_date", 0.5),
@@ -135,8 +142,10 @@ def test_mapping_and_resolution_follow_every_rule_of_the_map(tmp_path):
         ]
         assert _rows(
             conn,
-            "SELECT event_id,name,start_date,end_date,wsdc_status,sources,source,snapshot_id "
-            "FROM events WHERE wsdc_status='unknown' ORDER BY 1",
+            (
+                "SELECT event_id, name, start_date, end_date, wsdc_status, sources, source, snapshot_id FROM "
+                "events WHERE wsdc_status = 'unknown' ORDER BY 1 NULLS FIRST"
+            ),
         ) == [
             (
                 "2026-06-new-weekend",
@@ -163,45 +172,50 @@ def test_mapping_and_resolution_follow_every_rule_of_the_map(tmp_path):
         # catalog event owns that row too, as the map's override scope did.
         assert _rows(
             conn,
-            "SELECT scope_id,json_extract(record_key,'$[0]') FROM canonical_scope_rows "
-            "WHERE scope_kind='resolution' ORDER BY 1",
+            (
+                "SELECT scope_id, JSON_EXTRACT_PATH_TEXT(CAST(record_key AS JSON), '0') FROM "
+                "canonical_scope_rows WHERE scope_kind = 'resolution' ORDER BY 1 NULLS FIRST"
+            ),
         ) == [
             ("2026-06-new-weekend", "2026-06-new-weekend"),
             ("2026-07-override-weekend", "2026-07-override-weekend"),
             ("catalog-b", "catalog-b"),
         ]
         assert _rows(
-            conn, "SELECT source,count(*) FROM source_event_proposals GROUP BY 1 ORDER BY 1"
+            conn,
+            "SELECT source, COUNT(*) FROM source_event_proposals GROUP BY 1 ORDER BY 1 NULLS FIRST",
         ) == [("eepro", 3), ("scoringdance", 1)]
-        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+        assert_integrity(conn)
 
 
 def test_a_placeholder_that_gains_a_catalog_match_moves_to_the_catalog_event(tmp_path):
     bundle = SimpleNamespace(files={})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _listing(conn, "eepro", "e:1", "Late Listing", "2026-08-01", "2026-08-02")
             assert project_map(conn, bundle, NOW, "test", 20)
         placeholder = "2026-08-late-listing"
-        assert conn.execute("SELECT 1 FROM events WHERE event_id=?", (placeholder,)).fetchone()
+        assert conn.execute("SELECT 1 FROM events WHERE event_id = %s", (placeholder,)).fetchone()
         with db.transaction():
             _calendar(conn, _event("calendar-late", "Late Listing", "2026-08-01", "2026-08-02"))
             assert project_map(conn, bundle, NOW, "test", 20)
-        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+        assert _rows(conn, "SELECT source_ref, event_id, match_method FROM source_event_map") == [
             ("e:1", "calendar-late", "name_date")
         ]
         assert (
-            conn.execute("SELECT 1 FROM events WHERE event_id=?", (placeholder,)).fetchone() is None
+            conn.execute("SELECT 1 FROM events WHERE event_id = %s", (placeholder,)).fetchone()
+            is None
         )
         assert _rows(
             conn,
-            "SELECT scope_kind,scope_id FROM canonical_scope_rows "
-            "WHERE record_key=json_array('calendar-late')",
+            "SELECT scope_kind, scope_id FROM canonical_scope_rows WHERE record_key = ops.compact_json(json_build_array('calendar-late'::text))",
         ) == [("calendar", "2026")]
         assert not conn.execute(
-            "SELECT 1 FROM canonical_scope_rows WHERE scope_kind='resolution'"
+            "SELECT 1 FROM canonical_scope_rows WHERE scope_kind = 'resolution'"
         ).fetchone()
 
 
@@ -209,18 +223,20 @@ def test_a_listing_on_two_index_pages_maps_once(tmp_path):
     bundle = SimpleNamespace(files={})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _listing(conn, "scoringdance", "s:1", "Paged Weekend", "2026-02-01", "2026-02-02")
             conn.executemany(
-                "INSERT INTO source_event_scope_rows VALUES (?,'scoringdance','s:1')",
+                "INSERT INTO source_event_scope_rows (scope_id, source, source_ref) VALUES (%s, 'scoringdance', 's:1')",
                 [("scoringdance:1",), ("scoringdance:2",)],
             )
             assert project_map(conn, bundle, NOW, "test", 20)
-        assert _rows(conn, "SELECT source,source_ref FROM source_event_proposals") == [
+        assert _rows(conn, "SELECT source, source_ref FROM source_event_proposals") == [
             ("scoringdance", "s:1")
         ]
-        assert _rows(conn, "SELECT source_ref,event_id FROM source_event_map") == [
+        assert _rows(conn, "SELECT source_ref, event_id FROM source_event_map") == [
             ("s:1", "2026-02-paged-weekend")
         ]
         mapping = WorkUnit("project", "mapping", "scoringdance")
@@ -315,7 +331,7 @@ def test_a_new_listing_for_a_known_event_makes_its_resolution_stale(source_fixtu
     drain_project(f)
     assert derivations.selected_generation(f.conn, resolution) != before
     assert ("scoringdance", "sd:event-a", "event-a", "name_date") in _rows(
-        f.conn, "SELECT source,source_ref,event_id,match_method FROM source_event_map"
+        f.conn, "SELECT source, source_ref, event_id, match_method FROM source_event_map"
     )
 
 
@@ -332,14 +348,18 @@ SERIES_ALIASES = (
 
 def _snapshot(conn, snapshot, source):
     conn.execute(
-        "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,state) "
-        "VALUES (?,?,'index','GET','https://example.test/','events','live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, %s, "
+            "'index', 'GET', 'https://example.test/', 'events', 'live') ON CONFLICT DO NOTHING"
+        ),
         ("watch-" + snapshot, source),
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,"
-        "content_changed,run_id,classification) "
-        "VALUES (?,?,'GET','https://example.test/',?,200,1,1,'test','Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+            "'https://example.test/', %s, 200, 1, 1, 'test', 'Ok')"
+        ),
         (snapshot, "watch-" + snapshot, NOW),
     )
 
@@ -365,8 +385,11 @@ def _registry(conn, *occurrences):
     )
     _snapshot(conn, "registry", "wsdc_registry")
     conn.execute(
-        "INSERT INTO observations VALUES ('obs-registry','watch-registry','registry',?,"
-        "'dancer','1',0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-registry', "
+            "'watch-registry', 'registry', %s, 'dancer', '1', 0, '1', '1', %s)"
+        ),
         (payload.kind, encode_payload(payload)),
     )
     replace_scope(
@@ -414,7 +437,9 @@ def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": SERIES_ALIASES})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _calendar(
                 conn,
@@ -430,7 +455,9 @@ def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
             _listing(conn, "eepro", "eepro:madjam", "MADjam", "2026-03-06", "2026-03-08")
             # The results site lists the event before the registry reports it.
             assert project_map(conn, bundle, NOW, "test", 20)
-        assert _rows(conn, "SELECT source_ref,event_id FROM source_event_map ORDER BY 1") == [
+        assert _rows(
+            conn, "SELECT source_ref, event_id FROM source_event_map ORDER BY 1 NULLS FIRST"
+        ) == [
             ("eepro:liberty", "2026-06-liberty-swing"),
             ("eepro:madjam", "2026-03-madjam"),
         ]
@@ -446,8 +473,7 @@ def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
             assert project_map(conn, bundle, NOW, "test", 20)
         assert _rows(
             conn,
-            "SELECT source_ref,event_id,match_method,match_confidence FROM source_event_map "
-            "ORDER BY 1",
+            "SELECT source_ref, event_id, match_method, match_confidence FROM source_event_map ORDER BY 1 NULLS FIRST",
         ) == [
             ("eepro:gndc", "2026-06-usa-grand-national-dance-championships", "alias", 1.0),
             ("eepro:liberty", "2026-06-liberty-swing-dance-championships", "alias", 1.0),
@@ -455,7 +481,7 @@ def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
         ]
         assert _rows(
             conn,
-            "SELECT event_id,series_id,held,wsdc_status,sources FROM events ORDER BY 1",
+            "SELECT event_id, series_id, held, wsdc_status, sources FROM events ORDER BY 1 NULLS FIRST",
         ) == [
             ("2026-03-madjam", "wsdc-92", "held", "registry", '["eepro","wsdc_registry"]'),
             (
@@ -473,7 +499,7 @@ def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
                 '["eepro","wsdc_registry"]',
             ),
         ]
-        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+        assert_integrity(conn)
 
 
 def test_two_series_with_a_shared_word_stay_apart(tmp_path):
@@ -482,7 +508,9 @@ def test_two_series_with_a_shared_word_stay_apart(tmp_path):
     bundle = SimpleNamespace(files={})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _registry(
                 conn,
@@ -503,8 +531,10 @@ def test_two_series_with_a_shared_word_stay_apart(tmp_path):
             assert project_map(conn, bundle, NOW, "test", 20)
         assert _rows(
             conn,
-            "SELECT m.source_ref,m.event_id,e.series_id FROM source_event_map m "
-            "JOIN events e USING(event_id) ORDER BY 1",
+            (
+                "SELECT m.source_ref, m.event_id, e.series_id FROM source_event_map AS m JOIN events AS e "
+                "USING (event_id) ORDER BY 1 NULLS FIRST"
+            ),
         ) == [
             ("sd:fling", "2026-08-swing-fling", "wsdc-59"),
             ("sd:south-bay", "2026-09-south-bay-dance-fling", "wsdc-48"),
@@ -524,7 +554,9 @@ def test_the_series_rule_refuses_ambiguous_months_and_disjoint_dates(tmp_path):
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _calendar(
                 conn,
@@ -554,7 +586,8 @@ def test_the_series_rule_refuses_ambiguous_months_and_disjoint_dates(tmp_path):
             _listing(conn, "eepro", "e:liberty", "Liberty Swing", "2026-06-12", "2026-06-14")
             assert project_map(conn, bundle, NOW, "test", 20)
         assert _rows(
-            conn, "SELECT source_ref,event_id,match_method FROM source_event_map ORDER BY 1"
+            conn,
+            "SELECT source_ref, event_id, match_method FROM source_event_map ORDER BY 1 NULLS FIRST",
         ) == [
             ("e:late", "2026-06-liberty-swing", "name_date"),
             ("e:liberty", "2026-06-liberty", "alias"),
@@ -570,7 +603,9 @@ def test_the_series_rule_needs_the_inventory_to_have_attached_the_source(tmp_pat
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _calendar(
                 conn,
@@ -585,7 +620,7 @@ def test_the_series_rule_needs_the_inventory_to_have_attached_the_source(tmp_pat
             )
             _listing(conn, "eepro", "e:liberty", "Liberty Swing", "2026-06-12", "2026-06-14")
             assert project_map(conn, bundle, NOW, "test", 20)
-        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+        assert _rows(conn, "SELECT source_ref, event_id, match_method FROM source_event_map") == [
             ("e:liberty", "2026-06-liberty-swing", "name_date")
         ]
 
@@ -610,10 +645,14 @@ def _aloha_registry(conn, *months):
         ),
     )
     snapshot = f"registry-{len(months)}"
-    conn.execute("DELETE FROM observations WHERE scope_kind='dancer'")
+    conn.execute("DELETE FROM observations WHERE scope_kind = 'dancer'")
     _snapshot(conn, snapshot, "wsdc_registry")
     conn.execute(
-        "INSERT INTO observations VALUES (?,?,?,?,'dancer','1',0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, "
+            "'dancer', '1', 0, '1', '1', %s)"
+        ),
         ("obs-" + snapshot, "watch-" + snapshot, snapshot, payload.kind, encode_payload(payload)),
     )
     replace_scope(
@@ -643,7 +682,9 @@ def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_editio
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _aloha_registry(conn, "October 2025")
             prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
@@ -660,7 +701,11 @@ def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_editio
             )
             _snapshot(conn, "cal", "wsdc_calendar")
             conn.execute(
-                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc',0,'1','1',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-cal', "
+                    "'watch-cal', 'cal', %s, 'calendar', 'wsdc', 0, '1', '1', %s)"
+                ),
                 (row.kind, encode_payload(row)),
             )
             replace_scope(
@@ -683,7 +728,8 @@ def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_editio
             prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
             project_map(conn, bundle, NOW, "test", 20)
             assert _rows(
-                conn, "SELECT event_id,series_id,held FROM events WHERE year=2026 ORDER BY 1"
+                conn,
+                "SELECT event_id, series_id, held FROM events WHERE year = 2026 ORDER BY 1 NULLS FIRST",
             ) == [
                 # One unreported edition: the results listing joins the
                 # calendar's row (D-0260).
@@ -699,14 +745,15 @@ def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_editio
             finalize_history(conn, now=NOW)
         assert _rows(
             conn,
-            "SELECT event_id,series_id,held,wsdc_status FROM events WHERE held='held' AND year=2026",
+            "SELECT event_id, series_id, held, wsdc_status FROM events WHERE held = 'held' AND year = 2026",
         ) == [("2026-09-the-aloha-open", "wsdc-355", "held", "registry")]
         assert _rows(
             conn,
-            "SELECT event_id,match_method FROM source_event_map WHERE source_ref='scoringdance:375'",
+            "SELECT event_id, match_method FROM source_event_map WHERE source_ref = 'scoringdance:375'",
         ) == [("2026-09-the-aloha-open", "alias")]
         assert _rows(
-            conn, "SELECT DISTINCT event_id FROM registry_placements WHERE event_month LIKE '2026%'"
+            conn,
+            "SELECT DISTINCT event_id FROM registry_placements WHERE event_month ILIKE '2026%'",
         ) == [("2026-09-the-aloha-open",)]
 
 
@@ -727,7 +774,9 @@ def test_an_unreported_editions_results_join_its_calendar_row(tmp_path):
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             row = CalendarRow(
                 "calendar_row",
@@ -742,7 +791,11 @@ def test_an_unreported_editions_results_join_its_calendar_row(tmp_path):
             )
             _snapshot(conn, "cal", "wsdc_calendar")
             conn.execute(
-                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc-history',0,'1','1',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-cal', "
+                    "'watch-cal', 'cal', %s, 'calendar', 'wsdc-history', 0, '1', '1', %s)"
+                ),
                 (row.kind, encode_payload(row)),
             )
             _snapshot(conn, "listing", "scoringdance")
@@ -751,11 +804,12 @@ def test_an_unreported_editions_results_join_its_calendar_row(tmp_path):
             )
             prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
             project_map(conn, bundle, NOW, "test", 20)
-        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+        assert _rows(conn, "SELECT source_ref, event_id, match_method FROM source_event_map") == [
             ("sd:aloha", "2024-09-the-aloha-open", "alias")
         ]
         assert _rows(
-            conn, "SELECT event_id,series_id,held,wsdc_status,sources,city FROM events ORDER BY 1"
+            conn,
+            "SELECT event_id, series_id, held, wsdc_status, sources, city FROM events ORDER BY 1 NULLS FIRST",
         ) == [
             (
                 "2024-09-the-aloha-open",
@@ -785,7 +839,9 @@ def test_a_results_listing_inside_a_cross_month_span_joins_its_occurrence(tmp_pa
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _registry(conn, ("196", "SwingCouver", "January 2024"))
             row = CalendarRow(
@@ -801,11 +857,15 @@ def test_a_results_listing_inside_a_cross_month_span_joins_its_occurrence(tmp_pa
             )
             _snapshot(conn, "cal", "wsdc_calendar")
             conn.execute(
-                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc-history',0,'1','1',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-cal', "
+                    "'watch-cal', 'cal', %s, 'calendar', 'wsdc-history', 0, '1', '1', %s)"
+                ),
                 (row.kind, encode_payload(row)),
             )
             conn.execute(
-                "UPDATE snapshots SET observed_at='2023-11-01T00:00:00Z' WHERE snapshot_id='cal'"
+                "UPDATE snapshots SET observed_at = '2023-11-01T00:00:00Z' WHERE snapshot_id = 'cal'"
             )
             _snapshot(conn, "listing", "scoringdance")
             _listing(
@@ -813,13 +873,15 @@ def test_a_results_listing_inside_a_cross_month_span_joins_its_occurrence(tmp_pa
             )
             prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
             project_map(conn, bundle, NOW, "test", 20)
-        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+        assert _rows(conn, "SELECT source_ref, event_id, match_method FROM source_event_map") == [
             ("sd:couver", "2024-01-swingcouver", "alias")
         ]
         assert _rows(
             conn,
-            "SELECT event_id,name,start_date,end_date,held,sources,history_source FROM events "
-            "ORDER BY 1",
+            (
+                "SELECT event_id, name, start_date, end_date, held, sources, history_source FROM events "
+                "ORDER BY 1 NULLS FIRST"
+            ),
         ) == [
             (
                 "2024-01-swingcouver",
@@ -835,10 +897,13 @@ def test_a_results_listing_inside_a_cross_month_span_joins_its_occurrence(tmp_pa
 
 def _unheld(conn, event_id, series, name, start, end, sources, history):
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,"
-        "source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
-        "date_precision,held,coverage_tier,history_source) VALUES (?,?,?,?,?,?,'trial',?,"
-        "'wsdc_calendar','s','1',?,?,'test',?,'day','listed','index_only',?)",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, "
+            "event_month, date_precision, held, coverage_tier, history_source) VALUES (%s, %s, %s, %s, "
+            "%s, %s, 'trial', %s, 'wsdc_calendar', 's', '1', %s, %s, 'test', %s, 'day', 'listed', "
+            "'index_only', %s)"
+        ),
         (event_id, series, name, int(end[:4]), start, end, sources, NOW, NOW, end[:7], history),
     )
 
@@ -857,7 +922,9 @@ def test_an_unreported_editions_results_never_go_to_another_series(tmp_path):
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             _unheld(
                 conn,
@@ -876,7 +943,8 @@ def test_an_unreported_editions_results_never_go_to_another_series(tmp_path):
             )
             project_map(conn, bundle, NOW, "test", 20)
         assert _rows(
-            conn, "SELECT source_ref,event_id,match_method FROM source_event_map ORDER BY 1"
+            conn,
+            "SELECT source_ref, event_id, match_method FROM source_event_map ORDER BY 1 NULLS FIRST",
         ) == [
             ("sd:aloha", "2024-09-the-aloha-open", "alias"),
             ("sd:party", "2024-09-wcsparty", "name_date"),
@@ -901,7 +969,9 @@ def test_a_results_listing_a_day_before_the_calendar_span_joins_the_edition(tmp_
     bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 0)", (NOW,)
+        )
         with db.transaction():
             row = CalendarRow(
                 "calendar_row",
@@ -916,7 +986,11 @@ def test_a_results_listing_a_day_before_the_calendar_span_joins_the_edition(tmp_
             )
             _snapshot(conn, "cal", "wsdc_calendar")
             conn.execute(
-                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc-history',0,'1','1',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-cal', "
+                    "'watch-cal', 'cal', %s, 'calendar', 'wsdc-history', 0, '1', '1', %s)"
+                ),
                 (row.kind, encode_payload(row)),
             )
             _snapshot(conn, "listing", "scoringdance")
@@ -932,12 +1006,13 @@ def test_a_results_listing_a_day_before_the_calendar_span_joins_the_edition(tmp_
             prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
             project_map(conn, bundle, NOW, "test", 20)
         assert _rows(
-            conn, "SELECT source_ref,event_id,match_method FROM source_event_map ORDER BY 1"
+            conn,
+            "SELECT source_ref, event_id, match_method FROM source_event_map ORDER BY 1 NULLS FIRST",
         ) == [
             ("sd:party", "2024-09-wcs-party", "alias"),
             ("sd:warmup", "2024-09-wcs-party-warmup", "alias"),
         ]
-        assert _rows(conn, "SELECT event_id,sources FROM events ORDER BY 1") == [
+        assert _rows(conn, "SELECT event_id, sources FROM events ORDER BY 1 NULLS FIRST") == [
             ("2024-09-wcs-party", '["scoringdance","wsdc_calendar"]'),
             ("2024-09-wcs-party-warmup", '["scoringdance"]'),
         ]

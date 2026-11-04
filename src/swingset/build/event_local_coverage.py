@@ -1,13 +1,12 @@
 """Bounded cutoff-local observations pinned independently of output selection.
 
 Negatives describe an observation, not durable absence. Positive support must
-still verify at each later boundary, even when the SQLite proof is reusable.
+still verify at each later boundary, even when the database proof is reusable.
 """
 
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import datetime
@@ -21,6 +20,7 @@ from swingset.admission.unavailable_evidence import revalidate as revalidate_una
 from swingset.admission.unsupported_evidence import FORMAT as UNSUPPORTED_FORMAT
 from swingset.admission.unsupported_evidence import metadata_valid as unsupported_valid
 from swingset.admission.unsupported_evidence import revalidate as revalidate_unsupported
+from swingset.state import engine
 
 from .closure_manifest import ClosureError, digest
 from .event_artifacts import observation_time, source
@@ -104,7 +104,7 @@ def _policy(local: Mapping[str, Any]) -> tuple[int, int, Limits]:
 
 
 def capture(
-    conn: sqlite3.Connection, entries: list[dict[str, Any]], *, cutoff: str
+    conn: engine.Connection, entries: list[dict[str, Any]], *, cutoff: str
 ) -> dict[str, Any] | None:
     archive = source(conn)
     if archive is None:
@@ -129,7 +129,7 @@ def capture(
                 continue
             try:
                 rows = session.read(
-                    "SELECT request_json FROM source_event_enumeration_members WHERE enumeration_id=? AND request_id=?",
+                    "SELECT request_json FROM source_event_enumeration_members WHERE enumeration_id = %s AND request_id = %s",
                     (entry["enumeration_id"], identifier),
                     ("request_json",),
                     cap=1,
@@ -263,8 +263,8 @@ def _pages(witness: Mapping[str, Any]) -> list[dict[str, Any]]:
     return result
 
 
-def check_artifacts(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> Budget | None:
-    """Run before a SQLite-only cache lookup, once per validation invocation."""
+def check_artifacts(conn: engine.Connection, witness: Mapping[str, Any]) -> Budget | None:
+    """Run before a database-only cache lookup, once per validation invocation."""
     if witness.get("local_pages") is None:
         return None
     archive = source(conn)
@@ -300,7 +300,7 @@ def check_artifacts(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> Bud
     return budget
 
 
-def validate(conn: sqlite3.Connection, witness: Mapping[str, Any], budget: Budget | None) -> None:
+def validate(conn: engine.Connection, witness: Mapping[str, Any], budget: Budget | None) -> None:
     if witness.get("local_pages") is None:
         return
     if budget is None:
@@ -328,7 +328,7 @@ def validate(conn: sqlite3.Connection, witness: Mapping[str, Any], budget: Budge
             for entry in witness["entries"]:
                 if any(m["request_id"] == page["request_id"] for m in entry["members"]):
                     rows = budget.read(
-                        "SELECT request_json FROM source_event_enumeration_members WHERE enumeration_id=? AND request_id=?",
+                        "SELECT request_json FROM source_event_enumeration_members WHERE enumeration_id = %s AND request_id = %s",
                         (entry["enumeration_id"], page["request_id"]),
                         ("request_json",),
                         cap=1,
@@ -384,5 +384,5 @@ def fingerprint(reader: Any, evidence: Mapping[str, Any]) -> str:
         ("watches", "watches", "watch_id"),
     ):
         for identifier in evidence[key]:
-            values.append(digest(reader.rows(table, f"{column}=?", (identifier,), limit=1)))
+            values.append(digest(reader.rows(table, f"{column}=%s", (identifier,), limit=1)))
     return digest(values)

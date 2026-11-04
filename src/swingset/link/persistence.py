@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from swingset.clock import Clock
 from swingset.project.materialization import helper_recipe, materializing
+from swingset.state import engine
 from swingset.state.db import Database
 from swingset.state.findings import replace_findings
 from swingset.state.identity_journal import token as journal_token
@@ -24,6 +24,8 @@ from .decisions import resolution_columns, resolution_evidence, retain_resolutio
 from .effects import seed_confirmation_watches, update_registry_points
 from .evidence import ResolutionBasis
 from .model import EventResolution, SubjectResolution
+
+VERSION = 1
 
 if TYPE_CHECKING:
     from swingset.state.inputs import InputBundle
@@ -61,7 +63,7 @@ def commit_resolution(
     now = clock.now().isoformat()
     unit = WorkUnit("link", "event", event_id)
 
-    def write(db: sqlite3.Connection) -> None:
+    def write(db: engine.Connection) -> None:
         with materializing(
             db,
             unit,
@@ -75,7 +77,11 @@ def commit_resolution(
                 raise StaleIdentityResolution("identity decisions changed during linking")
             _replace_resolutions(db, resolution, now, run_id, linker_version)
             db.execute(
-                "UPDATE placements SET leader_wsdc_id=(SELECT wsdc_id FROM entries WHERE entry_id=leader_entry_id),follower_wsdc_id=(SELECT wsdc_id FROM entries WHERE entry_id=follower_entry_id) WHERE event_id=?",
+                (
+                    "UPDATE placements SET leader_wsdc_id = (SELECT wsdc_id FROM entries WHERE entry_id = "
+                    "leader_entry_id), follower_wsdc_id = (SELECT wsdc_id FROM entries WHERE entry_id = "
+                    "follower_entry_id) WHERE event_id = %s"
+                ),
                 (event_id,),
             )
             update_registry_points(db, event_id)
@@ -87,19 +93,27 @@ def commit_resolution(
     return old != _published_state(database.connection, event_id)
 
 
-def _published_state(conn: sqlite3.Connection, event_id: str) -> list[tuple[object, ...]]:
+def _published_state(conn: engine.Connection, event_id: str) -> list[tuple[object, ...]]:
     """The existing semantic revision comparison, excluding run metadata."""
     links = [
         tuple(row)
         for row in conn.execute(
-            "SELECT subject_kind,subject_id,wsdc_id,method,status,confidence FROM identity_links WHERE subject_id IN (SELECT entry_id FROM entries WHERE event_id=? UNION SELECT judge_id FROM judges WHERE event_id=?) ORDER BY subject_kind,subject_id",
+            (
+                "SELECT subject_kind, subject_id, wsdc_id, method, status, confidence FROM identity_links "
+                "WHERE subject_id IN (SELECT entry_id FROM entries WHERE event_id = %s UNION SELECT judge_id "
+                "FROM judges WHERE event_id = %s) ORDER BY subject_kind NULLS FIRST, subject_id NULLS FIRST"
+            ),
             (event_id, event_id),
         )
     ]
     placements = [
         ("placement", *tuple(row))
         for row in conn.execute(
-            "SELECT placement_id,leader_wsdc_id,follower_wsdc_id,registry_points_leader,registry_points_follower,registry_confirmed,points_matches_expected FROM placements WHERE event_id=? ORDER BY placement_id",
+            (
+                "SELECT placement_id, leader_wsdc_id, follower_wsdc_id, registry_points_leader, "
+                "registry_points_follower, registry_confirmed, points_matches_expected FROM placements WHERE "
+                "event_id = %s ORDER BY placement_id NULLS FIRST"
+            ),
             (event_id,),
         )
     ]
@@ -107,7 +121,7 @@ def _published_state(conn: sqlite3.Connection, event_id: str) -> list[tuple[obje
 
 
 def _replace_resolutions(
-    db: sqlite3.Connection, resolution: EventResolution, now: str, run_id: str, linker_version: str
+    db: engine.Connection, resolution: EventResolution, now: str, run_id: str, linker_version: str
 ) -> None:
     # A subject whose conclusion, candidates and resolution are unchanged keeps
     # its rows. Rewriting it would append a superseded and an accepted history
@@ -120,8 +134,8 @@ def _replace_resolutions(
     }
     subject_ids = [resolution.subjects[index].evidence.subject.subject_id for index in changed]
     for subject_id in subject_ids:
-        db.execute("DELETE FROM link_candidates WHERE subject_id=?", (subject_id,))
-        db.execute("DELETE FROM identity_links WHERE subject_id=?", (subject_id,))
+        db.execute("DELETE FROM link_candidates WHERE subject_id = %s", (subject_id,))
+        db.execute("DELETE FROM identity_links WHERE subject_id = %s", (subject_id,))
     for index, item in enumerate(resolution.subjects):
         if index in changed:
             _write_subject(db, item, now, run_id, linker_version)
@@ -197,7 +211,7 @@ _RESOLUTION_COLUMNS = (
 )
 
 
-def _unchanged(db: sqlite3.Connection, item: SubjectResolution, linker_version: str) -> bool:
+def _unchanged(db: engine.Connection, item: SubjectResolution, linker_version: str) -> bool:
     """Whether storing this subject again would change no row but processing times.
 
     The link, its candidates, its resolution and the newest history row must
@@ -206,15 +220,14 @@ def _unchanged(db: sqlite3.Connection, item: SubjectResolution, linker_version: 
     subject = item.evidence.subject
     key = (subject.subject_kind, subject.subject_id)
     link = db.execute(
-        f"SELECT {_LINK_COLUMNS} FROM identity_links WHERE subject_kind=? AND subject_id=?", key
+        f"SELECT {_LINK_COLUMNS} FROM identity_links WHERE subject_kind=%s AND subject_id=%s", key
     ).fetchone()
     if link is None or tuple(link) != _link(item, linker_version):
         return False
     candidates = [
         tuple(row)
         for row in db.execute(
-            f"SELECT {_CANDIDATE_COLUMNS} FROM link_candidates "
-            "WHERE subject_kind=? AND subject_id=? ORDER BY rank",
+            f"SELECT {_CANDIDATE_COLUMNS} FROM link_candidates WHERE subject_kind=%s AND subject_id=%s ORDER BY rank",
             key,
         )
     ]
@@ -222,8 +235,7 @@ def _unchanged(db: sqlite3.Connection, item: SubjectResolution, linker_version: 
         return False
     state, reason = item.history_state, item.history_reason
     stored = db.execute(
-        f"SELECT {_RESOLUTION_COLUMNS} FROM identity_link_resolutions "
-        "WHERE subject_kind=? AND subject_id=?",
+        f"SELECT {_RESOLUTION_COLUMNS} FROM identity_link_resolutions WHERE subject_kind=%s AND subject_id=%s",
         key,
     ).fetchone()
     if stored is None or tuple(stored) != resolution_columns(
@@ -231,8 +243,10 @@ def _unchanged(db: sqlite3.Connection, item: SubjectResolution, linker_version: 
     ):
         return False
     head = db.execute(
-        "SELECT state,resolution_json,assertion_json FROM identity_link_history "
-        "WHERE subject_kind=? AND subject_id=? ORDER BY history_id DESC LIMIT 1",
+        (
+            "SELECT state, resolution_json, assertion_json FROM identity_link_history WHERE subject_kind "
+            "= %s AND subject_id = %s ORDER BY history_id DESC NULLS LAST LIMIT 1"
+        ),
         key,
     ).fetchone()
     if head is None or (head[0], head[1]) != (
@@ -246,16 +260,25 @@ def _unchanged(db: sqlite3.Connection, item: SubjectResolution, linker_version: 
 
 
 def _write_subject(
-    db: sqlite3.Connection, item: SubjectResolution, now: str, run_id: str, linker_version: str
+    db: engine.Connection, item: SubjectResolution, now: str, run_id: str, linker_version: str
 ) -> None:
     link = _link(item, linker_version)
     db.execute(
-        "INSERT INTO identity_links VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO identity_links (link_id, subject_kind, subject_id, wsdc_id, method, status, "
+            "confidence, constraints_applied, asserted_at, run_id, linker_version) VALUES (%s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (*link[:-1], now, run_id, link[-1]),
     )
     for row in _candidates(item):
         db.execute(
-            "INSERT INTO link_candidates VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO link_candidates (subject_kind, subject_id, wsdc_id, score, name_similarity, "
+                "name_rarity, division_ok, role_ok, recency_ok, geography, bib_reuse, registry_confirms, "
+                "source_id_confirms, rank, chosen, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+                "%s, %s, %s, %s, %s, %s)"
+            ),
             (*row, run_id),
         )
     _write_dependents(db, item, now)
@@ -271,17 +294,17 @@ def _write_subject(
     )
 
 
-def _write_dependents(db: sqlite3.Connection, item: SubjectResolution, now: str) -> None:
+def _write_dependents(db: engine.Connection, item: SubjectResolution, now: str) -> None:
     """Idempotent writes every run makes: the subject's row and its reference bindings."""
     subject, conclusion = item.evidence.subject, item.conclusion
     if subject.subject_kind == "entry":
         db.execute(
-            "UPDATE entries SET wsdc_id=?,link_status=?,link_confidence=? WHERE entry_id=?",
+            "UPDATE entries SET wsdc_id = %s, link_status = %s, link_confidence = %s WHERE entry_id = %s",
             (item.default_wsdc_id, conclusion.status, conclusion.confidence, subject.subject_id),
         )
     else:
         db.execute(
-            "UPDATE judges SET wsdc_id=? WHERE judge_id=?",
+            "UPDATE judges SET wsdc_id = %s WHERE judge_id = %s",
             (item.default_wsdc_id, subject.subject_id),
         )
     for binding in item.evidence.bindings:

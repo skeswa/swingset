@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import calendar
 import re
-import sqlite3
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -16,6 +15,7 @@ import httpx
 from swingset.fetch.wayback import Capture, select_captures
 from swingset.log import log
 from swingset.sources.base import ExtractError
+from swingset.state import engine
 from swingset.state.findings import Finding
 
 PLATFORMS = frozenset({"eepro", "scoringdance", "dcn", "wdr"})
@@ -240,7 +240,7 @@ def plan_platform(
 
 
 def retained_plan(
-    conn: sqlite3.Connection, *, history_start: date = date(2010, 1, 1)
+    conn: engine.Connection, *, history_start: date = date(2010, 1, 1)
 ) -> PlatformPlan:
     """Read the retained inventory and selected parent declarations; no watches are inserted."""
     from swingset.admission.generations import deserialize_result
@@ -255,7 +255,8 @@ def retained_plan(
             date.fromisoformat(row[5]) if row[5] else None,
         )
         for row in conn.execute(
-            "SELECT e.event_id,m.source,m.source_ref,e.year,e.event_month,e.end_date FROM source_event_map m JOIN events e USING(event_id)"
+            "SELECT e.event_id, m.source, m.source_ref, e.year, e.event_month, e.end_date FROM "
+            "source_event_map AS m JOIN events AS e USING (event_id)"
         )
         if row[1] in PLATFORMS
     )
@@ -272,16 +273,18 @@ def retained_plan(
             ),
         )
         for row in conn.execute(
-            "SELECT source,url,timestamp,digest,mimetype,length,status FROM archive_captures"
+            "SELECT source, url, timestamp, digest, mimetype, length, status FROM archive_captures"
         )
         if row[0] in PLATFORMS
     )
     declarations: list[Page] = []
-    for row in conn.execute("SELECT source,url FROM source_events"):
+    for row in conn.execute("SELECT source, url FROM source_events"):
         if row[0] in PLATFORMS and (page := recognize(str(row[0]), str(row[1]))):
             declarations.append(page)
     for row in conn.execute(
-        "SELECT g.result_json,w.url,w.source FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id JOIN watches w ON w.watch_id=u.watch_id WHERE g.state='accepted'"
+        "SELECT g.result_json, w.url, w.source FROM source_units AS u JOIN source_generations AS g "
+        "ON g.generation_id = u.accepted_generation_id JOIN watches AS w ON w.watch_id = u.watch_id "
+        "WHERE g.state = 'accepted'"
     ):
         if row[2] not in PLATFORMS:
             continue

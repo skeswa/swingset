@@ -240,32 +240,40 @@ def _project(tmp_path: Path, event: str, names: list[str]):
     with open_database(tmp_path, lock=False) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-10-15T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', '2026-10-15T00:00:00Z', 0)"
         )
         conn.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
-            "VALUES ('swingdirector',?,?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('swingdirector', %s, %s, 'override', 1)"
+            ),
             (ref, event),
         )
         for number, name in enumerate(names):
             url, sheets = _sheets(name, event)
             watch, snapshot = f"watch-{number}", f"snap-{number}"
             conn.execute(
-                "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) "
-                "VALUES (?,'swingdirector','event','GET',?,'swingdirector.round',?,'live')",
+                (
+                    "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+                    "(%s, 'swingdirector', 'event', 'GET', %s, 'swingdirector.round', %s, 'live')"
+                ),
                 (watch, url, ref),
             )
             conn.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-                "body_bytes,content_changed,run_id,classification) VALUES "
-                "(?,?,'GET',?,?,200,1,1,'run','Ok')",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', %s, %s, 200, 1, "
+                    "1, 'run', 'Ok')"
+                ),
                 (snapshot, watch, url, f"2026-10-15T00:00:0{number}Z"),
             )
             for seq, sheet in enumerate(sheets):
                 conn.execute(
-                    "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,"
-                    "scope_id,seq,extract_version,parser_version,payload_json) VALUES "
-                    "(?,?,?,?,'source_event',?,?,'1','1',?)",
+                    (
+                        "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                        "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, "
+                        "'source_event', %s, %s, '1', '1', %s)"
+                    ),
                     (
                         f"{snapshot}-{seq}",
                         watch,

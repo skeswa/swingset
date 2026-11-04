@@ -1,7 +1,6 @@
 """Unsupported structural alternatives do not erase independently supported events."""
 
 import json
-import sqlite3
 from contextlib import closing
 from datetime import timedelta
 
@@ -27,8 +26,27 @@ def test_reconstruction_keeps_supported_event_and_judges_in_either_overlay_order
 ):
     f = release_state
     baseline = f.baseline
-    event = dict(f.conn.execute("SELECT * FROM events WHERE event_id=?", (EVENT,)).fetchone())
-    original_judges = [dict(row) for row in f.conn.execute("SELECT * FROM judges")]
+    event = dict(
+        f.conn.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (EVENT,),
+        ).fetchone()
+    )
+    original_judges = [
+        dict(row)
+        for row in f.conn.execute(
+            "SELECT judges.judge_id, judges.event_id, judges.name_raw, judges.initials, "
+            "judges.anonymous, judges.wsdc_id, judges.source, judges.snapshot_id, judges.parser_version, "
+            "judges.first_seen_at, judges.last_seen_at, judges.run_id FROM judges"
+        )
+    ]
     assert original_judges and all(row["wsdc_id"] is None for row in original_judges)
     # An earlier calendar sorts before the retained calendar base. Complete
     # through the real ledger, then make the year select the extra scope.
@@ -62,10 +80,13 @@ def test_reconstruction_keeps_supported_event_and_judges_in_either_overlay_order
 
 
 def spool():
-    conn = sqlite3.connect(":memory:")
-    conn.executescript(
-        "CREATE TABLE rows(table_name TEXT,record_key TEXT,payload TEXT,PRIMARY KEY(table_name,record_key));"
-        "CREATE TABLE rejected(table_name TEXT,record_key TEXT,payload TEXT,reason TEXT);"
+    import duckdb
+
+    conn = duckdb.connect()
+    conn.execute(
+        "CREATE TABLE rows (table_name TEXT, record_key TEXT, payload TEXT, PRIMARY KEY (table_name, "
+        "record_key)); CREATE TABLE rejected (table_name TEXT, record_key TEXT, payload TEXT, reason "
+        "TEXT)"
     )
     return conn
 
@@ -95,7 +116,7 @@ def test_valid_alternative_event_never_masks_revocation_or_unsupported_result(ta
         rejected = {"round_id": "round"} if table == "final_marks" else {"event_id": "event"}
         key = '["event"]' if table == "events" else '["rejected"]'
         conn.execute(
-            "INSERT INTO rejected VALUES (?,?,?,?)", (table, key, json.dumps(rejected), reason)
+            "INSERT INTO rejected VALUES (?, ?, ?, ?)", (table, key, json.dumps(rejected), reason)
         )
         result = ReconstructedRows(conn)
         _close(conn, result)
@@ -118,7 +139,7 @@ def test_partial_history_patch_cannot_replace_a_rejected_structural_event():
     with closing(spool()) as conn:
         event = {"event_id": "event", "series_id": "slug-unsupported"}
         conn.execute(
-            "INSERT INTO rejected VALUES (?,?,?,?)",
+            "INSERT INTO rejected VALUES (?, ?, ?, ?)",
             ("events", '["event"]', json.dumps(event), "legacy_owned_values_not_published"),
         )
         assert not _put(
@@ -156,7 +177,7 @@ def budafest_shaped(conn):
         ),
     ):
         conn.execute(
-            "INSERT INTO rejected VALUES (?,?,?,?)",
+            "INSERT INTO rejected VALUES (?, ?, ?, ?)",
             (table, key, json.dumps(row), "legacy_owned_values_not_published"),
         )
     _put(
@@ -231,7 +252,7 @@ def test_null_references_and_rows_of_withheld_events_never_reach_the_builder():
         # A second event already withheld for its source keeps a dangling mark
         # whose parents are gone; it must leave with its event.
         conn.execute(
-            "INSERT INTO rejected VALUES ('events','[\"gone\"]',?,'source_revoked')",
+            "INSERT INTO rejected VALUES ('events', '[\"gone\"]', ?, 'source_revoked')",
             (json.dumps({"event_id": "gone"}),),
         )
         _put(

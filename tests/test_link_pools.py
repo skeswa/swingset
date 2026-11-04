@@ -56,17 +56,21 @@ def test_service_keeps_judge_eligibility_and_original_source_id_behavior(tmp_pat
     with open_database(tmp_path) as db:
         seed(db.connection)
         entry(db.connection, "entry", "c1", "032", "Alex Lee")
-        db.connection.execute("UPDATE dancers SET follower_highest_level='CHMP' WHERE wsdc_id=2")
         db.connection.execute(
-            "INSERT INTO judges(judge_id,event_id,name_raw,initials,anonymous,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('judge','event','Alex Lee','AL',0,'test','snap','1','t','t','run')"
+            "UPDATE dancers SET follower_highest_level = 'CHMP' WHERE wsdc_id = 2"
+        )
+        db.connection.execute(
+            "INSERT INTO judges (judge_id, event_id, name_raw, initials, anonymous, source, snapshot_id, "
+            "parser_version, first_seen_at, last_seen_at, run_id) VALUES ('judge', 'event', 'Alex Lee', "
+            "'AL', 0, 'test', 'snap', '1', 't', 't', 'run')"
         )
         owned_source_sheet(db.connection, [("032", "Alex Lee", 999)])
         run(db, Bundle())
         candidates = db.connection.execute(
-            "SELECT subject_kind,wsdc_id FROM link_candidates ORDER BY subject_kind,wsdc_id"
+            "SELECT subject_kind, wsdc_id FROM link_candidates ORDER BY subject_kind NULLS FIRST, wsdc_id NULLS FIRST"
         ).fetchall()
         assert [tuple(row) for row in candidates] == [("entry", 1), ("entry", 2), ("judge", 2)]
-        assert db.connection.execute("SELECT wsdc_id,link_status FROM entries").fetchone()[:] == (
+        assert db.connection.execute("SELECT wsdc_id, link_status FROM entries").fetchone()[:] == (
             999,
             "confirmed",
         )
@@ -77,7 +81,7 @@ def test_empty_event_skips_dancer_pool_but_closes_findings_and_completes_work(tm
     with open_database(tmp_path) as db:
         seed(db.connection)
         db.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-01-04T00:00:00Z',0)"
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', '2026-01-04T00:00:00Z', 0)"
         )
         replace_findings(
             db.connection,
@@ -90,19 +94,18 @@ def test_empty_event_skips_dancer_pool_but_closes_findings_and_completes_work(tm
             run_id="run",
         )
         queries = []
-        db.connection.set_trace_callback(queries.append)
-        run(db, Bundle())
-        db.connection.set_trace_callback(None)
+        with db.connection.observing(lambda query, params: queries.append(str(query))):
+            run(db, Bundle())
         assert not any("FROM dancers WHERE merged_into_wsdc_id" in query for query in queries)
         assert (
             db.connection.execute(
-                "SELECT closed_at FROM findings WHERE owner_kind='link'"
+                "SELECT closed_at FROM findings WHERE owner_kind = 'link'"
             ).fetchone()[0]
             is not None
         )
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM pending_work WHERE stage='link'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage = 'link'"
             ).fetchone()[0]
             == 0
         )

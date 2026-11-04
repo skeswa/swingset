@@ -102,10 +102,13 @@ with open_database(state) as db:
         # A listing a source index would have written; its first round maps it
         # to a placeholder event (no catalog event shares its name and dates).
         db.connection.execute(
-            "INSERT OR IGNORE INTO source_events(source,source_ref,name_raw,start_date,end_date,"
-            "url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES "
-            "('eepro','eepro:crash','Crash Test Weekend','2026-03-05','2026-03-08',"
-            "'https://example.test/crash','listing-snapshot','1',?,?,'seed')",
+            (
+                "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, url, "
+                "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('eepro', "
+                "'eepro:crash', 'Crash Test Weekend', '2026-03-05', '2026-03-08', "
+                "'https://example.test/crash', 'listing-snapshot', '1', %s, %s, 'seed') ON CONFLICT DO "
+                "NOTHING"
+            ),
             (clock.now().isoformat(), clock.now().isoformat()),
         )
 
@@ -130,8 +133,8 @@ if fault == "none":
     for _ in range(3):
         with open_database(state, lock=False, read_only=True) as db:
             retries = db.connection.execute(
-                "SELECT next_attempt_at FROM work_queue WHERE next_attempt_at IS NOT NULL "
-                "AND state IN ('ready','waiting_input')"
+                "SELECT next_attempt_at FROM work_queue WHERE NOT next_attempt_at IS NULL AND state IN "
+                "('ready', 'waiting_input')"
             ).fetchall()
             unfinished = db.connection.execute("SELECT 1 FROM pending_work LIMIT 1").fetchone()
         if not retries and not unfinished:

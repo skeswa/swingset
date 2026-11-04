@@ -14,11 +14,14 @@ def test_event_and_link_generations_own_separate_columns(tmp_path):
         identifier = "event/c1/L-7"
         entry(conn, identifier, "c1", "7")
         conn.execute(
-            "INSERT INTO canonical_scope_rows VALUES ('event','event','entries',json_array(?))",
+            (
+                "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+                "('event', 'event', 'entries', JSON_ARRAY(%s))"
+            ),
             (identifier,),
         )
         conn.execute(
-            "UPDATE entries SET wsdc_id=1,link_status='confirmed',link_confidence=1 WHERE entry_id=?",
+            "UPDATE entries SET wsdc_id = 1, link_status = 'confirmed', link_confidence = 1 WHERE entry_id = %s",
             (identifier,),
         )
         projected = list(output_rows(conn, WorkUnit("project", "event", "event")))
@@ -37,7 +40,7 @@ def test_event_and_link_generations_own_separate_columns(tmp_path):
             "link_confidence": 1.0,
         }
         assert projected[0].key == linked[0].key
-        conn.execute("UPDATE entries SET wsdc_id=NULL WHERE entry_id=?", (identifier,))
+        conn.execute("UPDATE entries SET wsdc_id = NULL WHERE entry_id = %s", (identifier,))
         assert (
             list(output_rows(conn, WorkUnit("link", "event", "event")))[0].payload["wsdc_id"]
             is None
@@ -52,7 +55,7 @@ def test_inventory_does_not_claim_unenriched_map_placeholders(tmp_path):
             row.table == "events"
             for row in output_rows(conn, WorkUnit("project", "inventory", "all"))
         )
-        conn.execute("UPDATE events SET history_source='[\"registry\"]' WHERE event_id='event'")
+        conn.execute("UPDATE events SET history_source = '[\"registry\"]' WHERE event_id = 'event'")
         inventory = [
             row
             for row in output_rows(conn, WorkUnit("project", "inventory", "all"))
@@ -77,10 +80,13 @@ def test_the_year_alone_owns_the_events_coverage_tier(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         seed(conn)
-        conn.execute("UPDATE events SET coverage_tier='complete' WHERE event_id='event'")
+        conn.execute("UPDATE events SET coverage_tier = 'complete' WHERE event_id = 'event'")
         for kind, identifier in (("calendar", "2026"), ("resolution", "event")):
             conn.execute(
-                "INSERT INTO canonical_scope_rows VALUES (?,?,'events',json_array('event'))",
+                (
+                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES (%s, "
+                    "%s, 'events', JSON_ARRAY('event'))"
+                ),
                 (kind, identifier),
             )
         for unit in (
@@ -109,7 +115,10 @@ def acceptance_fixture(db):
 
     now = "2026-01-05T00:00:00Z"
     db.connection.execute(
-        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+        (
+            "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+            "%s, NULL, 1, NULL)"
+        ),
         (now,),
     )
     seed(db.connection)
@@ -136,7 +145,10 @@ def test_year_acceptance_materializes_coverage_with_actual_operation_provenance(
             row[0] == 1 for row in db.connection.execute("SELECT events_accepted FROM coverage")
         )
         operation = db.connection.execute(
-            "SELECT r.* FROM runs r JOIN derivation_generations g USING(run_id) WHERE g.generation_id=?",
+            (
+                "SELECT r.run_id, r.started_at, r.finished_at, r.dry_run, r.summary_json, r.loop FROM runs "
+                "AS r JOIN derivation_generations AS g USING (run_id) WHERE g.generation_id = %s"
+            ),
             (after,),
         ).fetchone()
         assert operation["finished_at"] == now
@@ -167,7 +179,10 @@ def test_year_acceptance_rolls_back_output_run_and_generation_on_failure(tmp_pat
 
         def state():
             return {
-                table: [tuple(row) for row in db.connection.execute(f"SELECT * FROM {table}")]
+                table: sorted(
+                    (tuple(row) for row in db.connection.execute(f"SELECT * FROM {table}")),
+                    key=repr,
+                )
                 for table in tables
             }
 
@@ -190,7 +205,7 @@ def test_year_acceptance_rolls_back_output_run_and_generation_on_failure(tmp_pat
 
         def changed_acceptance(conn, year, **kwargs):
             finalize(conn, year, **kwargs)
-            conn.execute("UPDATE history_acceptance SET accepted_by='changed during output'")
+            conn.execute("UPDATE history_acceptance SET accepted_by = 'changed during output'")
 
         with monkeypatch.context() as patch:
             patch.setattr(history, "finalize_year", changed_acceptance)

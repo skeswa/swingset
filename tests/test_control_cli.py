@@ -13,7 +13,11 @@ from swingset.state.db import open_database
 
 def test_pause_commits_while_cycle_owns_process_lock_without_accepting_inputs(tmp_path):
     with open_database(tmp_path) as db:
-        before = list(db.connection.execute("SELECT * FROM accepted_inputs"))
+        before = list(
+            db.connection.execute(
+                "SELECT accepted_inputs.consumer, accepted_inputs.input_name, accepted_inputs.digest FROM accepted_inputs"
+            )
+        )
         result = subprocess.run(
             [
                 sys.executable,
@@ -37,10 +41,21 @@ def test_pause_commits_while_cycle_owns_process_lock_without_accepting_inputs(tm
         assert result.returncode == 0, result.stderr
         receipt = json.loads(result.stdout)
         assert receipt["persisted"]
-        row = db.connection.execute("SELECT * FROM operator_pauses").fetchone()
+        row = db.connection.execute(
+            "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+            "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+            "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses"
+        ).fetchone()
         assert row["scope_kind"] == "all" and row["actor"] == "test-operator"
         assert row["pause_id"]
-        assert list(db.connection.execute("SELECT * FROM accepted_inputs")) == before
+        assert (
+            list(
+                db.connection.execute(
+                    "SELECT accepted_inputs.consumer, accepted_inputs.input_name, accepted_inputs.digest FROM accepted_inputs"
+                )
+            )
+            == before
+        )
         assert db.connection.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0
 
 
@@ -72,11 +87,15 @@ def test_invalid_control_request_never_changes_control_revision(tmp_path, capsys
 def test_wait_timeout_reports_persisted_pause_and_remaining_admission(tmp_path, capsys):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('active-request','request',?,0,0,0,'active')",
+            (
+                "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                "all_sources, all_kinds, state) VALUES ('active-request', 'request', %s, 0, 0, 0, 'active')"
+            ),
             (datetime.now(UTC).isoformat(),),
         )
         db.connection.execute(
-            "INSERT INTO execution_dependencies VALUES ('active-request','source','eepro')"
+            "INSERT INTO execution_dependencies (action_id, scope_kind, scope_id) VALUES "
+            "('active-request', 'source', 'eepro')"
         )
     assert (
         main(
@@ -222,18 +241,19 @@ def test_kind_pause_waits_without_running_work_then_selective_resume_keeps_all(t
         } == {"all"}
 
 
-def test_control_path_never_migrates_old_database(tmp_path, monkeypatch, capsys):
-    import swingset.state.db as database
+def test_control_path_never_migrates_old_database(tmp_path, capsys):
+    from swingset.state import engine
 
-    with monkeypatch.context() as old:
-        old.setattr(database, "SCHEMA_VERSION", 11)
-        with open_database(tmp_path):
-            pass
+    with open_database(tmp_path) as database:
+        database.connection.execute("UPDATE ops.meta SET value='11' WHERE key='schema_version'")
     assert main(["pause", "--all", "--state", str(tmp_path)]) == 1
     capsys.readouterr()
-    with open_database(tmp_path, lock=False, read_only=True) as db:
-        assert db.schema_version == 11
-        assert db.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 0
+    with engine.connect(engine.resolve_dsn(tmp_path)) as conn:
+        assert (
+            conn.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+            == "11"
+        )
+        assert conn.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 0
 
 
 def test_report_pauses_follow_action_dependencies_and_expiry(tmp_path):
@@ -248,7 +268,8 @@ def test_report_pauses_follow_action_dependencies_and_expiry(tmp_path):
     now = datetime(2026, 9, 13, tzinfo=UTC)
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,1)", (now.isoformat(),)
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 1)",
+            (now.isoformat(),),
         )
         upsert_watch(
             db.connection,
@@ -256,7 +277,8 @@ def test_report_pauses_follow_action_dependencies_and_expiry(tmp_path):
             now,
         )
         db.connection.execute(
-            "INSERT INTO pending_work VALUES ('project','dancer','42',?)", (now.isoformat(),)
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', 'dancer', '42', %s)",
+            (now.isoformat(),),
         )
         key = reconcile_requirement(
             db.connection,
@@ -267,7 +289,7 @@ def test_report_pauses_follow_action_dependencies_and_expiry(tmp_path):
             "test",
         )
         db.connection.execute(
-            "INSERT INTO hosts(host,paused_until) VALUES ('eepro.com',?)",
+            "INSERT INTO hosts (host, paused_until) VALUES ('eepro.com', %s)",
             ((now + timedelta(days=1)).isoformat(),),
         )
         later = now + timedelta(hours=2)
@@ -300,7 +322,7 @@ def test_report_pauses_follow_action_dependencies_and_expiry(tmp_path):
         assert expired["controls"]["state"] == "running"
         assert len(expired["controls"]["expired_pauses"]) == 1
         assert expired["pipeline_lag"]["derivation"]["oldest_lag_seconds"] == 7500
-        assert db.connection.execute("SELECT count(*) FROM operator_pauses").fetchone()[0] == 1
+        assert db.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 1
 
 
 def test_doctor_and_summary_share_effective_control_snapshot(tmp_path, capsys, monkeypatch):
@@ -313,7 +335,10 @@ def test_doctor_and_summary_share_effective_control_snapshot(tmp_path, capsys, m
     now = datetime(2026, 9, 13, tzinfo=UTC)
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('running','request',?,0,1,1,'active')",
+            (
+                "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                "all_sources, all_kinds, state) VALUES ('running', 'request', %s, 0, 1, 1, 'active')"
+            ),
             (now.isoformat(),),
         )
     change_control(

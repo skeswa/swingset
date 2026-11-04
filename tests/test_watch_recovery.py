@@ -18,8 +18,11 @@ def test_wdr_requires_thirty_distinct_daily_checks_before_infrequent_unavailable
         upsert_watch(database.connection, spec, started)
         for index in range(30):
             database.connection.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-                "body_bytes,content_changed,run_id,classification) VALUES (?,?,?,?,?,403,0,0,?,?)",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, %s, %s, %s, 403, 0, 0, "
+                    "%s, %s)"
+                ),
                 (
                     f"same-day-{index}",
                     spec.watch_id,
@@ -40,15 +43,18 @@ def test_wdr_requires_thirty_distinct_daily_checks_before_infrequent_unavailable
         )
         assert (
             database.connection.execute(
-                "SELECT state FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT state FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()[0]
             != "gone"
         )
         database.connection.execute("DELETE FROM snapshots")
         for day in range(30):
             database.connection.execute(
-                "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-                "body_bytes,content_changed,run_id,classification) VALUES (?,?,?,?,?,403,0,0,?,?)",
+                (
+                    "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                    "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, %s, %s, %s, 403, 0, 0, "
+                    "%s, %s)"
+                ),
                 (
                     f"day-{day}",
                     spec.watch_id,
@@ -69,7 +75,7 @@ def test_wdr_requires_thirty_distinct_daily_checks_before_infrequent_unavailable
         )
         assert tuple(
             database.connection.execute(
-                "SELECT state,next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT state, next_check_at FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()
         ) == (
             "gone",

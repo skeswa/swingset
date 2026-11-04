@@ -10,7 +10,6 @@ Consumers pin exact support and apply their own release or progress authority.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -28,6 +27,7 @@ from swingset.schedule.event_evidence import (
     timestamp,
 )
 from swingset.schedule.event_evidence import request as normalize_request
+from swingset.state import engine
 
 FORMAT = "cutoff-request-evidence-v1"
 
@@ -101,7 +101,7 @@ def _time(value: str) -> datetime:
 class _Evidence:
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         archive: Archive,
         limits: Limits,
         cutoff: datetime,
@@ -138,11 +138,9 @@ class _Evidence:
         cap = self.reader.limits.candidates
         # Exact URL first; a second bounded source pass covers alternate URL
         # spellings and watch kinds. Only both exhausted passes justify absence.
-        url_predicate = "s.url=?" if exact else "s.url<>?"
+        url_predicate = "s.url=%s" if exact else "s.url<>%s"
         rows = self.reader.read(
-            "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE w.source=? "
-            "AND upper(s.method)=? AND (julianday(s.fetched_at)<=julianday(?) OR julianday(s.fetched_at) IS NULL) "
-            f"AND {url_predicate} ORDER BY s.fetched_at DESC,s.snapshot_id DESC LIMIT ?",
+            f"SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE w.source=%s AND upper(s.method)=%s AND (ops.try_timestamp(s.fetched_at)<=ops.try_timestamp(%s) OR ops.try_timestamp(s.fetched_at) IS NULL) AND {url_predicate} ORDER BY s.fetched_at DESC,s.snapshot_id DESC LIMIT %s",
             (
                 self.request["source"],
                 self.request["method"],
@@ -179,7 +177,16 @@ class _Evidence:
     ) -> dict[str, Any] | None:
         reader = self.reader
         raw = reader.read(
-            "SELECT * FROM source_generations WHERE generation_id=?",
+            (
+                "SELECT source_generations.generation_id, source_generations.unit_key, "
+                "source_generations.page_kind, source_generations.contract_version, "
+                "source_generations.input_fingerprint, source_generations.manifest_json, "
+                "source_generations.recipe_json, source_generations.result_json, "
+                "source_generations.report_json, source_generations.previous_generation_id, "
+                "source_generations.work_token, source_generations.created_at, source_generations.run_id, "
+                "source_generations.state, source_generations.removal_authority FROM source_generations "
+                "WHERE generation_id = %s"
+            ),
             (identifier,),
             GENERATION,
             cap=1,
@@ -189,11 +196,12 @@ class _Evidence:
         value = decode_generation(raw[0], identifier)
         if _time(value["created_at"]) > self.cutoff:
             return None
-        decision_clause = " AND decision_id=?" if decision_id is not None else ""
+        decision_clause = " AND decision_id=%s" if decision_id is not None else ""
         decision_parameters = (decision_id,) if decision_id is not None else ()
         decisions = reader.read(
-            "SELECT * FROM admission_decisions WHERE generation_id=? AND state='accepted' "
-            "AND (julianday(decided_at)<=julianday(?) OR julianday(decided_at) IS NULL)"
+            (
+                "SELECT * FROM admission_decisions WHERE generation_id=%s AND state='accepted' AND (ops.try_timestamp(decided_at)<=ops.try_timestamp(%s) OR ops.try_timestamp(decided_at) IS NULL)"
+            )
             + decision_clause
             + " ORDER BY decision_id",
             (identifier, self.cutoff.isoformat(), *decision_parameters),
@@ -205,7 +213,12 @@ class _Evidence:
             reader.reasons["not_accepted_at_cutoff"] += 1
             return None
         policies = reader.read(
-            "SELECT * FROM admission_policies WHERE page_kind=?",
+            (
+                "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+                "admission_policies.mode, admission_policies.policy_revision, "
+                "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+                "admission_policies.reviewed_at FROM admission_policies WHERE page_kind = %s"
+            ),
             (value["page_kind"],),
             POLICY,
             cap=1,
@@ -259,8 +272,14 @@ class _Evidence:
         matched = False
         for member in manifest:
             rows = reader.read(
-                "SELECT s.*,w.source AS source FROM snapshots s JOIN watches w USING(watch_id) "
-                "WHERE s.snapshot_id=?",
+                (
+                    "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+                    "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+                    "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+                    "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+                    "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256, w.source AS "
+                    "source FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE s.snapshot_id = %s"
+                ),
                 (member["snapshot_id"],),
                 (*SNAPSHOT, "source"),
                 cap=1,
@@ -319,11 +338,7 @@ class _Evidence:
         # interpret this request while anchored on another watch of the source.
         membership = "NOT IN" if other_anchors else "IN"
         rows = self.reader.read(
-            "SELECT g.generation_id FROM source_generations g JOIN source_units u USING(unit_key) "
-            "JOIN watches w ON w.watch_id=u.watch_id WHERE w.source=? "
-            f"AND u.watch_id {membership} (SELECT value FROM json_each(?)) "
-            "AND (julianday(g.created_at)<=julianday(?) OR julianday(g.created_at) IS NULL) "
-            "ORDER BY julianday(g.created_at) DESC,g.generation_id DESC LIMIT ?",
+            f"SELECT g.generation_id FROM source_generations g JOIN source_units u USING(unit_key) JOIN watches w ON w.watch_id=u.watch_id WHERE w.source=%s AND u.watch_id {membership} (SELECT value FROM jsonb_array_elements_text(%s::jsonb)) AND (ops.try_timestamp(g.created_at)<=ops.try_timestamp(%s) OR ops.try_timestamp(g.created_at) IS NULL) ORDER BY ops.try_timestamp(g.created_at) DESC,g.generation_id DESC LIMIT %s",
             (self.request["source"], json.dumps(watches), self.cutoff.isoformat(), cap),
             ("generation_id",),
             cap=cap,
@@ -360,7 +375,7 @@ class Session:
 
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         archive: Archive,
         *,
         cutoff: datetime,
@@ -380,10 +395,7 @@ class Session:
         self.reader = _Probe(conn, archive, limits.budget())
 
     def _check_snapshot(self) -> None:
-        if (
-            not self.conn.in_transaction
-            or self.conn.execute("PRAGMA query_only").fetchone()[0] != 1
-        ):
+        if not self.conn.in_transaction or not self.conn.read_only_snapshot:
             raise ValueError("caller must own a query-only read transaction")
 
     def read(
@@ -528,7 +540,14 @@ class Session:
         try:
             if snapshot_id is not None:
                 rows = self.reader.read(
-                    "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=? AND w.source=?",
+                    (
+                        "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+                        "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+                        "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+                        "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+                        "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256 FROM "
+                        "snapshots AS s JOIN watches AS w USING (watch_id) WHERE s.snapshot_id = %s AND w.source = %s"
+                    ),
                     (snapshot_id, request["source"]),
                     SNAPSHOT,
                     cap=1,
@@ -572,7 +591,7 @@ class Session:
 
 
 def verify_request(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     *,
     request: Mapping[str, Any],
@@ -585,7 +604,7 @@ def verify_request(
 
 
 def revalidate_positive(
-    conn: sqlite3.Connection, archive: Archive, observation: Mapping[str, Any], *, budget: _Probe
+    conn: engine.Connection, archive: Archive, observation: Mapping[str, Any], *, budget: _Probe
 ) -> bool:
     """Recheck pinned positive support without searching for a replacement.
 
@@ -607,7 +626,14 @@ def revalidate_positive(
         if not isinstance(expected, Mapping):
             return False
         rows = budget.read(
-            "SELECT s.* FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=? AND w.source=?",
+            (
+                "SELECT s.snapshot_id, s.watch_id, s.method, s.url, s.form, s.fetched_at, s.http_status, "
+                "s.etag, s.last_modified, s.content_type, s.body_sha256, s.body_bytes, s.content_changed, "
+                "s.run_id, s.via, s.headers_json, s.classification, s.extract_status, s.extract_sha256, "
+                "s.parse_status, s.parsed_at, s.extract_version, s.parser_version, s.captured_at, "
+                "s.observed_at, s.archive_url, s.requested_archive_url, s.extract_recipe_sha256 FROM "
+                "snapshots AS s JOIN watches AS w USING (watch_id) WHERE s.snapshot_id = %s AND w.source = %s"
+            ),
             (expected["snapshot_id"], identity["source"]),
             SNAPSHOT,
             cap=1,

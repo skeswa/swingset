@@ -10,9 +10,10 @@ This module holds no policy.
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Iterable
 from dataclasses import astuple, dataclass, fields
+
+from swingset.state import engine
 
 
 @dataclass(frozen=True)
@@ -29,42 +30,41 @@ _COLUMNS = tuple(field.name for field in fields(Proposal))
 _SELECT = f"SELECT {','.join(_COLUMNS)} FROM source_event_proposals"
 
 
-def replace_source(conn: sqlite3.Connection, source: str, rows: Iterable[Proposal]) -> None:
+def replace_source(conn: engine.Connection, source: str, rows: Iterable[Proposal]) -> None:
     """Make `rows` the whole proposal set of `source`, in the caller's transaction."""
     rows = list(rows)
     foreign = sorted({row.source for row in rows if row.source != source})
     if foreign:
         raise ValueError(f"proposals for {source} name other sources: {foreign}")
-    conn.execute("DELETE FROM source_event_proposals WHERE source=?", (source,))
+    conn.execute("DELETE FROM source_event_proposals WHERE source = %s", (source,))
     conn.executemany(
-        f"INSERT INTO source_event_proposals({','.join(_COLUMNS)}) "
-        f"VALUES ({','.join('?' * len(_COLUMNS))})",
+        f"INSERT INTO source_event_proposals({','.join(_COLUMNS)}) VALUES ({','.join(['%s'] * len(_COLUMNS))})",
         (astuple(row) for row in rows),
     )
 
 
-def for_source(conn: sqlite3.Connection, source: str) -> list[Proposal]:
+def for_source(conn: engine.Connection, source: str) -> list[Proposal]:
     return [
         Proposal(*row)
-        for row in conn.execute(f"{_SELECT} WHERE source=? ORDER BY source_ref", (source,))
+        for row in conn.execute(f"{_SELECT} WHERE source=%s ORDER BY source_ref", (source,))
     ]
 
 
-def for_event(conn: sqlite3.Connection, event_id: str) -> list[Proposal]:
+def for_event(conn: engine.Connection, event_id: str) -> list[Proposal]:
     """The listings proposed to `event_id`, in (source, source_ref) order."""
     return [
         Proposal(*row)
         for row in conn.execute(
-            f"{_SELECT} WHERE event_id=? ORDER BY source,source_ref", (event_id,)
+            f"{_SELECT} WHERE event_id=%s ORDER BY source,source_ref", (event_id,)
         )
     ]
 
 
-def event_ids(conn: sqlite3.Connection) -> list[str]:
+def event_ids(conn: engine.Connection) -> list[str]:
     """Every proposed event id, sorted."""
     return [
         str(row[0])
         for row in conn.execute(
-            "SELECT DISTINCT event_id FROM source_event_proposals ORDER BY event_id"
+            "SELECT DISTINCT event_id FROM source_event_proposals ORDER BY event_id NULLS FIRST"
         )
     ]

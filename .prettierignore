@@ -15,3 +15,6 @@ docs/reference/enums.md
 # TOML belongs to taplo (mise run fmt). oxfmt runs after it and would join
 # arrays up to 100 columns, which `taplo fmt --check` then rejects.
 **/*.toml
+
+# Generated source schema reference for the Postgres importer.
+src/swingset/state/postgres_migrations/sqlite37_manifest.json

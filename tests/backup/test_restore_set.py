@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +19,8 @@ from swingset.backup.segments import read_manifest
 from swingset.build.files import canonical_json
 from swingset.clock import FakeClock
 from swingset.publish.service import RemoteCommit
+from swingset.state import engine
+from swingset.state.environment import FixtureIO
 from swingset.state.rwlock import is_lock_file
 
 
@@ -122,7 +123,7 @@ def test_install_quick_checks_and_names_the_latest_set(tmp_path: Path) -> None:
     assert summary["classes"]["body"] == 1
 
 
-class Hub:
+class Hub(FixtureIO):
     def __init__(self, head: str | None) -> None:
         self.current = head
 
@@ -139,8 +140,8 @@ def test_restore_from_set_activates_against_the_public_head(tmp_path: Path) -> N
     summary = restore_from_set(local(state), None, target, Hub("abc"), FakeClock(), lock_timeout=1)
     assert summary["set_id"] == result["set_id"]
     assert not (target / "RESTORE_PENDING").exists()
-    copy = sqlite3.connect(target / "state.sqlite")
-    assert copy.execute("SELECT host FROM hosts").fetchall() == [("h.example",)]
+    copy = engine.connect(engine.resolve_dsn(target))
+    assert [tuple(row) for row in copy.execute("SELECT host FROM hosts")] == [("h.example",)]
     copy.close()
 
 
@@ -152,11 +153,16 @@ def test_restore_from_set_keeps_the_marker_when_the_hub_differs(tmp_path: Path) 
             local(state), result["set_id"], target, Hub("other"), FakeClock(), lock_timeout=1
         )
     assert (target / "RESTORE_PENDING").is_file()
-    # A retry replaces the unverified install.
-    restore_from_set(
-        local(state), result["set_id"], target, Hub("abc"), FakeClock(), lock_timeout=1
-    )
-    assert not (target / "RESTORE_PENDING").exists()
+    # Failed verification keeps this complete state fenced. A retry uses a
+    # fresh database/volume rather than replacing a database in place.
+    with pytest.raises(CheckpointError, match="fresh database and volume"):
+        restore_from_set(
+            local(state), result["set_id"], target, Hub("abc"), FakeClock(), lock_timeout=1
+        )
+    assert (target / "RESTORE_PENDING").is_file()
+    fresh = tmp_path / "verified-retry"
+    restore_from_set(local(state), result["set_id"], fresh, Hub("abc"), FakeClock(), lock_timeout=1)
+    assert not (fresh / "RESTORE_PENDING").exists()
 
 
 def test_the_cli_writes_a_local_set_and_restores_it(

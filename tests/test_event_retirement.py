@@ -1,10 +1,11 @@
 """Only an ordered admitted withdrawal can retire an enumerated request."""
 
 import json
-import sqlite3
 from dataclasses import replace
 
 import pytest
+from helpers.corruption import corruption_connection
+from postgres_statements import assert_integrity
 from test_cycle import overrides as overrides
 from test_event_enumerations import admit_parent, child, finish_bootstrap
 from test_event_enumerations import event as event
@@ -14,12 +15,13 @@ from swingset.admission.event_retirement import verify_edge
 from swingset.admission.page_evidence import Limits, Session
 from swingset.fetch.archive import canonical, digest
 from swingset.schedule.watches import upsert_watch
+from swingset.state import engine
 
 
 def edge(f, *, limits=None):
     with f.db.transaction(immediate=False):
         identifier = f.conn.execute(
-            "SELECT enumeration_id FROM source_event_inventory WHERE source='eepro' AND source_ref='eepro:test'"
+            "SELECT enumeration_id FROM source_event_inventory WHERE source = 'eepro' AND source_ref = 'eepro:test'"
         ).fetchone()[0]
         session = Session(
             f.conn,
@@ -101,17 +103,33 @@ def test_event_predecessor_may_be_created_by_another_unit(event):
 def forge_successor(f, *, generation=None, decision=None, remove=None):
     """Corrupt metadata consistently; accepted output must still defeat it."""
     identifier = f.conn.execute(
-        "SELECT enumeration_id FROM source_event_inventory WHERE source_ref='eepro:test'"
+        "SELECT enumeration_id FROM source_event_inventory WHERE source_ref = 'eepro:test'"
     ).fetchone()[0]
     header = dict(
         f.conn.execute(
-            "SELECT * FROM source_event_enumerations WHERE enumeration_id=?", (identifier,)
+            (
+                "SELECT source_event_enumerations.enumeration_id, source_event_enumerations.source, "
+                "source_event_enumerations.source_ref, source_event_enumerations.predecessor_id, "
+                "source_event_enumerations.generation_id, source_event_enumerations.decision_id, "
+                "source_event_enumerations.parent_support_json, source_event_enumerations.membership_digest, "
+                "source_event_enumerations.pagination, source_event_enumerations.pagination_reason, "
+                "source_event_enumerations.added_json, source_event_enumerations.removed_json, "
+                "source_event_enumerations.recorded_at FROM source_event_enumerations WHERE enumeration_id = "
+                "%s"
+            ),
+            (identifier,),
         ).fetchone()
     )
     rows = [
         dict(r)
         for r in f.conn.execute(
-            "SELECT * FROM source_event_enumeration_members WHERE enumeration_id=? ORDER BY request_id",
+            (
+                "SELECT source_event_enumeration_members.enumeration_id, "
+                "source_event_enumeration_members.request_id, source_event_enumeration_members.request_json, "
+                "source_event_enumeration_members.support_json, "
+                "source_event_enumeration_members.first_known_at FROM source_event_enumeration_members WHERE "
+                "enumeration_id = %s ORDER BY request_id NULLS FIRST"
+            ),
             (identifier,),
         )
     ]
@@ -136,11 +154,11 @@ def forge_successor(f, *, generation=None, decision=None, remove=None):
     )
     fake = "enumeration_" + digest(canonical(content))
     if fake == identifier:
-        f.conn.execute("DROP TRIGGER event_enumeration_no_update")
-        f.conn.execute(
-            "UPDATE source_event_enumerations SET decision_id=? WHERE enumeration_id=?",
-            (decision, identifier),
-        )
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE source_event_enumerations SET decision_id=%s WHERE enumeration_id=%s",
+                (decision, identifier),
+            )
         return
     header.update(
         enumeration_id=fake,
@@ -149,12 +167,19 @@ def forge_successor(f, *, generation=None, decision=None, remove=None):
         membership_digest=digest(canonical([r["request_id"] for r in decoded])),
     )
     f.conn.execute(
-        "INSERT INTO source_event_enumerations VALUES(" + ",".join("?" for _ in header) + ")",
+        "INSERT INTO source_event_enumerations ("
+        + ",".join(header)
+        + ") VALUES ("
+        + ",".join("%s" for _ in header)
+        + ")",
         tuple(header.values()),
     )
     for row in decoded:
         f.conn.execute(
-            "INSERT INTO source_event_enumeration_members VALUES(?,?,?,?,?)",
+            (
+                "INSERT INTO source_event_enumeration_members (enumeration_id, request_id, request_json, "
+                "support_json, first_known_at) VALUES (%s, %s, %s, %s, %s)"
+            ),
             (
                 fake,
                 row["request_id"],
@@ -164,7 +189,8 @@ def forge_successor(f, *, generation=None, decision=None, remove=None):
             ),
         )
     f.conn.execute(
-        "UPDATE source_event_inventory SET enumeration_id=? WHERE source_ref='eepro:test'", (fake,)
+        "UPDATE source_event_inventory SET enumeration_id = %s WHERE source_ref = 'eepro:test'",
+        (fake,),
     )
 
 
@@ -172,7 +198,7 @@ def test_old_accepted_replacement_cannot_authorize_later_claims(event):
     f = event
     old = admit_parent(f, ["keep.htm"], authority=True)
     old_decision = f.conn.execute(
-        "SELECT decision_id FROM admission_decisions WHERE generation_id=? AND state='accepted'",
+        "SELECT decision_id FROM admission_decisions WHERE generation_id = %s AND state = 'accepted'",
         (old,),
     ).fetchone()[0]
     replacement(f)
@@ -185,17 +211,18 @@ def test_old_accepted_replacement_cannot_authorize_later_claims(event):
 def test_unpinned_decision_and_auxiliary_removed_json_cannot_invent_retirement(event):
     f = event
     before, _ = replacement(f)
-    f.conn.execute("DROP TRIGGER event_enumeration_no_update")
-    f.conn.execute("UPDATE source_event_enumerations SET removed_json='[\"fake\"]'")
+    with corruption_connection(f.conn) as owner:
+        owner.execute("UPDATE source_event_enumerations SET removed_json = '[\"fake\"]'")
     assert edge(f)["assessment"] == "verified"
     old = f.conn.execute(
-        "SELECT decision_id FROM admission_decisions WHERE generation_id=? AND state='accepted'",
+        "SELECT decision_id FROM admission_decisions WHERE generation_id = %s AND state = 'accepted'",
         (before,),
     ).fetchone()[0]
-    f.conn.execute(
-        "UPDATE source_event_enumerations SET decision_id=? WHERE enumeration_id=(SELECT enumeration_id FROM source_event_inventory WHERE source_ref='eepro:test')",
-        (old,),
-    )
+    with corruption_connection(f.conn) as owner:
+        owner.execute(
+            "UPDATE source_event_enumerations SET decision_id=%s WHERE enumeration_id=(SELECT enumeration_id FROM source_event_inventory WHERE source_ref='eepro:test')",
+            (old,),
+        )
     assert edge(f)["assessment"] == "unassessed"
 
 
@@ -214,14 +241,16 @@ def test_lost_incompatible_or_revoked_parent_is_not_retirement(event, target, da
     generation = old if target == "old" else after
     if damage == "revocation":
         f.conn.execute(
-            "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (generation,)
+            "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
+            (generation,),
         )
     elif damage == "policy":
-        f.conn.execute("UPDATE admission_policies SET contract_version='unknown'")
+        f.conn.execute("UPDATE admission_policies SET contract_version = 'unknown'")
     else:
         manifest = json.loads(
             f.conn.execute(
-                "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+                "SELECT manifest_json FROM source_generations WHERE generation_id = %s",
+                (generation,),
             ).fetchone()[0]
         )
         f.archive.blob_path(manifest[0]["body_sha256"]).unlink()
@@ -245,7 +274,7 @@ def test_unrelated_predecessor_body_is_not_needed_for_admission_order(event):
     finish_bootstrap(f)
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (unrelated,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (unrelated,)
         ).fetchone()[0]
     )
     f.archive.blob_path(manifest[0]["body_sha256"]).unlink()
@@ -272,7 +301,7 @@ def retirement_view(f):
 
 
 def receipt_count(f):
-    return f.conn.execute("SELECT count(*) FROM event_retirement_receipts").fetchone()[0]
+    return f.conn.execute("SELECT COUNT(*) FROM event_retirement_receipts").fetchone()[0]
 
 
 def test_runtime_records_one_withdrawal_across_policy_change_and_restart(event):
@@ -293,10 +322,10 @@ def test_runtime_records_one_withdrawal_across_policy_change_and_restart(event):
     assert retirement_view(f)["assessment"] == "unassessed"  # Different captured execution policy.
     observe(f)
     assert receipt_count(f) == 1 and retirement_view(f)["assessment"] == "verified"
-    with sqlite3.connect((f.db.state_dir / "state.sqlite").as_uri() + "?mode=ro", uri=True) as conn:
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA query_only=ON")
-        conn.execute("BEGIN")
+    with (
+        engine.connect(engine.resolve_dsn(f.db.state_dir), read_only=True) as conn,
+        conn.read_snapshot(),
+    ):
         result = report(
             conn,
             f.archive,
@@ -306,7 +335,7 @@ def test_runtime_records_one_withdrawal_across_policy_change_and_restart(event):
             source_ref="eepro:test",
         )
         assert result["events"][0]["page_retirement"]["assessment"] == "verified"
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         f.conn.execute("DELETE FROM event_retirement_receipts")
 
 
@@ -327,7 +356,9 @@ def test_report_cannot_promote_corrupt_mutable_observation(event, damage):
         value["predecessor_id"] = "fabricated"
     else:
         value["assessment"] = "unassessed"
-    f.conn.execute("UPDATE event_retirement_observations SET result_json=?", (json.dumps(value),))
+    f.conn.execute(
+        "UPDATE event_retirement_observations SET result_json = %s", (json.dumps(value),)
+    )
     result = retirement_view(f)
     assert result["whole_event_retired"] is None and not result["complete_retirement_history"]
     if damage in {"wrong_predecessor", "unknown_ids"}:
@@ -342,7 +373,7 @@ def test_revocation_invalidates_current_proof_without_deleting_history(event):
     observe(f)
     generation = f.conn.execute("SELECT generation_id FROM event_retirement_receipts").fetchone()[0]
     f.conn.execute(
-        "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (generation,)
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (generation,)
     )
     assert retirement_view(f)["assessment"] == "unassessed"
     observe(f)
@@ -357,7 +388,7 @@ def test_lost_and_restored_proof_files_do_not_duplicate_withdrawal(event):
     generation = f.conn.execute("SELECT generation_id FROM event_retirement_receipts").fetchone()[0]
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
     )
     path = f.archive.blob_path(manifest[0]["body_sha256"])
@@ -379,11 +410,25 @@ def test_priority_visit_preserves_accounting_and_member_cursor(event):
     complete(f)
     settle(f)
     before = receipts(f)
-    f.conn.execute("UPDATE event_retirement_observations SET retry_fresh=1")
-    cursor = tuple(f.conn.execute("SELECT * FROM event_progress_scans").fetchone())
+    f.conn.execute("UPDATE event_retirement_observations SET retry_fresh = 1")
+    cursor = tuple(
+        f.conn.execute(
+            "SELECT event_progress_scans.source, event_progress_scans.source_ref, "
+            "event_progress_scans.enumeration_id, event_progress_scans.after_request_id, "
+            "event_progress_scans.assessment_reason, event_progress_scans.assessed_at FROM "
+            "event_progress_scans"
+        ).fetchone()
+    )
     assert observe(f)["checked_pages"] == 0
     assert receipts(f) == before
-    after = tuple(f.conn.execute("SELECT * FROM event_progress_scans").fetchone())
+    after = tuple(
+        f.conn.execute(
+            "SELECT event_progress_scans.source, event_progress_scans.source_ref, "
+            "event_progress_scans.enumeration_id, event_progress_scans.after_request_id, "
+            "event_progress_scans.assessment_reason, event_progress_scans.assessed_at FROM "
+            "event_progress_scans"
+        ).fetchone()
+    )
     assert cursor[:4] == after[:4]
 
 
@@ -445,19 +490,19 @@ def test_concurrent_fence_and_failure_roll_back_retirement(event, monkeypatch):
 
     def change(session, **kwargs):
         value = original(session, **kwargs)
-        with sqlite3.connect(f.db.state_dir / "state.sqlite") as other:
-            other.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+        with engine.connect(engine.resolve_dsn(f.db.state_dir)) as other:
+            other.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
         return value
 
     monkeypatch.setattr(event_retirement, "verify_edge", change)
     assert observe(f)["discarded_events"] == 1 and receipt_count(f) == 0
     assert not f.conn.execute("SELECT 1 FROM event_retirement_observations").fetchone()
     monkeypatch.setattr(event_retirement, "verify_edge", original)
-    f.conn.execute(
-        "CREATE TRIGGER failed_retirement BEFORE INSERT ON event_retirement_receipts BEGIN SELECT RAISE(ABORT,'retirement write failure'); END"
-    )
-    with pytest.raises(sqlite3.IntegrityError, match="retirement write failure"):
-        observe(f)
+    from helpers.corruption import reject_inserts
+
+    with reject_inserts(f.conn, "event_retirement_receipts", "retirement write failure"):
+        with pytest.raises(engine.IntegrityError, match="23514"):
+            observe(f)
     assert not f.conn.execute("SELECT 1 FROM event_retirement_observations").fetchone()
     assert not f.conn.execute("SELECT 1 FROM event_progress_observations").fetchone()
 
@@ -468,7 +513,8 @@ def test_empty_successor_only_retires_its_known_predecessor_obligations(event):
     finish_bootstrap(f)
     shifted = replace(f.parent, source_ref="eepro:other")
     f.conn.execute(
-        "UPDATE watches SET source_ref=? WHERE watch_id=?", (shifted.source_ref, shifted.watch_id)
+        "UPDATE watches SET source_ref = %s WHERE watch_id = %s",
+        (shifted.source_ref, shifted.watch_id),
     )
     admit_parent(f, ["new.htm"], parent=shifted, authority=True)
     finish_bootstrap(f)
@@ -502,7 +548,7 @@ def test_checkpoint_keeps_receipt_and_epoch_invalidation_keeps_it_historical(eve
     runtime_ready(f)
     observe(f)
     tables = ("event_retirement_receipts", "event_retirement_observations")
-    expected = {t: list(map(tuple, f.conn.execute("SELECT * FROM " + t))) for t in tables}
+    expected = {t: list(map(tuple, f.conn.execute(" SELECT * FROM " + t))) for t in tables}
     saved = create_checkpoint(
         f.db.state_dir,
         f.conn,
@@ -513,10 +559,12 @@ def test_checkpoint_keeps_receipt_and_epoch_invalidation_keeps_it_historical(eve
     )
     target = tmp_path / "restored"
     restore_checkpoint(saved.path, target, maximum_schema_version=SCHEMA_VERSION)
-    with sqlite3.connect((target / "state.sqlite").as_uri() + "?mode=ro", uri=True) as conn:
-        assert {t: list(conn.execute("SELECT * FROM " + t)) for t in tables} == expected
-        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
-    f.conn.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+    with engine.connect(engine.resolve_dsn(target), read_only=True) as conn:
+        assert {
+            t: [tuple(row) for row in conn.execute(" SELECT * FROM " + t)] for t in tables
+        } == expected
+        assert_integrity(conn)
+    f.conn.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
     assert retirement_view(f)["assessment"] == "unassessed" and receipt_count(f) == 1
 
 

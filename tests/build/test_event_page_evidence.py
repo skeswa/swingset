@@ -15,12 +15,13 @@ from swingset.fetch.archive import Archive
 from swingset.schedule.event_evidence import request
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
+from tests.helpers.corruption import corruption_connection
 
 
 def check(f, *, cutoff=None, now=None, limits=None, identity=None):
     f.conn.commit()
-    f.conn.execute("PRAGMA query_only=1")
-    f.conn.execute("BEGIN")
+    _snapshot_context = f.conn.read_snapshot()
+    _snapshot_context.__enter__()
     before = f.conn.total_changes
     try:
         result = verify_request(
@@ -32,12 +33,11 @@ def check(f, *, cutoff=None, now=None, limits=None, identity=None):
             limits=limits or Limits(),
         )
         assert f.conn.total_changes == before
-        assert f.conn.in_transaction and f.conn.execute("PRAGMA query_only").fetchone()[0] == 1
+        assert f.conn.in_transaction and f.conn.read_only_snapshot
         json.dumps(result)
         return result
     finally:
-        f.conn.rollback()
-        f.conn.execute("PRAGMA query_only=0")
+        _snapshot_context.__exit__(None, None, None)
 
 
 def ready(f):
@@ -81,7 +81,7 @@ def test_late_acceptance_does_not_make_preexisting_generation_interpreted_at_cut
     _, generation = ready(f)
     cutoff = f.corpus.clock.now()
     f.conn.execute(
-        "UPDATE admission_decisions SET decided_at=? WHERE generation_id=?",
+        "UPDATE admission_decisions SET decided_at = %s WHERE generation_id = %s",
         ((cutoff + timedelta(seconds=1)).isoformat(), generation),
     )
     result = check(f, cutoff=cutoff, now=cutoff + timedelta(seconds=2))
@@ -99,7 +99,7 @@ def test_older_accepted_generation_survives_later_blocked_reinterpretation(event
     )
     assert newer != old
     f.conn.execute(
-        "UPDATE source_generations SET state='needs_review' WHERE generation_id=?", (newer,)
+        "UPDATE source_generations SET state = 'needs_review' WHERE generation_id = %s", (newer,)
     )
     result = check(f)
     assert result["interpreted"] is True
@@ -117,7 +117,9 @@ def test_related_revocation_rejects_previous_accepted_support(event):
         ),
     )
     assert other != old
-    f.conn.execute("UPDATE source_generations SET state='revoked' WHERE generation_id=?", (other,))
+    f.conn.execute(
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (other,)
+    )
     result = check(f)
     assert result["acquired"] is True and result["interpreted"] is False
     assert result["reasons"]["source_evidence_revoked"]
@@ -139,11 +141,22 @@ def test_bad_evidence_never_supplies_positive_interpretation(event, damage):
     f = event
     context, generation = ready(f)
     snapshot = f.conn.execute(
-        "SELECT * FROM snapshots WHERE snapshot_id=?", (context.snapshot_id,)
+        (
+            "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+            "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+            "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+            "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+            "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+            "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+            "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+            "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+            "snapshots.extract_recipe_sha256 FROM snapshots WHERE snapshot_id = %s"
+        ),
+        (context.snapshot_id,),
     ).fetchone()
     raw = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
     )[0]
     if damage.startswith("body"):
@@ -161,13 +174,14 @@ def test_bad_evidence_never_supplies_positive_interpretation(event, damage):
         else:
             path.write_bytes(b"{}")
     elif damage == "generation":
-        f.conn.execute("DROP TRIGGER source_generation_immutable")
-        f.conn.execute(
-            "UPDATE source_generations SET result_json='{}' WHERE generation_id=?", (generation,)
-        )
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE source_generations SET result_json = '{}' WHERE generation_id = %s",
+                (generation,),
+            )
     else:
         f.conn.execute(
-            "UPDATE admission_policies SET contract_version='different' WHERE page_kind='eepro.round'"
+            "UPDATE admission_policies SET contract_version = 'different' WHERE page_kind = 'eepro.round'"
         )
     result = check(f)
     assert result["interpreted"] is False
@@ -178,7 +192,7 @@ def test_failure_response_body_is_not_acquisition(event):
     f = event
     context, _ = ready(f)
     f.conn.execute(
-        "UPDATE snapshots SET classification='ServerError',http_status=503 WHERE snapshot_id=?",
+        "UPDATE snapshots SET classification = 'ServerError', http_status = 503 WHERE snapshot_id = %s",
         (context.snapshot_id,),
     )
     result = check(f)
@@ -189,7 +203,10 @@ def test_shared_request_normalizes_url_and_forms_independently_of_aliases_and_wa
     f = event
     context, generation = ready(f)
     f.conn.execute(
-        "UPDATE snapshots SET url='https://EEPRO.COM:443/results/test/one.htm#ignored',form='{}' WHERE snapshot_id=?",
+        (
+            "UPDATE snapshots SET url = 'https://EEPRO.COM:443/results/test/one.htm#ignored', form = "
+            "'{}' WHERE snapshot_id = %s"
+        ),
         (context.snapshot_id,),
     )
     # The generation's exact snapshot URL no longer agrees, but acquisition is
@@ -197,7 +214,8 @@ def test_shared_request_normalizes_url_and_forms_independently_of_aliases_and_wa
     result = check(f)
     assert result["acquired"] is True and result["interpreted"] is False
     f.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:test','different-event','alias',1)"
+        "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+        "VALUES ('eepro', 'eepro:test', 'different-event', 'alias', 1)"
     )
     assert check(f) == result
     spec = WatchSpec(
@@ -260,11 +278,11 @@ def test_candidate_overflow_preserves_positive_evidence_but_not_negative_claim(e
 def test_oversized_generation_is_not_decoded(event, monkeypatch):
     f = event
     _, generation = ready(f)
-    f.conn.execute("DROP TRIGGER source_generation_immutable")
-    f.conn.execute(
-        "UPDATE source_generations SET result_json=? WHERE generation_id=?",
-        ("x" * 10000, generation),
-    )
+    with corruption_connection(f.conn) as owner:
+        owner.execute(
+            "UPDATE source_generations SET result_json = %s WHERE generation_id = %s",
+            ("x" * 10000, generation),
+        )
     import swingset.admission.page_evidence as module
 
     decoder = Mock(side_effect=AssertionError("oversized decode"))
@@ -299,11 +317,11 @@ def test_generation_created_after_cutoff_cannot_supply_interpretation(event):
     f = event
     _, generation = ready(f)
     cutoff = f.corpus.clock.now()
-    f.conn.execute("DROP TRIGGER source_generation_immutable")
-    f.conn.execute(
-        "UPDATE source_generations SET created_at=? WHERE generation_id=?",
-        ((cutoff + timedelta(seconds=1)).isoformat(), generation),
-    )
+    with corruption_connection(f.conn) as owner:
+        owner.execute(
+            "UPDATE source_generations SET created_at = %s WHERE generation_id = %s",
+            ((cutoff + timedelta(seconds=1)).isoformat(), generation),
+        )
     result = check(f, cutoff=cutoff, now=cutoff + timedelta(seconds=2))
     assert result["acquired"] is True and result["interpreted"] is False
 
@@ -346,7 +364,8 @@ def test_naive_retained_time_is_unknown_not_a_false_negative(event):
     f = event
     context, _ = ready(f)
     f.conn.execute(
-        "UPDATE snapshots SET fetched_at='2026-01-01' WHERE snapshot_id=?", (context.snapshot_id,)
+        "UPDATE snapshots SET fetched_at = '2026-01-01' WHERE snapshot_id = %s",
+        (context.snapshot_id,),
     )
     result = check(f)
     assert result["acquired"] is result["interpreted"] is None
@@ -359,7 +378,7 @@ def test_budget_between_exact_and_alias_generation_pass_never_becomes_false(even
     f = event
     _, old = ready(f)
     f.conn.execute(
-        "UPDATE admission_decisions SET state='needs_review' WHERE generation_id=?", (old,)
+        "UPDATE admission_decisions SET state = 'needs_review' WHERE generation_id = %s", (old,)
     )
     spec = WatchSpec(
         "",
@@ -467,7 +486,7 @@ def test_accepted_aggregate_on_other_watch_supplies_requested_page(event, candid
     f = event
     contexts, generation = aggregate(f)
     assert not f.conn.execute(
-        "SELECT 1 FROM source_units WHERE watch_id=?", (contexts[1].watch_id,)
+        "SELECT 1 FROM source_units WHERE watch_id = %s", (contexts[1].watch_id,)
     ).fetchone()
     result = check(f, limits=Limits(candidates=candidate_limit))
     assert result["acquired"] is result["interpreted"] is True
@@ -512,7 +531,7 @@ def test_aggregate_member_source_change_invalidates_whole_support(event):
     f = event
     contexts, _ = aggregate(f)
     f.conn.execute(
-        "UPDATE watches SET source='scoringdance' WHERE watch_id=?", (contexts[1].watch_id,)
+        "UPDATE watches SET source = 'scoringdance' WHERE watch_id = %s", (contexts[1].watch_id,)
     )
     result = check(f, identity=request("eepro", "GET", contexts[0].url))
     assert result["acquired"] is True and result["interpreted"] is False
@@ -526,8 +545,8 @@ def test_shared_session_metadata_budget_is_not_reset_per_request(event):
     f = event
     ready(f)
     f.conn.commit()
-    f.conn.execute("PRAGMA query_only=1")
-    f.conn.execute("BEGIN")
+    _snapshot_context = f.conn.read_snapshot()
+    _snapshot_context.__enter__()
     try:
         session = Session(
             f.conn,
@@ -544,10 +563,9 @@ def test_shared_session_metadata_budget_is_not_reset_per_request(event):
         assert result["acquired"] is result["interpreted"] is None
         assert result["reasons"]["row_budget"]
         assert session.exhausted()
-        assert f.conn.execute("PRAGMA query_only").fetchone()[0] == 1
+        assert f.conn.read_only_snapshot
     finally:
-        f.conn.rollback()
-        f.conn.execute("PRAGMA query_only=0")
+        _snapshot_context.__exit__(None, None, None)
 
 
 def test_exact_operation_cannot_substitute_an_older_accepted_decision(event):
@@ -556,12 +574,12 @@ def test_exact_operation_cannot_substitute_an_older_accepted_decision(event):
     f = event
     context, generation = ready(f)
     decision = f.conn.execute(
-        "SELECT decision_id FROM admission_decisions WHERE generation_id=? AND state='accepted'",
+        "SELECT decision_id FROM admission_decisions WHERE generation_id = %s AND state = 'accepted'",
         (generation,),
     ).fetchone()[0]
     f.conn.commit()
-    f.conn.execute("PRAGMA query_only=1")
-    f.conn.execute("BEGIN")
+    _snapshot_context = f.conn.read_snapshot()
+    _snapshot_context.__enter__()
     try:
         session = Session(f.conn, f.archive, cutoff=f.corpus.clock.now(), now=f.corpus.clock.now())
         identity = request("eepro", "GET", f.parent.url + "one.htm")
@@ -580,8 +598,7 @@ def test_exact_operation_cannot_substitute_an_older_accepted_decision(event):
         assert absent["acquired"] is False
         assert absent["acquisition_support"] is None
     finally:
-        f.conn.rollback()
-        f.conn.execute("PRAGMA query_only=0")
+        _snapshot_context.__exit__(None, None, None)
 
 
 def test_exact_aggregate_operation_can_support_non_anchor_request(event):
@@ -590,12 +607,12 @@ def test_exact_aggregate_operation_can_support_non_anchor_request(event):
     f = event
     contexts, generation = aggregate(f)
     decision = f.conn.execute(
-        "SELECT decision_id FROM admission_decisions WHERE generation_id=? AND state='accepted'",
+        "SELECT decision_id FROM admission_decisions WHERE generation_id = %s AND state = 'accepted'",
         (generation,),
     ).fetchone()[0]
     f.conn.commit()
-    f.conn.execute("PRAGMA query_only=1")
-    f.conn.execute("BEGIN")
+    _snapshot_context = f.conn.read_snapshot()
+    _snapshot_context.__enter__()
     try:
         session = Session(f.conn, f.archive, cutoff=f.corpus.clock.now(), now=f.corpus.clock.now())
         result = session.verify_operation(
@@ -605,5 +622,4 @@ def test_exact_aggregate_operation_can_support_non_anchor_request(event):
         assert result["acquisition_support"]["snapshot_id"] == contexts[1].snapshot_id
         assert result["interpretation_support"]["generation_id"] == generation
     finally:
-        f.conn.rollback()
-        f.conn.execute("PRAGMA query_only=0")
+        _snapshot_context.__exit__(None, None, None)

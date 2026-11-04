@@ -1,0 +1,74 @@
+{
+  "format": "swingset-independent-cleanup-review-v1",
+  "timestamp": "2026-11-05T03:43:59.186390+00:00",
+  "reviewer": "pg_dev",
+  "verdict": "accept",
+  "scope": "Private checker scratch database and expanded install-tree deletion; includes durable owner ledger and PID namespace reincarnation guards.",
+  "files": {
+    "src/swingset/backup/check.py": {
+      "sha256": "4b7321788a2d9a840e59eab754bfbb16c7f9a262c50537e0c1fe1151a5b09ad6",
+      "ast_sha256": "7b8b8ebefc93be069c4dc66f2ad994afb2f6a7c07488a9a54ceb71f1573319da"
+    },
+    "src/swingset/backup/drill.py": {
+      "sha256": "7bd24b097054ef4b786b5ca4ba9eb1ddd87be4c2e83ee90d00a934bd5c364d90",
+      "ast_sha256": "f1d023d779df69a012e90beb88587b954a2a168c4ce2795070e529d862cdf3d6"
+    },
+    "src/swingset/state/postgres_copy.py": {
+      "sha256": "174772781f12400cbf99aab474face10ed700e4afea7fa4ecda305ae41c1ccce",
+      "ast_sha256": "c4e3c2e9808679992ccd09fff4b5728bbe947997bcdee563ab3dfc91e47913f6"
+    },
+    "tests/backup/test_check.py": {
+      "sha256": "cf8215170ac1be181f94607960b3d2b6e6824f14d315de75967a66f361229be1",
+      "ast_sha256": "e5528f667c86e82a005813cfdc3e47afddb48b406ecc598fb4ced821216ec025"
+    },
+    "tests/test_postgres_copy.py": {
+      "sha256": "e4ecbab0fa1c7c7fb19ed3142c41206c918ebf7466e4e245229058f32d4e0d82",
+      "ast_sha256": "b0ffb986b3809dd3d9b7d6b498c0f73798328d047ceeeb2bf99798d6ad046c3d"
+    }
+  },
+  "review": [
+    "The server holds an exclusive private lock at shared-root/.owners/checker.lock throughout startup recovery and requests. Each Copies instance verifies the same lock device and inode.",
+    "A new Linux PID namespace may reclaim a recorded PID1/process-group1 owner only with known matching boot identity, a different known namespace and the exact durable exclusive checker lock. Generic and unknown scopes retain PID/group liveness fences.",
+    "Deletion still requires the exact scratch database name and matching database comment, or a direct .install child with its private nonce marker, original root/path/device/inode and matching owner token.",
+    "Registry records and their parent directory are fsynced before effects; nonce publication and directory deletion are synced before owner-record removal.",
+    "Private checker fixtures use persistent outer /tmp when the recognized tmpfs harness is active; cleanup preserves failures and active ownership, and requires the exclusive checker lock before removing a successful fixture directory.",
+    "The Mac ps fallback fixes LC_ALL=C and TZ=UTC so locale or timezone changes cannot falsely identify a still-live process or group as a reused numeric identifier."
+  ],
+  "verification": {
+    "command": "mise exec -- uv run pytest -q tests/backup/test_check.py --maxfail=1",
+    "exit_code": 0,
+    "passed": 3,
+    "seconds": 8.41,
+    "checks": [
+      "separate owner process restores and audits history",
+      "client has no owner/admin credential",
+      "historical partition hydration succeeds",
+      "corrupt closure commitment fails",
+      "both drill outcomes remove scratch databases and expanded files",
+      "a second checker with another socket path cannot acquire the same persistent lease",
+      "only private durable checker.lock remains after requests"
+    ],
+    "engine_tests": {
+      "path": "tests/test_postgres_copy.py",
+      "passed": 14,
+      "reported_by": "pg_engine and parent",
+      "includes": "actual SIGKILL with surviving process-group fence, nonce tamper refusal, PID1 namespace replacement and unknown-scope refusal"
+    },
+    "static_checks": "Global mypy330 source files and Ruff passed before the source-stable filesystem trial.",
+    "tmpfs_ci_followup": {
+      "private_checker_passed": 3,
+      "private_checker_tmpfs_cases": 3,
+      "production_shaped": "Actual separate owner process without client owner credentials, corrupt-history rejection, exact owned database cleanup.",
+      "pytest_seconds": 7.03
+    },
+    "portability_fix": "The locale/timezone-only ps fallback and persistent checker fixture were reviewed against the final source; the configured-CI/tmpfs follow-up passed all3 IPC cases."
+  },
+  "limitations": [
+    "A kill after CREATE DATABASE but before its ownership COMMENT can leave an untagged scratch database; automatic cleanup refuses it.",
+    "A kill after durable directory adoption but before nonce publication can leave a missing-marker entry; automatic cleanup refuses it.",
+    "These instruction-boundary cases require operator reconciliation and do not permit deletion without the ownership evidence."
+  ],
+  "formatting": "Formatted source reviewed after fmt13; AST fingerprints exclude layout and comments.",
+  "ast_interpreter": "Python 3.12.16",
+  "supersedes_sha256": "0f3097c71ca45b174991096e7a0beee46f116af28b9e0b0e3258c66a537c5235"
+}

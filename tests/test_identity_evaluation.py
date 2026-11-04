@@ -2,8 +2,10 @@
 
 import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
+from postgres_statements import contents
 
 from swingset.link.evaluation import draw_sample, evaluate, main
 from swingset.link.evaluation_input import read_population
@@ -279,17 +281,16 @@ def test_population_reader_includes_unresolved_entries_with_no_link_or_candidate
 ):
     from test_link_service import entry, seed
 
-    import swingset.state.db as state_db
-
-    # This legacy fixture predates immutable derivation receipts.
-    monkeypatch.setattr(state_db, "SCHEMA_VERSION", 13)
-
     with open_database(tmp_path) as db:
         seed(db.connection)
         entry(db.connection, "unresolved", "c1", "7", "New Person")
         db.connection.execute(
-            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('future','future','Future listing',2030,'2030-01-01','2030-01-04','registry','[]','test','snap','1','t','t','run')"
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES "
+            "('future', 'future', 'Future listing', 2030, '2030-01-01', '2030-01-04', 'registry', '[]', "
+            "'test', 'snap', '1', 't', 't', 'run')"
         )
+        settle_sample(db)
         rows, context = read_population(db.connection)
         assert context["latest_event_year"] == 2026
         assert rows[0]["era"] == "latest_year"
@@ -298,7 +299,10 @@ def test_population_reader_includes_unresolved_entries_with_no_link_or_candidate
         assert rows[0]["candidate_ids"] == []
         assert rows[0]["source_reference"]["legacy_subject_id"] == "unresolved"
         assert "local settled" in context["population"]
-        db.connection.execute("INSERT INTO pending_work VALUES ('link','event','event','now')")
+        from swingset.state.derivations import bump_replay
+
+        with db.transaction():
+            bump_replay(db.connection, "project", "event", unit_id="event")
         with pytest.raises(ValueError, match="settled"):
             read_population(db.connection)
 
@@ -350,10 +354,6 @@ def test_evidence_cutoff_cannot_predate_captured_input():
 def test_sample_cli_reads_database_without_changing_state(tmp_path, monkeypatch):
     from test_link_service import entry, seed
 
-    import swingset.state.db as state_db
-
-    monkeypatch.setattr(state_db, "SCHEMA_VERSION", 13)
-
     state, output = tmp_path / "state", tmp_path / "sample.json"
     prior_path = tmp_path / "prior.json"
     prior_bytes = json.dumps(tuning_packet()).encode()
@@ -361,7 +361,8 @@ def test_sample_cli_reads_database_without_changing_state(tmp_path, monkeypatch)
     with open_database(state) as db:
         seed(db.connection)
         entry(db.connection, "unresolved", "c1", "7", "New Person")
-        before = list(db.connection.iterdump())
+        settle_sample(db)
+        before = contents(db.connection)
         main(
             [
                 "sample",
@@ -379,7 +380,7 @@ def test_sample_cli_reads_database_without_changing_state(tmp_path, monkeypatch)
                 str(prior_path),
             ]
         )
-        assert list(db.connection.iterdump()) == before
+        assert contents(db.connection) == before
     artifact = json.loads(output.read_text())
     assert artifact["samples"][0]["candidate_ids"] == []
     assert artifact["context"]["schema_version"] >= 5
@@ -443,3 +444,30 @@ def test_review_packet_marks_missing_or_corrupt_evidence_without_labels(tmp_path
         ]
         is False
     )
+
+
+def settle_sample(database):
+    """Give direct domain fixture rows their actual current native receipts."""
+    from datetime import UTC, datetime
+
+    from swingset.clock import FakeClock
+    from swingset.project.materialization import output_rows
+    from swingset.state import derivations
+    from swingset.state.inputs import accept, capture
+    from swingset.versions import versions
+
+    clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC))
+    bundle = capture(Path("config"), Path("overrides"), database.state_dir, versions())
+    accept(database, bundle, clock)
+    run = database.start_run(clock.now())
+    for stage in ("project", "link"):
+        for unit in list(derivations.known_units(database.connection, stage)):
+            with database.transaction():
+                selection = derivations.capture(database.connection, unit, now=clock.now())
+                derivations.complete(
+                    database.connection,
+                    selection,
+                    rows=lambda unit=unit: output_rows(database.connection, unit),
+                    now=clock.now(),
+                    run_id=run,
+                )

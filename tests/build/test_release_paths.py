@@ -174,8 +174,8 @@ def test_two_attempts_write_the_same_manifest_and_the_build_names_it(release_sta
     # The build generation's context names the manifest.
     context = json.loads(
         f.conn.execute(
-            "SELECT recipe_json FROM derivation_generations WHERE stage='build' "
-            "ORDER BY created_at DESC LIMIT 1"
+            "SELECT recipe_json FROM derivation_generations WHERE stage = 'build' ORDER BY created_at "
+            "DESC NULLS LAST LIMIT 1"
         ).fetchone()[0]
     )["context"]
     assert context["release_manifest"] == digest and context["mode"] == "partitioned"
@@ -245,7 +245,7 @@ def test_a_partitioned_candidate_publishes_through_the_hub(release_state):
     result = service.build_release(
         f.db, on(approved(f.bundle), "partitioned"), f.clock, f.run, f.hub
     )
-    published = publish(f.db.state_dir, result.path, f.hub)
+    published = publish(f.db.state_dir, result.path, f.hub, connection=f.conn)
     assert published.state == "published" and f.hub.calls == 1
     receipt = json.loads((result.path / "PUBLISHED").read_bytes())
     assert receipt["manifest_digest"] == policy(result)["manifest_digest"]
@@ -268,5 +268,5 @@ def test_a_changed_artifact_file_refuses_publication(release_state):
     path = artifact_directory(f.db.state_dir, artifact) / name
     path.write_bytes(path.read_bytes() + b"tampered")
     with pytest.raises(PublishError, match="release manifest or artifact changed"):
-        publish(f.db.state_dir, result.path, f.hub)
+        publish(f.db.state_dir, result.path, f.hub, connection=f.conn)
     assert f.hub.calls == 0

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import sqlite3
-
 from swingset.model.ids import series_slug
+from swingset.state import engine
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
@@ -14,7 +13,7 @@ def _name(value: str) -> str:
 
 
 def reconcile_registry_events(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     reconciled_at: str,
     run_id: str,
@@ -24,7 +23,7 @@ def reconcile_registry_events(
     """Set event_id only when canonical series-name and month evidence is unique."""
     events: dict[tuple[str, str], list[str]] = {}
     for row in conn.execute(
-        "SELECT event_id,name,COALESCE(NULLIF(event_month,''),substr(end_date,1,7)),series_id FROM events"
+        "SELECT event_id, name, COALESCE(NULLIF(event_month, ''), SUBSTRING(end_date FROM 1 FOR 7)) AS _value_2, series_id FROM events"
     ):
         if str(row[0]) in excluded_event_ids:
             continue
@@ -34,10 +33,13 @@ def reconcile_registry_events(
     changed = False
     affected: set[str] = set()
     findings: dict[int, list[Finding]] = {}
-    query = "SELECT wsdc_id,role,series_id,event_month,division,dance_style,series_name_raw,event_id FROM registry_placements"
+    query = (
+        "SELECT wsdc_id, role, series_id, event_month, division, dance_style, series_name_raw, "
+        "event_id FROM registry_placements"
+    )
     parameters: tuple[object, ...] = ()
     if wsdc_id is not None:
-        query += " WHERE wsdc_id=?"
+        query += " WHERE wsdc_id=%s"
         parameters = (wsdc_id,)
     rows = conn.execute(query, parameters).fetchall()
     for row in rows:
@@ -68,7 +70,10 @@ def reconcile_registry_events(
         if previous == desired:
             continue
         conn.execute(
-            "UPDATE registry_placements SET event_id=? WHERE wsdc_id=? AND role=? AND series_id=? AND event_month=? AND division=? AND dance_style=?",
+            (
+                "UPDATE registry_placements SET event_id = %s WHERE wsdc_id = %s AND role = %s AND series_id "
+                "= %s AND event_month = %s AND division = %s AND dance_style = %s"
+            ),
             (desired, *row[:6]),
         )
         changed = True
@@ -81,7 +86,7 @@ def reconcile_registry_events(
         | {
             int(row[0])
             for row in conn.execute(
-                "SELECT owner_id FROM findings WHERE owner_kind='registry_reconciliation' AND closed_at IS NULL"
+                "SELECT owner_id FROM findings WHERE owner_kind = 'registry_reconciliation' AND closed_at IS NULL"
             )
         }
     )

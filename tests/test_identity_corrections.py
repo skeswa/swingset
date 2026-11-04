@@ -88,15 +88,17 @@ def test_audit_pair_retains_ownership_and_abstains_in_projection(tmp_path, case)
 def test_old_mixed_person_entry_cannot_bypass_abstention_with_printed_id(tmp_path, case):
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
-        db.connection.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run','t',0)")
+        db.connection.execute(
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run', 't', 0)"
+        )
         entry(db.connection, case["subject_id"], "c1", case["bib"], case["name_raw"])
         owned_source_sheet(db.connection, [(case["bib"], case["name_raw"], 26843)])
         run(db, Bundle())
         assert tuple(
-            db.connection.execute("SELECT wsdc_id,status FROM identity_links").fetchone()
+            db.connection.execute("SELECT wsdc_id, status FROM identity_links").fetchone()
         ) == (None, "unmatched")
         assert db.connection.execute("SELECT wsdc_id FROM entries").fetchone()[0] is None
-        assert db.connection.execute("SELECT count(*) FROM link_candidates").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM link_candidates").fetchone()[0] == 0
         assert (
             db.connection.execute("SELECT kind FROM findings WHERE closed_at IS NULL").fetchone()[0]
             == "paired_name"
@@ -104,7 +106,7 @@ def test_old_mixed_person_entry_cannot_bypass_abstention_with_printed_id(tmp_pat
         run(db, Bundle())
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM findings WHERE closed_at IS NULL"
+                "SELECT COUNT(*) FROM findings WHERE closed_at IS NULL"
             ).fetchone()[0]
             == 1
         )
@@ -121,23 +123,27 @@ def test_compound_individual_names_and_explicit_ids_remain_available(name):
 def test_rescored_judge_and_unrestricted_entry_do_not_create_default_joins(tmp_path):
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
-        db.connection.execute("DELETE FROM dancers WHERE wsdc_id=2")
-        db.connection.execute("UPDATE dancers SET is_pro=1")
-        db.connection.execute("UPDATE contests SET division='none'")
+        db.connection.execute("DELETE FROM dancers WHERE wsdc_id = 2")
+        db.connection.execute("UPDATE dancers SET is_pro = 1")
+        db.connection.execute("UPDATE contests SET division = 'none'")
         entry(db.connection, "event/c1/L-7", "c1", "7")
         db.connection.execute(
-            "INSERT INTO judges(judge_id,event_id,name_raw,initials,anonymous,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('judge','event','Alex Lee','AL',0,'test','s','1','t','t','run')"
+            "INSERT INTO judges (judge_id, event_id, name_raw, initials, anonymous, source, snapshot_id, "
+            "parser_version, first_seen_at, last_seen_at, run_id) VALUES ('judge', 'event', 'Alex Lee', "
+            "'AL', 0, 'test', 's', '1', 't', 't', 'run')"
         )
         run(db, Bundle())
         assert db.connection.execute("SELECT wsdc_id FROM entries").fetchone()[0] is None
         assert db.connection.execute("SELECT wsdc_id FROM judges").fetchone()[0] is None
         assert [
             tuple(row)
-            for row in db.connection.execute("SELECT wsdc_id,status,confidence FROM identity_links")
+            for row in db.connection.execute(
+                "SELECT wsdc_id, status, confidence FROM identity_links"
+            )
         ] == [(1, "probable", 1.0), (1, "probable", 1.0)]
         assert (
             db.connection.execute(
-                "SELECT role_ok FROM link_candidates WHERE subject_kind='judge'"
+                "SELECT role_ok FROM link_candidates WHERE subject_kind = 'judge'"
             ).fetchone()[0]
             is None
         )
@@ -147,12 +153,12 @@ def test_linking_month_precision_event_preserves_unknown_dates(tmp_path):
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
         db.connection.execute(
-            "UPDATE events SET start_date=NULL,end_date=NULL,event_month='2026-01',date_precision='month'"
+            "UPDATE events SET start_date = NULL, end_date = NULL, event_month = '2026-01', date_precision = 'month'"
         )
         entry(db.connection, "event/c1/L-7", "c1", "7")
         run(db, Bundle())
         assert tuple(
             db.connection.execute(
-                "SELECT start_date,end_date,date_precision FROM events"
+                "SELECT start_date, end_date, date_precision FROM events"
             ).fetchone()
         ) == (None, None, "month")

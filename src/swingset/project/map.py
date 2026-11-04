@@ -23,7 +23,6 @@ import csv
 import dataclasses
 import io
 import json
-import sqlite3
 from collections.abc import Iterable, Mapping
 from datetime import date
 from typing import Any, Protocol
@@ -31,13 +30,15 @@ from typing import Any, Protocol
 from swingset.model.canonical import Event
 from swingset.model.ids import event_id, series_id
 from swingset.normalize.events import event_dates_overlap, normalize_event_name
-from swingset.state import proposals
+from swingset.state import engine, proposals
 from swingset.state.proposals import Proposal
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
 from .history import ListingMatch, alias_map, match_listing, near, registry_names
 from .materialization import helper_recipe, materializing
 from .writer import Projection, replace_scope
+
+VERSION = 1
 
 #: Scopes that owned placeholder events before the map split. Each
 #: resolution releases its event's row from them on its first run.
@@ -80,7 +81,7 @@ def override_sources(files: Mapping[str, bytes]) -> tuple[str, ...]:
 
 
 def propose(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     source: str,
     bundle: InputBundleLike,
     now: str,
@@ -96,15 +97,17 @@ def propose(
     }
     catalog = list(
         conn.execute(
-            "SELECT event_id,name,start_date,end_date FROM events WHERE wsdc_status!='unknown' "
-            "ORDER BY event_id"
+            "SELECT event_id, name, start_date, end_date FROM events WHERE wsdc_status <> 'unknown' "
+            "ORDER BY event_id NULLS FIRST"
         )
     )
     listings = {
         str(row[0]): row
         for row in conn.execute(
-            "SELECT source_ref,name_raw,start_date,end_date,snapshot_id,parser_version "
-            "FROM source_events WHERE source=? ORDER BY source_ref",
+            (
+                "SELECT source_ref, name_raw, start_date, end_date, snapshot_id, parser_version FROM "
+                "source_events WHERE source = %s ORDER BY source_ref NULLS FIRST"
+            ),
             (source,),
         )
     }
@@ -172,7 +175,7 @@ def propose(
     return True
 
 
-def resolve(conn: sqlite3.Connection, identifier: str, now: str, run_id: str) -> bool:
+def resolve(conn: engine.Connection, identifier: str, now: str, run_id: str) -> bool:
     """Write one event's map rows and its placeholder row; returns whether any changed.
 
     The event row follows the map's rules: a generated id takes the
@@ -184,7 +187,17 @@ def resolve(conn: sqlite3.Connection, identifier: str, now: str, run_id: str) ->
     owns (F23).
     """
     proposed = proposals.for_event(conn, identifier)
-    live = conn.execute("SELECT * FROM events WHERE event_id=?", (identifier,)).fetchone()
+    live = conn.execute(
+        (
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+        ),
+        (identifier,),
+    ).fetchone()
     generated = [row for row in proposed if row.match_method != "override" and row.placeholder_json]
     overridden = [row for row in proposed if row.match_method == "override"]
     matched = [
@@ -239,7 +252,7 @@ def resolve(conn: sqlite3.Connection, identifier: str, now: str, run_id: str) ->
 
 
 def project_map(
-    conn: sqlite3.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
+    conn: engine.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
 ) -> bool:
     """Run every mapping unit, then every resolution, each as its own unit.
 
@@ -279,7 +292,7 @@ class _SeriesRule:
     names come from the inventory's output (`history.registry_names`).
     """
 
-    def __init__(self, conn: sqlite3.Connection, source: str, aliases: bytes) -> None:
+    def __init__(self, conn: engine.Connection, source: str, aliases: bytes) -> None:
         self._conn = conn
         self._source = source
         self._aliases = alias_map(aliases)
@@ -301,7 +314,8 @@ class _SeriesRule:
                 )
             return None
         row = self._conn.execute(
-            "SELECT sources,start_date,end_date FROM events WHERE event_id=?", (match.event_id,)
+            "SELECT sources, start_date, end_date FROM events WHERE event_id = %s",
+            (match.event_id,),
         ).fetchone()
         if row is None or self._source not in json.loads(str(row[0])):
             return None
@@ -323,8 +337,10 @@ class _SeriesRule:
         """
         found: dict[int, list[str]] = {0: [], 1: [], 2: []}
         for row_id, row_series, name, sources, history, first, last in self._conn.execute(
-            "SELECT event_id,series_id,name,sources,history_source,start_date,end_date "
-            "FROM events WHERE held!='held' AND event_month=?",
+            (
+                "SELECT event_id, series_id, name, sources, history_source, start_date, end_date FROM events "
+                "WHERE held <> 'held' AND event_month = %s"
+            ),
             (month,),
         ):
             if self._source not in json.loads(str(sources)) or not json.loads(str(history or "[]")):
@@ -343,21 +359,20 @@ class _SeriesRule:
         return rows[0] if len(rows) == 1 else None
 
 
-def _owned(conn: sqlite3.Connection, identifier: str) -> bool:
+def _owned(conn: engine.Connection, identifier: str) -> bool:
     """Whether this resolution or a retired map scope owns the event's row."""
     return (
         conn.execute(
-            "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' AND record_key=json_array(?) "
-            "AND ((scope_kind='resolution' AND scope_id=?) "
-            "OR (scope_kind IN ('unmatched_source_events','override_events') AND scope_id='all')) "
-            "LIMIT 1",
+            (
+                "SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE table_name = 'events' AND record_key = ops.compact_json(json_build_array(%s::text)) AND ((scope_kind = 'resolution' AND scope_id = %s) OR (scope_kind IN ('unmatched_source_events', 'override_events') AND scope_id = 'all')) LIMIT 1"
+            ),
             (identifier, identifier),
         ).fetchone()
         is not None
     )
 
 
-def _release_legacy(conn: sqlite3.Connection, identifier: str) -> bool:
+def _release_legacy(conn: engine.Connection, identifier: str) -> bool:
     """Drop a retired map scope's ownership of the event, as `replace_scope` drops a row.
 
     A row no scope owns any more is deleted, and registry placements that
@@ -367,27 +382,31 @@ def _release_legacy(conn: sqlite3.Connection, identifier: str) -> bool:
     released = 0
     for scope_kind in LEGACY_SCOPES:
         released += conn.execute(
-            "DELETE FROM canonical_scope_rows WHERE scope_kind=? AND scope_id='all' "
-            "AND table_name='events' AND record_key=?",
+            (
+                "DELETE FROM canonical_scope_rows WHERE scope_kind = %s AND scope_id = 'all' AND table_name "
+                "= 'events' AND record_key = %s"
+            ),
             (scope_kind, key),
         ).rowcount
     if (
         not released
         or conn.execute(
-            "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' AND record_key=? LIMIT 1",
+            "SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE table_name = 'events' AND record_key = %s LIMIT 1",
             (key,),
         ).fetchone()
     ):
         return False
-    conn.execute("UPDATE registry_placements SET event_id=NULL WHERE event_id=?", (identifier,))
-    if conn.execute("DELETE FROM events WHERE event_id=?", (identifier,)).rowcount:
+    conn.execute(
+        "UPDATE registry_placements SET event_id = NULL WHERE event_id = %s", (identifier,)
+    )
+    if conn.execute("DELETE FROM events WHERE event_id = %s", (identifier,)).rowcount:
         bump_revision(conn, "canonical")
         return True
     return False
 
 
 def _replace_map_rows(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     identifier: str,
     rows: Iterable[tuple[str, str, str, str, float]],
 ) -> set[str]:
@@ -406,17 +425,16 @@ def _replace_map_rows(
             float(row[4]),
         )
         for row in conn.execute(
-            "SELECT m.source,m.source_ref,m.event_id,m.match_method,m.match_confidence "
-            "FROM source_event_map m WHERE m.event_id=? OR EXISTS (SELECT 1 FROM "
-            "source_event_proposals p WHERE p.event_id=? AND p.source=m.source "
-            "AND p.source_ref=m.source_ref)",
+            (
+                "SELECT m.source, m.source_ref, m.event_id, m.match_method, m.match_confidence FROM source_event_map AS m WHERE m.event_id = %s OR EXISTS(SELECT 1 AS _value_0 FROM source_event_proposals AS p WHERE p.event_id = %s AND p.source = m.source AND p.source_ref = m.source_ref)"
+            ),
             (identifier, identifier),
         )
     }
     moved: set[str] = set()
     for key, row in current.items():
         if key not in desired and row[2] == identifier:
-            conn.execute("DELETE FROM source_event_map WHERE source=? AND source_ref=?", key)
+            conn.execute("DELETE FROM source_event_map WHERE source = %s AND source_ref = %s", key)
             moved.add(identifier)
     for key, row in desired.items():
         if current.get(key) == row:
@@ -424,10 +442,9 @@ def _replace_map_rows(
         if key in current:
             moved.add(current[key][2])
         conn.execute(
-            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
-            "VALUES (?,?,?,?,?) ON CONFLICT(source,source_ref) DO UPDATE SET "
-            "event_id=excluded.event_id,match_method=excluded.match_method,"
-            "match_confidence=excluded.match_confidence",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) VALUES (%s, %s, %s, %s, %s) ON CONFLICT(source, source_ref) DO UPDATE SET event_id = excluded.event_id, match_method = excluded.match_method, match_confidence = excluded.match_confidence"
+            ),
             row,
         )
         moved.add(identifier)
@@ -437,7 +454,7 @@ def _replace_map_rows(
 
 
 def _override_placeholder(
-    source: str, target: str, listing: sqlite3.Row | None, projector_version: int
+    source: str, target: str, listing: engine.Row | None, projector_version: int
 ) -> str | None:
     """The event an override target gets when no row exists; None for an unparseable id."""
     try:
@@ -483,20 +500,19 @@ def _decode(payload: str, now: str, run_id: str) -> Event:
     return Event(**values, first_seen_at=now, last_seen_at=now, run_id=run_id)
 
 
-def _inventory_event(conn: sqlite3.Connection, identifier: str) -> sqlite3.Row | None:
+def _inventory_event(conn: engine.Connection, identifier: str) -> engine.Row | None:
     # Match materialization.output_rows(inventory): history enrichment or its
     # durable ownership makes this an inventory record, not a placeholder.
-    row: sqlite3.Row | None = conn.execute(
-        "SELECT * FROM events WHERE event_id=? AND (history_source!='[]' OR EXISTS "
-        "(SELECT 1 FROM canonical_scope_rows c WHERE c.scope_kind='history' "
-        "AND c.scope_id='all' AND c.table_name='events' "
-        "AND c.record_key=json_array(events.event_id)))",
+    row: engine.Row | None = conn.execute(
+        (
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, events.end_date, events.city, events.region, events.country, events.website, events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, events.source, events.snapshot_id, events.parser_version, events.first_seen_at, events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, events.coverage_tier, events.history_source FROM events WHERE event_id = %s AND (history_source <> '[]' OR EXISTS(SELECT 1 AS _value_0 FROM canonical_scope_rows AS c WHERE c.scope_kind = 'history' AND c.scope_id = 'all' AND c.table_name = 'events' AND c.record_key = ops.compact_json(json_build_array(events.event_id::text))))"
+        ),
         (identifier,),
     ).fetchone()
     return row
 
 
-def _stored_event(row: sqlite3.Row) -> Event:
+def _stored_event(row: engine.Row) -> Event:
     sources = json.loads(str(row["sources"]))
     return Event(
         event_id=str(row["event_id"]),

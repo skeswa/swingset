@@ -5,8 +5,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-      - run: nix develop --command uv sync --frozen
-      - run: nix develop --command uv run ruff check .
-      - run: nix develop --command uv run mypy
-      - run: nix develop --command uv run pytest -q
+      - uses: jdx/mise-action@v2
+      - name: Sync pinned Python dependencies
+        run: uv sync --frozen
+      - name: Start isolated Postgres test service
+        run: mise run dev
+      - uses: docker/setup-buildx-action@v3
+        id: buildx
+      - name: Build the dependency image
+        id: dependencies
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          builder: ${{ steps.buildx.outputs.name }}
+          target: dependencies
+          platforms: linux/amd64
+          tags: swingset-dependencies:test
+          load: true
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=swingset-dependencies
+          cache-to: type=gha,mode=max,scope=swingset-dependencies
+      - name: Build and test the shipped environment
+        shell: bash
+        env:
+          DEPENDENCY_IMAGE_DIGEST: ${{ steps.dependencies.outputs.digest }}
+          BUILDX_BUILDER: ${{ steps.buildx.outputs.name }}
+        run: |
+          dependency_digest="$DEPENDENCY_IMAGE_DIGEST"
+          docker buildx build --load --platform linux/amd64 --target test --build-arg DEPENDENCY_IMAGE_DIGEST="$dependency_digest" --build-arg SOURCE_REVISION="$GITHUB_SHA" -t swingset-test .
+          uv run python -m swingset.dev.ci swingset-test
+          docker buildx build --load --platform linux/amd64 --target runtime --build-arg DEPENDENCY_IMAGE_DIGEST="$dependency_digest" --build-arg SOURCE_REVISION="$GITHUB_SHA" -t swingset-runtime .

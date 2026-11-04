@@ -24,13 +24,13 @@ held, so those readers wait for every pending inventory, as before D-0210.
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
 
 from swingset.schedule.fair_policy import SchedulerConfig
+from swingset.state import engine
 from swingset.state.work import WorkUnit
 
 INVENTORY = WorkUnit("project", "inventory", "all")
@@ -40,7 +40,7 @@ _ACTIVE: ContextVar[tuple[SchedulerConfig, Callable[[], datetime]] | None] = Con
 )
 
 
-def _at(conn: sqlite3.Connection, unit: WorkUnit) -> datetime | None:
+def _at(conn: engine.Connection, unit: WorkUnit) -> datetime | None:
     from swingset.state.derivations import materialized_at
 
     stamp = materialized_at(conn, unit)
@@ -48,7 +48,7 @@ def _at(conn: sqlite3.Connection, unit: WorkUnit) -> datetime | None:
 
 
 def deferred(
-    conn: sqlite3.Connection, scheduler: SchedulerConfig, unit: WorkUnit, *, now: datetime
+    conn: engine.Connection, scheduler: SchedulerConfig, unit: WorkUnit, *, now: datetime
 ) -> bool:
     """Whether the paced inventory waits: it materialized within its interval.
 
@@ -66,7 +66,7 @@ def deferred(
     return not (calendar_replayed(conn, unit) or calendar_regenerated(conn, unit))
 
 
-def calendar_replayed(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def calendar_replayed(conn: engine.Connection, unit: WorkUnit) -> bool:
     """Whether the calendar's replay epoch moved past the one `unit` last read.
 
     A calendar replay rewrites live `events` columns the inventory enriched
@@ -78,30 +78,25 @@ def calendar_replayed(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     """
     from swingset.state.derivations import canonical
 
-    try:
-        now = conn.execute(
-            "SELECT version FROM derivation_input_versions "
-            "WHERE namespace='replayed' AND input_key=?",
-            (canonical(("project", "calendar")),),
-        ).fetchone()
-        if now is None:
-            return False
-        rows = conn.execute(
-            "SELECT d.manifest_json FROM derivation_scopes s "
-            "JOIN derivation_generations g ON g.generation_id=s.materialized_generation_id "
-            "JOIN derivation_dependency_sets d ON d.dependency_set_id=g.dependency_set_id "
-            "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=? "
-            "UNION ALL SELECT d.manifest_json FROM derivation_scopes s "
-            "JOIN derivation_equivalences e ON e.stage=s.stage AND e.unit_kind=s.unit_kind "
-            "AND e.unit_id=s.unit_id AND e.generation_id=s.materialized_generation_id "
-            "JOIN derivation_dependency_sets d ON d.dependency_set_id=e.dependency_set_id "
-            "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
-            (unit.stage, unit.unit_kind, unit.unit_id) * 2,
-        ).fetchall()
-    except sqlite3.OperationalError as exc:
-        if "no such table" in str(exc):
-            return False
-        raise
+    now = conn.execute(
+        "SELECT version FROM derivation_input_versions WHERE namespace = 'replayed' AND input_key = %s",
+        (canonical(("project", "calendar")),),
+    ).fetchone()
+    if now is None:
+        return False
+    rows = conn.execute(
+        (
+            "SELECT d.manifest_json FROM derivation_scopes AS s JOIN derivation_generations AS g ON "
+            "g.generation_id = s.materialized_generation_id JOIN derivation_dependency_sets AS d ON "
+            "d.dependency_set_id = g.dependency_set_id WHERE s.stage = %s AND s.unit_kind = %s AND "
+            "s.unit_id = %s UNION ALL SELECT d.manifest_json FROM derivation_scopes AS s JOIN "
+            "derivation_equivalences AS e ON e.stage = s.stage AND e.unit_kind = s.unit_kind AND "
+            "e.unit_id = s.unit_id AND e.generation_id = s.materialized_generation_id JOIN "
+            "derivation_dependency_sets AS d ON d.dependency_set_id = e.dependency_set_id WHERE s.stage "
+            "= %s AND s.unit_kind = %s AND s.unit_id = %s"
+        ),
+        (unit.stage, unit.unit_kind, unit.unit_id) * 2,
+    ).fetchall()
     import json
 
     read = 0
@@ -116,7 +111,7 @@ def calendar_replayed(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     return int(now[0]) > read
 
 
-def calendar_regenerated(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def calendar_regenerated(conn: engine.Connection, unit: WorkUnit) -> bool:
     """Whether a calendar minted a generation after `unit`'s output was made.
 
     A new calendar generation rewrites its live `events` rows through
@@ -128,9 +123,9 @@ def calendar_regenerated(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
     if made is None:
         return False
     for (stamp,) in conn.execute(
-        "SELECT g.created_at FROM derivation_scopes s JOIN derivation_generations g "
-        "ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage='project' AND s.unit_kind='calendar' AND s.unit_id!='wsdc-history'"
+        "SELECT g.created_at FROM derivation_scopes AS s JOIN derivation_generations AS g ON "
+        "g.generation_id = s.materialized_generation_id WHERE s.stage = 'project' AND s.unit_kind = "
+        "'calendar' AND s.unit_id <> 'wsdc-history'"
     ):
         if datetime.fromisoformat(str(stamp)) > made:
             return True
@@ -156,7 +151,7 @@ def configured(scheduler: SchedulerConfig, now: Callable[[], datetime]) -> Itera
         _ACTIVE.reset(token)
 
 
-def holds(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def holds(conn: engine.Connection, unit: WorkUnit) -> bool:
     """Whether the configured run's gate holds `unit`; False outside one.
 
     Only a unit with work to do is held: one that is not current. A current

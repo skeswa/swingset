@@ -2,10 +2,10 @@
 
 `install` fetches `backup.json`, every database part, the index and every
 segment the set names, and checks each digest before it decompresses
-anything. It joins the parts into `state.sqlite` (raw sha256 checked),
-checks the schema and, unless told not to, `integrity_check` and
-`foreign_key_check`, then extracts from each segment exactly the files the
-index assigns to it, verifying every one (gunzip for bodies and packs). All
+anything. It joins the checked parts into a filtered history COPY bundle,
+checks its schema and typed rows, then extracts exactly the files the index
+assigns to each segment, verifying every one (gunzip for bodies and packs).
+Installation into a fresh Postgres database validates every foreign key. All
 of this happens in a scratch directory inside the target; only when every
 check passed are the files moved into place and the baseline link made. A
 failure removes the scratch and leaves the target as it was.
@@ -23,15 +23,14 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
 import tarfile
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from swingset.build.files import fsync_dir
 from swingset.clock import Clock
-from swingset.publish.service import Hub
+from swingset.publish.journal import Hub
 
 from .segments import FORMAT, INDEX, Digest, read_index
 from .transport import MANIFEST, SETS, Transport, TransportError, segment_path
@@ -41,6 +40,7 @@ _CHUNK = 1 << 20
 #: the restore marker, and directories a set never carries.
 _RESERVED = frozenset(
     {
+        "database.json",
         "state.sqlite",
         "state.sqlite-wal",
         "state.sqlite-shm",
@@ -71,11 +71,14 @@ def install(
     set_id: str | None = None,
     maximum_schema_version: int | None = None,
     integrity: str | None = "full",
+    owner_dsn: str | None = None,
+    environment: str = "dev",
 ) -> dict[str, Any]:
     """Verify one set completely, then place it into `target`.
 
     `target` may hold lock files and `RESTORE_PENDING`, nothing else.
-    `integrity` is "full", "quick" or None (no SQLite check).
+    ``integrity`` accepts the existing full/quick/None operator spelling;
+    every mode checks native COPY rows, constraints and referenced files.
     """
     from swingset.state.rwlock import is_lock_file
 
@@ -89,7 +92,7 @@ def install(
     for path in target.iterdir():
         if path.name.startswith(".install-") and path.is_dir():
             shutil.rmtree(path)  # a crashed install's scratch
-        elif not is_lock_file(path.name) and path.name != "RESTORE_PENDING":
+        elif not is_lock_file(path.name) and path.name not in {"RESTORE_PENDING", "database.json"}:
             raise SetError(f"restore target is not empty: {path.name}")
     work = target / f".install-{uuid.uuid4().hex}"
     stage, fetched = work / "state", work / "fetch"
@@ -98,7 +101,17 @@ def install(
     try:
         try:
             chosen = set_id or latest(source)
-            summary = _install(source, chosen, stage, fetched, maximum_schema_version, integrity)
+            summary = _install(
+                source,
+                chosen,
+                stage,
+                fetched,
+                maximum_schema_version,
+                integrity,
+                target,
+                owner_dsn,
+                environment,
+            )
         except (
             OSError,
             ValueError,
@@ -123,6 +136,10 @@ def _install(
     fetched: Path,
     maximum_schema_version: int,
     integrity: str | None,
+    database_target: Path,
+    owner_dsn: str | None,
+    environment: str,
+    check_mode: Literal["verify", "drill"] | None = None,
 ) -> dict[str, Any]:
     from .huggingface import safe_relative
 
@@ -153,8 +170,30 @@ def _install(
         _check_file(path, str(segment), None, f"segment {segment}")
         segments[str(segment)] = path
     # Every fetched digest matched: decompress and extract.
-    _join(parts, stage / "state.sqlite", database["raw_sha256"], database["raw_bytes"])
-    _check_database(stage / "state.sqlite", schema, integrity)
+    if database.get("format") != "postgres-history":
+        raise SetError("legacy SQLite sets require the explicit SQLite importer")
+    packed = fetched / "database.tar"
+    _join(parts, packed, database["raw_sha256"], database["raw_bytes"])
+    history = fetched / "history"
+    history.mkdir()
+    with tarfile.open(packed, "r:") as archive:
+        seen = set()
+        for member in archive:
+            relative = safe_relative(member.name)
+            if (
+                not member.isfile()
+                or member.name in seen
+                or relative.parts[0] not in {"tables", "keys", "history.json"}
+            ):
+                raise SetError("database history archive contains an unsupported member")
+            seen.add(member.name)
+            destination = history / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            reader = archive.extractfile(member)
+            if reader is None:
+                raise SetError("database history archive lacks a regular member body")
+            with reader, destination.open("xb") as output:
+                shutil.copyfileobj(reader, output, length=_CHUNK)
     wanted: dict[str, dict[str, tuple[str, str, int]]] = {}
     count = total = 0
     classes: dict[str, int] = {}
@@ -175,22 +214,25 @@ def _install(
         raise SetError(f"index has {count} items, backup.json says {index['items']}")
     for segment, expected in sorted(wanted.items()):
         _extract(segments[segment], expected, stage)
+        expected.clear()
     for field in ("baseline_candidate", "pending_candidate"):
         name = manifest.get(field)
         if name is not None and not (stage / "candidates" / str(name) / "BUILT").is_file():
             raise SetError(f"{field} {name} is missing or incomplete")
     baseline = manifest.get("baseline_candidate")
-    if integrity == "full":
-        _check_closure(stage, manifest)
-    else:
-        # Cheap (one stat per object), so the drill's quick install runs it too.
-        conn = sqlite3.connect(
-            f"{(stage / 'state.sqlite').resolve().as_uri()}?mode=ro&immutable=1", uri=True
-        )
-        try:
-            _check_objects(stage, conn, manifest)
-        finally:
-            conn.close()
+    from swingset.state import postgres_backup
+
+    from .snapshot import current_runtime_identity
+
+    history_manifest = json.loads((history / "history.json").read_text())
+    for relative in history_manifest["files"]:
+        safe = safe_relative(relative)
+        source_file = stage / safe
+        destination = history / "files" / safe
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        os.link(source_file, destination)
+    del history_manifest
+    postgres_backup.verify(history, runtime_identity=current_runtime_identity())
     missing = manifest.get("missing") or []
     if missing:
         # A file the set left out (gone, or not matching its digest) that the
@@ -198,9 +240,35 @@ def _install(
         raise SetError(
             f"the set was written without {len(missing)} named files, first {missing[:3]}"
         )
-    if baseline is not None:
+    from .destination import owner
+
+    checked = None
+    if check_mode is not None:
+        manifest_sha256 = hashlib.sha256((history / "history.json").read_bytes()).hexdigest()
+        if check_mode == "drill":
+            from .check import drill_check
+
+            checked = drill_check(history, stage, manifest_sha256=manifest_sha256)
+        else:
+            from .check import check
+
+            checked = check(history, manifest_sha256=manifest_sha256)
+        if checked.get("complete") is not True:
+            raise SetError("owner restore check did not complete")
+    else:
+        with owner(database_target, owner_dsn) as connection:
+            postgres_backup.restore(
+                history,
+                connection,
+                environment=environment,
+                runtime_identity=current_runtime_identity(),
+            )
+        from .checkpoint import retain_restore_history
+
+        retain_restore_history(stage, history)
+    if baseline is not None and check_mode != "drill":
         os.symlink(Path("candidates") / str(baseline), stage / "baseline")
-    return {
+    summary = {
         "set_id": set_id,
         "manifest_sha256": hashlib.sha256(body).hexdigest(),
         "schema_version": schema,
@@ -214,6 +282,61 @@ def _install(
         "pending_candidate": manifest.get("pending_candidate"),
         "integrity": integrity,
     }
+    if check_mode == "drill":
+        assert checked is not None
+        summary["release"] = checked["release"]
+        summary["restore_check"] = {
+            "complete": True,
+            "equal": checked["audit"]["equal"],
+            "runtime_identity": checked["runtime_identity"],
+        }
+    return summary
+
+
+def verify_set(
+    source: Transport, set_id: str, *, maximum_schema_version: int = 37
+) -> dict[str, Any]:
+    """Read back all published bytes and require a fresh owner-job restore check."""
+    return _check_set(source, set_id, maximum_schema_version=maximum_schema_version, mode="verify")
+
+
+def drill_set(
+    source: Transport, set_id: str, *, maximum_schema_version: int = 37
+) -> dict[str, Any]:
+    """Restore and reproduce the historical release in the separate owner job."""
+    return _check_set(source, set_id, maximum_schema_version=maximum_schema_version, mode="drill")
+
+
+def _check_set(
+    source: Transport, set_id: str, *, maximum_schema_version: int, mode: Literal["verify", "drill"]
+) -> dict[str, Any]:
+    import tempfile
+
+    check_root = os.environ.get("SWINGSET_BACKUP_CHECK_ROOT")
+    if check_root is None and os.environ.get("SWINGSET_BACKUP_CHECK_SOCKET"):
+        check_root = "/var/lib/swingset/checkpoints"
+    if check_root:
+        Path(check_root).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=".install-" if mode == "drill" else "swingset-backup-check-",
+        dir=check_root or "/tmp",
+    ) as temporary:
+        work = Path(temporary)
+        stage, fetched = work / "state", work / "fetch"
+        stage.mkdir()
+        fetched.mkdir()
+        return _install(
+            source,
+            set_id,
+            stage,
+            fetched,
+            maximum_schema_version,
+            "full",
+            stage,
+            None,
+            "dev",
+            check_mode=mode,
+        )
 
 
 def _check_file(path: Path, sha256: str, size: int | None, label: str) -> None:
@@ -282,76 +405,6 @@ def _join(parts: list[Path], target: Path, sha256: str, size: int) -> None:
         raise SetError("the joined database does not match its digest")
 
 
-def _check_database(path: Path, schema: int, integrity: str | None) -> None:
-    conn = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro&immutable=1", uri=True)
-    try:
-        actual = int(conn.execute("PRAGMA user_version").fetchone()[0])
-        row = conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-        if actual != schema or row is None or int(row[0]) != schema:
-            raise SetError("set schema differs from its database")
-        if integrity is None:
-            return
-        check = conn.execute(
-            "PRAGMA quick_check" if integrity == "quick" else "PRAGMA integrity_check"
-        ).fetchone()
-        if check is None or check[0] != "ok" or conn.execute("PRAGMA foreign_key_check").fetchone():
-            raise SetError("set database failed integrity checks")
-    except sqlite3.DatabaseError as error:
-        raise SetError(f"set database is unreadable: {error}") from error
-    finally:
-        conn.close()
-
-
-def _check_closure(stage: Path, manifest: dict[str, Any]) -> None:
-    """Every file the restored database and candidates declare is present."""
-    from swingset.state.retention import RetentionError, artifact_closure
-
-    candidates = {
-        stage / "candidates" / str(name)
-        for name in (manifest.get("baseline_candidate"), manifest.get("pending_candidate"))
-        if name is not None
-    }
-    conn = sqlite3.connect(
-        f"{(stage / 'state.sqlite').resolve().as_uri()}?mode=ro&immutable=1", uri=True
-    )
-    try:
-        artifact_closure(stage, conn, candidates)
-        _check_objects(stage, conn, manifest)
-    except RetentionError as error:
-        raise SetError(f"restored closure is incomplete: {error}") from error
-    finally:
-        conn.close()
-
-
-def _check_objects(stage: Path, conn: sqlite3.Connection, manifest: dict[str, Any]) -> None:
-    """Every `objects` row has its file, and every pack a row names has a row.
-
-    An evicted generation's only copy is its pack, so a set that lacks one
-    must not restore as whole (the set's own `missing` names it).
-    """
-    from .segments import unindexed_packs
-
-    tables = {
-        str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    }
-    if "objects" not in tables:
-        return
-    lacking = [
-        f"{cls}/{digest}"
-        for cls, digest in conn.execute("SELECT class,digest FROM objects ORDER BY class,digest")
-        if not (stage / "objects" / str(cls) / str(digest)[:2] / str(digest)).is_file()
-    ]
-    lacking.extend(
-        f"{cls}/{digest} ({reason})" for cls, digest, reason in unindexed_packs(conn, tables)
-    )
-    if lacking:
-        named = manifest.get("missing") or []
-        raise SetError(
-            f"restored objects are incomplete: {len(lacking)} missing, first {lacking[:3]}"
-            + (f"; the set recorded {len(named)} missing when it was written" if named else "")
-        )
-
-
 def _extract(segment: Path, expected: dict[str, tuple[str, str, int]], stage: Path) -> None:
     remaining = dict(expected)
     with tarfile.open(segment, "r:") as archive:
@@ -386,45 +439,39 @@ def restore_from_set(
     *,
     lock_timeout: float,
     maximum_schema_version: int | None = None,
+    owner_dsn: str | None = None,
+    environment: str = "dev",
 ) -> dict[str, Any]:
     """Install a set under the writer lock, check the public hub, activate."""
     from swingset.build.files import durable_write
     from swingset.state.control_lock import control_lock
-    from swingset.state.rwlock import LockBusy, exclusive, is_lock_file
+    from swingset.state.rwlock import exclusive, is_lock_file
 
     from .checkpoint import CheckpointError, activate_restored_state, verify_restored_public
+    from .destination import owner
 
     state_dir.mkdir(parents=True, exist_ok=True)
-    try:
-        locks = exclusive(state_dir, timeout=lock_timeout, clock=clock)
-    except LockBusy as error:
-        raise CheckpointError(
-            f"state writer lock timed out after {lock_timeout:g} seconds"
-        ) from error
-    try:
-        with control_lock(state_dir, timeout=lock_timeout):
-            marker = state_dir / "RESTORE_PENDING"
-            existing = [path for path in state_dir.iterdir() if not is_lock_file(path.name)]
-            if existing and not marker.is_file():
-                raise CheckpointError("restore target contains an active or unmarked state")
-            if marker.is_file():
-                for path in existing:
-                    if path == marker:
-                        continue
-                    if path.is_dir() and not path.is_symlink():
-                        shutil.rmtree(path)
-                    else:
-                        path.unlink()
-            else:
-                durable_write(marker, b"verification pending\n")
-            summary = install(
-                source,
-                state_dir,
-                set_id=set_id,
-                maximum_schema_version=maximum_schema_version,
-            )
-            verify_restored_public(state_dir, hub)
-            activate_restored_state(state_dir)
-    finally:
-        locks.release()
+    if any(
+        path.name != "database.json" and not is_lock_file(path.name) for path in state_dir.iterdir()
+    ):
+        raise CheckpointError("restore requires a fresh database and volume")
+    with owner(state_dir, owner_dsn) as connection:
+        locks = exclusive(state_dir, connection=connection, timeout=lock_timeout, clock=clock)
+        try:
+            with control_lock(state_dir, connection=connection, timeout=lock_timeout):
+                durable_write(state_dir / "RESTORE_PENDING", b"verification pending\n")
+                from psycopg.conninfo import make_conninfo
+
+                summary = install(
+                    source,
+                    state_dir,
+                    set_id=set_id,
+                    maximum_schema_version=maximum_schema_version,
+                    owner_dsn=make_conninfo(connection.info.dsn, password=connection.info.password),
+                    environment=environment,
+                )
+            verify_restored_public(state_dir, hub, connection=connection)
+            activate_restored_state(state_dir, connection=connection, locks=locks, clock=clock)
+        finally:
+            locks.release()
     return summary

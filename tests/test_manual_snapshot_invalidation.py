@@ -14,13 +14,13 @@ from swingset.schedule.registry import replay_crosscheck
 from swingset.schedule.watches import upsert_watch
 from swingset.sources import get_page_kind
 from swingset.sources.base import WatchSpec
-from swingset.state import inputs, recipe_scope
+from swingset.state import inputs
 from swingset.state.db import Database, open_database
 from swingset.state.work import WorkUnit
 
 
 def _runtime_artifact(marker: bytes) -> dict[str, bytes]:
-    """A scoped bundle whose only change between markers is its environment."""
+    """A legacy package bundle with a changing runtime marker."""
     runtime = {"runtime/swingset/__init__.py": b"", "runtime/environment.json": marker}
     runtime["recipes/runtime.json"] = canonical(
         {
@@ -28,7 +28,6 @@ def _runtime_artifact(marker: bytes) -> dict[str, bytes]:
             "files": {name: digest(body) for name, body in runtime.items()},
         }
     )
-    runtime["recipes/scopes.json"] = canonical(recipe_scope.manifest(runtime))
     return runtime
 
 
@@ -37,9 +36,11 @@ def _snapshot(database: Database, *, snapshot_id: str, source: str, parser: str,
     spec = WatchSpec("", source, "round", "GET", url, parser)
     upsert_watch(database.connection, spec, now)
     database.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
-        "body_bytes,content_changed,run_id,classification,parse_status,parsed_at,parser_version) "
-        "VALUES (?,?, 'GET', ?, ?, 200, 0, 1, ?, 'Ok', 'parsed', ?, '1')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification, parse_status, parsed_at, "
+            "parser_version) VALUES (%s, %s, 'GET', %s, %s, 200, 0, 1, %s, 'Ok', 'parsed', %s, '1')"
+        ),
         (snapshot_id, spec.watch_id, url, now.isoformat(), make_run_id(now), now.isoformat()),
     )
     return spec.watch_id
@@ -66,10 +67,10 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         assert replay_crosscheck(database, crosscheck_sha, archive, now, run_id) == 0
         crosscheck_snapshot = f"snap_20260917T000000Z_{crosscheck_sha[:12]}"
         crosscheck_watch = database.connection.execute(
-            "SELECT watch_id FROM snapshots WHERE snapshot_id=?", (crosscheck_snapshot,)
+            "SELECT watch_id FROM snapshots WHERE snapshot_id = %s", (crosscheck_snapshot,)
         ).fetchone()[0]
         database.connection.execute(
-            "UPDATE watches SET extract_version='manual-retained' WHERE watch_id=?",
+            "UPDATE watches SET extract_version = 'manual-retained' WHERE watch_id = %s",
             (crosscheck_watch,),
         )
 
@@ -88,7 +89,7 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
             url="https://registry.example/future/1",
         )
         database.connection.execute(
-            "UPDATE watches SET extract_version='old' WHERE watch_id IN (?,?)",
+            "UPDATE watches SET extract_version = 'old' WHERE watch_id IN (%s, %s)",
             (known_watch, unknown_watch),
         )
 
@@ -100,30 +101,30 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         monkeypatch.setattr(inputs, "capture_runtime", lambda: _runtime_artifact(b"second\n"))
         second = inputs.capture(Path("config"), Path("overrides"), state, {})
         changed = inputs.accept(database, second, clock)
-        assert "recipe/env" in changed
+        assert "recipe/runtime" in changed
 
         pending = {
             str(row[0])
             for row in database.connection.execute(
-                "SELECT unit_id FROM pending_work WHERE stage='parse' AND unit_kind='snapshot'"
+                "SELECT unit_id FROM pending_work WHERE stage = 'parse' AND unit_kind = 'snapshot'"
             )
         }
         assert pending == {"normal-parser-snapshot", "unknown-parser-snapshot"}
         assert (
             database.connection.execute(
-                "SELECT extract_version FROM watches WHERE watch_id=?", (known_watch,)
+                "SELECT extract_version FROM watches WHERE watch_id = %s", (known_watch,)
             ).fetchone()[0]
             is None
         )
         assert (
             database.connection.execute(
-                "SELECT extract_version FROM watches WHERE watch_id=?", (unknown_watch,)
+                "SELECT extract_version FROM watches WHERE watch_id = %s", (unknown_watch,)
             ).fetchone()[0]
             is None
         )
         assert (
             database.connection.execute(
-                "SELECT extract_version FROM watches WHERE watch_id=?", (crosscheck_watch,)
+                "SELECT extract_version FROM watches WHERE watch_id = %s", (crosscheck_watch,)
             ).fetchone()[0]
             == "manual-retained"
         )
@@ -135,9 +136,10 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         assert not unknown_failure.failed
         assert unknown_failure.reason == "unsupported_page_kind"
         blocked_attempt = database.connection.execute(
-            "SELECT attempt_id,outcome,reason_code,evidence_json,requirement_id "
-            "FROM work_attempts WHERE stage='parse' AND unit_id=? "
-            "ORDER BY attempt_id DESC LIMIT 1",
+            (
+                "SELECT attempt_id, outcome, reason_code, evidence_json, requirement_id FROM work_attempts "
+                "WHERE stage = 'parse' AND unit_id = %s ORDER BY attempt_id DESC NULLS LAST LIMIT 1"
+            ),
             (unknown_unit.unit_id,),
         ).fetchone()
         assert blocked_attempt is not None
@@ -150,20 +152,20 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         # The attempt row is the failure record; a unit writes no finding (D-0237).
         assert blocked_attempt[4] is None
         assert not database.connection.execute(
-            "SELECT 1 FROM findings WHERE kind='work_attempt'"
+            "SELECT 1 FROM findings WHERE kind = 'work_attempt'"
         ).fetchone()
 
         # Direct replay remains supported and does not manufacture parse work.
         assert replay_crosscheck(database, crosscheck_sha, archive, now, run_id) == 0
         assert (
             database.connection.execute(
-                "SELECT value FROM meta WHERE key='registry_crosscheck_blob'"
+                "SELECT value FROM meta WHERE key = 'registry_crosscheck_blob'"
             ).fetchone()[0]
             == crosscheck_sha
         )
         assert (
             database.connection.execute(
-                "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?",
+                "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
                 (crosscheck_snapshot,),
             ).fetchone()
             is None
@@ -173,16 +175,15 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         # item; it is separate failure evidence for coordinator remediation.
         stale_enqueued_at = "2026-09-16T00:00:00+00:00"
         database.connection.execute(
-            "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
-            "VALUES ('parse','snapshot',?,?)",
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', 'snapshot', %s, %s)",
             (crosscheck_snapshot, stale_enqueued_at),
         )
         monkeypatch.setattr(inputs, "capture_runtime", lambda: _runtime_artifact(b"third\n"))
         third = inputs.capture(Path("config"), Path("overrides"), state, {})
-        assert "recipe/env" in inputs.accept(database, third, clock)
+        assert "recipe/runtime" in inputs.accept(database, third, clock)
         assert (
             database.connection.execute(
-                "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",
+                "SELECT enqueued_at FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
                 (crosscheck_snapshot,),
             ).fetchone()[0]
             == stale_enqueued_at
@@ -190,15 +191,16 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         assert (
             tuple(
                 database.connection.execute(
-                    "SELECT attempt_id,outcome,reason_code,evidence_json,requirement_id "
-                    "FROM work_attempts WHERE stage='parse' AND unit_id=? "
-                    "ORDER BY attempt_id DESC LIMIT 1",
+                    (
+                        "SELECT attempt_id, outcome, reason_code, evidence_json, requirement_id FROM work_attempts "
+                        "WHERE stage = 'parse' AND unit_id = %s ORDER BY attempt_id DESC NULLS LAST LIMIT 1"
+                    ),
                     (unknown_unit.unit_id,),
                 ).fetchone()
             )
             == failure_attempt_record
         )
         assert not database.connection.execute(
-            "SELECT 1 FROM findings WHERE kind='work_attempt'"
+            "SELECT 1 FROM findings WHERE kind = 'work_attempt'"
         ).fetchone()
         assert not inputs.accept(database, third, clock)

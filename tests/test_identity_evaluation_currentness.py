@@ -1,6 +1,7 @@
 """New samples require actual derivation currentness; frozen packets never change."""
 
 import pytest
+from helpers.state_digest import state_digest
 from test_h15_acceptance import drain_project
 from test_h15_acceptance import source_fixture as source_fixture
 
@@ -32,20 +33,22 @@ def settle(fixture):
 def test_lost_queue_cannot_hide_missing_materialization(source_fixture, stage):
     f = source_fixture
     settle(f)
-    before = list(f.conn.iterdump())
+    before = state_digest(f.conn)
     rows, _ = read_population(f.conn)
     assert rows
-    assert list(f.conn.iterdump()) == before
+    assert state_digest(f.conn) == before
     f.conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=NULL "
-        "WHERE stage=? AND unit_kind='event' AND unit_id='event-a'",
+        (
+            "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = %s AND "
+            "unit_kind = 'event' AND unit_id = 'event-a'"
+        ),
         (stage,),
     )
     assert f.conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
-    before = list(f.conn.iterdump())
+    before = state_digest(f.conn)
     with pytest.raises(ValueError, match="settled"):
         read_population(f.conn)
-    assert list(f.conn.iterdump()) == before
+    assert state_digest(f.conn) == before
 
 
 def test_changed_source_without_enqueue_refuses_new_sample(source_fixture, tmp_path):
@@ -57,7 +60,7 @@ def test_changed_source_without_enqueue_refuses_new_sample(source_fixture, tmp_p
     assert not report.failures and f.corpus.admit(generation) == "accepted"
     f.conn.execute("DELETE FROM pending_work")
     assert list(unfinished_units(f.conn))
-    before = list(f.conn.iterdump())
+    before = state_digest(f.conn)
     output = tmp_path / "refused-sample.json"
     with pytest.raises(ValueError, match="settled"):
         main(
@@ -76,4 +79,4 @@ def test_changed_source_without_enqueue_refuses_new_sample(source_fixture, tmp_p
             ]
         )
     assert not output.exists()
-    assert list(f.conn.iterdump()) == before
+    assert state_digest(f.conn) == before

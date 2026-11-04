@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from dataclasses import dataclass
+
+from swingset.state import engine
 
 from .work import bump_revision
 
@@ -45,7 +46,7 @@ class Finding:
 
 
 def replace_findings(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     owner_kind: str,
     owner_id: str,
@@ -56,7 +57,11 @@ def replace_findings(
     existing = {
         str(row[0]): row
         for row in conn.execute(
-            "SELECT finding_id,kind,subject_kind,subject_id,severity,summary,evidence_json,suggested_override,watch_id,snapshot_id FROM findings WHERE owner_kind=? AND owner_id=? AND closed_at IS NULL",
+            (
+                "SELECT finding_id, kind, subject_kind, subject_id, severity, summary, evidence_json, "
+                "suggested_override, watch_id, snapshot_id FROM findings WHERE owner_kind = %s AND owner_id "
+                "= %s AND closed_at IS NULL"
+            ),
             (owner_kind, owner_id),
         )
     }
@@ -128,25 +133,39 @@ def replace_findings(
         )
     for identifier in set(existing) - set(desired):
         conn.execute(
-            "UPDATE findings SET closed_at=?,closed_by=?,state='satisfied',status_at=?,last_progress_at=? WHERE finding_id=?",
+            (
+                "UPDATE findings SET closed_at = %s, closed_by = %s, state = 'satisfied', status_at = %s, "
+                "last_progress_at = %s WHERE finding_id = %s"
+            ),
             (opened_at, run_id, opened_at, opened_at, identifier),
         )
-        conn.execute("UPDATE finding_support SET active=0 WHERE finding_id=?", (identifier,))
+        conn.execute("UPDATE finding_support SET active = 0 WHERE finding_id = %s", (identifier,))
     for identifier, values in desired.items():
         conn.execute(
-            "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,suggested_override,watch_id,snapshot_id,opened_at,run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(finding_id) DO UPDATE SET severity=excluded.severity,evidence_json=excluded.evidence_json,suggested_override=excluded.suggested_override,watch_id=excluded.watch_id,snapshot_id=excluded.snapshot_id,closed_at=NULL,closed_by=NULL",
+            (
+                "INSERT INTO findings (finding_id, owner_kind, owner_id, kind, subject_kind, subject_id, severity, summary, evidence_json, suggested_override, watch_id, snapshot_id, opened_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(finding_id) DO UPDATE SET severity = excluded.severity, evidence_json = excluded.evidence_json, suggested_override = excluded.suggested_override, watch_id = excluded.watch_id, snapshot_id = excluded.snapshot_id, closed_at = NULL, closed_by = NULL"
+            ),
             (identifier, owner_kind, owner_id, *values, opened_at, run_id),
         )
         conn.execute(
-            "UPDATE findings SET state='needs_review',status_at=? WHERE finding_id=? AND state<>'needs_review'",
+            (
+                "UPDATE findings SET state = 'needs_review', status_at = %s WHERE finding_id = %s AND state "
+                "<> 'needs_review'"
+            ),
             (opened_at, identifier),
         )
         row = conn.execute(
-            "SELECT owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,suggested_override,watch_id,snapshot_id,opened_at,run_id FROM findings WHERE finding_id=?",
+            (
+                "SELECT owner_kind, owner_id, kind, subject_kind, subject_id, severity, summary, "
+                "evidence_json, suggested_override, watch_id, snapshot_id, opened_at, run_id FROM findings "
+                "WHERE finding_id = %s"
+            ),
             (identifier,),
         ).fetchone()
         conn.execute(
-            "INSERT INTO finding_support VALUES (?,?,1) ON CONFLICT(finding_id) DO UPDATE SET payload_json=excluded.payload_json,active=1",
+            (
+                "INSERT INTO finding_support (finding_id, payload_json, active) VALUES (%s, %s, 1) ON CONFLICT(finding_id) DO UPDATE SET payload_json = excluded.payload_json, active = 1"
+            ),
             (identifier, json.dumps(dict(row), sort_keys=True)),
         )
         if (
@@ -158,26 +177,28 @@ def replace_findings(
             # declare nothing, migration 30 backfilled what the old evidence
             # scan pinned, and a caller that declares nothing is saying nothing
             # rather than saying "keep none of it".
-            conn.execute("DELETE FROM finding_support_references WHERE finding_id=?", (identifier,))
+            conn.execute(
+                "DELETE FROM finding_support_references WHERE finding_id = %s", (identifier,)
+            )
             conn.executemany(
-                "INSERT INTO finding_support_references VALUES (?,?,?)",
+                "INSERT INTO finding_support_references (finding_id, kind, sha256) VALUES (%s, %s, %s)",
                 ((identifier, kind, sha256) for kind, sha256 in declared[identifier]),
             )
     bump_revision(conn, "findings")
     return True
 
 
-def _references_supported(conn: sqlite3.Connection) -> bool:
+def _references_supported(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='finding_support_references'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'finding_support_references') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
 
 
 def _recorded_references(
-    conn: sqlite3.Connection, identifiers: set[str]
+    conn: engine.Connection, identifiers: set[str]
 ) -> dict[str, tuple[tuple[str, str], ...]]:
     """What each of these findings currently declares, in the same sorted shape.
 
@@ -189,10 +210,9 @@ def _recorded_references(
     wanted = sorted(identifiers)
     for start in range(0, len(wanted), 500):
         batch = wanted[start : start + 500]
-        places = ",".join("?" for _ in batch)
+        places = ",".join("%s" for _ in batch)
         for finding_id, kind, sha256 in conn.execute(
-            f"SELECT finding_id,kind,sha256 FROM finding_support_references "
-            f"WHERE finding_id IN ({places}) ORDER BY finding_id,kind,sha256",
+            f"SELECT finding_id,kind,sha256 FROM finding_support_references WHERE finding_id IN ({places}) ORDER BY finding_id,kind,sha256",
             batch,
         ):
             grouped.setdefault(str(finding_id), []).append((str(kind), str(sha256)))

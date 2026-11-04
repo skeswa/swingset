@@ -8,7 +8,6 @@ observations never enter this proof or its public counts.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import Any
@@ -20,6 +19,7 @@ from swingset.schedule.event_evidence import (
     request_id,
     revoked_evidence,
 )
+from swingset.state import engine
 
 from .closure_manifest import ClosureError, digest
 
@@ -65,7 +65,7 @@ def _instant(value: str) -> datetime:
 
 
 class _Reader:
-    def __init__(self, conn: sqlite3.Connection, *, total_bytes: int | None = None):
+    def __init__(self, conn: engine.Connection, *, total_bytes: int | None = None):
         self.conn = conn
         self.total_bytes = MAX_TOTAL_BYTES if total_bytes is None else total_bytes
         self.bytes = self.members = 0
@@ -77,17 +77,17 @@ class _Reader:
         self, table: str, where: str, parameters: tuple[Any, ...], *, limit: int
     ) -> list[dict[str, Any]]:
         if table not in self.columns:
-            self.columns[table] = [
-                row[1] for row in self.conn.execute(f'PRAGMA table_info("{table}")')
-            ]
+            from swingset.state.postgres_schema import semantic_columns
+
+            self.columns[table] = list(semantic_columns(table))
         columns = self.columns[table]
-        size = "+".join(f'coalesce(length(CAST("{c}" AS BLOB)),0)' for c in columns)
-        fields = ",".join(f'CASE WHEN ({size})<=? THEN "{c}" END AS "{c}"' for c in columns)
+        size = "+".join(f'coalesce(octet_length("{c}"::text),0)' for c in columns)
+        fields = ",".join(f'CASE WHEN ({size})<=%s THEN "{c}" END AS "{c}"' for c in columns)
         bound = min(MAX_JSON_BYTES, self.total_bytes - self.bytes)
         if bound <= 0:
             raise _Unavailable("event_evidence_byte_budget")
         cursor = self.conn.execute(
-            f'SELECT {fields},({size}) AS _bytes FROM "{table}" WHERE {where} LIMIT ?',
+            f'SELECT {fields},({size}) AS _bytes FROM "{table}" WHERE {where} LIMIT %s',
             (*([bound] * len(columns)), *parameters, limit + 1),
         )
         result: list[dict[str, Any]] = []
@@ -127,13 +127,13 @@ class _Reader:
         return self.revoked
 
     def enumeration(self, identifier: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-        rows = self.rows("source_event_enumerations", "enumeration_id=?", (identifier,), limit=1)
+        rows = self.rows("source_event_enumerations", "enumeration_id=%s", (identifier,), limit=1)
         if not rows:
             raise _Unavailable("event_enumeration_missing")
         row = rows[0]
         members = self.rows(
             "source_event_enumeration_members",
-            "enumeration_id=? ORDER BY request_id",
+            "enumeration_id=%s ORDER BY request_id",
             (identifier,),
             limit=min(MAX_MEMBERS, MAX_TOTAL_MEMBERS - self.members),
         )
@@ -169,7 +169,7 @@ class _Reader:
         key = (identifier, cutoff)
         if key in self.parents:
             return self.parents[key]
-        rows = self.rows("source_generations", "generation_id=?", (identifier,), limit=1)
+        rows = self.rows("source_generations", "generation_id=%s", (identifier,), limit=1)
         if not rows:
             raise _Unavailable("event_parent_missing")
         value = decode_generation(rows[0], identifier)
@@ -183,7 +183,7 @@ class _Reader:
             raise _Unavailable("event_parent_manifest_unavailable")
         snapshots = []
         for member in manifest:
-            records = self.rows("snapshots", "snapshot_id=?", (member["snapshot_id"],), limit=1)
+            records = self.rows("snapshots", "snapshot_id=%s", (member["snapshot_id"],), limit=1)
             if not records or any(
                 records[0][key] != member[key] for key in ("watch_id", "url", "body_sha256")
             ):
@@ -229,7 +229,7 @@ def _selected(
         if snapshot in seen:
             continue
         seen.add(snapshot)
-        records = reader.rows("snapshots", "snapshot_id=?", (snapshot,), limit=1)
+        records = reader.rows("snapshots", "snapshot_id=%s", (snapshot,), limit=1)
         if not records:
             continue
         record = records[0]
@@ -246,15 +246,15 @@ def _selected(
 
 
 def capture(
-    conn: sqlite3.Connection, *, cutoff: str, selected_support: Iterable[Mapping[str, Any]]
+    conn: engine.Connection, *, cutoff: str, selected_support: Iterable[Mapping[str, Any]]
 ) -> dict[str, Any] | None:
     """Capture immutable denominators and exact selected admissible page support."""
     if not conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE name='source_event_inventory'"
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'source_event_inventory' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
     ).fetchone():
         return None
     _instant(cutoff)
-    eligible = "(first_known_at IS NULL OR julianday(first_known_at) IS NULL OR julianday(first_known_at)<=julianday(?))"
+    eligible = "(first_known_at IS NULL OR ops.try_timestamp(first_known_at) IS NULL OR ops.try_timestamp(first_known_at)<=ops.try_timestamp(%s))"
     total = conn.execute(
         f"SELECT count(*) FROM source_event_inventory WHERE {eligible}", (cutoff,)
     ).fetchone()[0]
@@ -269,7 +269,7 @@ def capture(
     entries = []
     output_bytes = 0
     subjects = conn.execute(
-        f"SELECT source,source_ref,enumeration_id FROM source_event_inventory WHERE {eligible} ORDER BY source,source_ref LIMIT ?",
+        f"SELECT source,source_ref,enumeration_id FROM source_event_inventory WHERE {eligible} ORDER BY source,source_ref LIMIT %s",
         (cutoff, MAX_EVENTS),
     )
     for source, source_ref, current in subjects:
@@ -368,7 +368,7 @@ def capture(
 
 
 def validate(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     witness: Mapping[str, Any],
     *,
     selected_support: Iterable[Mapping[str, Any]],
@@ -537,13 +537,13 @@ def finalize(tables: Mapping[str, list[dict[str, Any]]], witness: Mapping[str, A
             )
 
 
-def fingerprint(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> str | None:
+def fingerprint(conn: engine.Connection, witness: Mapping[str, Any]) -> str | None:
     """Hash bounded raw evidence; proof caches retain identifiers, not payloads."""
     reader = _Reader(conn, total_bytes=MAX_FINGERPRINT_BYTES)
     values: list[str] = []
     try:
         for snapshot in witness["snapshots"]:
-            values.append(digest(reader.rows("snapshots", "snapshot_id=?", (snapshot,), limit=1)))
+            values.append(digest(reader.rows("snapshots", "snapshot_id=%s", (snapshot,), limit=1)))
         for entry in witness["entries"]:
             if not entry["enumeration_id"]:
                 continue
@@ -551,7 +551,7 @@ def fingerprint(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> str | N
                 digest(
                     reader.rows(
                         "source_event_enumerations",
-                        "enumeration_id=?",
+                        "enumeration_id=%s",
                         (entry["enumeration_id"],),
                         limit=1,
                     )
@@ -561,7 +561,7 @@ def fingerprint(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> str | N
                 digest(
                     reader.rows(
                         "source_event_enumeration_members",
-                        "enumeration_id=? ORDER BY request_id",
+                        "enumeration_id=%s ORDER BY request_id",
                         (entry["enumeration_id"],),
                         limit=MAX_MEMBERS,
                     )
@@ -571,14 +571,16 @@ def fingerprint(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> str | N
                 identifier = parent["generation_id"]
                 values.append(
                     digest(
-                        reader.rows("source_generations", "generation_id=?", (identifier,), limit=1)
+                        reader.rows(
+                            "source_generations", "generation_id=%s", (identifier,), limit=1
+                        )
                     )
                 )
                 values.append(
                     digest(
                         bool(
                             conn.execute(
-                                "SELECT 1 FROM admission_decisions WHERE generation_id=? AND state='accepted' LIMIT 1",
+                                "SELECT 1 AS _value_0 FROM admission_decisions WHERE generation_id = %s AND state = 'accepted' LIMIT 1",
                                 (identifier,),
                             ).fetchone()
                         )
@@ -586,7 +588,7 @@ def fingerprint(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> str | N
                 )
                 for snapshot in parent["snapshot_ids"]:
                     values.append(
-                        digest(reader.rows("snapshots", "snapshot_id=?", (snapshot,), limit=1))
+                        digest(reader.rows("snapshots", "snapshot_id=%s", (snapshot,), limit=1))
                     )
     except (ValueError, KeyError, TypeError, RecursionError):
         return None

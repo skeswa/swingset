@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -12,6 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from swingset.state import engine
 from swingset.state.derivation_dependencies import store_set
 
 from .closure_manifest import ClosureError, canonical, digest, generation, leaves, members
@@ -89,7 +89,7 @@ class _Traversed(set[str]):
 class _Selection:
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         cutoff: str,
         current: Mapping[tuple[str, str, str], str] | None = None,
     ):
@@ -207,9 +207,15 @@ class _Selection:
         return set(self.traversed) | self.continuity_sets
 
 
-def _policy(conn: sqlite3.Connection) -> tuple[dict[str, Any], ...]:
+def _policy(conn: engine.Connection) -> tuple[dict[str, Any], ...]:
     return tuple(
-        dict(row) for row in conn.execute("SELECT * FROM admission_policies ORDER BY page_kind")
+        dict(row)
+        for row in conn.execute(
+            "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+            "admission_policies.mode, admission_policies.policy_revision, "
+            "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+            "admission_policies.reviewed_at FROM admission_policies ORDER BY page_kind NULLS FIRST"
+        )
     )
 
 
@@ -225,7 +231,7 @@ def _baseline(path: Path | None) -> dict[str, Any] | None:
     }
 
 
-def _anchors(conn: sqlite3.Connection, kind: str, at: str, building: str) -> list[tuple[str, str]]:
+def _anchors(conn: engine.Connection, kind: str, at: str, building: str) -> list[tuple[str, str]]:
     """Each registered scope of a project kind, with the generation it anchors.
 
     Its pointer when that was made by the cutoff, otherwise its newest
@@ -233,21 +239,18 @@ def _anchors(conn: sqlite3.Connection, kind: str, at: str, building: str) -> lis
     left out.
     """
     rows = conn.execute(
-        "SELECT unit_id,generation_id FROM (SELECT g.unit_id,g.generation_id,row_number() OVER ("
-        "PARTITION BY g.unit_id ORDER BY coalesce(g.generation_id=s.materialized_generation_id,0) "
-        "DESC,julianday(g.created_at) DESC,g.rowid DESC) AS n "
-        "FROM derivation_scopes s JOIN derivation_generations g ON g.stage=s.stage "
-        "AND g.unit_kind=s.unit_kind AND g.unit_id=s.unit_id "
-        "WHERE s.stage='project' AND s.unit_kind=? AND julianday(g.created_at)<=julianday(?)"
+        (
+            "SELECT unit_id,generation_id FROM (SELECT g.unit_id,g.generation_id,row_number() OVER (PARTITION BY g.unit_id ORDER BY (g.generation_id IS NOT DISTINCT FROM s.materialized_generation_id) DESC,ops.try_timestamp(g.created_at) DESC,g.rowid DESC) AS n FROM derivation_scopes s JOIN derivation_generations g ON g.stage=s.stage AND g.unit_kind=s.unit_kind AND g.unit_id=s.unit_id WHERE s.stage='project' AND s.unit_kind=%s AND ops.try_timestamp(g.created_at)<=ops.try_timestamp(%s)"
+        )
         + building
-        + ") WHERE n=1",
+        + " ) WHERE n=1 ",
         (kind, at),
     ).fetchall()
     return [(str(unit), str(generation)) for unit, generation in rows if generation is not None]
 
 
 def select(
-    conn: sqlite3.Connection, *, cutoff: datetime, baseline: Path | None = None
+    conn: engine.Connection, *, cutoff: datetime, baseline: Path | None = None
 ) -> ReleaseClosure:
     """Anchor on every year, source event and dancer, then add compatible identity joins.
 
@@ -273,7 +276,7 @@ def select(
     current = {
         ("project", str(kind), unit): generation
         for (kind,) in conn.execute(
-            "SELECT DISTINCT unit_kind FROM derivation_scopes WHERE stage='project'"
+            "SELECT DISTINCT unit_kind FROM derivation_scopes WHERE stage = 'project'"
         ).fetchall()
         for unit, generation in _anchors(conn, str(kind), at, building)
     }
@@ -300,7 +303,8 @@ def select(
             }
         )
         for (event,) in conn.execute(
-            "SELECT event_id FROM events WHERE year=? ORDER BY event_id", (int(year),)
+            "SELECT event_id FROM events WHERE year = %s ORDER BY event_id NULLS FIRST",
+            (int(year),),
         ):
             if ("project", "event", str(event)) not in chosen.selected:
                 inventory.append(
@@ -318,9 +322,11 @@ def select(
     for event in sorted(events):
         linked = False
         for (identifier,) in conn.execute(
-            "SELECT generation_id FROM derivation_generations WHERE stage='link' AND unit_kind='event' AND unit_id=? AND julianday(created_at)<=julianday(?)"
+            (
+                "SELECT generation_id FROM derivation_generations WHERE stage='link' AND unit_kind='event' AND unit_id=%s AND ops.try_timestamp(created_at)<=ops.try_timestamp(%s)"
+            )
             + unfinished_excluded(conn)
-            + " ORDER BY julianday(created_at) DESC,rowid DESC",
+            + " ORDER BY ops.try_timestamp(created_at) DESC,rowid DESC",
             (event, at),
         ):
             if chosen.attempt(identifier):
@@ -341,7 +347,9 @@ def select(
     from swingset.state.derivation_dependencies import RETIRED_KINDS
 
     for row in conn.execute(
-        "SELECT stage,unit_kind,unit_id,materialized_generation_id FROM derivation_scopes WHERE stage IN ('project','link') ORDER BY stage,unit_kind,unit_id"
+        "SELECT stage, unit_kind, unit_id, materialized_generation_id FROM derivation_scopes WHERE "
+        "stage IN ('project', 'link') ORDER BY stage NULLS FIRST, unit_kind NULLS FIRST, unit_id "
+        "NULLS FIRST"
     ):
         key = str(row[0]), str(row[1]), str(row[2])
         if key[:2] in RETIRED_KINDS:
@@ -391,7 +399,7 @@ def select(
     return result
 
 
-def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]) -> None:
+def validate(conn: engine.Connection, value: ReleaseClosure | Mapping[str, Any]) -> None:
     """Check the pinned graph; newer work and source selections are irrelevant."""
     from .closure_validation import remember, unchanged
 
@@ -422,7 +430,7 @@ def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]
         graph.add(row["generation_id"])
         # add() loads the complete immutable receipt, including generations
         # reached recursively. Compare that same verified row without a second
-        # SQLite read and recipe decode for every selected generation.
+        # database read and recipe decode for every selected generation.
         if graph.selected.get(_scope(row)) != row:
             raise ClosureError("selected_generation_receipt_mismatch")
     if {row["generation_id"] for row in graph.selected.values()} != {
@@ -466,12 +474,13 @@ def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]
     remember(conn, manifest, graph.sources)
 
 
-def _revocations(conn: sqlite3.Connection) -> str:
+def _revocations(conn: engine.Connection) -> str:
     return digest(
         [
             tuple(row)
             for row in conn.execute(
-                "SELECT generation_id,input_fingerprint FROM source_generations WHERE state='revoked' ORDER BY generation_id"
+                "SELECT generation_id, input_fingerprint FROM source_generations WHERE state = 'revoked' "
+                "ORDER BY generation_id NULLS FIRST"
             )
         ]
     )
@@ -502,7 +511,7 @@ def public_manifest(value: ReleaseClosure | Mapping[str, Any]) -> dict[str, Any]
 
 
 def retain(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     value: ReleaseClosure | Mapping[str, Any],
     *,
     now: datetime | None = None,
@@ -516,7 +525,7 @@ def retain(
         raise ClosureError("closure_retention_requires_output_transaction")
     manifest = value.manifest() if isinstance(value, ReleaseClosure) else hydrate(conn, value)
     if conn.execute(
-        "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id=?",
+        "SELECT 1 AS _value_0 FROM derivation_dependency_sets WHERE dependency_set_id = %s",
         (str(manifest["digest"]),),
     ).fetchone():
         # Content-addressed and immutable: the stored proof is these bytes.
@@ -568,7 +577,7 @@ def _verified(manifest: Mapping[str, Any]) -> bool:
     return manifest.keys() == known.keys() and all(manifest[key] is known[key] for key in known)
 
 
-def hydrate(conn: sqlite3.Connection, value: Mapping[str, Any]) -> dict[str, Any]:
+def hydrate(conn: engine.Connection, value: Mapping[str, Any]) -> dict[str, Any]:
     manifest = dict(value)
     if manifest.get("format") != "release-closure-public-v1":
         return manifest
@@ -583,7 +592,7 @@ def hydrate(conn: sqlite3.Connection, value: Mapping[str, Any]) -> dict[str, Any
             raise ClosureError("public_closure_commitment_mismatch")
         return dict(entry[0])
     row = conn.execute(
-        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
         (manifest["private_digest"],),
     ).fetchone()
     if row is None:

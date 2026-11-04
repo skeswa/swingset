@@ -2,7 +2,6 @@
 
 import gzip
 import shutil
-import sqlite3
 from dataclasses import replace
 
 import httpx
@@ -13,6 +12,7 @@ from test_cycle import overrides as overrides
 from test_event_enumerations import admit_parent, child, finish_bootstrap
 from test_event_enumerations import event as event
 from test_event_pressure import config, enroll, index
+from test_event_pressure_probe import fault_update
 
 from swingset.admission.page_evidence import Limits
 from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint
@@ -21,6 +21,7 @@ from swingset.schedule import event_progress as progress
 from swingset.schedule.event_progress_report import report
 from swingset.schedule.parse import parse_snapshot
 from swingset.sources import get_page_kind
+from swingset.state import engine
 from swingset.state import event_progress as facts
 from swingset.state.controls import Selector, change_control
 from swingset.state.db import SCHEMA_VERSION
@@ -48,7 +49,19 @@ def history(f):
 
 
 def fetch(f, name="one.htm", *, body=BODY, status=200):
-    watch = f.conn.execute("SELECT * FROM watches WHERE url=?", (f.parent.url + name,)).fetchone()
+    watch = f.conn.execute(
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE url = %s"
+        ),
+        (f.parent.url + name,),
+    ).fetchone()
     client = FetchClient(
         f.conn,
         config(),
@@ -92,10 +105,10 @@ def test_actual_fetch_and_admission_qualify_once_with_unknown_legacy_times(event
     assert h["eligible_service_age_seconds"] is None
     assert h["incomplete_observation_coverage"] and not h["current_stage_authority"]
     assert observe(f)["qualified_progress"] == 0
-    before = f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+    before = f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
     same = fetch(f)
     assert same.snapshot_id is None and not same.changed
-    assert f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0] == before
+    assert f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0] == before
     assert observe(f)["qualified_progress"] == 0
 
 
@@ -103,16 +116,16 @@ def test_failed_fetch_does_not_record_success(event):
     f = event
     ready(f)
     observe(f)
-    before = f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+    before = f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
     fetch(f, status=404, body=b"missing")
-    assert f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0] == before
+    assert f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0] == before
     assert observe(f)["qualified_progress"] == 0
 
 
 def test_fetch_success_receipt_rolls_back_with_snapshot(event, monkeypatch):
     f = event
     ready(f)
-    before = f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0]
+    before = f.conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
     original = facts.acquired
 
     def fail(*args, **kwargs):
@@ -122,12 +135,12 @@ def test_fetch_success_receipt_rolls_back_with_snapshot(event, monkeypatch):
     monkeypatch.setattr(facts, "acquired", fail)
     with pytest.raises(RuntimeError, match="after receipt"):
         fetch(f)
-    assert f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0] == before
+    assert f.conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == before
     assert not f.conn.execute(
-        "SELECT 1 FROM event_stage_operations WHERE stage='acquired'"
+        "SELECT 1 FROM event_stage_operations WHERE stage = 'acquired'"
     ).fetchone()
     # Requests were really issued and are not refunded by an output failure.
-    assert f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] >= 1
+    assert f.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] >= 1
 
 
 def test_accepted_decision_receipt_rolls_back_with_output(event, monkeypatch):
@@ -135,7 +148,7 @@ def test_accepted_decision_receipt_rolls_back_with_output(event, monkeypatch):
     ready(f)
     result = fetch(f)
     original = facts.interpreted
-    before = f.conn.execute("SELECT count(*) FROM admission_decisions").fetchone()[0]
+    before = f.conn.execute("SELECT COUNT(*) FROM admission_decisions").fetchone()[0]
 
     def fail(*args, **kwargs):
         original(*args, **kwargs)
@@ -144,10 +157,12 @@ def test_accepted_decision_receipt_rolls_back_with_output(event, monkeypatch):
     monkeypatch.setattr(facts, "interpreted", fail)
     with pytest.raises(RuntimeError, match="after interpretation receipt"):
         interpret(f, result.snapshot_id)
-    assert f.conn.execute("SELECT count(*) FROM admission_decisions").fetchone()[0] == before
+    assert f.conn.execute("SELECT COUNT(*) FROM admission_decisions").fetchone()[0] == before
     assert not f.conn.execute(
-        "SELECT 1 FROM event_stage_operations WHERE generation_id IN "
-        "(SELECT generation_id FROM source_generations WHERE manifest_json LIKE ?)",
+        (
+            "SELECT 1 FROM event_stage_operations WHERE generation_id IN (SELECT generation_id FROM "
+            "source_generations WHERE manifest_json ILIKE %s)"
+        ),
         ("%" + result.snapshot_id + "%",),
     ).fetchone()
 
@@ -160,7 +175,7 @@ def test_loss_and_restoration_reopen_without_inventing_progress(event):
     interpret(f, result.snapshot_id)
     assert observe(f)["qualified_progress"] == 2
     sha = f.conn.execute(
-        "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (result.snapshot_id,)
+        "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (result.snapshot_id,)
     ).fetchone()[0]
     path = f.archive.blob_path(sha)
     original = path.read_bytes()
@@ -205,7 +220,7 @@ def test_revocation_reopens_without_erasing_receipts(event):
         r["generation_id"] for r in history(f)["progress"] if r["stage"] == "interpreted"
     )
     f.conn.execute(
-        "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (generation,)
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (generation,)
     )
     assert observe(f)["qualified_progress"] == 0
     assert len(history(f)["progress"]) == 2
@@ -225,8 +240,8 @@ def test_concurrent_token_change_discards_verified_results(event, monkeypatch):
         nonlocal changed
         value = original(session, request, **kwargs)
         if not changed:
-            with sqlite3.connect(f.db.state_dir / "state.sqlite") as other:
-                other.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+            with engine.connect(engine.resolve_dsn(f.db.state_dir)) as other:
+                other.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
             changed = True
         return value
 
@@ -261,7 +276,7 @@ def test_one_shared_session_budget_yields_unknown_and_roundrobin_continues(event
     assert f.conn.execute("SELECT after_request_id FROM event_progress_scans").fetchone()[0] is None
     assert (
         f.conn.execute(
-            "SELECT count(DISTINCT request_id) FROM event_progress_observations"
+            "SELECT COUNT(DISTINCT request_id) FROM event_progress_observations"
         ).fetchone()[0]
         == 41
     )
@@ -274,12 +289,12 @@ def test_readonly_reporting_and_expired_observation(event):
     observe(f)
     f.corpus.clock.sleep(86401)
     before = f.conn.total_changes
-    f.conn.execute("PRAGMA query_only=ON")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     try:
         assert all(not item["fresh"] for item in history(f)["observations"])
         assert f.conn.total_changes == before
     finally:
-        f.conn.execute("PRAGMA query_only=OFF")
+        f.conn.execute("ROLLBACK")
 
 
 def test_shared_request_has_one_operation_and_progress_for_each_event(event):
@@ -296,12 +311,12 @@ def test_shared_request_has_one_operation_and_progress_for_each_event(event):
     fetched = fetch(f)
     assert observe(f)["qualified_progress"] == 2
     operations = f.conn.execute(
-        "SELECT operation_id FROM event_stage_operations WHERE stage='acquired'"
+        "SELECT operation_id FROM event_stage_operations WHERE stage = 'acquired'"
     ).fetchall()
     assert len(operations) == 1
     assert (
         f.conn.execute(
-            "SELECT count(*) FROM event_progress_receipts WHERE operation_id=?", operations[0]
+            "SELECT COUNT(*) FROM event_progress_receipts WHERE operation_id = %s", operations[0]
         ).fetchone()[0]
         == 2
     )
@@ -316,7 +331,7 @@ def test_aggregate_admission_qualifies_non_anchor_member(event, monkeypatch):
 
     def before_admission(generation, **kwargs):
         kind = f.conn.execute(
-            "SELECT page_kind FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT page_kind FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
         if kind == "eepro.round":
             finish_bootstrap(f)
@@ -333,26 +348,25 @@ def test_aggregate_admission_qualifies_non_anchor_member(event, monkeypatch):
     assert {r["generation_id"] for r in receipts} == {generation}
     assert len({r["request_id"] for r in receipts}) == 2
     assert not f.conn.execute(
-        "SELECT 1 FROM source_units WHERE watch_id=?", (contexts[1].watch_id,)
+        "SELECT 1 FROM source_units WHERE watch_id = %s", (contexts[1].watch_id,)
     ).fetchone()
 
 
-def test_checkpoint_preserves_facts_baselines_and_progress(event, tmp_path):
+def test_checkpoint_preserves_facts_baselines_and_progress(event, tmp_path, legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_event_progress.py", "test_checkpoint_preserves_facts_baselines_and_progress"
+    )
     f = event
+    from test_event_completion_restore import retain_configuration
+
+    retain_configuration(f, tmp_path.parent / (tmp_path.name + "-inputs"), pressure=True)
     ready(f)
     observe(f)
     fetched = fetch(f)
     assert observe(f)["qualified_progress"] == 1
-    tables = (
-        "event_stage_operations",
-        "event_progress_observations",
-        "event_progress_receipts",
-        "event_progress_scans",
-        "event_progress_cursor",
-        "event_progress_policies",
-    )
+    tables = ("event_stage_operations", "event_progress_receipts", "event_progress_policies")
     expected = {
-        table: list(map(tuple, f.conn.execute("SELECT * FROM " + table))) for table in tables
+        table: list(map(tuple, f.conn.execute(" SELECT * FROM " + table))) for table in tables
     }
     saved = create_checkpoint(
         f.db.state_dir,
@@ -364,14 +378,44 @@ def test_checkpoint_preserves_facts_baselines_and_progress(event, tmp_path):
     )
     target = tmp_path / "restored"
     restore_checkpoint(saved.path, target, maximum_schema_version=SCHEMA_VERSION)
-    with sqlite3.connect((target / "state.sqlite").as_uri() + "?mode=ro", uri=True) as conn:
-        conn.row_factory = sqlite3.Row
+    from swingset.state.db import open_database
+    from swingset.state.postgres_schema import verify
+
+    with open_database(target, lock=False, read_only=True, allow_restore_pending=True) as database:
+        conn = database.connection
         assert {
-            table: list(map(tuple, conn.execute("SELECT * FROM " + table))) for table in tables
+            table: list(map(tuple, conn.execute(" SELECT * FROM " + table))) for table in tables
         } == expected
-        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
-        value = report(conn, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now())
+        assert verify(conn)["equal"]
+        assert not conn.execute("SELECT 1 FROM event_progress_observations").fetchone()
+        assert not conn.execute("SELECT 1 FROM event_progress_scans").fetchone()
+        assert tuple(
+            conn.execute("SELECT last_rowid,high_water FROM event_progress_cursor").fetchone()
+        ) == (0, 0)
+        with conn.read_snapshot():
+            value = report(conn, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now())
         assert value["progress"][0]["snapshot_id"] == fetched.snapshot_id
+
+    from swingset.backup.checkpoint import activate_restored_state, verify_restored_public
+    from swingset.fetch.archive import Archive
+    from swingset.state.environment import FixtureIO
+
+    class EmptyHub(FixtureIO):
+        def head(self):
+            return None
+
+    verify_restored_public(target, EmptyHub())
+    activate_restored_state(target, clock=f.corpus.clock)
+    with open_database(target) as database:
+        from swingset.schedule.event_pressure import bootstrap
+
+        while bootstrap(database, config(), now=f.corpus.clock.now())["metadata_pending"]:
+            pass
+        rebuilt = progress.refresh(
+            database, Archive(target), config(), now=f.corpus.clock.now(), run_id=f.corpus.run
+        )
+        assert rebuilt["scanned_events"] == 1 and rebuilt["qualified_progress"] == 0
+        assert database.connection.execute("SELECT 1 FROM event_progress_observations").fetchone()
 
 
 def test_paused_cycle_does_not_verify_artifacts_or_record_observed_progress(
@@ -412,7 +456,8 @@ def test_unknown_schema_and_missing_initial_baseline_never_create_progress(event
     assert observe(f)["qualified_progress"] == 0
     assert history(f)["last_observed_progress_at"] is None
     assert history(f)["last_recorded_operation_at"] is not None
-    with sqlite3.connect(":memory:") as conn:
+    with engine.connect(engine.resolve_dsn(event.db.state_dir), read_only=True) as conn:
+        conn.execute("SET search_path=pg_catalog,pg_temp")
         value = report(conn, source="eepro", source_ref="legacy", now=f.corpus.clock.now())
         assert not value["supported"] and value["last_observed_progress_at"] is None
 
@@ -429,14 +474,21 @@ def test_refresh_failure_rolls_back_receipts_observations_and_cursor(event):
         "event_progress_scans",
         "event_progress_cursor",
     )
-    before = {table: list(map(tuple, f.conn.execute("SELECT * FROM " + table))) for table in tables}
-    f.conn.execute(
-        "CREATE TRIGGER fail_progress BEFORE UPDATE ON event_progress_observations WHEN NEW.stage='interpreted' BEGIN SELECT RAISE(ABORT,'observer failure'); END"
+    before = {
+        table: list(map(tuple, f.conn.execute(" SELECT * FROM " + table))) for table in tables
+    }
+    fault_update(
+        f,
+        "CREATE FUNCTION ops.fail_progress() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='observer failure'; END $$",
     )
-    with pytest.raises(sqlite3.IntegrityError, match="observer failure"):
+    fault_update(
+        f,
+        "CREATE TRIGGER fail_progress BEFORE UPDATE ON event_progress_observations FOR EACH ROW WHEN (NEW.stage='interpreted') EXECUTE FUNCTION ops.fail_progress()",
+    )
+    with pytest.raises(engine.IntegrityError, match="SQLSTATE 23514"):
         observe(f)
     assert {
-        table: list(map(tuple, f.conn.execute("SELECT * FROM " + table))) for table in tables
+        table: list(map(tuple, f.conn.execute(" SELECT * FROM " + table))) for table in tables
     } == before
 
 
@@ -450,12 +502,14 @@ def test_stale_missing_baseline_cannot_become_progress(event, invalidation):
         f.corpus.clock.sleep(86401)
     elif invalidation == "input_bundle":
         f.conn.execute(
-            "INSERT INTO meta VALUES('input_bundle_hash','changed') ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+            "INSERT INTO meta (key, value) VALUES ('input_bundle_hash', 'changed') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
         )
     elif invalidation == "epoch":
-        f.conn.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+        f.conn.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
     else:
-        f.conn.execute("UPDATE admission_policies SET policy_revision=policy_revision||'-changed'")
+        f.conn.execute(
+            "UPDATE admission_policies SET policy_revision = policy_revision || '-changed'"
+        )
     fetched = fetch(f)
     assert fetched.snapshot_id
     assert observe(f)["qualified_progress"] == 0
@@ -466,8 +520,7 @@ def test_corrupt_member_request_is_unassessed_not_an_invented_obligation(event):
     f = event
     ready(f)
     observe(f)
-    f.conn.execute("DROP TRIGGER event_enumeration_member_no_update")
-    f.conn.execute("UPDATE source_event_enumeration_members SET request_json='{}'")
+    fault_update(f, "UPDATE source_event_enumeration_members SET request_json = '{}'")
     checked = observe(f)
     assert checked["unknown_pages"] == checked["checked_pages"]
     assert not history(f)["progress"]
@@ -483,12 +536,12 @@ def test_repeated_admission_and_observed_progress_are_immutable(event):
     generation = next(
         r["generation_id"] for r in history(f)["progress"] if r["stage"] == "interpreted"
     )
-    before = f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+    before = f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
     assert f.corpus.admit(generation) == "accepted"
-    assert f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0] == before
+    assert f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0] == before
     for table in ("event_stage_operations", "event_progress_receipts"):
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
-            f.conn.execute("DELETE FROM " + table)
+        with pytest.raises(engine.IntegrityError, match="immutable"):
+            f.conn.execute(" DELETE FROM " + table)
 
 
 def test_appended_valid_request_cannot_invent_an_enumeration_obligation(event):
@@ -502,7 +555,10 @@ def test_appended_valid_request_cannot_invent_an_enumeration_obligation(event):
     import json
 
     f.conn.execute(
-        "INSERT INTO source_event_enumeration_members VALUES(?,?,?,?,?)",
+        (
+            "INSERT INTO source_event_enumeration_members (enumeration_id, request_id, request_json, "
+            "support_json, first_known_at) VALUES (%s, %s, %s, %s, %s)"
+        ),
         (enumeration, request_id(page), json.dumps(page), "[]", f.corpus.clock.now().isoformat()),
     )
     result = observe(f)
@@ -588,18 +644,24 @@ def test_oversized_metadata_is_bounded_and_unassessed(event, cell):
     f = event
     ready(f)
     observe(f)
-    huge = "x" * (2 * 1024 * 1024)
+    # Keep the indexed source reference within Postgres's physical key limit,
+    # while still exceeding the verification budget exercised by this branch.
+    huge = "x" * (128 * 1024 if cell == "subject_ref" else 2 * 1024 * 1024)
     if cell == "member_json":
-        f.conn.execute("DROP TRIGGER event_enumeration_member_no_update")
-        f.conn.execute("UPDATE source_event_enumeration_members SET support_json=?", (huge,))
+        fault_update(f, "UPDATE source_event_enumeration_members SET support_json = %s", huge)
     elif cell == "prior_token":
-        f.conn.execute("UPDATE event_progress_observations SET token_json=?", (huge,))
+        f.conn.execute("UPDATE event_progress_observations SET token_json = %s", (huge,))
     else:
         f.conn.execute(
-            "INSERT INTO source_event_inventory VALUES('eepro',?,NULL,NULL,'legacy_unassessed')",
+            (
+                "INSERT INTO source_event_inventory (source, source_ref, enumeration_id, first_known_at, "
+                "bootstrap_basis) VALUES ('eepro', %s, NULL, NULL, 'legacy_unassessed')"
+            ),
             (huge,),
         )
-    result = observe(f)
+    result = (
+        observe(f, limits=Limits(json_bytes=64 * 1024)) if cell == "subject_ref" else observe(f)
+    )
     assert result["qualified_progress"] == 0
     assert result["unassessed_events"] or result["unknown_pages"]
 
@@ -688,7 +750,7 @@ def test_refresh_rejects_nonobject_or_incomplete_missing_baseline_token(event, i
     f = event
     ready(f)
     observe(f)
-    f.conn.execute("UPDATE event_progress_observations SET token_json=?", (invalid_token,))
+    f.conn.execute("UPDATE event_progress_observations SET token_json = %s", (invalid_token,))
     fetch(f)
     result = observe(f)
     assert result["qualified_progress"] == 0 and result["unknown_pages"] >= 1
@@ -716,7 +778,13 @@ def test_doctor_marks_only_damaged_observation_unknown(event, damage):
     ready(f)
     observe(f)
     row = f.conn.execute(
-        "SELECT * FROM event_progress_observations WHERE stage='acquired' ORDER BY request_id LIMIT 1"
+        "SELECT event_progress_observations.source, event_progress_observations.source_ref, "
+        "event_progress_observations.request_id, event_progress_observations.stage, "
+        "event_progress_observations.enumeration_id, event_progress_observations.observed_at, "
+        "event_progress_observations.valid_until, event_progress_observations.availability, "
+        "event_progress_observations.operation_frontier, event_progress_observations.token_json, "
+        "event_progress_observations.reasons_json FROM event_progress_observations WHERE stage = "
+        "'acquired' ORDER BY request_id NULLS FIRST LIMIT 1"
     ).fetchone()
     selected = (row["source"], row["source_ref"], row["request_id"], row["stage"])
     value = json.loads(row["token_json"])
@@ -743,15 +811,21 @@ def test_doctor_marks_only_damaged_observation_unknown(event, damage):
                 "SELECT policy_json FROM event_progress_policies LIMIT 1"
             ).fetchone()[0]
         if damage != "missing_policy":
-            f.conn.execute("INSERT INTO event_progress_policies VALUES(?,?)", (digest, policy_json))
+            f.conn.execute(
+                "INSERT INTO event_progress_policies (digest, policy_json) VALUES (%s, %s)",
+                (digest, policy_json),
+            )
         value["policy_digest"] = digest
         encoded = json.dumps(value)
     f.conn.execute(
-        "UPDATE event_progress_observations SET token_json=? WHERE source=? AND source_ref=? AND request_id=? AND stage=?",
+        (
+            "UPDATE event_progress_observations SET token_json = %s WHERE source = %s AND source_ref = "
+            "%s AND request_id = %s AND stage = %s"
+        ),
         (encoded, *selected),
     )
     before = f.conn.total_changes
-    f.conn.execute("PRAGMA query_only=ON")
+    f.conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
     try:
         rows = history(f)["observations"]
         bad = next(
@@ -767,4 +841,4 @@ def test_doctor_marks_only_damaged_observation_unknown(event, damage):
         )
         assert f.conn.total_changes == before
     finally:
-        f.conn.execute("PRAGMA query_only=OFF")
+        f.conn.execute("ROLLBACK")

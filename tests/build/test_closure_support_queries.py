@@ -1,24 +1,21 @@
 """Compact receipts preserve admission rules and never retain parse payloads."""
 
 import json
-import sqlite3
 from contextlib import closing
 
 import pytest
+from postgres_statements import empty_connections as empty_connections
 
 from swingset.build import closure_support as support
 from swingset.build.closure_manifest import ClosureError, canonical, digest
+from swingset.state import engine
 
 
 @pytest.fixture
-def evidence():
-    with closing(sqlite3.connect(":memory:")) as conn:
-        conn.row_factory = sqlite3.Row
-        conn.executescript(
-            "CREATE TABLE source_generations(generation_id TEXT PRIMARY KEY,state TEXT,input_fingerprint TEXT,contract_version TEXT,page_kind TEXT,created_at TEXT,recipe_json TEXT,report_json TEXT,result_json TEXT);"
-            "CREATE TABLE admission_policies(page_kind TEXT PRIMARY KEY,contract_version TEXT);"
-            "CREATE TABLE admission_decisions(generation_id TEXT,state TEXT);"
-            "CREATE TABLE snapshots(snapshot_id TEXT PRIMARY KEY,body_sha256 TEXT);"
+def evidence(empty_connections):
+    with closing(empty_connections()) as conn:
+        conn.execute(
+            "CREATE TABLE source_generations (generation_id TEXT PRIMARY KEY, state TEXT, input_fingerprint TEXT, contract_version TEXT, page_kind TEXT, created_at TEXT, recipe_json TEXT, report_json TEXT, result_json TEXT); CREATE TABLE admission_policies (page_kind TEXT PRIMARY KEY, contract_version TEXT); CREATE TABLE admission_decisions (generation_id TEXT, state TEXT); CREATE TABLE snapshots (snapshot_id TEXT PRIMARY KEY, body_sha256 TEXT)"
         )
         recipe = {
             "context": {"snapshot_id": "snapshot"},
@@ -34,7 +31,7 @@ def evidence():
             for name in ("First", "Second")
         ]
         conn.execute(
-            "INSERT INTO source_generations VALUES ('generation','accepted','fingerprint','contract','page','2026-01-01T00:00:00+00:00',?,?,?)",
+            "INSERT INTO source_generations VALUES ('generation','accepted','fingerprint','contract','page','2026-01-01T00:00:00+00:00',%s,%s,%s)",
             (
                 canonical(recipe),
                 canonical({"failures": []}),
@@ -71,7 +68,7 @@ def legacy_accepted(conn):
         "SELECT 1 FROM admission_decisions WHERE generation_id='generation' AND state='accepted' LIMIT 1"
     ).fetchone()
     policy = conn.execute(
-        "SELECT contract_version FROM admission_policies WHERE page_kind=?", (row["page_kind"],)
+        "SELECT contract_version FROM admission_policies WHERE page_kind=%s", (row["page_kind"],)
     ).fetchone()
     return bool(
         accepted is not None
@@ -101,11 +98,8 @@ def test_one_query_preserves_original_admission_predicate(evidence, mutation):
         conn.execute(mutation)
     expected = legacy_accepted(conn)
     statements = []
-    conn.set_trace_callback(statements.append)
-    try:
+    with conn.observing(lambda query, parameters: statements.append(query)):
         result = support._accepted(conn, "generation", include_result=False)
-    finally:
-        conn.set_trace_callback(None)
     assert (result is not None) == expected
     assert len(statements) == 1
     assert "result_json" not in statements[0]
@@ -115,23 +109,24 @@ def test_receipt_validation_cannot_read_result_payload_and_rechecks_later_mutati
     conn, _, selected = evidence
     pinned = support.support(conn, selected, ["generation"], cutoff="2026-02-01T00:00:00+00:00")
 
-    def authorizer(action, table, column, database, trigger):
-        return (
-            sqlite3.SQLITE_DENY
-            if action == sqlite3.SQLITE_READ
-            and table == "source_generations"
-            and column == "result_json"
-            else sqlite3.SQLITE_OK
-        )
+    from swingset.dev.services import ensure_service
 
-    conn.set_authorizer(authorizer)
-    try:
-        support.validate_support(conn, pinned)
+    columns = "generation_id,state,input_fingerprint,contract_version,page_kind,created_at,recipe_json,report_json"
+    conn.execute(f"GRANT SELECT({columns}) ON source_generations TO swingset_test_worker")
+    conn.execute(
+        "GRANT SELECT ON admission_policies,admission_decisions,snapshots TO swingset_test_worker"
+    )
+    with engine.connect(
+        ensure_service().dsn(conn.info.dbname, role="worker"), read_only=True
+    ) as restricted:
+        restricted.execute("SET search_path=public,pg_catalog")
+        with pytest.raises(engine.DatabaseError) as denied:
+            restricted.execute("SELECT result_json FROM source_generations")
+        assert denied.value.sqlstate == "42501"
+        support.validate_support(restricted, pinned)
         conn.execute("UPDATE source_generations SET state='revoked'")
         with pytest.raises(ClosureError, match="revoked"):
-            support.validate_support(conn, pinned)
-    finally:
-        conn.set_authorizer(None)
+            support.validate_support(restricted, pinned)
 
 
 def test_support_decodes_recipe_once_and_keeps_exact_witnesses(evidence, monkeypatch):

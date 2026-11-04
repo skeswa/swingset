@@ -9,23 +9,32 @@ sets under `operator-hold` only.
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import json
 import os
-import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from swingset.build.closure_manifest import canonical
-from swingset.state import collector, objects
-from swingset.state import db as db_module
+from swingset.state import collector, engine, objects
 from swingset.state.collector import CollectError
 from swingset.state.db import Database, open_database
 from swingset.state.derivation_dependencies import store_set
 from swingset.state.retention import legacy_manifest_file, manifest_file
+
+
+def fault_connection(state: Path):
+    from swingset.dev.services import ensure_service
+
+    with open_database(state, lock=False) as database:
+        name = database.connection.info.dbname
+    conn = ensure_service().connect(name)
+    conn.execute('SET search_path=pg_catalog,derive,project,evidence,ops,"fetch",plan,release')
+    conn.execute("SET session_replication_role='replica'")
+    return conn
+
 
 NOW = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
 OLD = (NOW - timedelta(days=3)).isoformat()
@@ -49,14 +58,16 @@ def db(tmp_path):
         yield database
 
 
-def run_id(conn: sqlite3.Connection) -> str:
+def run_id(conn: engine.Connection) -> str:
     return str(conn.execute("SELECT run_id FROM runs LIMIT 1").fetchone()[0])
 
 
 def add_set(conn, set_id: str, members: object = (), *, created_at: str | None = OLD) -> str:
     conn.execute(
-        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json,created_at) "
-        "VALUES (?,?,?)",
+        (
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json, created_at) "
+            "VALUES (%s, %s, %s)"
+        ),
         (set_id, canonical(list(members)) if not isinstance(members, str) else members, created_at),
     )
     return set_id
@@ -76,16 +87,22 @@ def add_generation(
     created_at: str = OLD,
 ) -> None:
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-        "VALUES ('empty','[]')"
+        "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('empty', "
+        "'[]') ON CONFLICT DO NOTHING"
     )
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-        "VALUES (?,?,?,?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+            "%s, %s) ON CONFLICT DO NOTHING"
+        ),
         (stage, kind, unit, OLD),
     )
     conn.execute(
-        "INSERT INTO derivation_generations VALUES (?,?,?,?,'f',?,?,NULL,?,?,?,?)",
+        (
+            "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+            "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+            "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, 'f', %s, %s, NULL, %s, %s, %s, %s)"
+        ),
         (
             generation_id,
             stage,
@@ -107,7 +124,7 @@ def put(db: Database, cls: str, raw: bytes, *, stored_at: str = OLD, days: float
     aged(store.path(cls, digest), days)
     with db.transaction() as conn:
         conn.execute(
-            "INSERT INTO objects(class,digest,raw_bytes,stored_bytes,stored_at) VALUES (?,?,?,?,?)",
+            "INSERT INTO objects (class, digest, raw_bytes, stored_bytes, stored_at) VALUES (%s, %s, %s, %s, %s)",
             (cls, digest, len(raw), stored, stored_at),
         )
     return digest
@@ -115,7 +132,7 @@ def put(db: Database, cls: str, raw: bytes, *, stored_at: str = OLD, days: float
 
 def indexed(db: Database, cls: str, digest: str) -> bool:
     found = db.connection.execute(
-        "SELECT 1 FROM objects WHERE class=? AND digest=?", (cls, digest)
+        "SELECT 1 FROM objects WHERE class = %s AND digest = %s", (cls, digest)
     ).fetchone()
     return found is not None and objects.Store(db.state_dir).exists(cls, digest)
 
@@ -129,17 +146,20 @@ def sets(conn) -> set[str]:
 
 def seed_source(conn, generation_id: str) -> None:
     conn.execute(
-        "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,state) "
-        "VALUES ('w1','eepro','round','GET','https://example.test/r','round','live')"
+        "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES ('w1', "
+        "'eepro', 'round', 'GET', 'https://example.test/r', 'round', 'live') ON CONFLICT DO NOTHING"
     )
     conn.execute(
-        "INSERT OR IGNORE INTO source_units(unit_key,watch_id,page_kind) VALUES ('u1','w1','round')"
+        "INSERT INTO source_units (unit_key, watch_id, page_kind) VALUES ('u1', 'w1', 'round') ON "
+        "CONFLICT DO NOTHING"
     )
     conn.execute(
-        "INSERT INTO source_generations(generation_id,unit_key,page_kind,contract_version,"
-        "input_fingerprint,manifest_json,recipe_json,result_json,report_json,created_at,run_id,"
-        "state,removal_authority) VALUES (?,'u1','round','1','f','[]','{}','{}','{}',?,?,"
-        "'superseded','none')",
+        (
+            "INSERT INTO source_generations (generation_id, unit_key, page_kind, contract_version, "
+            "input_fingerprint, manifest_json, recipe_json, result_json, report_json, created_at, "
+            "run_id, state, removal_authority) VALUES (%s, 'u1', 'round', '1', 'f', '[]', '{}', '{}', "
+            "'{}', %s, %s, 'superseded', 'none')"
+        ),
         (generation_id, OLD, run_id(conn)),
     )
 
@@ -164,11 +184,15 @@ def test_an_unrooted_old_object_goes_and_a_rooted_or_young_one_stays(db, cls):
         elif cls == "parse_body":
             seed_source(conn, "sg_root")
             conn.execute(
-                "INSERT INTO source_generation_packs VALUES ('sg_root',?,?)", (rooted, OLD)
+                "INSERT INTO source_generation_packs (generation_id, pack_digest, packed_at) VALUES ('sg_root', %s, %s)",
+                (rooted, OLD),
             )
         else:
             add_generation(conn, "dg_root", stage="build", kind="release")
-            conn.execute("INSERT INTO label_body_packs VALUES ('dg_root',?,?)", (rooted, OLD))
+            conn.execute(
+                "INSERT INTO label_body_packs (generation_id, pack_digest, packed_at) VALUES ('dg_root', %s, %s)",
+                (rooted, OLD),
+            )
     result = sweep(db, cls)
     # Only the old unrooted one is marked; the young one never is.
     assert result["planned"][cls] == 1
@@ -219,10 +243,11 @@ def test_release_manifests_follow_retained_built_and_published_candidates(db):
         aged(objects.Store(db.state_dir).path("release_manifest", digest))
         with db.transaction() as conn:
             conn.execute(
-                "UPDATE release_manifests SET created_at=? WHERE manifest_digest=?", (OLD, digest)
+                "UPDATE release_manifests SET created_at = %s WHERE manifest_digest = %s",
+                (OLD, digest),
             )
             conn.execute(
-                "UPDATE objects SET stored_at=? WHERE class='release_manifest' AND digest=?",
+                "UPDATE objects SET stored_at = %s WHERE class = 'release_manifest' AND digest = %s",
                 (OLD, digest),
             )
         return digest
@@ -333,17 +358,20 @@ def test_every_kind_of_name_keeps_a_set_and_the_rest_goes(db):
             },
         )
         conn.execute(
-            "INSERT INTO derivation_recipes VALUES ('r1',?)",
+            "INSERT INTO derivation_recipes (recipe_sha256, recipe_json) VALUES ('r1', %s)",
             (canonical({"continuity": {}}),),
         )
         conn.execute(
-            "INSERT INTO derivation_equivalences VALUES ('project','event','u','f2','dg_a','r1',"
-            "'by_equivalence',?,?)",
+            (
+                "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES ('project', "
+                "'event', 'u', 'f2', 'dg_a', 'r1', 'by_equivalence', %s, %s)"
+            ),
             (OLD, run_id(conn)),
         )
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_signature='by_signature' "
-            "WHERE stage='project' AND unit_kind='calendar'"
+            "UPDATE derivation_scopes SET materialized_signature = 'by_signature' WHERE stage = "
+            "'project' AND unit_kind = 'calendar'"
         )
         # A packed build recipe names its closure from its label_body object.
         add_set(conn, "packed_closure", '{"baseline":null}')
@@ -351,14 +379,16 @@ def test_every_kind_of_name_keeps_a_set_and_the_rest_goes(db):
         add_generation(conn, "dg_packed", stage="build", kind="release", unit="p", recipe=recipe)
         digest, stored = objects.Store(db.state_dir).put_bytes("label_body", recipe.encode())
         objects.record(conn, "label_body", digest, len(recipe), stored, NOW)
-        conn.execute("INSERT INTO label_body_packs VALUES ('dg_packed',?,?)", (digest, OLD))
         conn.execute(
-            "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
-            "VALUES (1,'test',?)",
+            "INSERT INTO label_body_packs (generation_id, pack_digest, packed_at) VALUES ('dg_packed', %s, %s)",
+            (digest, OLD),
+        )
+        conn.execute(
+            "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, 'test', %s)",
             (OLD,),
         )
         conn.execute(
-            "UPDATE derivation_generations SET recipe_json=? WHERE generation_id='dg_packed'",
+            "UPDATE derivation_generations SET recipe_json = %s WHERE generation_id = 'dg_packed'",
             (objects.STUB,),
         )
         conn.execute("DELETE FROM storage_eviction_authority")
@@ -372,12 +402,17 @@ def test_every_kind_of_name_keeps_a_set_and_the_rest_goes(db):
     result = sweep(db, "dependency_set")
     assert result["classes"]["dependency_set"]["removed"] == 3
     assert before - sets(db.connection) == {"victim", "only_from_victim", "pre_36"}
-    assert db.connection.execute("PRAGMA foreign_key_check").fetchall() == []
+    assert (
+        db.connection.execute(
+            "SELECT conname FROM pg_constraint WHERE contype='f' AND NOT convalidated"
+        ).fetchall()
+        == []
+    )
     assert sweep(db, "dependency_set")["classes"]["dependency_set"]["removed"] == 0
     # The guard is back: no set leaves outside the collector.
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         with db.transaction() as conn:
-            conn.execute("DELETE FROM derivation_dependency_sets WHERE dependency_set_id='young'")
+            conn.execute("DELETE FROM derivation_dependency_sets WHERE dependency_set_id = 'young'")
 
 
 def test_the_highest_set_at_the_mark_is_never_deleted(db):
@@ -430,7 +465,7 @@ def test_an_unreadable_candidate_manifest_keeps_every_set(db):
 
 
 @pytest.mark.parametrize("ahead", [0, 3], ids=["young", "collected-between-a-and-b"])
-def test_a_set_captured_by_an_open_staged_unit_survives(tmp_path, monkeypatch, ahead):
+def test_a_set_captured_by_an_open_staged_unit_survives(tmp_path, monkeypatch, ahead, request):
     """Step A captures sets only step B names. They are young, so the collector
     keeps them; collected anyway (a clock three days on), B writes them again."""
     from test_chunked_completion import YEAR, arranged, run_year, stored, twin
@@ -438,7 +473,7 @@ def test_a_set_captured_by_an_open_staged_unit_survives(tmp_path, monkeypatch, a
     from swingset.build.closure_manifest import leaves
     from swingset.state import derivations
 
-    fixture = arranged.__wrapped__(tmp_path / "arranged")
+    fixture = arranged.__wrapped__(tmp_path / "arranged", request)
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
     real = derivations._store_building
     swept: list[dict] = []
@@ -468,11 +503,16 @@ def test_a_set_captured_by_an_open_staged_unit_survives(tmp_path, monkeypatch, a
         generation = derivations.selected_generation(conn, YEAR)
         assert swept and stored(conn, str(generation))["refs"]
         set_id = conn.execute(
-            "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+            "SELECT dependency_set_id FROM derivation_generations WHERE generation_id = %s",
             (generation,),
         ).fetchone()[0]
         assert list(leaves(conn, set_id))
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert (
+            conn.execute(
+                "SELECT conname FROM pg_constraint WHERE contype='f' AND NOT convalidated"
+            ).fetchall()
+            == []
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -510,11 +550,14 @@ def add_refs(conn, generation_id: str, ordinals: range) -> None:
     for ordinal in ordinals:
         payload = sha(f"{generation_id}/{ordinal}")
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)",
+            "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
             (payload, f'{{"o":{ordinal}}}'),
         )
         conn.execute(
-            "INSERT INTO derivation_row_refs VALUES (?,?,'t',?,?)",
+            (
+                "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                "payload_sha256) VALUES (%s, %s, 't', %s, %s)"
+            ),
             (generation_id, ordinal, str(ordinal), payload),
         )
 
@@ -529,7 +572,7 @@ def test_an_old_unnamed_partial_generation_loses_its_references(db, monkeypatch)
         add_generation(conn, "dg_pointer", unit="b", rows=3)
         add_refs(conn, "dg_pointer", range(2))
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id='dg_pointer' WHERE unit_id='b'"
+            "UPDATE derivation_scopes SET materialized_generation_id = 'dg_pointer' WHERE unit_id = 'b'"
         )
         add_generation(conn, "dg_young", unit="c", rows=3, created_at=YOUNG)
         add_refs(conn, "dg_young", range(1))
@@ -539,29 +582,35 @@ def test_an_old_unnamed_partial_generation_loses_its_references(db, monkeypatch)
         add_generation(conn, "dg_building", unit="e", rows=3)
         add_refs(conn, "dg_building", range(1))
         conn.execute(
-            "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
-            "input_fingerprint,run_id,started_at,updated_at) "
-            "VALUES ('dg_building','project','event','e','f',?,?,?)",
+            (
+                "INSERT INTO derivation_building (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, run_id, started_at, updated_at) VALUES ('dg_building', 'project', "
+                "'event', 'e', 'f', %s, %s, %s)"
+            ),
             (run_id(conn), OLD, OLD),
         )
         add_generation(conn, "dg_equivalent", unit="f", rows=3)
         add_refs(conn, "dg_equivalent", range(2))
         add_generation(conn, "dg_evicted", unit="g", rows=4)
         add_refs(conn, "dg_evicted", range(2))  # the prefix a stopped evict leaves
-        conn.execute("INSERT INTO derivation_evicted VALUES ('dg_evicted',?)", (OLD,))
-    db.connection.execute("PRAGMA foreign_keys=OFF")
-    with db.transaction() as conn:
         conn.execute(
-            "INSERT INTO derivation_equivalences VALUES "
-            "('project','event','f','fp','dg_equivalent','r','empty',?,?)",
+            "INSERT INTO derivation_evicted (generation_id, evicted_at) VALUES ('dg_evicted', %s)",
+            (OLD,),
+        )
+    with fault_connection(db.state_dir) as conn:
+        conn.execute(
+            (
+                "INSERT INTO derivation_equivalences (stage, unit_kind, unit_id, input_fingerprint, "
+                "generation_id, recipe_sha256, dependency_set_id, created_at, run_id) VALUES ('project', "
+                "'event', 'f', 'fp', 'dg_equivalent', 'r', 'empty', %s, %s)"
+            ),
             (OLD, run_id(conn)),
         )
-    db.connection.execute("PRAGMA foreign_keys=ON")
     result = sweep(db, orphans=("partial_refs",))["classes"]["partial_refs"]
     assert result == {"removed": 1, "references": 5, "generations": 1, "payloads": 5}
     refs = dict(
         db.connection.execute(
-            "SELECT generation_id,count(*) FROM derivation_row_refs GROUP BY generation_id"
+            "SELECT generation_id, COUNT(*) FROM derivation_row_refs GROUP BY generation_id"
         ).fetchall()
     )
     assert refs == {
@@ -575,7 +624,7 @@ def test_an_old_unnamed_partial_generation_loses_its_references(db, monkeypatch)
     # The label stays, partial: a run whose inputs return stores it again.
     assert tuple(
         db.connection.execute(
-            "SELECT row_count FROM derivation_generations WHERE generation_id='dg_partial'"
+            "SELECT row_count FROM derivation_generations WHERE generation_id = 'dg_partial'"
         ).fetchone()
     ) == (6,)
     assert derivations.incomplete_generations(db.connection)["rows"] >= 1
@@ -606,7 +655,7 @@ def test_a_plan_is_stable_and_its_apply_is_idempotent(db):
     again = collector.apply(db, plan_digest=first["digest"], now=NOW)
     assert again["removed"] == receipt["removed"]
     note = db.connection.execute(
-        "SELECT kind,finished_at IS NOT NULL FROM storage_applies WHERE plan_digest=?",
+        "SELECT kind, NOT finished_at IS NULL FROM storage_applies WHERE plan_digest = %s",
         (first["digest"],),
     ).fetchone()
     assert tuple(note) == ("collect", 1)
@@ -646,53 +695,18 @@ def test_the_command_plans_and_applies(tmp_path, capsys):
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def schema_35(tmp_path, monkeypatch):
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 35)
-    with open_database(tmp_path / "state") as database:
-        assert database.schema_version == 35
-        database.start_run(NOW)
-        with database.transaction() as conn:
-            conn.execute(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES ('victim','[]'),('kept','[]'),('nested_victim','[]')"
-            )
-            conn.execute(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES ('parent_victim',?)",
-                (canonical([named("nested_victim")]),),
-            )
-            add_generation(conn, "dg", set_id="kept")
-            conn.execute(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES ('later','[]')"
-            )
-        yield database
-
-
-def test_schema_35_collects_sets_only_under_operator_hold(schema_35):
-    database = schema_35
-    trigger = database.connection.execute(
-        "SELECT sql FROM sqlite_master WHERE name='derivation_dependency_no_delete'"
-    ).fetchone()[0]
-    with pytest.raises(CollectError, match="operator-hold"):
-        collector.sweep(database, now=NOW, classes=("dependency_set",), orphans=())
-    (database.state_dir / "operator-hold").write_text("test")
-    result = collector.sweep(database, now=NOW)
-    # victim, nested_victim, parent_victim, and `empty`, which nothing names.
-    assert result["classes"]["dependency_set"]["removed"] == 4
-    assert result["classes"]["derivation_output"]["stopped"] == "absent"
-    assert sets(database.connection) == {"kept", "later"}
-    assert database.connection.execute("PRAGMA foreign_key_check").fetchall() == []
-    assert (
-        database.connection.execute(
-            "SELECT sql FROM sqlite_master WHERE name='derivation_dependency_no_delete'"
-        ).fetchone()[0]
-        == trigger
-    )
-    with contextlib.suppress(sqlite3.IntegrityError), database.transaction() as conn:
-        conn.execute("DELETE FROM derivation_dependency_sets WHERE dependency_set_id='later'")
-    assert "later" in sets(database.connection)
+def test_collection_rejects_an_unsupported_schema_without_upgrading(tmp_path):
+    state = tmp_path / "state"
+    with open_database(state):
+        pass
+    with fault_connection(state) as admin:
+        admin.execute("UPDATE ops.meta SET value='35' WHERE key='schema_version'")
+        with pytest.raises(RuntimeError, match="schema"):
+            open_database(state)
+        assert (
+            admin.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+            == "35"
+        )
 
 
 def test_a_reused_object_is_young_again_and_never_names_a_removed_file(db):
@@ -719,7 +733,7 @@ def test_a_reused_object_is_young_again_and_never_names_a_removed_file(db):
     with db.transaction() as conn:
         objects.record(conn, "parse_body", old, 7, 7, NOW)
     stamp = db.connection.execute(
-        "SELECT stored_at FROM objects WHERE class='parse_body' AND digest=?", (old,)
+        "SELECT stored_at FROM objects WHERE class = 'parse_body' AND digest = %s", (old,)
     ).fetchone()[0]
     assert stamp == objects.stamp(NOW)
     assert sweep(db, "parse_body")["classes"]["parse_body"]["removed"] == 0
@@ -731,7 +745,7 @@ def test_manifests_and_artifacts_wait_while_a_backup_set_is_written(db):
     from swingset.state import rwlock
 
     digest = put(db, "release_manifest", b'{"built":[]}')
-    held = rwlock.try_loop(db.state_dir, collector.BACKUP_LOOP)
+    held = rwlock.try_loop(db.state_dir, collector.BACKUP_LOOP, connection=db.connection)
     assert held is not None
     try:
         result = sweep(db, "release_manifest", "partition_artifact")
@@ -783,7 +797,7 @@ def test_a_sweep_that_rolls_back_puts_its_files_back(db, monkeypatch):
     def away_then_fail(self, cls, key):
         real(self, cls, key)
         assert not store.exists(cls, key)
-        raise sqlite3.OperationalError("disk I/O error")
+        raise engine.OperationalError("disk I/O error")
 
     monkeypatch.setattr(collector._Moved, "away", away_then_fail)
     result = sweep(db, "label_body")

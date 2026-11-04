@@ -103,7 +103,7 @@ def test_filtered_query_reuses_receipts_and_charges_old_work_only(sites):
 
     c = client(sites, respond)
     before = {
-        table: [tuple(r) for r in sites.conn.execute("SELECT * FROM " + table)]
+        table: [tuple(r) for r in sites.conn.execute(" SELECT * FROM " + table)]
         for table in ("watches", "observations", "admission_policies", "history_acceptance")
     }
     try:
@@ -116,12 +116,12 @@ def test_filtered_query_reuses_receipts_and_charges_old_work_only(sites):
         again = run(sites, c)
         assert again.complete and again.admitted_attempts == 0 and len(requests) == 3
         assert {
-            tuple(r) for r in sites.conn.execute("SELECT category,host FROM scheduler_requests")
+            tuple(r) for r in sites.conn.execute("SELECT category, host FROM scheduler_requests")
         } == {("old", "web.archive.org")}
         assert sites.conn.execute("SELECT requests FROM host_budget").fetchone()[0] == 3
         assert len(retained_hits(sites.conn, c.archive, SITE)) == 1
         for table, rows in before.items():
-            assert [tuple(r) for r in sites.conn.execute("SELECT * FROM " + table)] == rows
+            assert [tuple(r) for r in sites.conn.execute(" SELECT * FROM " + table)] == rows
     finally:
         c.close()
 
@@ -147,7 +147,7 @@ def test_partial_query_resumes_without_repeating_probe_or_successful_pages(sites
         assert sum("page=0" in url for url in urls) == 1
         assert (
             sites.conn.execute(
-                "SELECT COUNT(*) FROM archive_captures WHERE source='event_sites'"
+                "SELECT COUNT(*) FROM archive_captures WHERE source = 'event_sites'"
             ).fetchone()[0]
             == 1
         )
@@ -176,7 +176,7 @@ def test_change_during_robots_prevents_cdx_debit(sites, mutation):
             sites.conn.execute("DELETE FROM history_acceptance")
         else:
             sites.conn.execute(
-                "UPDATE events SET website='https://changed.example/' WHERE event_id=?",
+                "UPDATE events SET website = 'https://changed.example/' WHERE event_id = %s",
                 (SITE.event_id,),
             )
         return httpx.Response(404)
@@ -415,7 +415,8 @@ def test_exhausted_budget_resumes_on_next_day_without_extra_capacity(sites):
         assert last.complete and last.admitted_attempts == 2
         assert sum("showNumPages" in url for _, url in seen) == 1
         assert [
-            r[0] for r in sites.conn.execute("SELECT requests FROM host_budget ORDER BY day")
+            r[0]
+            for r in sites.conn.execute("SELECT requests FROM host_budget ORDER BY day NULLS FIRST")
         ] == [2, 2]
         assert all(
             b[0] - a[0] >= timedelta(seconds=10) for a, b in zip(seen, seen[1:], strict=False)
@@ -522,7 +523,7 @@ def test_pdf_and_html_queries_never_mix_recipe_or_resume_cursor(sites):
         assert {h.mimetype for h in hits} == {"application/pdf", "text/html"}
         assert (
             sites.conn.execute(
-                "SELECT COUNT(*) FROM archive_queries WHERE source!='event_sites'"
+                "SELECT COUNT(*) FROM archive_queries WHERE source <> 'event_sites'"
             ).fetchone()[0]
             == 0
         )

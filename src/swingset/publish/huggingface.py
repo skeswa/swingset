@@ -13,7 +13,8 @@ from huggingface_hub import (
 )
 from huggingface_hub.errors import EntryNotFoundError
 
-from swingset.publish.service import RemoteCommit
+from swingset.build.files import sha256_file
+from swingset.publish.journal import RemoteCommit
 
 _INITIAL_CARD = b"---\nlicense: odc-by\n---\n"
 
@@ -41,10 +42,10 @@ class HuggingFaceHub:
             return False
         return (
             "README.md" not in files
-            or self._download("README.md", commit).read_bytes() == _INITIAL_CARD
+            or self.download("README.md", commit).read_bytes() == _INITIAL_CARD
         )
 
-    def _download(self, name: str, commit: str) -> Path:
+    def download(self, name: str, commit: str) -> Path:
         return Path(
             hf_hub_download(
                 repo_id=self.repo_id,
@@ -57,14 +58,11 @@ class HuggingFaceHub:
 
     def inspect(self, commit: str) -> RemoteCommit:
         try:
-            manifest_path = self._download("_meta/manifest.json", commit)
+            manifest_path = self.download("_meta/manifest.json", commit)
         except EntryNotFoundError as error:
             raise FileNotFoundError("remote manifest is absent") from error
         manifest: dict[str, Any] = json.loads(manifest_path.read_text())
-        files = {
-            name: hashlib.sha256(self._download(name, commit).read_bytes()).hexdigest()
-            for name in manifest["files"]
-        }
+        files = {name: sha256_file(self.download(name, commit)) for name in manifest["files"]}
         files["_meta/manifest.json"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
         return RemoteCommit(
             commit=commit,

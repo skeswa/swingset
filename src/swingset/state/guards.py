@@ -9,12 +9,12 @@ client collects them (fetch/client.GuardRecorder).
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Iterable, Mapping
 from dataclasses import astuple, dataclass, fields
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
+from swingset.state import engine
 from swingset.state.queue import at
 
 
@@ -118,12 +118,11 @@ def _time(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
 
 
-def _operator_until(conn: sqlite3.Connection, host: str, now: datetime) -> str | None:
+def _operator_until(conn: engine.Connection, host: str, now: datetime) -> str | None:
     """The end of the live `all` or host pauses on `host`; None when one is open."""
     ends: list[datetime] = []
     for until in conn.execute(
-        "SELECT until_at FROM operator_pauses WHERE scope_kind='all' "
-        "OR (scope_kind='host' AND scope_id=?)",
+        "SELECT until_at FROM operator_pauses WHERE scope_kind = 'all' OR (scope_kind = 'host' AND scope_id = %s)",
         (host,),
     ):
         if until[0] is None:
@@ -135,7 +134,7 @@ def _operator_until(conn: sqlite3.Connection, host: str, now: datetime) -> str |
 
 
 def expires_at(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     subject: str,
     reason: str,
     since: datetime,
@@ -165,7 +164,7 @@ def expires_at(
         )
         return midnight + HOUR
     if reason in HOST_PAUSES:
-        row = conn.execute("SELECT paused_until FROM hosts WHERE host=?", (name,)).fetchone()
+        row = conn.execute("SELECT paused_until FROM hosts WHERE host = %s", (name,)).fetchone()
         return _time(str(row[0])) + HOUR if row and row[0] else since + HOUR
     if reason == ROBOTS_UNREAD:
         return _time(until) + HOUR if until is not None else since + HOUR
@@ -176,7 +175,7 @@ def expires_at(
 
 
 def flush(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     loop: str,
     seen: Mapping[tuple[str, str], int],
@@ -197,7 +196,7 @@ def flush(
     issued = set(requested)
     cleared = sum(
         conn.execute(
-            "DELETE FROM guard_reasons WHERE subject=? AND reason<>?", (name, REQUEST_ERROR)
+            "DELETE FROM guard_reasons WHERE subject = %s AND reason <> %s", (name, REQUEST_ERROR)
         ).rowcount
         for name in sorted(issued)
     )
@@ -231,7 +230,7 @@ def flush(
 
 
 def request_failed(
-    conn: sqlite3.Connection, watch_key: str, *, loop: str, now: datetime
+    conn: engine.Connection, watch_key: str, *, loop: str, now: datetime
 ) -> GuardRow:
     """Hold a watch whose request raised; the caller holds the transaction.
 
@@ -260,7 +259,7 @@ def request_failed(
     return row
 
 
-def requests_errored(conn: sqlite3.Connection, *, now: datetime) -> dict[str, bool]:
+def requests_errored(conn: engine.Connection, *, now: datetime) -> dict[str, bool]:
     """Watch keys with a `request_error` row, and whether it still holds them."""
     if not available(conn):
         return {}
@@ -268,48 +267,48 @@ def requests_errored(conn: sqlite3.Connection, *, now: datetime) -> dict[str, bo
     return {
         str(subject).removeprefix("watch:"): str(expires) > stamp
         for subject, expires in conn.execute(
-            "SELECT subject,expires_at FROM guard_reasons WHERE reason=?", (REQUEST_ERROR,)
+            "SELECT subject, expires_at FROM guard_reasons WHERE reason = %s", (REQUEST_ERROR,)
         )
     }
 
 
-def loop_skip(conn: sqlite3.Connection, loop: str, reason: str, *, now: datetime) -> None:
+def loop_skip(conn: engine.Connection, loop: str, reason: str, *, now: datetime) -> None:
     """Record that a whole tick of ``loop`` skipped for ``reason``; caller's transaction."""
     flush(conn, loop=loop, seen={(f"loop:{loop}", reason): 1}, requested=(), now=now)
 
 
-def loop_ran(conn: sqlite3.Connection, loop: str, reason: str) -> int:
+def loop_ran(conn: engine.Connection, loop: str, reason: str) -> int:
     """A tick of ``loop`` got past ``reason``: its guard row goes."""
     return delete(conn, f"loop:{loop}", reason)
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='guard_reasons'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'guard_reasons' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
 
 
-def get(conn: sqlite3.Connection, subject: str, reason: str) -> GuardRow | None:
+def get(conn: engine.Connection, subject: str, reason: str) -> GuardRow | None:
     row = conn.execute(
-        f"SELECT {','.join(_COLUMNS)} FROM guard_reasons WHERE subject=? AND reason=?",
+        f"SELECT {','.join(_COLUMNS)} FROM guard_reasons WHERE subject=%s AND reason=%s",
         (subject, reason),
     ).fetchone()
     return None if row is None else GuardRow(*row)
 
 
-def upsert(conn: sqlite3.Connection, row: GuardRow) -> None:
+def upsert(conn: engine.Connection, row: GuardRow) -> None:
     updates = ",".join(f"{name}=excluded.{name}" for name in _COLUMNS if name not in _KEY)
     conn.execute(
-        f"INSERT INTO guard_reasons({','.join(_COLUMNS)}) "
-        f"VALUES ({','.join('?' * len(_COLUMNS))}) "
-        f"ON CONFLICT(subject,reason) DO UPDATE SET {updates}",
+        f"INSERT INTO guard_reasons({','.join(_COLUMNS)}) VALUES ({','.join(['%s'] * len(_COLUMNS))}) ON CONFLICT(subject,reason) DO UPDATE SET {updates}",
         astuple(row),
     )
 
 
 def clocked(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     subject: str,
     reason: str,
     *,
@@ -340,27 +339,27 @@ def clocked(
     return row
 
 
-def delete(conn: sqlite3.Connection, subject: str, reason: str | None = None) -> int:
+def delete(conn: engine.Connection, subject: str, reason: str | None = None) -> int:
     """Delete one reason of a subject, or all of them; returns rows deleted."""
     if reason is None:
-        cursor = conn.execute("DELETE FROM guard_reasons WHERE subject=?", (subject,))
+        cursor = conn.execute("DELETE FROM guard_reasons WHERE subject = %s", (subject,))
     else:
         cursor = conn.execute(
-            "DELETE FROM guard_reasons WHERE subject=? AND reason=?", (subject, reason)
+            "DELETE FROM guard_reasons WHERE subject = %s AND reason = %s", (subject, reason)
         )
     return cursor.rowcount
 
 
-def counts_by_reason(conn: sqlite3.Connection) -> dict[str, int]:
+def counts_by_reason(conn: engine.Connection) -> dict[str, int]:
     return {
         str(reason): int(count)
         for reason, count in conn.execute(
-            "SELECT reason,count(*) FROM guard_reasons GROUP BY reason ORDER BY reason"
+            "SELECT reason, COUNT(*) AS _value_1 FROM guard_reasons GROUP BY reason ORDER BY reason NULLS FIRST"
         )
     }
 
 
-def report(conn: sqlite3.Connection, *, now: datetime) -> dict[str, object]:
+def report(conn: engine.Connection, *, now: datetime) -> dict[str, object]:
     """Counts by reason, and the rows still seen after their expiry.
 
     Watch rows are counted only (D-0219); the watchdog reads the same rows.
@@ -370,9 +369,8 @@ def report(conn: sqlite3.Connection, *, now: datetime) -> dict[str, object]:
     expired = [
         {"subject": row[0], "reason": row[1], "since": row[2], "expires_at": row[3]}
         for row in conn.execute(
-            "SELECT subject,reason,since,expires_at FROM guard_reasons "
-            "WHERE subject NOT LIKE 'watch:%' AND last_seen_at > expires_at "
-            "ORDER BY expires_at LIMIT 20"
+            "SELECT subject, reason, since, expires_at FROM guard_reasons WHERE subject NOT ILIKE 'watch:%' "
+            "AND last_seen_at > expires_at ORDER BY expires_at NULLS FIRST LIMIT 20"
         )
     ]
     return {

@@ -93,7 +93,7 @@ if poison:
         derivations.complete(
             database.connection, selection, rows=(), now=clock.now(), run_id=run_id
         )
-        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     swingset.project.process_unit = project
     if fault.startswith("capture:"):
@@ -117,6 +117,21 @@ with tick(
     budget=600,
     transport=httpx.MockTransport(handler),
 ) as current:
+    connection = current.database.connection
+    backend_start = connection.execute(
+        "SELECT backend_start::text FROM pg_stat_activity WHERE pid=pg_backend_pid()"
+    ).fetchone()[0]
+    print(
+        "LOOP_BACKEND "
+        + json.dumps(
+            {
+                "pid": connection.info.backend_pid,
+                "database": connection.info.dbname,
+                "started": backend_start,
+            }
+        ),
+        flush=True,
+    )
     armed = True
     if loop == "release":
         release.run(current, disk_file=Path(state).parent / "no-disk-quota")

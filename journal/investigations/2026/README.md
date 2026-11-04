@@ -3,6 +3,10 @@
 [Browse by topic](../README.md). Dates in each record describe its evidence.
 A missing original date is not inferred from file modification time.
 
+- 2026-11-05: [Stage 1 test-loop measurements](stage-1-test-loop-measurements-2026-11-05.md).
+- [Stage 1 local PostgreSQL implementation, Gates 0 and 1 passed (2026-11-05)](stage-1-implementation-2026-11-04.md).
+
+- 2026-11-04: [Stage 0 implementation](stage-0-implementation-2026-11-04.md).
 - 2026-11-04: [Adversarial review of the Postgres and Dokploy plan](dokploy-plan-review-2026-11-04.md).
 - 2026-09-24: [Why the worker stalled: one bad release row, a monolithic history write, and a gate between them](build-failure-and-history-deadline-2026-09-24.md).
 - 2026-09-23: [Global Grand Prix series review](global-grand-prix-alias-review-2026-09-23.md).

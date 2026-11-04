@@ -10,12 +10,12 @@ from swingset.state.db import open_database
 def test_doctor_and_summary_report_service_without_mutation(tmp_path, monkeypatch):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO scheduler_offline_service VALUES ('parse','snapshot',3,"
-            "'2026-09-13T00:00:00+00:00',1)"
+            "INSERT INTO scheduler_offline_service (stage, unit_kind, attempts, last_served_at, "
+            "sequence) VALUES ('parse', 'snapshot', 3, '2026-09-13T00:00:00+00:00', 1)"
         )
-        before = list(db.connection.iterdump())
+        before = db.connection.total_changes
         result = cli.doctor(argparse.Namespace(state=tmp_path, config=Path("config")))
-        assert list(db.connection.iterdump()) == before
+        assert db.connection.total_changes == before
     scheduler = result["scheduler"]
     assert scheduler["supported"]
     assert scheduler["observed_attributed_service"] == []

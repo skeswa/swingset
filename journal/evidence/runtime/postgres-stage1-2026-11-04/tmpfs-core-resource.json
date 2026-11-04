@@ -1,0 +1,100 @@
+{
+  "abort_reason": "client_kernel_oom",
+  "assigned_counts": [
+    1306,
+    1086
+  ],
+  "clients": [
+    {
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "counts": {
+        "error": 0,
+        "failed": 18,
+        "passed": 830,
+        "skipped": 0
+      },
+      "counts_complete": false,
+      "failure_artifact_export": {
+        "bytes": 386041003,
+        "complete": true,
+        "files": 9490,
+        "path": "/tmp/failure-artifacts",
+        "required": true
+      },
+      "index": 0,
+      "peak_cgroup_bytes": 2011553792,
+      "peak_oom_kill_events": 0,
+      "peak_swap_bytes": 0,
+      "peak_tmpfs_bytes": 505376768,
+      "peak_tmpfs_inodes": 14024,
+      "peak_working_bytes": 1720193024,
+      "process_exit_code": 2
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 4
+      },
+      "counts": null,
+      "counts_complete": false,
+      "failure_artifact_export": {
+        "bytes": 743432934,
+        "complete": true,
+        "files": 20259,
+        "path": "/tmp/failure-artifacts",
+        "required": true
+      },
+      "index": 1,
+      "peak_cgroup_bytes": 2147483648,
+      "peak_oom_kill_events": 2,
+      "peak_swap_bytes": 0,
+      "peak_tmpfs_bytes": 716902400,
+      "peak_tmpfs_inodes": 23007,
+      "peak_working_bytes": 2122145792,
+      "process_exit_code": 254
+    }
+  ],
+  "conclusion": "Do not adopt this layout. Preserve the real disk preflight and durability calls; measure a narrower filesystem layout only after fixing the mismatch. The default executor remains unchanged.",
+  "failure_diagnosis": {
+    "other_visible_failures": [
+      "body_packs expected-error text changed by headroom preflight",
+      "maintain drill lacks passed field after actual no-room refusal"
+    ],
+    "partition0_failures": 18,
+    "partition1": "Worker killed by actual cgroup OOM; coordinator report incomplete.",
+    "publication_backup_headroom": "Production-shaped publication fixtures invoke the real 20GB backup headroom on the bounded768MiB payload filesystem. Their preflight refusals retained additional failed states."
+  },
+  "first_sampled_oom_seconds": 168.817,
+  "format": 1,
+  "job": "116cbabc28cb",
+  "kernel_limits": {
+    "cpus_per_client": 4,
+    "memory_per_client": 2147483648,
+    "memory_plus_swap_per_client": 2147483648,
+    "ownership_ledgers": "persistent /tmp",
+    "postgres_memory": 2147483648,
+    "retention": "failed",
+    "test_tmpfs_per_client": 805306368,
+    "workers_per_client": 4
+  },
+  "log_sha256": {
+    "swingset-linux-two-116cbabc28cb-0.log": "fa5c3c65ea3a7441608f698d04ef465d14a33ae8b3a658039f5687ab748b294d",
+    "swingset-linux-two-116cbabc28cb-1.log": "dffb5b56fbc1c4ddc76a952bdfe4e56c388f06d4a80902030ae1304aadbb5ece"
+  },
+  "measured_at": "2026-11-05T03:43:09.113972+00:00",
+  "measurement": "Incomplete actual core trial; stopped automatically on a real kernel OOM before complete performance could be measured.",
+  "membership_sha256": "0034a9a71b62879f7af302e94c9b2155d7b2e7af6bdd6430e1f274dcfe0bfe47",
+  "raw_sha256": "99c437181adec4f707329e4cb3ff609151e7c4c33ff4bf34d96df4570128be8e",
+  "selected_count": 2392,
+  "source_binding_before": "fd31c8a55ef2f4ffdb2ac878ab4a98484d336d51a3a608e7969f037ba3ce1d47",
+  "source_revision": "source-sha256:9f38d052d8b42a8d232bdf1c1f575d83e680b2b5ee69291d5d8560678b211ed4",
+  "source_stable": true,
+  "wall_seconds_including_abort_cleanup_and_artifact_export": 199.7167
+}

@@ -82,7 +82,7 @@ def run(f, directory, sha, **kwargs):
 
 def authority(f):
     return {
-        table: [tuple(row) for row in f.conn.execute("SELECT * FROM " + table)]
+        table: [tuple(row) for row in f.conn.execute(" SELECT * FROM " + table)]
         for table in (
             "watches",
             "host_budget",
@@ -122,11 +122,11 @@ def test_partial_resume_idempotence_and_duplicate_capture_provenance(sites, tmp_
     run(sites, directory, sha, dry_run=False)
     run(sites, directory, sha, dry_run=False)
     assert tuple(
-        sites.conn.execute("SELECT next_page,total_pages FROM archive_queries").fetchone()
+        sites.conn.execute("SELECT next_page, total_pages FROM archive_queries").fetchone()
     ) == (2, 2)
     assert (
         sites.conn.execute(
-            "SELECT COUNT(*) FROM archive_captures WHERE source='event_sites'"
+            "SELECT COUNT(*) FROM archive_captures WHERE source = 'event_sites'"
         ).fetchone()[0]
         == 1
     )
@@ -138,7 +138,7 @@ def test_partial_resume_idempotence_and_duplicate_capture_provenance(sites, tmp_
     assert len({hit.receipt_sha256 for hit in hits}) == 3
     assert (
         sites.conn.execute(
-            "SELECT cdx_query_id FROM archive_captures WHERE source='event_sites'"
+            "SELECT cdx_query_id FROM archive_captures WHERE source = 'event_sites'"
         ).fetchone()[0]
         == identifier
     )
@@ -149,12 +149,12 @@ def test_zero_page_probe_is_retained_but_never_platform_absence(sites, tmp_path)
     result = run(sites, tmp_path / "package", sha, dry_run=False)
     assert result.complete_queries == 1 and result.pages == 0
     assert tuple(
-        sites.conn.execute("SELECT source,next_page,total_pages FROM archive_queries").fetchone()
+        sites.conn.execute("SELECT source, next_page, total_pages FROM archive_queries").fetchone()
     ) == ("event_sites", 0, 0)
     assert (
-        sites.conn.execute("SELECT COUNT(*) FROM archive_queries WHERE source='eepro'").fetchone()[
-            0
-        ]
+        sites.conn.execute(
+            "SELECT COUNT(*) FROM archive_queries WHERE source = 'eepro'"
+        ).fetchone()[0]
         == 0
     )
     assert retained_hits(sites.conn, Archive(sites.db.state_dir), SITE) == ()
@@ -180,7 +180,7 @@ def test_invalid_request_recipe_never_changes_inventory(sites, tmp_path, change)
     assert sites.conn.execute("SELECT COUNT(*) FROM archive_queries").fetchone()[0] == 0
     assert (
         sites.conn.execute(
-            "SELECT COUNT(*) FROM archive_captures WHERE source='event_sites'"
+            "SELECT COUNT(*) FROM archive_captures WHERE source = 'event_sites'"
         ).fetchone()[0]
         == 0
     )
@@ -205,7 +205,10 @@ def test_filtered_review_ignores_platform_namespace(sites, tmp_path):
     sha, _ = package(sites, tmp_path / "package")
     run(sites, tmp_path / "package", sha, dry_run=False)
     sites.conn.execute(
-        "INSERT INTO archive_queries VALUES (?,?,?,2019,1,1,?,?)",
+        (
+            "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, total_pages, "
+            "completed_at, started_at) VALUES (%s, %s, %s, 2019, 1, 1, %s, %s)"
+        ),
         (
             digest(b"platform"),
             "eepro",
@@ -303,7 +306,7 @@ def test_bad_capture_rows_rollback_before_any_inventory_write(sites, tmp_path):
         run(sites, tmp_path / "package", sha, dry_run=False)
     assert (
         sites.conn.execute(
-            "SELECT COUNT(*) FROM archive_captures WHERE source='event_sites'"
+            "SELECT COUNT(*) FROM archive_captures WHERE source = 'event_sites'"
         ).fetchone()[0]
         == 0
     )
@@ -311,22 +314,24 @@ def test_bad_capture_rows_rollback_before_any_inventory_write(sites, tmp_path):
 
 
 def test_sql_failure_leaves_no_partial_query_selection(sites, tmp_path):
-    import sqlite3
+    from helpers.corruption import reject_inserts
+
+    from swingset.state import engine
 
     sha, _ = package(sites, tmp_path / "package")
-    sites.conn.execute(
-        "CREATE TEMP TRIGGER fail_intake BEFORE INSERT ON archive_captures WHEN NEW.source='event_sites' BEGIN SELECT RAISE(ABORT,'test interruption'); END"
-    )
-    with pytest.raises(sqlite3.IntegrityError, match="interruption"):
-        run(sites, tmp_path / "package", sha, dry_run=False)
+    with reject_inserts(
+        sites.conn, "archive_captures", "test interruption", when="NEW.source='event_sites'"
+    ):
+        with pytest.raises(engine.IntegrityError) as failure:
+            run(sites, tmp_path / "package", sha, dry_run=False)
+        assert failure.value.sqlstate == "23514"
     assert sites.conn.execute("SELECT COUNT(*) FROM archive_queries").fetchone()[0] == 0
     assert (
         sites.conn.execute(
-            "SELECT COUNT(*) FROM archive_captures WHERE source='event_sites'"
+            "SELECT COUNT(*) FROM archive_captures WHERE source = 'event_sites'"
         ).fetchone()[0]
         == 0
     )
-    sites.conn.execute("DROP TRIGGER fail_intake")
     assert run(sites, tmp_path / "package", sha, dry_run=False).complete_queries == 1
 
 

@@ -1,4 +1,8 @@
-"""Exact, operator-authorized new-source fixture quarantine; no admission activation."""
+"""Historical fixed-manifest SQLite fixture quarantine, retired after its reviewed intake.
+
+This tool does not support current Postgres state. Its exact original safety
+contract runs against the frozen SQLite test archive.
+"""
 
 from __future__ import annotations
 

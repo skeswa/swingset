@@ -1,7 +1,6 @@
 """Whole event withdrawal requires exhaustive independent declaration accounting."""
 
 import json
-import sqlite3
 from dataclasses import replace
 
 import pytest
@@ -13,6 +12,7 @@ from test_event_retirement import edge, observe, retirement_view
 from swingset.admission.event_retirement import verify_event
 from swingset.admission.page_evidence import Limits, Session
 from swingset.schedule.watches import upsert_watch
+from swingset.state import engine
 
 
 def withdrawn(f):
@@ -21,7 +21,8 @@ def withdrawn(f):
     enroll(f, config())
     shifted = replace(f.parent, source_ref="eepro:other")
     f.conn.execute(
-        "UPDATE watches SET source_ref=? WHERE watch_id=?", (shifted.source_ref, shifted.watch_id)
+        "UPDATE watches SET source_ref = %s WHERE watch_id = %s",
+        (shifted.source_ref, shifted.watch_id),
     )
     admit_parent(f, ["new.htm"], parent=shifted, authority=True)
     finish_bootstrap(f)
@@ -55,13 +56,13 @@ def test_explicit_event_withdrawal_has_separate_immutable_receipt(event):
     assert accounting["events"][0]["current_state"] == "explicitly_retired"
     assert accounting["state_counts"]["explicitly_retired"] == 1
     assert (
-        f.conn.execute("SELECT count(*) FROM source_event_retirement_receipts").fetchone()[0] == 1
+        f.conn.execute("SELECT COUNT(*) FROM source_event_retirement_receipts").fetchone()[0] == 1
     )
-    assert f.conn.execute("SELECT count(*) FROM event_retirement_receipts").fetchone()[0] == 1
+    assert f.conn.execute("SELECT COUNT(*) FROM event_retirement_receipts").fetchone()[0] == 1
     assert not f.conn.execute("SELECT 1 FROM event_progress_receipts").fetchone()
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         f.conn.execute("DELETE FROM source_event_retirement_receipts")
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         f.conn.execute("DELETE FROM source_event_retirement_proofs")
 
 
@@ -82,7 +83,7 @@ def test_unprocessed_admission_and_lost_independent_evidence_remain_unknown(even
     assert check(f)["retired"] is True
     manifest = json.loads(
         f.conn.execute(
-            "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            "SELECT manifest_json FROM source_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
     )
     f.archive.blob_path(manifest[0]["body_sha256"]).unlink()
@@ -114,7 +115,8 @@ def test_new_independent_empty_event_declaration_invalidates_current_retirement(
     finish_bootstrap(f)
     assert check(f)["retired"] is None  # Empty successor edge itself grants no new withdrawal.
     assert not f.conn.execute(
-        "SELECT 1 FROM source_event_enumeration_members WHERE enumeration_id=(SELECT enumeration_id FROM source_event_inventory WHERE source_ref='eepro:test')"
+        "SELECT 1 FROM source_event_enumeration_members WHERE enumeration_id = (SELECT "
+        "enumeration_id FROM source_event_inventory WHERE source_ref = 'eepro:test')"
     ).fetchone()
 
 
@@ -149,7 +151,8 @@ def test_independent_empty_group_survives_the_original_owners_withdrawal(event):
     finish_bootstrap(f)
     shifted = replace(f.parent, source_ref="eepro:other")
     f.conn.execute(
-        "UPDATE watches SET source_ref=? WHERE watch_id=?", (shifted.source_ref, shifted.watch_id)
+        "UPDATE watches SET source_ref = %s WHERE watch_id = %s",
+        (shifted.source_ref, shifted.watch_id),
     )
     admit_parent(f, ["new.htm"], parent=shifted, authority=True)
     finish_bootstrap(f)
@@ -168,11 +171,12 @@ def test_watch_source_rewrite_cannot_hide_a_retained_independent_declaration(eve
     finish_bootstrap(f)
     shifted = replace(f.parent, source_ref="eepro:other")
     f.conn.execute(
-        "UPDATE watches SET source_ref=? WHERE watch_id=?", (shifted.source_ref, shifted.watch_id)
+        "UPDATE watches SET source_ref = %s WHERE watch_id = %s",
+        (shifted.source_ref, shifted.watch_id),
     )
     admit_parent(f, ["new.htm"], parent=shifted, authority=True)
     finish_bootstrap(f)
-    f.conn.execute("UPDATE watches SET source='changed' WHERE watch_id=?", (other.watch_id,))
+    f.conn.execute("UPDATE watches SET source = 'changed' WHERE watch_id = %s", (other.watch_id,))
     assert check(f)["retired"] is None
 
 
@@ -217,8 +221,8 @@ def test_history_retains_enumerations_and_one_retirement_through_revalidation(ev
         )
         == 1
     )
-    assert f.conn.execute("SELECT count(*) FROM source_event_retirement_proofs").fetchone()[0] == 2
-    assert f.conn.execute("SELECT count(*) FROM event_retirement_receipts").fetchone()[0] == 1
+    assert f.conn.execute("SELECT COUNT(*) FROM source_event_retirement_proofs").fetchone()[0] == 2
+    assert f.conn.execute("SELECT COUNT(*) FROM event_retirement_receipts").fetchone()[0] == 1
 
 
 def test_admission_journal_insert_invalidates_a_source_domain_absence_proof(event):
@@ -237,8 +241,10 @@ def test_admission_journal_insert_invalidates_a_source_domain_absence_proof(even
     # This journal-only insert bypasses normal state-update invalidation. The
     # absence proof still cannot overlook an independently accepted declaration.
     f.conn.execute(
-        "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) "
-        "VALUES(?,'accepted','adversarial journal insert',?,'test')",
+        (
+            "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+            "VALUES (%s, 'accepted', 'adversarial journal insert', %s, 'test')"
+        ),
         (generation, f.corpus.clock.now().isoformat()),
     )
     assert retirement_view(f)["whole_event_retired"] is None

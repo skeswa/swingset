@@ -39,13 +39,13 @@ def prepare_cycle(fixture, tmp_path, monkeypatch):
     discover(fixture.db, bundle, fixture.clock.now())
     # Arrange an otherwise settled pipeline and already scheduled ordinary sources.
     fixture.conn.execute("DELETE FROM pending_work")
-    fixture.conn.execute("UPDATE watches SET state='paused',next_check_at=NULL")
+    fixture.conn.execute("UPDATE watches SET state = 'paused', next_check_at = NULL")
     accept(fixture)
     target = spec()
     upsert_watch(fixture.conn, target, fixture.clock.now())
     assert (
         fixture.conn.execute(
-            "SELECT priority FROM watches WHERE watch_id=?", (target.watch_id,)
+            "SELECT priority FROM watches WHERE watch_id = %s", (target.watch_id,)
         ).fetchone()[0]
         == 6
     )
@@ -122,16 +122,16 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
     assert fetches == [(target.watch_id, started + timedelta(seconds=50))]
     assert fetched.checked == 1 and len(requests) == 2
     snapshot_id = fixture.conn.execute(
-        "SELECT snapshot_id FROM snapshots WHERE watch_id=?", (target.watch_id,)
+        "SELECT snapshot_id FROM snapshots WHERE watch_id = %s", (target.watch_id,)
     ).fetchone()[0]
     if stop_after_fetch:
         assert fetched.stages == [] and parsed == []
         assert fixture.conn.execute(
-            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (snapshot_id,)
+            "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s", (snapshot_id,)
         ).fetchone()
         assert (
             fixture.conn.execute(
-                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
+                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
                 (target.watch_id,),
             ).fetchone()[0]
             is None
@@ -140,21 +140,24 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
         assert "parse" in fetched.stages and parsed == [snapshot_id]
         assert (
             fixture.conn.execute(
-                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
+                "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
                 (target.watch_id,),
             ).fetchone()[0]
             == snapshot_id
         )
         assert (
             fixture.conn.execute(
-                "SELECT COUNT(*) FROM observations WHERE snapshot_id=? AND kind='file_row'",
+                "SELECT COUNT(*) FROM observations WHERE snapshot_id = %s AND kind = 'file_row'",
                 (snapshot_id,),
             ).fetchone()[0]
             == 7
         )
         assert (
             fixture.conn.execute(
-                "SELECT g.state FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id WHERE u.watch_id=?",
+                (
+                    "SELECT g.state FROM source_units AS u JOIN source_generations AS g ON g.generation_id = "
+                    "u.accepted_generation_id WHERE u.watch_id = %s"
+                ),
                 (target.watch_id,),
             ).fetchone()[0]
             == "accepted"
@@ -164,7 +167,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
         # another retained parent capture; this turn must not refetch this one.
         assert (
             fixture.conn.execute(
-                "SELECT COUNT(*) FROM work_attempts WHERE stage='parse' AND unit_id=?",
+                "SELECT COUNT(*) FROM work_attempts WHERE stage = 'parse' AND unit_id = %s",
                 (snapshot_id,),
             ).fetchone()[0]
             == 1
@@ -185,34 +188,38 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
     assert dispatches == ["dispatched"]
     assert (
         fixture.conn.execute(
-            "SELECT parse_status FROM snapshots WHERE snapshot_id=?", (snapshot_id,)
+            "SELECT parse_status FROM snapshots WHERE snapshot_id = %s", (snapshot_id,)
         ).fetchone()[0]
         == "ok"
     )
     assert (
         fixture.conn.execute(
-            "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
+            "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
             (target.watch_id,),
         ).fetchone()[0]
         == snapshot_id
     )
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM observations WHERE snapshot_id=? AND kind='file_row'",
+            "SELECT COUNT(*) FROM observations WHERE snapshot_id = %s AND kind = 'file_row'",
             (snapshot_id,),
         ).fetchone()[0]
         == 7
     )
     assert (
         fixture.conn.execute(
-            "SELECT g.state FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id WHERE u.watch_id=?",
+            (
+                "SELECT g.state FROM source_units AS u JOIN source_generations AS g ON g.generation_id = "
+                "u.accepted_generation_id WHERE u.watch_id = %s"
+            ),
             (target.watch_id,),
         ).fetchone()[0]
         == "accepted"
     )
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM pending_work WHERE stage='parse' AND unit_id=?", (snapshot_id,)
+            "SELECT COUNT(*) FROM pending_work WHERE stage = 'parse' AND unit_id = %s",
+            (snapshot_id,),
         ).fetchone()[0]
         == 0
     )
@@ -220,7 +227,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
         assert resumed.stages == ["parse"]
         assert (
             fixture.conn.execute(
-                "SELECT COUNT(*) FROM pending_work WHERE stage='project'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage = 'project'"
             ).fetchone()[0]
             > 0
         )
@@ -266,18 +273,18 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     )
     assert first["acquire"]["history_dispatch"]["reason"] == "dispatched"
     first_snapshot = fixture.conn.execute(
-        "SELECT snapshot_id FROM snapshots WHERE watch_id=?", (target.watch_id,)
+        "SELECT snapshot_id FROM snapshots WHERE watch_id = %s", (target.watch_id,)
     ).fetchone()[0]
     assert (
         fixture.conn.execute(
-            "SELECT outcome FROM work_attempts WHERE unit_id=? ORDER BY attempt_id",
+            "SELECT outcome FROM work_attempts WHERE unit_id = %s ORDER BY attempt_id NULLS FIRST",
             (first_snapshot,),
         ).fetchall()[0][0]
         == "blocked"
     )
     assert (
         fixture.conn.execute(
-            "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
+            "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
             (target.watch_id,),
         ).fetchone()[0]
         is None
@@ -285,7 +292,10 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     first_generations = [
         tuple(row)
         for row in fixture.conn.execute(
-            "SELECT generation_id,result_json,report_json FROM source_generations WHERE unit_key=? AND state='needs_review'",
+            (
+                "SELECT generation_id, result_json, report_json FROM source_generations WHERE unit_key = %s "
+                "AND state = 'needs_review'"
+            ),
             (target.watch_id,),
         )
     ]
@@ -303,25 +313,27 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     assert "parse" in second.stages and "project" in second.stages
     assert len(requests) == 3 and "20190401" in requests[-1]
     promoted = fixture.conn.execute(
-        "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?", (target.watch_id,)
+        "SELECT current_observation_snapshot_id FROM watches WHERE watch_id = %s",
+        (target.watch_id,),
     ).fetchone()[0]
     assert promoted is not None and promoted != first_snapshot
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM observations WHERE snapshot_id=? AND kind='file_row'", (promoted,)
+            "SELECT COUNT(*) FROM observations WHERE snapshot_id = %s AND kind = 'file_row'",
+            (promoted,),
         ).fetchone()[0]
         == 7
     )
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM observations WHERE snapshot_id=?", (first_snapshot,)
+            "SELECT COUNT(*) FROM observations WHERE snapshot_id = %s", (first_snapshot,)
         ).fetchone()[0]
         == 0
     )
     outcomes = [
         row[0]
         for row in fixture.conn.execute(
-            "SELECT outcome FROM work_attempts WHERE unit_id=? ORDER BY attempt_id",
+            "SELECT outcome FROM work_attempts WHERE unit_id = %s ORDER BY attempt_id NULLS FIRST",
             (first_snapshot,),
         )
     ]
@@ -331,7 +343,10 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     assert [
         tuple(row)
         for row in fixture.conn.execute(
-            "SELECT generation_id,result_json,report_json FROM source_generations WHERE unit_key=? AND state='needs_review'",
+            (
+                "SELECT generation_id, result_json, report_json FROM source_generations WHERE unit_key = %s "
+                "AND state = 'needs_review'"
+            ),
             (target.watch_id,),
         )
     ] == first_generations
@@ -354,7 +369,7 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     # healthy derivation nor grants admission authority to rejected evidence.
     # H16 independently checks the selected release closure.
     assert fixture.conn.execute(
-        "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (first_snapshot,)
+        "SELECT 1 FROM pending_work WHERE stage = 'parse' AND unit_id = %s", (first_snapshot,)
     ).fetchone()
 
 
@@ -366,11 +381,18 @@ def test_historical_candidates_compete_together_before_offline_phase(
     config_dir, overrides_dir, target = prepare_cycle(fixture, tmp_path, monkeypatch)
     second_url = "https://eepro.com/results/other2019/"
     fixture.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:other2019',?,'explicit',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'eepro:other2019', %s, 'explicit', 1)"
+        ),
         (EVENT.event_id,),
     )
     fixture.conn.execute(
-        "INSERT INTO archive_captures VALUES ('eepro',?,'20190501000000','second',200,'text/html',100,?,'retained')",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES ('eepro', %s, '20190501000000', 'second', 200, "
+            "'text/html', 100, %s, 'retained')"
+        ),
         (second_url, fixture.clock.now().isoformat()),
     )
     accept(fixture)
@@ -417,5 +439,5 @@ def test_historical_candidates_compete_together_before_offline_phase(
     assert result.checked == 2 and len(parsed) == 1
     assert len(enrolled[0]) == 2 and target.watch_id in enrolled[0]
     assert any(second_url in request for request in requests)
-    assert fixture.conn.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 3
-    assert fixture.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 3
+    assert fixture.conn.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == 3
+    assert fixture.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 3

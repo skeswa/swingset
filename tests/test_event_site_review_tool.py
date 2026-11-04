@@ -3,11 +3,11 @@
 import csv
 import io
 import json
-import sqlite3
 import time
 from dataclasses import replace
 
 import pytest
+from helpers.state_digest import state_digest
 from test_history_event_sites import PDF, SITE, retained
 from test_history_event_sites import sites as sites
 from test_platform_backfill import fixture as fixture
@@ -15,6 +15,7 @@ from test_platform_backfill import fixture as fixture
 from journal.tools.collection import event_site_review as tool
 from swingset.fetch.archive import Archive
 from swingset.history.event_sites import Site, retained_hits
+from swingset.state import engine
 
 
 def run(f, **kwargs):
@@ -31,7 +32,19 @@ def hits(f):
 
 def test_verified_pdf_becomes_draft_csv_with_exact_binding_and_no_controls(sites):
     retained(sites)
-    before_watches = [tuple(row) for row in sites.conn.execute("SELECT * FROM watches")]
+    before_watches = [
+        tuple(row)
+        for row in sites.conn.execute(
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches"
+        )
+    ]
     rows = run(sites)
     assert len(rows) == 1
     row = rows[0]
@@ -41,12 +54,24 @@ def test_verified_pdf_becomes_draft_csv_with_exact_binding_and_no_controls(sites
     assert suggestion[:5] == [SITE.event_id, "generic", "round", PDF, "generic.pdf_table"]
     assert row["candidate_event_ids"] == [SITE.event_id]
     assert len(row["captures"]) == 1 and row["captures"][0]["receipt_sha256"]
-    assert [tuple(row) for row in sites.conn.execute("SELECT * FROM watches")] == before_watches
+    assert [
+        tuple(row)
+        for row in sites.conn.execute(
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches"
+        )
+    ] == before_watches
     assert sites.conn.execute("SELECT COUNT(*) FROM history_origin_intents").fetchone()[0] == 0
     assert sites.conn.execute("SELECT COUNT(*) FROM host_budget").fetchone()[0] == 0
     assert (
         sites.conn.execute(
-            "SELECT COUNT(*) FROM findings WHERE kind='history_event_site_review'"
+            "SELECT COUNT(*) FROM findings WHERE kind = 'history_event_site_review'"
         ).fetchone()[0]
         == 0
     )
@@ -57,7 +82,7 @@ def test_unaccepted_year_yields_no_proposal(sites):
     retained(sites)
     sites.conn.execute("DELETE FROM history_acceptance")
     assert run(sites) == []
-    assert sites.conn.execute("SELECT 1 FROM meta WHERE key LIKE 'event_site%'").fetchone() is None
+    assert sites.conn.execute("SELECT 1 FROM meta WHERE key ILIKE 'event_site%'").fetchone() is None
 
 
 def test_year_gate_is_judged_on_facts_not_the_pending_projection(sites, monkeypatch):
@@ -75,42 +100,31 @@ def test_year_gate_is_judged_on_facts_not_the_pending_projection(sites, monkeypa
 def test_tool_writes_nothing(sites, tmp_path_factory):
     retained(sites)
     state = sites.db.state_dir
-    database = state / "state.sqlite"
     files = sorted(path.relative_to(state) for path in state.rglob("*") if path.is_file())
-    before = (
-        database.stat().st_size,
-        database.stat().st_mtime_ns,
-        sites.conn.execute("PRAGMA data_version").fetchone()[0],
-    )
+    before = state_digest(sites.conn)
     out = tmp_path_factory.mktemp("out") / "proposals.jsonl"
     assert tool.main(["--state", str(state), "--events", "10", "--out", str(out)]) == 0
     rows = [json.loads(line) for line in out.read_text().splitlines()]
     assert [row["reason"] for row in rows] == ["draft_override"]
-    after = (
-        database.stat().st_size,
-        database.stat().st_mtime_ns,
-        sites.conn.execute("PRAGMA data_version").fetchone()[0],
-    )
+    after = state_digest(sites.conn)
     assert after == before
     assert sorted(path.relative_to(state) for path in state.rglob("*") if path.is_file()) == files
     conn = tool.open_state(state)
     try:
-        with pytest.raises(sqlite3.OperationalError):
-            conn.execute("CREATE TABLE written(x)")
+        with pytest.raises(engine.OperationalError):
+            conn.execute("CREATE TABLE written (x text)")
     finally:
         conn.close()
 
 
-def test_immutable_open_when_no_log_holds_data(sites):
+def test_readonly_snapshot_open_reads_retained_data_without_writes(sites):
     retained(sites)
-    sites.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    database = sites.db.state_dir / "state.sqlite"
-    stamp = database.stat().st_mtime_ns
+    before = state_digest(sites.conn)
     started = time.monotonic()
     rows = run(sites, events=10)
     assert time.monotonic() - started < 60
     assert [row["reason"] for row in rows] == ["draft_override"]
-    assert database.stat().st_mtime_ns == stamp
+    assert state_digest(sites.conn) == before
 
 
 def test_out_inside_the_state_is_refused(sites):
@@ -156,9 +170,9 @@ def test_missing_or_mismatched_evidence_is_an_explicit_gap_without_csv(sites, pr
     if problem == "missing_body":
         Archive(sites.db.state_dir).blob_path(body_sha).unlink()
     elif problem == "missing_capture":
-        sites.conn.execute("DELETE FROM archive_captures WHERE cdx_query_id=?", (identifier,))
+        sites.conn.execute("DELETE FROM archive_captures WHERE cdx_query_id = %s", (identifier,))
     elif problem == "oversized_cohort":
-        sites.conn.execute("UPDATE archive_queries SET next_page=65,total_pages=65")
+        sites.conn.execute("UPDATE archive_queries SET next_page = 65, total_pages = 65")
     rows = run(sites)
     assert [row["reason"] for row in rows] == ["invalid_evidence"]
     assert rows[0]["error"] and "source_urls_csv" not in rows[0]
@@ -211,11 +225,20 @@ def test_malformed_capture_body_is_a_gap_without_crashing_review(sites):
 
 
 def test_cohort_pages_by_event_id_and_filters_by_year(sites):
-    row = dict(sites.conn.execute("SELECT * FROM events").fetchone())
+    row = dict(
+        sites.conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events"
+        ).fetchone()
+    )
     columns = tuple(row)
     row["event_id"] = "2019-02-second"
     sites.conn.execute(
-        f"INSERT INTO events VALUES ({','.join('?' for _ in columns)})",
+        f"INSERT INTO events (event_id, series_id, name, year, start_date, end_date, city, region, country, website, wsdc_status, sources, live_window_start, live_window_end, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, event_month, date_precision, held, coverage_tier, history_source) VALUES ({','.join('%s' for _ in columns)})",
         tuple(row[name] for name in columns),
     )
     from test_platform_backfill import accept

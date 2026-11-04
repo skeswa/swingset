@@ -1,0 +1,88 @@
+{
+  "all_fixed_source_dependencies_sha256": "f736efb6d9983eee8b3087f70e9077f8409e436e8977f97248353e1985f2b169",
+  "baseline": {
+    "counts": {
+      "deadline_setting_statements": 7596,
+      "driver_execute_calls": 17704
+    },
+    "phase_seconds": {
+      "call": 3.078693500254303,
+      "setup": 0.25153387524187565,
+      "teardown": 0.010519083123654127
+    },
+    "wall_seconds": 3.532107749953866
+  },
+  "both_pytest_exit_codes": 1,
+  "contracts": {
+    "original_30ms_test_unchanged": true,
+    "passed": 46,
+    "runtime_source_unchanged": true,
+    "seconds": 13.26,
+    "tests": [
+      "tests/test_postgres_engine.py",
+      "tests/test_rwlock.py",
+      "tests/test_write_deadline.py"
+    ]
+  },
+  "exact_iterations": 20,
+  "expected_incomplete_fixture_assertion": "completed == target_urls",
+  "first20_summary": {
+    "categories": {
+      "current": 9,
+      "new": 11
+    },
+    "completed_target_pages": 3,
+    "lanes": {
+      "discovery": 6,
+      "listed_result": 5
+    },
+    "target_positions": [
+      2,
+      8,
+      12
+    ]
+  },
+  "fixture": "tests/test_event_completion_cohort.py::test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh",
+  "fixture_body_improvement_fraction": 0.1880698878477326,
+  "fixture_sha256": "c9d436990f83c8f687659584c4825c9bf7577774bd547836072ffc61fdb743a5",
+  "format": "swingset-controlled-timeout-memo-profile-v1",
+  "full_original_coverage_unchanged": true,
+  "limits": [
+    "A measured first20 prefix is deliberately incomplete and is not a replacement for the unchanged full600 test.",
+    "Memo keyed by exact absolute deadline and floored remaining milliseconds; every statement still checks current time and main-thread SIGALRM.",
+    "No pipeline protocol change. Full cProfile files and one-off helper scripts remain in scratch."
+  ],
+  "original_iterations": 600,
+  "outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+  "recorded_at": "2026-11-05T02:08:24.363404+00:00",
+  "scratch_exact_ms_memo": {
+    "counts": {
+      "deadline_setting_statements": 1947,
+      "driver_execute_calls": 12055,
+      "memo_hits": 5649,
+      "memo_setting_updates": 1947
+    },
+    "phase_seconds": {
+      "call": 2.4996839589439332,
+      "setup": 0.1017784159630537,
+      "teardown": 0.010023999959230423
+    },
+    "wall_seconds": 2.7849685424007475
+  },
+  "scratch_memo_sha256": "f61fdd4875a600469ab060b24ec9795c4e76688486ed28f7a991da307df4de53",
+  "scratch_runner_sha256": "1846c9dec03844d556d6dbf9d612f1050f37cd9b67a942d01194812508f53607",
+  "source_hashes": {
+    "src/swingset/schedule/event_pressure.py": "da24fbabe9f77171d7ced3246d2afefa5124c3996417c7e62436fddfeb0656de",
+    "src/swingset/state/control_scopes.py": "c71ddc97d8b9ed459d99a83c714ef2e404609aa6dd73e37cdeb8bdfb4d5aec7c",
+    "src/swingset/state/db.py": "58525020df1c27936f9d5c54128ed91bcfa0cf1f96d104e1570aa6b71bce3ee8",
+    "src/swingset/state/engine/connection.py": "588b00043fb1104def1354f621385687a09f9bbbcb9c17fc39456c6417d2febf",
+    "src/swingset/state/write_deadline.py": "33124bb89b27331c19324603913961d6e0704485d1acfd449e20b2cd9bbcbd04"
+  },
+  "trigger": {
+    "core_budget_seconds": 180,
+    "core_tests_failed": 20,
+    "core_tests_passed": 2334,
+    "unchanged_four_worker_core_seconds": 723.72
+  },
+  "uv_lock_sha256": "71b9cc76361a910cbd1d9c1f3b1854d4d96407d092ba9eddf3b53054f340ce0f"
+}

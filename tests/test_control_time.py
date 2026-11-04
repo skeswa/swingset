@@ -42,16 +42,17 @@ def test_overlapping_scopes_union_once_after_selective_resume_and_expiry(tmp_pat
         other = view.measure(ActionScope(sources=frozenset({"wdr"})), NOW.isoformat())
         assert other["unpaused_seconds"] == 80
         queries = []
-        db.connection.set_trace_callback(queries.append)
-        for offset in range(1000):
-            view.measure(scope, (NOW - timedelta(seconds=offset)).isoformat())
+        with db.connection.observing(lambda query, params: queries.append(str(query))):
+            for offset in range(1000):
+                view.measure(scope, (NOW - timedelta(seconds=offset)).isoformat())
         assert queries == [] and len(view.cache) == 2
 
 
 def test_resume_alert_excludes_pause_but_retains_requirement_and_queue_wall_ages(tmp_path):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,1)", (NOW.isoformat(),)
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 1)",
+            (NOW.isoformat(),),
         )
         key = reconcile_requirement(
             db.connection,
@@ -62,7 +63,8 @@ def test_resume_alert_excludes_pause_but_retains_requirement_and_queue_wall_ages
             "test",
         )
         db.connection.execute(
-            "INSERT INTO pending_work VALUES ('project','dancer','42',?)", (NOW.isoformat(),)
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', 'dancer', '42', %s)",
+            (NOW.isoformat(),),
         )
         control(tmp_path, "source", "wsdc_registry", 10)
         control(tmp_path, "source", "wsdc_registry", 3610, paused=False)
@@ -85,7 +87,8 @@ def test_resume_alert_excludes_pause_but_retains_requirement_and_queue_wall_ages
 def test_legacy_unknown_start_is_unavailable_until_measurement_begins_after_import(tmp_path):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,1)", (NOW.isoformat(),)
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 1)",
+            (NOW.isoformat(),),
         )
         reconcile_requirement(
             db.connection,
@@ -97,11 +100,18 @@ def test_legacy_unknown_start_is_unavailable_until_measurement_begins_after_impo
         )
         expiry = (NOW + timedelta(seconds=200)).isoformat()
         db.connection.execute(
-            "INSERT INTO operator_pauses(scope_kind,scope_id,reason,pause_id,actor,until_at) VALUES ('all','all','legacy hold','legacy','legacy:unknown',?)",
+            (
+                "INSERT INTO operator_pauses (scope_kind, scope_id, reason, pause_id, actor, until_at) "
+                "VALUES ('all', 'all', 'legacy hold', 'legacy', 'legacy:unknown', %s)"
+            ),
             (expiry,),
         )
         db.connection.execute(
-            "INSERT INTO control_events(control_revision,pause_id,scope_kind,scope_id,action,actor,reason,until_at,occurred_at) VALUES (0,'legacy','all','all','legacy_import','legacy:unknown','legacy hold',?,?)",
+            (
+                "INSERT INTO control_events (control_revision, pause_id, scope_kind, scope_id, action, "
+                "actor, reason, until_at, occurred_at) VALUES (0, 'legacy', 'all', 'all', 'legacy_import', "
+                "'legacy:unknown', 'legacy hold', %s, %s)"
+            ),
             (expiry, (NOW + timedelta(seconds=100)).isoformat()),
         )
         view = ControlTime(db.connection, NOW + timedelta(seconds=300))
@@ -141,7 +151,7 @@ def test_timezone_missing_or_invalid_measurement_start_is_unknown(tmp_path, sinc
 def test_invalid_event_timing_only_makes_matching_scope_unavailable(tmp_path, field, value):
     with open_database(tmp_path) as db:
         control(tmp_path, "source", "eepro", 10, until=90)
-        db.connection.execute(f"UPDATE control_events SET {field}=?", (value,))
+        db.connection.execute(f"UPDATE control_events SET {field} = %s", (value,))
         measured = ControlTime(db.connection, NOW + timedelta(seconds=100))
         assert measured.has_history
         held = measured.measure(ActionScope(sources=frozenset({"eepro"})), NOW.isoformat())
@@ -155,7 +165,8 @@ def test_invalid_event_timing_only_makes_matching_scope_unavailable(tmp_path, fi
 def test_legacy_current_pause_with_naive_creation_time_does_not_crash(tmp_path):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO operator_pauses(scope_kind,scope_id,reason,created_at) VALUES ('all','all','legacy','2026-09-13')"
+            "INSERT INTO operator_pauses (scope_kind, scope_id, reason, created_at) VALUES ('all', "
+            "'all', 'legacy', '2026-09-13')"
         )
         result = ControlTime(db.connection, NOW).measure(
             ActionScope(), (NOW - timedelta(seconds=1)).isoformat()

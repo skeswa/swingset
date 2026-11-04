@@ -4,29 +4,29 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any
 
 from swingset.sources.phase_one import PHASE1_KINDS, stored_scope_ref
-from swingset.state import body_packs
+from swingset.state import body_packs, engine
 
 from .closure_manifest import ClosureError, canonical, digest
 
 
 def _accepted(
-    conn: sqlite3.Connection, identifier: str, *, include_result: bool = True
+    conn: engine.Connection, identifier: str, *, include_result: bool = True
 ) -> Mapping[str, Any] | None:
     # Validation only needs the receipt. Fetching every potentially large parse
     # result here would copy it again before support() actually interprets it.
     result = ",g.result_json" if include_result else ""
     row = conn.execute(
-        "SELECT g.generation_id,g.input_fingerprint,g.contract_version,g.page_kind,"
-        "g.created_at,g.recipe_json,g.report_json" + result + " "
-        "FROM source_generations g JOIN admission_policies p ON p.page_kind=g.page_kind "
-        "AND p.contract_version=g.contract_version "
-        "WHERE g.generation_id=? AND g.state!='revoked' AND EXISTS "
-        "(SELECT 1 FROM admission_decisions d WHERE d.generation_id=g.generation_id AND d.state='accepted')",
+        (
+            "SELECT g.generation_id,g.input_fingerprint,g.contract_version,g.page_kind,g.created_at,g.recipe_json,g.report_json"
+        )
+        + result
+        + (
+            " FROM source_generations g JOIN admission_policies p ON p.page_kind=g.page_kind AND p.contract_version=g.contract_version WHERE g.generation_id=%s AND g.state!='revoked' AND EXISTS (SELECT 1 FROM admission_decisions d WHERE d.generation_id=g.generation_id AND d.state='accepted')"
+        ),
         (identifier,),
     ).fetchone()
     if row is None:
@@ -40,7 +40,7 @@ def _accepted(
     return None if report.get("failures") else found
 
 
-def _independent(conn: sqlite3.Connection, row: Mapping[str, Any]) -> bool:
+def _independent(conn: engine.Connection, row: Mapping[str, Any]) -> bool:
     """Whether the generation is an archived phase-one capture, its own unit (D-0257).
 
     Only a phase-one listing kind can be one, so other kinds read nothing more.
@@ -48,7 +48,7 @@ def _independent(conn: sqlite3.Connection, row: Mapping[str, Any]) -> bool:
     if row["page_kind"] not in PHASE1_KINDS:
         return False
     found = conn.execute(
-        "SELECT unit_key FROM source_generations WHERE generation_id=?", (row["generation_id"],)
+        "SELECT unit_key FROM source_generations WHERE generation_id = %s", (row["generation_id"],)
     ).fetchone()
     return found is not None and "/" in str(found[0])
 
@@ -78,7 +78,7 @@ def _observations(
 
 
 def support(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     observations: Iterable[Mapping[str, Any]],
     sources: Iterable[str],
     *,
@@ -119,7 +119,9 @@ def support(
             str(json.loads(row[0])["context"]["snapshot_id"]),
             str(json.loads(row[0])["parser_version"]),
         )
-        for row in conn.execute("SELECT recipe_json FROM source_generations WHERE state='revoked'")
+        for row in conn.execute(
+            "SELECT recipe_json FROM source_generations WHERE state = 'revoked'"
+        )
     }
     result = []
     for identifier, observation in sorted(selected.items()):
@@ -148,13 +150,15 @@ def support(
     return tuple(result)
 
 
-def validate_support(conn: sqlite3.Connection, evidence: Iterable[Mapping[str, Any]]) -> None:
+def validate_support(conn: engine.Connection, evidence: Iterable[Mapping[str, Any]]) -> None:
     revoked = {
         (
             str(json.loads(row[0])["context"]["snapshot_id"]),
             str(json.loads(row[0])["parser_version"]),
         )
-        for row in conn.execute("SELECT recipe_json FROM source_generations WHERE state='revoked'")
+        for row in conn.execute(
+            "SELECT recipe_json FROM source_generations WHERE state = 'revoked'"
+        )
     }
     checked: set[str] = set()
     for item in evidence:
@@ -162,7 +166,7 @@ def validate_support(conn: sqlite3.Connection, evidence: Iterable[Mapping[str, A
         if key in revoked and item["state"] != "revoked":
             raise ClosureError("selected_source_support_revoked")
         snapshot = conn.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (key[0],)
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (key[0],)
         ).fetchone()
         if snapshot is None or snapshot[0] != item["body_sha256"]:
             raise ClosureError("selected_source_artifact_changed")
@@ -220,7 +224,7 @@ def interpretation_lookup(manifest: Mapping[str, Any]) -> dict[tuple[str, str], 
 
 
 def selected_observations(
-    conn: sqlite3.Connection, manifest: Mapping[str, Any]
+    conn: engine.Connection, manifest: Mapping[str, Any]
 ) -> Iterator[dict[str, Any]]:
     """Exact accepted payloads for a cutoff-bound ReferenceReader overlay."""
     from .closure import hydrate
@@ -237,7 +241,10 @@ def selected_observations(
         if item["state"] != "legacy_unassessed":
             continue
         row = conn.execute(
-            "SELECT payload_json,scope_kind,scope_id,kind,seq,parser_version,extract_version,snapshot_id FROM observations WHERE observation_id=?",
+            (
+                "SELECT payload_json, scope_kind, scope_id, kind, seq, parser_version, extract_version, "
+                "snapshot_id FROM observations WHERE observation_id = %s"
+            ),
             (item["observation_id"],),
         ).fetchone()
         if (
@@ -278,7 +285,7 @@ def selected_observations(
 
 
 def observation_payload_loader(
-    conn: sqlite3.Connection, manifest: Mapping[str, Any]
+    conn: engine.Connection, manifest: Mapping[str, Any]
 ) -> Callable[[str], Iterable[str]]:
     """Resolve exact round payloads on demand, without retaining raw source bodies."""
     from .closure import hydrate

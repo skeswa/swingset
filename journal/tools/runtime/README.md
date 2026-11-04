@@ -5,13 +5,13 @@ derivations on scratch. None of these touch `/var/lib/swingset`.
 
 [All tools](../README.md) · [Investigations](../../investigations/runtime.md) · [Evidence](../../evidence/runtime/README.md)
 
-| Script                                                                                   | Purpose                                                                                   |
-| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [measure_state_storage.py](measure_state_storage.py)                                     | Read-only table, index, source-JSON and derivation storage report on a disposable copy.   |
-| [profile_source_generation_json.py](profile_source_generation_json.py)                   | Bounded, aggregate-only source-generation JSON structure profile on a disposable copy.    |
-| [benchmark_derivation_row_layout.py](benchmark_derivation_row_layout.py)                 | Compare rowid and WITHOUT ROWID derivation rows on compact full schema-29 copies.         |
-| [benchmark_source_generation_compression.py](benchmark_source_generation_compression.py) | Compare plain and independently compressed source-generation JSON on compact full copies. |
-| [replay_derivations.py](replay_derivations.py)                                           | Resume real project/link workers on a marker-bound SQLite scratch copy only.              |
+| Script                                                                                   | Purpose                                                                                       |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [measure_state_storage.py](measure_state_storage.py)                                     | Read-only table, index, source-JSON and derivation storage report on a disposable copy.       |
+| [profile_source_generation_json.py](profile_source_generation_json.py)                   | Bounded, aggregate-only source-generation JSON structure profile on a disposable copy.        |
+| [benchmark_derivation_row_layout.py](benchmark_derivation_row_layout.py)                 | Compare rowid and WITHOUT ROWID derivation rows on compact full schema-29 copies.             |
+| [benchmark_source_generation_compression.py](benchmark_source_generation_compression.py) | Compare plain and independently compressed source-generation JSON on compact full copies.     |
+| [replay_derivations.py](replay_derivations.py)                                           | Historical H16 only: replay workers on a marker-bound SQLite copy bound to its frozen source. |
 
 The [state storage measurement](measure_state_storage.py) answers step 1 of the
 [bounded state plan](../../../docs/plans/bounded-state-and-archive.md): bytes
@@ -29,3 +29,11 @@ The H11 to H16 acceptance helpers, schema-29 rehearsal, migration, checkpoint
 and input-acceptance helpers, spacing baselines and selector profiles were
 one-off operations; their receipts live under
 [evidence](../../evidence/runtime/README.md) and their sources in history (D-0177).
+
+The historical `measure_state_storage.py` accepts disposable SQLite copies only.
+Its local backup timing uses [the frozen schema-37 checkpoint helper](legacy_sqlite_checkpoint.py),
+which has no activation or remote-recovery API. Live state uses Postgres.
+
+The H16 replay helper requires its exact reviewed `h16-source.json` runtime.
+Its original regression cases run in the [frozen SQLite fixture](../../../tests/fixtures/legacy_sqlite37/README.md).
+For current Postgres state, use `mise dev-replay` instead.

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
 from dataclasses import asdict, replace
 from datetime import timedelta
 from pathlib import Path
@@ -20,6 +18,7 @@ from swingset.fetch.wayback import schedule_capture
 from swingset.history.catalog import Target, load_catalog, save_catalog
 from swingset.history.closure import synchronize_year_findings, year_gaps
 from swingset.project.history import dismissed_findings
+from swingset.publish.journal import Hub
 from swingset.schedule.parse import parse_snapshot
 from swingset.schedule.watches import upsert_watch
 from swingset.sources import get_page_kind
@@ -31,25 +30,16 @@ from swingset.state.inputs import accepted_override
 from swingset.state.work import WorkUnit
 
 
-def bootstrap(checkpoint: Path, state: Path) -> None:
-    """Copy the database; share only immutable artifact inodes on the same device."""
-    state.mkdir(parents=True, exist_ok=True)
-    if (state / "state.sqlite").exists():
-        return
-    same_device = checkpoint.stat().st_dev == state.stat().st_dev
-    shutil.copy2(checkpoint / "state.sqlite", state / "state.sqlite")
-    for directory in ("blobs", "extracts", "inputs"):
-        source = checkpoint / directory
-        if source.exists():
-            shutil.copytree(
-                source,
-                state / directory,
-                dirs_exist_ok=True,
-                copy_function=os.link if same_device else shutil.copy2,
-            )
+def bootstrap(
+    checkpoint: Path, state: Path, *, hub: Hub, clock: Clock, environment: str = "dev"
+) -> None:
+    """Restore through the ordinary owner job, publication fence and rebuild gate."""
+    from swingset.backup.checkpoint import restore_from_checkpoint
+
+    restore_from_checkpoint(checkpoint, state, hub, clock, lock_timeout=30, environment=environment)
     durable_write(
         state / "phase1-baseline.json",
-        canonical({"checkpoint": str(checkpoint), "immutable_hardlinks": same_device}),
+        canonical({"checkpoint": str(checkpoint), "environment": environment}),
     )
 
 
@@ -75,7 +65,19 @@ def _snapshot(database: Database, target: Target) -> dict[str, Any] | None:
     conn = database.connection
     if target.archive_url:
         row = conn.execute(
-            "SELECT * FROM snapshots WHERE url=? AND (archive_url=? OR requested_archive_url=?) AND http_status=200 AND classification='Ok' ORDER BY fetched_at DESC,snapshot_id DESC LIMIT 1",
+            (
+                "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                "snapshots.extract_recipe_sha256 FROM snapshots WHERE url = %s AND (archive_url = %s OR "
+                "requested_archive_url = %s) AND http_status = 200 AND classification = 'Ok' ORDER BY "
+                "fetched_at DESC NULLS LAST, snapshot_id DESC NULLS LAST LIMIT 1"
+            ),
             (target.url, target.archive_url, target.archive_url),
         ).fetchone()
     else:
@@ -86,7 +88,19 @@ def _snapshot(database: Database, target: Target) -> dict[str, Any] | None:
             else target.url
         )
         row = conn.execute(
-            "SELECT * FROM snapshots WHERE url IN (?,?) AND via='origin' AND http_status=200 AND classification='Ok' ORDER BY fetched_at DESC,snapshot_id DESC LIMIT 1",
+            (
+                "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                "snapshots.extract_recipe_sha256 FROM snapshots WHERE url IN (%s, %s) AND via = 'origin' AND "
+                "http_status = 200 AND classification = 'Ok' ORDER BY fetched_at DESC NULLS LAST, "
+                "snapshot_id DESC NULLS LAST LIMIT 1"
+            ),
             (target.url, alternate),
         ).fetchone()
     return dict(row) if row else None
@@ -95,8 +109,17 @@ def _snapshot(database: Database, target: Target) -> dict[str, Any] | None:
 def _live_watch(database: Database, watch_id: str) -> dict[str, Any] | None:
     """The row of an origin watch on this id, kept across an archive read of its URL."""
     row = database.connection.execute(
-        "SELECT * FROM watches WHERE watch_id=? AND state NOT IN ('backfill','sealed') "
-        "AND archive_url IS NULL",
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s AND NOT state IN ('backfill', 'sealed') AND archive_url IS "
+            "NULL"
+        ),
         (watch_id,),
     ).fetchone()
     return dict(row) if row else None
@@ -107,7 +130,7 @@ def _restore_watch(database: Database, row: dict[str, Any]) -> None:
     columns = [key for key in row if key != "watch_id"]
     with database.transaction() as conn:
         conn.execute(
-            "UPDATE watches SET " + ",".join(key + "=?" for key in columns) + " WHERE watch_id=?",
+            "UPDATE watches SET " + ",".join(key + "=%s" for key in columns) + " WHERE watch_id=%s",
             (*(row[key] for key in columns), row["watch_id"]),
         )
 
@@ -236,7 +259,17 @@ def run_intake(
                     if fetched.snapshot_id:
                         snapshot = dict(
                             database.connection.execute(
-                                "SELECT * FROM snapshots WHERE snapshot_id=?",
+                                (
+                                    "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                                    "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                                    "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                                    "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                                    "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                                    "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                                    "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                                    "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                                    "snapshots.extract_recipe_sha256 FROM snapshots WHERE snapshot_id = %s"
+                                ),
                                 (fetched.snapshot_id,),
                             ).fetchone()
                         )
@@ -255,7 +288,7 @@ def run_intake(
                         "event-list parser failed; see archived body and parse finding"
                     )
                 count = database.connection.execute(
-                    "SELECT COUNT(*) FROM observations WHERE snapshot_id=?",
+                    "SELECT COUNT(*) AS _value_0 FROM observations WHERE snapshot_id = %s",
                     (snapshot["snapshot_id"],),
                 ).fetchone()[0]
                 status = "parsed" if count or target.parser.endswith(".index") else "empty"
@@ -279,7 +312,8 @@ def run_intake(
                             catalog_evidence=str(snapshot["snapshot_id"]),
                         )
                         for row in database.connection.execute(
-                            "SELECT url FROM watches WHERE source='wsdc_newsletter' AND parser='wsdc_newsletter.events' ORDER BY url"
+                            "SELECT url FROM watches WHERE source = 'wsdc_newsletter' AND parser = "
+                            "'wsdc_newsletter.events' ORDER BY url NULLS FIRST"
                         )
                     ]
                     for item in discovered:
@@ -396,13 +430,15 @@ def import_recording(
     )
     conn = database.connection
     conn.execute(
-        "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES (?,?,1)",
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES (%s, %s, 1) ON CONFLICT DO NOTHING",
         (metadata["run_id"], metadata["fetched_at"]),
     )
     upsert_watch(conn, spec, datetime.fromisoformat(metadata["fetched_at"]))
     archive = Archive(database.state_dir)
     archive.store_body(body)
-    fields = {row[1] for row in conn.execute("PRAGMA table_info(snapshots)")}
+    from swingset.state.schema_catalog import columns as column_names
+
+    fields = set(column_names(conn, "snapshots"))
     values = {key: value for key, value in metadata.items() if key in fields}
     values.update(
         watch_id=spec.watch_id,
@@ -412,9 +448,10 @@ def import_recording(
         requested_archive_url=metadata.get("requested_archive_url") or metadata.get("archive_url"),
     )
     columns = ",".join(values)
-    marks = ",".join("?" for _ in values)
+    marks = ",".join("%s" for _ in values)
     conn.execute(
-        f"INSERT OR IGNORE INTO snapshots({columns}) VALUES ({marks})", tuple(values.values())
+        f"INSERT INTO snapshots({columns}) VALUES ({marks}) ON CONFLICT DO NOTHING",
+        tuple(values.values()),
     )
     result = parse_snapshot(
         database,

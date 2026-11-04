@@ -5,9 +5,11 @@ from __future__ import annotations
 import codecs
 import hashlib
 import json
-import sqlite3
 from collections.abc import Iterator
 from typing import Any
+
+from swingset.state import engine
+from swingset.state.large_values import column_reader
 
 
 class ClosureError(RuntimeError):
@@ -22,15 +24,15 @@ def digest(value: object) -> str:
     return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
-def members(conn: sqlite3.Connection, identifier: str) -> Iterator[dict[str, Any]]:
+def members(conn: engine.Connection, identifier: str) -> Iterator[dict[str, Any]]:
     """Verify and decode one immutable JSON array using bounded blob reads."""
     row = conn.execute(
-        "SELECT rowid FROM derivation_dependency_sets WHERE dependency_set_id=?", (identifier,)
+        "SELECT rowid FROM derivation_dependency_sets WHERE dependency_set_id = %s", (identifier,)
     ).fetchone()
     if row is None:
         raise ClosureError("dependency_manifest_missing")
-    with conn.blobopen(
-        "derivation_dependency_sets", "manifest_json", row[0], readonly=True
+    with column_reader(
+        conn, "derivation_dependency_sets", "manifest_json", row[0], readonly=True
     ) as blob:
         actual = hashlib.sha256()
         while block := blob.read(65536):
@@ -87,7 +89,7 @@ def members(conn: sqlite3.Connection, identifier: str) -> Iterator[dict[str, Any
 
 
 def leaves(
-    conn: sqlite3.Connection, identifier: str, *, visited: set[str] | None = None
+    conn: engine.Connection, identifier: str, *, visited: set[str] | None = None
 ) -> Iterator[dict[str, Any]]:
     seen = visited if visited is not None else set()
     if identifier in seen:
@@ -100,9 +102,18 @@ def leaves(
             yield item
 
 
-def generation(conn: sqlite3.Connection, identifier: str) -> dict[str, Any]:
+def generation(conn: engine.Connection, identifier: str) -> dict[str, Any]:
     row = conn.execute(
-        "SELECT * FROM derivation_generations WHERE generation_id=?", (identifier,)
+        (
+            "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+            "derivation_generations.unit_kind, derivation_generations.unit_id, "
+            "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+            "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+            "derivation_generations.output_digest, derivation_generations.row_count, "
+            "derivation_generations.created_at, derivation_generations.run_id FROM "
+            "derivation_generations WHERE generation_id = %s"
+        ),
+        (identifier,),
     ).fetchone()
     if row is None:
         raise ClosureError("selected_generation_missing")

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import sqlite3
 import time
 import uuid
 from collections.abc import Callable, Collection, Iterator
@@ -14,9 +13,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 from swingset.clock import Clock
+from swingset.state import engine
 
-from .control_lock import ControlTimeout, control_lock
-from .db import SCHEMA_VERSION, Database
+from .control_lock import ControlTimeout, control_lock, holds_control_lock
+from .db import Database
 from .publication_fence import PUBLICATION_KINDS
 
 #: An admission waits this long for the control lock before `ControlTimeout`.
@@ -38,7 +38,7 @@ PRUNE_BATCH = 5000
 #: Resolves a leased unit's dependencies (`control_scopes.for_unit`). It is
 #: passed in, not imported: `control_scopes` is in no recipe scope, and this
 #: module is in the project, link and build scopes.
-UnitScope = Callable[[sqlite3.Connection, Any], "ActionScope"]
+UnitScope = Callable[[engine.Connection, Any], "ActionScope"]
 
 BUILTIN_KINDS = frozenset(
     {
@@ -70,6 +70,20 @@ class ActionScope:
     all_kinds: bool = False
 
 
+class AdmissionLost(RuntimeError):
+    """An outside effect has no live reservation and must not be issued."""
+
+
+def check_admission(conn: engine.Connection, action_id: str) -> None:
+    """Check the same live session and reservation immediately before I/O."""
+    conn.check_alive()
+    row = conn.execute(
+        "SELECT state FROM execution_admissions WHERE action_id=%s", (action_id,)
+    ).fetchone()
+    if row is None or row[0] != "active":
+        raise AdmissionLost("execution admission is no longer active; outside effect refused")
+
+
 class ControlPaused(RuntimeError):
     def __init__(self, pauses: list[dict[str, Any]]) -> None:
         self.pauses = pauses
@@ -84,19 +98,21 @@ def _at(now: datetime) -> str:
     return now.astimezone(UTC).isoformat()
 
 
-def _supported(conn: sqlite3.Connection) -> bool:
+def _supported(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='control_state'").fetchone()
+        conn.execute(
+            "SELECT 1 FROM pg_catalog.pg_class WHERE relname = 'control_state' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        ).fetchone()
         is not None
     )
 
 
 def registered_selectors(
-    conn: sqlite3.Connection, *, sources: Collection[str] = (), hosts: Collection[str] = ()
+    conn: engine.Connection, *, sources: Collection[str] = (), hosts: Collection[str] = ()
 ) -> dict[str, list[str]]:
-    from swingset.sources import sources as registered_sources
+    from swingset.sources.registry import ADAPTERS
 
-    known_sources = {source.name for source in registered_sources()} | set(sources)
+    known_sources = set(ADAPTERS) | set(sources)
     known_sources.update(str(row[0]) for row in conn.execute("SELECT DISTINCT source FROM watches"))
     known_hosts = set(hosts) | {str(row[0]) for row in conn.execute("SELECT host FROM hosts")}
     for row in conn.execute("SELECT DISTINCT url FROM watches"):
@@ -107,7 +123,7 @@ def registered_selectors(
     }
     # Existing controls must remain resumable after a configured source retires.
     values = {"source": known_sources, "host": known_hosts, "kind": kinds, "all": {"all"}}
-    for kind, identifier in conn.execute("SELECT scope_kind,scope_id FROM operator_pauses"):
+    for kind, identifier in conn.execute("SELECT scope_kind, scope_id FROM operator_pauses"):
         if kind in values:
             values[kind].add(identifier)
     return {key: sorted(value) for key, value in values.items()}
@@ -127,10 +143,15 @@ def _matches(pause: dict[str, Any], scope: ActionScope) -> bool:
 
 
 def matching_pauses(
-    conn: sqlite3.Connection, scope: ActionScope | None, *, now: datetime
+    conn: engine.Connection, scope: ActionScope | None, *, now: datetime
 ) -> list[dict[str, Any]]:
     result = []
-    for row in conn.execute("SELECT * FROM operator_pauses ORDER BY scope_kind,scope_id"):
+    for row in conn.execute(
+        "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+        "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+        "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses ORDER BY "
+        "scope_kind NULLS FIRST, scope_id NULLS FIRST"
+    ):
         pause = dict(row)
         if pause["until_at"] is not None and datetime.fromisoformat(pause["until_at"]) <= now:
             continue
@@ -148,17 +169,20 @@ def matching_pauses(
 
 
 def _event(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     pause: dict[str, Any],
     action: str,
     actor: str,
     reason: str,
     now: datetime,
 ) -> int:
-    conn.execute("UPDATE control_state SET revision=revision+1 WHERE singleton=1")
+    conn.execute("UPDATE control_state SET revision = revision + 1 WHERE singleton = 1")
     revision = int(conn.execute("SELECT revision FROM control_state").fetchone()[0])
     conn.execute(
-        "INSERT INTO control_events(control_revision,pause_id,scope_kind,scope_id,action,actor,reason,until_at,occurred_at) VALUES (?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO control_events (control_revision, pause_id, scope_kind, scope_id, action, "
+            "actor, reason, until_at, occurred_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        ),
         (
             revision,
             pause["pause_id"],
@@ -174,14 +198,71 @@ def _event(
     return revision
 
 
-def expire(conn: sqlite3.Connection, *, now: datetime) -> None:
+def expire(conn: engine.Connection, *, now: datetime) -> None:
     """Record expiry at a mutation boundary; read-only status never erases history."""
     if not conn.in_transaction:
         raise ValueError("control expiry requires a transaction")
-    for row in conn.execute("SELECT * FROM operator_pauses WHERE until_at IS NOT NULL").fetchall():
+    for row in conn.execute(
+        "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+        "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+        "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses WHERE NOT "
+        "until_at IS NULL"
+    ).fetchall():
         if datetime.fromisoformat(row["until_at"]) <= now:
             _event(conn, dict(row), "expire", "system:clock", "timed pause expired", now)
-            conn.execute("DELETE FROM operator_pauses WHERE pause_id=?", (row["pause_id"],))
+            conn.execute("DELETE FROM operator_pauses WHERE pause_id = %s", (row["pause_id"],))
+
+
+def _assert_database_pair(state_dir: Path, conn: engine.Connection, *, timeout: float) -> None:
+    """Bind control/admission sessions to the configured worker's stored identity."""
+    query = "SELECT database_id,environment FROM ops.environment_identity WHERE singleton=1"
+    identity = conn.execute(query).fetchone()
+    with engine.connect(
+        engine.resolve_dsn(state_dir),
+        application_name="swingset-identity-check",
+        read_only=True,
+        timeout=timeout,
+    ) as worker:
+        expected = worker.execute(query).fetchone()
+    if identity is None or expected is None or tuple(identity) != tuple(expected):
+        raise RuntimeError("connection does not match the configured database identity")
+    if (state_dir / "database.json").exists():
+        if engine.read_settings(state_dir)["environment"] != str(identity[1]):
+            raise RuntimeError("connection conflicts with database environment identity")
+
+
+def _control_connection(state_dir: Path, *, timeout: float) -> engine.Connection:
+    """Authenticate the restricted controller without taking the state lock."""
+    from psycopg.conninfo import conninfo_to_dict
+
+    from .postgres_schema import validate_schema
+
+    conn = engine.connect(
+        engine.resolve_control_dsn(state_dir), application_name="swingset-control", timeout=timeout
+    )
+    try:
+        validate_schema(conn)
+        role = conn.execute(
+            "SELECT pg_has_role(current_user,'swingset_control','USAGE') AS control_role,pg_has_role(current_user,'swingset_worker','USAGE') AS worker_role"
+        ).fetchone()
+        if role is None or not role[0] or role[1]:
+            raise PermissionError("control changes require the restricted control role")
+        expected = conninfo_to_dict(engine.resolve_dsn(state_dir))
+        for name, found in (
+            ("dbname", conn.info.dbname),
+            ("host", conn.info.host),
+            ("port", str(conn.info.port)),
+        ):
+            if name in expected and str(expected[name]) != str(found):
+                raise RuntimeError(
+                    "control connection does not match the configured state database"
+                )
+        _assert_database_pair(state_dir, conn, timeout=timeout)
+        conn.state_dir = state_dir
+        return conn
+    except BaseException:
+        conn.close()
+        raise
 
 
 def change_control(
@@ -198,132 +279,63 @@ def change_control(
     hosts: Collection[str] = (),
     unit_scope: UnitScope | None = None,
 ) -> dict[str, Any]:
-    """Persist a control without acquiring the whole-command data writer lock.
+    """Commit under B then C with a dedicated role and no implicit migration."""
+    import math
 
-    The connection never migrates, creates state, or changes repair evidence.
-    Its authorizer allows writes only to the existing control tables.
-    ``unit_scope`` resolves leased units for the receipt's drain (`status`).
-    """
+    from .engine.locks import acquire_writer
+
     _at(now)
     if not actor.strip() or not reason.strip():
         raise ValueError("control changes require an actor and reason")
+    if not math.isfinite(timeout) or timeout < 0:
+        raise ValueError("control timeout must be finite and nonnegative")
     if until is not None and (not paused or datetime.fromisoformat(_at(until)) <= now):
         raise ValueError("timed pauses require a future expiry")
-    requested = Path(state_path)
-    database_path = (
-        requested if requested.suffix in {".sqlite", ".db"} else requested / "state.sqlite"
-    )
-    state_dir = database_path.parent
+    state_dir = engine.state_directory(state_path)
     if (state_dir / "checkpoint.json").exists():
         raise ValueError("checkpoint state is immutable")
     started = time.monotonic()
-    with control_lock(state_dir, timeout=timeout):
-        if (state_dir / "RESTORE_PENDING").exists():
-            raise RuntimeError(f"restore verification is pending: {state_dir}")
-        if (state_dir / "checkpoint.json").exists():
-            raise ValueError("checkpoint state is immutable")
-        remaining = max(0, timeout - (time.monotonic() - started))
-        conn = sqlite3.connect(
-            f"{database_path.resolve().as_uri()}?mode=rw",
-            uri=True,
-            isolation_level=None,
-            timeout=remaining,
-        )
-        conn.row_factory = sqlite3.Row
-        try:
-            if not 12 <= int(conn.execute("PRAGMA user_version").fetchone()[0]) <= SCHEMA_VERSION:
-                raise RuntimeError(
-                    "controls require a supported schema at least 12; this command does not migrate state"
+    conn = _control_connection(state_dir, timeout=timeout)
+    try:
+        with control_lock(
+            state_dir, connection=conn, timeout=max(0, timeout - (time.monotonic() - started))
+        ):
+            # Paused restored state must be explicitly resumable for its local
+            # reconstruction. The restore barrier still rejects ordinary opens
+            # and remains owned by verification and activation.
+            if (state_dir / "checkpoint.json").exists():
+                raise ValueError("checkpoint state is immutable")
+            if time.monotonic() - started >= timeout:
+                raise ControlTimeout("control servicing timed out; no change was persisted")
+            conn.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+            conn._write_deadline = started + timeout
+            try:
+                acquire_writer(conn)
+                changed, identifier = _apply_control(
+                    conn, selector, paused, actor, reason, now, until, sources, hosts
                 )
-            conn.execute("PRAGMA synchronous=FULL")
-            writable = {"operator_pauses", "control_events", "control_state"}
-
-            def authorize(
-                action: int,
-                table: str | None,
-                column: str | None,
-                database: str | None,
-                trigger: str | None,
-            ) -> int:
-                if (
-                    action in {sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE}
-                    and table not in writable
-                ):
-                    return sqlite3.SQLITE_DENY
-                return sqlite3.SQLITE_OK
-
-            conn.set_authorizer(authorize)
-            conn.execute("BEGIN IMMEDIATE")
-            allowed = registered_selectors(conn, sources=sources, hosts=hosts)
-            if selector.scope_id not in allowed.get(selector.scope_kind, []):
-                raise ValueError(
-                    f"unknown control selector: {selector.scope_kind} {selector.scope_id}"
-                )
-            expire(conn, now=now)
-            old = conn.execute(
-                "SELECT * FROM operator_pauses WHERE scope_kind=? AND scope_id=?",
-                (selector.scope_kind, selector.scope_id),
-            ).fetchone()
-            identifier = old["pause_id"] if old else None
-            changed = False
-            if paused:
-                expiry = _at(until) if until else None
-                if old is None or (old["reason"], old["actor"], old["until_at"]) != (
-                    reason,
-                    actor,
-                    expiry,
-                ):
-                    identifier = identifier or "pause_" + uuid.uuid4().hex
-                    pause = {
-                        "pause_id": identifier,
-                        "scope_kind": selector.scope_kind,
-                        "scope_id": selector.scope_id,
-                        "until_at": expiry,
-                    }
-                    revision = _event(conn, pause, "pause", actor, reason, now)
-                    conn.execute(
-                        "INSERT INTO operator_pauses(scope_kind,scope_id,until_at,reason,pause_id,actor,control_revision,created_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(scope_kind,scope_id) DO UPDATE SET until_at=excluded.until_at,reason=excluded.reason,actor=excluded.actor,control_revision=excluded.control_revision",
-                        (
-                            selector.scope_kind,
-                            selector.scope_id,
-                            expiry,
-                            reason,
-                            identifier,
-                            actor,
-                            revision,
-                            _at(now),
-                        ),
-                    )
-                    changed = True
-            elif old is not None:
-                _event(conn, dict(old), "resume", actor, reason, now)
-                conn.execute("DELETE FROM operator_pauses WHERE pause_id=?", (identifier,))
-                changed = True
-            conn.commit()
-        except sqlite3.OperationalError as exc:
-            conn.rollback()
-            conn.close()
-            if "locked" in str(exc) or "busy" in str(exc):
+                conn.commit()
+            except engine.CommitUncertain:
+                conn.close()
+                raise
+            except (engine.LockTimeout, engine.WriteTimeout):
+                conn.rollback()
                 raise ControlTimeout(
                     "control servicing timed out; no change was persisted"
-                ) from exc
-            raise
-        except BaseException:
-            conn.rollback()
-            conn.close()
-            raise
-        # The drain report reads after the commit, in its own read
-        # transaction: resolving leased units' scopes never holds the write
-        # lock, and a failed read never undoes a committed pause.
+                ) from None
+            except BaseException:
+                if not conn.closed:
+                    conn.rollback()
+                raise
+            finally:
+                conn._write_deadline = None
+        # Report after the acknowledged commit in an independent immutable
+        # snapshot. A failed drain read cannot undo the persisted pause.
         try:
-            conn.execute("BEGIN")
-            result = status(conn, now=now, selector=selector, unit_scope=unit_scope)
-        except (sqlite3.Error, ValueError) as exc:
-            result = {"status_error": f"{type(exc).__name__}: {exc}"[:300]}
-        finally:
-            if conn.in_transaction:
-                conn.rollback()
-            conn.close()
+            with conn.read_snapshot():
+                result = status(conn, now=now, selector=selector, unit_scope=unit_scope)
+        except (engine.Error, ValueError) as error:
+            result = {"status_error": f"{type(error).__name__}: {error}"[:300]}
         result.update(
             action="pause" if paused else "resume",
             persisted=True,
@@ -331,6 +343,72 @@ def change_control(
             pause_id=identifier,
         )
         return result
+    finally:
+        conn.close()
+
+
+def _apply_control(
+    conn: engine.Connection,
+    selector: Selector,
+    paused: bool,
+    actor: str,
+    reason: str,
+    now: datetime,
+    until: datetime | None,
+    sources: Collection[str],
+    hosts: Collection[str],
+) -> tuple[bool, str | None]:
+    allowed = registered_selectors(conn, sources=sources, hosts=hosts)
+    if selector.scope_id not in allowed.get(selector.scope_kind, []):
+        raise ValueError(f"unknown control selector: {selector.scope_kind} {selector.scope_id}")
+    expire(conn, now=now)
+    old = conn.execute(
+        (
+            "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+            "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+            "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses WHERE "
+            "scope_kind = %s AND scope_id = %s"
+        ),
+        (selector.scope_kind, selector.scope_id),
+    ).fetchone()
+    identifier = old["pause_id"] if old else None
+    changed = False
+    if paused:
+        expiry = _at(until) if until else None
+        if old is None or (old["reason"], old["actor"], old["until_at"]) != (
+            reason,
+            actor,
+            expiry,
+        ):
+            identifier = identifier or "pause_" + uuid.uuid4().hex
+            pause = {
+                "pause_id": identifier,
+                "scope_kind": selector.scope_kind,
+                "scope_id": selector.scope_id,
+                "until_at": expiry,
+            }
+            revision = _event(conn, pause, "pause", actor, reason, now)
+            conn.execute(
+                (
+                    "INSERT INTO operator_pauses (scope_kind, scope_id, until_at, reason, pause_id, actor, control_revision, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(scope_kind, scope_id) DO UPDATE SET until_at = excluded.until_at, reason = excluded.reason, actor = excluded.actor, control_revision = excluded.control_revision"
+                ),
+                (
+                    selector.scope_kind,
+                    selector.scope_id,
+                    expiry,
+                    reason,
+                    identifier,
+                    actor,
+                    revision,
+                    _at(now),
+                ),
+            )
+            changed = True
+    elif old is not None:
+        _event(conn, dict(old), "resume", actor, reason, now)
+        conn.execute("DELETE FROM operator_pauses WHERE pause_id = %s", (identifier,))
+        changed = True
+    return changed, identifier
 
 
 @contextlib.contextmanager
@@ -345,12 +423,13 @@ def admission(
     work_attempt_id: int | None = None,
     candidate_id: str | None = None,
     timeout: float = ADMISSION_TIMEOUT_SECONDS,
-    validate: Callable[[sqlite3.Connection], None] | None = None,
-) -> Iterator[sqlite3.Connection]:
+    validate: Callable[[engine.Connection], None] | None = None,
+    reuse_control_turn: bool = False,
+) -> Iterator[engine.Connection]:
     """Serialize the pause check and the caller's issuance writes.
 
     Another process may hold the control lock while its admitted write waits
-    for SQLite, so the wait here outlasts a busy timeout (D-0215). A leased
+    for writer lock C, so the wait here outlasts its busy timeout (D-0215). A leased
     unit is never admitted (D-0238): `derive_one` checks its pauses in the
     transaction that begins its attempt.
     """
@@ -362,8 +441,15 @@ def admission(
         raise ValueError("leased units carry no admission")
     if database.connection.in_transaction:
         raise ValueError("admission must precede the unit's write transaction")
+    _assert_database_pair(database.state_dir, database.connection, timeout=timeout)
     blocked: list[dict[str, Any]] = []
-    with control_lock(database.state_dir, timeout=timeout):
+    turn = (
+        contextlib.nullcontext()
+        if reuse_control_turn
+        and holds_control_lock(database.state_dir, connection=database.connection)
+        else control_lock(database.state_dir, connection=database.connection, timeout=timeout)
+    )
+    with turn:
         with database.transaction() as conn:
             if validate is not None:
                 validate(conn)
@@ -372,7 +458,11 @@ def admission(
             if not blocked:
                 revision = conn.execute("SELECT revision FROM control_state").fetchone()[0]
                 conn.execute(
-                    "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,run_id,work_attempt_id,candidate_id,host,all_sources,all_kinds,state) VALUES (?,?,?,?,?,?,?,?,?,?,'active')",
+                    (
+                        "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+                        "run_id, work_attempt_id, candidate_id, host, all_sources, all_kinds, state) VALUES (%s, %s, "
+                        "%s, %s, %s, %s, %s, %s, %s, %s, 'active')"
+                    ),
                     (
                         action_id,
                         action_kind,
@@ -387,7 +477,7 @@ def admission(
                     ),
                 )
                 conn.executemany(
-                    "INSERT INTO execution_dependencies VALUES (?,?,?)",
+                    "INSERT INTO execution_dependencies (action_id, scope_kind, scope_id) VALUES (%s, %s, %s)",
                     [
                         (action_id, kind, value)
                         for kind, values in (("source", scope.sources), ("kind", scope.kinds))
@@ -400,7 +490,7 @@ def admission(
 
 
 def settle(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     action_id: str,
     *,
     now: datetime,
@@ -417,7 +507,10 @@ def settle(
     if not conn.in_transaction:
         raise ValueError("admission settlement requires the output transaction")
     cursor = conn.execute(
-        "UPDATE execution_admissions SET state=?,settled_at=?,outcome=? WHERE action_id=? AND state<>'settled'",
+        (
+            "UPDATE execution_admissions SET state = %s, settled_at = %s, outcome = %s WHERE action_id = "
+            "%s AND state <> 'settled'"
+        ),
         (
             "uncertain" if uncertain else "settled",
             None if uncertain else _at(now),
@@ -428,13 +521,13 @@ def settle(
     if (
         cursor.rowcount == 0
         and not conn.execute(
-            "SELECT 1 FROM execution_admissions WHERE action_id=?", (action_id,)
+            "SELECT 1 FROM execution_admissions WHERE action_id = %s", (action_id,)
         ).fetchone()
     ):
         raise ValueError("unknown execution admission")
     if forget and not uncertain:
-        conn.execute("DELETE FROM execution_dependencies WHERE action_id=?", (action_id,))
-        conn.execute("DELETE FROM execution_admissions WHERE action_id=?", (action_id,))
+        conn.execute("DELETE FROM execution_dependencies WHERE action_id = %s", (action_id,))
+        conn.execute("DELETE FROM execution_admissions WHERE action_id = %s", (action_id,))
 
 
 @contextlib.contextmanager
@@ -466,9 +559,12 @@ def operation(
         candidate_id=candidate_id,
     ):
         pass
+    check_admission(database.connection, action_id)
     try:
         yield
     except (Exception, KeyboardInterrupt) as exc:
+        if isinstance(exc, engine.ConnectionLost) or database.connection.closed:
+            raise
         with database.transaction() as conn:
             settle(
                 conn,
@@ -482,7 +578,7 @@ def operation(
             settle(conn, action_id, now=clock.now(), outcome="completed")
 
 
-def recover_admissions(conn: sqlite3.Connection, *, now: datetime) -> int:
+def recover_admissions(conn: engine.Connection, *, now: datetime) -> int:
     """After exclusive writer ownership, settle abandoned request and operation rows.
 
     The exclusive-open safety of migrate and restore (D-0238). A publication
@@ -492,7 +588,7 @@ def recover_admissions(conn: sqlite3.Connection, *, now: datetime) -> int:
     if not conn.in_transaction:
         raise ValueError("admission recovery requires a transaction")
     rows = conn.execute(
-        "SELECT action_id,action_kind FROM execution_admissions WHERE state='active'"
+        "SELECT action_id, action_kind FROM execution_admissions WHERE state = 'active'"
     ).fetchall()
 
     for row in rows:
@@ -508,7 +604,7 @@ def recover_admissions(conn: sqlite3.Connection, *, now: datetime) -> int:
 
 
 def prune(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     batch: int = PRUNE_BATCH,
@@ -532,55 +628,48 @@ def prune(
     newest_builds = [
         str(row[0])
         for row in conn.execute(
-            "SELECT * FROM (SELECT action_id FROM execution_admissions WHERE action_kind='build' "
-            "ORDER BY admitted_at DESC,action_id DESC LIMIT 1) UNION SELECT * FROM "
-            "(SELECT action_id FROM execution_admissions WHERE action_kind='build' "
-            "AND outcome='completed' ORDER BY settled_at DESC,action_id DESC LIMIT 1)"
+            "SELECT * FROM (SELECT action_id FROM execution_admissions WHERE action_kind = 'build' ORDER "
+            "BY admitted_at DESC NULLS LAST, action_id DESC NULLS LAST LIMIT 1) UNION SELECT * FROM "
+            "(SELECT action_id FROM execution_admissions WHERE action_kind = 'build' AND outcome = "
+            "'completed' ORDER BY settled_at DESC NULLS LAST, action_id DESC NULLS LAST LIMIT 1)"
         )
     ]
     # Never `NOT IN (NULL)`: that matches no row.
     newest = (
-        f"AND a.action_id NOT IN ({','.join('?' * len(newest_builds))})" if newest_builds else ""
+        f"AND a.action_id NOT IN ({','.join(['%s'] * len(newest_builds))})" if newest_builds else ""
     )
     ids = [
         str(row[0])
         for row in conn.execute(
-            "SELECT a.action_id FROM execution_admissions a WHERE a.state='settled' "
-            f"AND a.settled_at < ? AND a.action_kind NOT IN ({kept}) "
-            f"{newest} {referenced} LIMIT ?",
+            f"SELECT a.action_id FROM execution_admissions a WHERE a.state='settled' AND a.settled_at < %s AND a.action_kind NOT IN ({kept}) {newest} {referenced} LIMIT %s",
             (cutoff, *newest_builds, batch),
         )
     ]
     for start in range(0, len(ids), 500):
         chunk = ids[start : start + 500]
-        marks = ",".join("?" * len(chunk))
+        marks = ",".join(["%s"] * len(chunk))
         conn.execute(f"DELETE FROM execution_dependencies WHERE action_id IN ({marks})", chunk)
         conn.execute(f"DELETE FROM execution_admissions WHERE action_id IN ({marks})", chunk)
     return len(ids)
 
 
-def _referencing_tables(conn: sqlite3.Connection) -> list[str]:
-    """Tables other than the scope rows whose foreign key names an admission."""
-    tables = [
+def _referencing_tables(conn: engine.Connection) -> list[str]:
+    """Resolve references through the catalog, including qualified namespaces."""
+    return [
         str(row[0])
         for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name<>'execution_dependencies'"
-        )
-    ]
-    return [
-        table
-        for table in tables
-        if any(
-            fk["table"] == "execution_admissions"
-            for fk in conn.execute(f"PRAGMA foreign_key_list('{table}')")
+            "SELECT DISTINCT child.relname FROM pg_catalog.pg_constraint AS fk "
+            "JOIN pg_catalog.pg_class AS child ON child.oid=fk.conrelid "
+            "WHERE fk.contype='f' AND fk.confrelid='ops.execution_admissions'::regclass "
+            "AND child.relname<>'execution_dependencies' ORDER BY child.relname"
         )
     ]
 
 
-def _action_scope(conn: sqlite3.Connection, row: sqlite3.Row) -> ActionScope:
+def _action_scope(conn: engine.Connection, row: engine.Row) -> ActionScope:
     dependencies = list(
         conn.execute(
-            "SELECT scope_kind,scope_id FROM execution_dependencies WHERE action_id=?",
+            "SELECT scope_kind, scope_id FROM execution_dependencies WHERE action_id = %s",
             (row["action_id"],),
         )
     )
@@ -593,7 +682,7 @@ def _action_scope(conn: sqlite3.Connection, row: sqlite3.Row) -> ActionScope:
     )
 
 
-def _leased_units(conn: sqlite3.Connection, now: datetime) -> list[dict[str, Any]]:
+def _leased_units(conn: engine.Connection, now: datetime) -> list[dict[str, Any]]:
     """Leased work units as drain rows: a unit's lease is its in-flight record (D-0238).
 
     `admitted_at` is the running attempt's start, else the lease's. `live`
@@ -601,17 +690,23 @@ def _leased_units(conn: sqlite3.Connection, now: datetime) -> list[dict[str, Any
     of `now`. An expired lease belongs to a dead process; the derive loop's
     next tick takes it over, and until then it neither drains nor is stuck.
     """
-    if conn.execute("SELECT 1 FROM sqlite_master WHERE name='work_queue'").fetchone() is None:
+    if (
+        conn.execute(
+            "SELECT 1 FROM pg_catalog.pg_class WHERE relname = 'work_queue' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        ).fetchone()
+        is None
+    ):
         return []
     from .queue import at as queue_at
 
     stamp = queue_at(now)
     rows = conn.execute(
-        "SELECT q.stage,q.unit_kind,q.unit_id,q.lease_owner,q.lease_until,q.updated_at,"
-        "a.attempt_id,a.run_id,a.started_at FROM work_queue q LEFT JOIN work_attempts a "
-        "ON a.attempt_id=(SELECT max(w.attempt_id) FROM work_attempts w WHERE w.stage=q.stage "
-        "AND w.unit_kind=q.unit_kind AND w.unit_id=q.unit_id AND w.outcome='running') "
-        "WHERE q.state='leased' ORDER BY q.stage,q.unit_kind,q.unit_id"
+        "SELECT q.stage, q.unit_kind, q.unit_id, q.lease_owner, q.lease_until, q.updated_at, "
+        "a.attempt_id, a.run_id, a.started_at FROM work_queue AS q LEFT JOIN work_attempts AS a ON "
+        "a.attempt_id = (SELECT MAX(w.attempt_id) FROM work_attempts AS w WHERE w.stage = q.stage "
+        "AND w.unit_kind = q.unit_kind AND w.unit_id = q.unit_id AND w.outcome = 'running') WHERE "
+        "q.state = 'leased' ORDER BY q.stage NULLS FIRST, q.unit_kind NULLS FIRST, q.unit_id NULLS "
+        "FIRST"
     ).fetchall()
     return [
         {
@@ -635,7 +730,7 @@ def _leased_units(conn: sqlite3.Connection, now: datetime) -> list[dict[str, Any
 
 
 def _drain_age(
-    row: sqlite3.Row | dict[str, Any], pauses: list[dict[str, Any]], now: datetime
+    row: engine.Row | dict[str, Any], pauses: list[dict[str, Any]], now: datetime
 ) -> float:
     admitted = datetime.fromisoformat(row["admitted_at"])
     starts = [
@@ -653,7 +748,7 @@ def _selected_action(scope: ActionScope, selector: Selector | None) -> bool:
 
 
 def status(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     scope: ActionScope | None = None,
@@ -720,7 +815,14 @@ def status(
         )
 
     for row in conn.execute(
-        "SELECT * FROM execution_admissions WHERE state<>'settled' ORDER BY admitted_at,action_id"
+        "SELECT execution_admissions.action_id, execution_admissions.action_kind, "
+        "execution_admissions.admitted_at, execution_admissions.control_revision, "
+        "execution_admissions.run_id, execution_admissions.work_attempt_id, "
+        "execution_admissions.candidate_id, execution_admissions.host, "
+        "execution_admissions.all_sources, execution_admissions.all_kinds, "
+        "execution_admissions.state, execution_admissions.settled_at, execution_admissions.outcome "
+        "FROM execution_admissions WHERE state <> 'settled' ORDER BY admitted_at NULLS FIRST, "
+        "action_id NULLS FIRST"
     ).fetchall():
         drain(dict(row), _action_scope(conn, row))
     dead_leases = []
@@ -751,7 +853,12 @@ def status(
     )
     expired = [
         dict(row)
-        for row in conn.execute("SELECT * FROM operator_pauses WHERE until_at IS NOT NULL")
+        for row in conn.execute(
+            "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+            "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+            "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses WHERE NOT "
+            "until_at IS NULL"
+        )
         if datetime.fromisoformat(row["until_at"]) <= now
     ]
     return {

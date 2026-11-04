@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 from .event_inventory import inventory
 from .event_service import report as service_report
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 def report(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     archive: Archive,
     *,
     now: datetime,
@@ -31,7 +31,9 @@ def report(
     if archive.recovery is not None:
         raise ValueError("event reporting requires an Archive without recovery")
     supported = (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='source_event_inventory'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'source_event_inventory' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
     result: dict[str, Any] = {
@@ -63,16 +65,9 @@ def report(
     events = [
         dict(row)
         for row in conn.execute(
-            "SELECT i.source,i.source_ref,i.enumeration_id,i.first_known_at,"
-            "i.bootstrap_basis,m.event_id AS canonical_event_id,e.pagination,"
-            "e.pagination_reason,CASE WHEN e.enumeration_id IS NOT NULL THEN "
-            "(SELECT count(*) FROM source_event_enumeration_members p "
-            "WHERE p.enumeration_id=e.enumeration_id) END AS listed_pages "
-            "FROM source_event_inventory i "
-            "LEFT JOIN source_event_enumerations e USING(enumeration_id) "
-            "LEFT JOIN source_event_map m ON m.source=i.source AND m.source_ref=i.source_ref "
-            "WHERE (? IS NULL OR i.source=?) AND (? IS NULL OR i.source_ref=?) "
-            "ORDER BY i.source,i.source_ref",
+            (
+                "SELECT i.source, i.source_ref, i.enumeration_id, i.first_known_at, i.bootstrap_basis, m.event_id AS canonical_event_id, e.pagination, e.pagination_reason, CASE WHEN NOT e.enumeration_id IS NULL THEN (SELECT COUNT(*) AS _value_0 FROM source_event_enumeration_members AS p WHERE p.enumeration_id = e.enumeration_id) END AS listed_pages FROM source_event_inventory AS i LEFT JOIN source_event_enumerations AS e USING (enumeration_id) LEFT JOIN source_event_map AS m ON m.source = i.source AND m.source_ref = i.source_ref WHERE (CAST(%s AS TEXT) IS NULL OR i.source = %s) AND (CAST(%s AS TEXT) IS NULL OR i.source_ref = %s) ORDER BY i.source NULLS FIRST, i.source_ref NULLS FIRST"
+            ),
             (source, source, source_ref, source_ref),
         )
     ]
@@ -118,7 +113,7 @@ def report(
             watch_ids.update(
                 row[0]
                 for row in conn.execute(
-                    "SELECT watch_id FROM watches WHERE source=? AND source_ref=?",
+                    "SELECT watch_id FROM watches WHERE source = %s AND source_ref = %s",
                     (source, source_ref),
                 )
             )

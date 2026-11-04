@@ -27,21 +27,25 @@ def settled(registry_fixture):
 
 def stale_dancer(f):
     f.conn.execute(
-        "UPDATE observations SET payload_json=replace(payload_json,'Diane','Changed') "
-        "WHERE scope_kind='dancer' AND scope_id='1'"
+        "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Changed') WHERE "
+        "scope_kind = 'dancer' AND scope_id = '1'"
     )
     assert not derivations.current(f.conn, DANCER)
 
 
 def read(f, key):
     f.conn.execute(
-        "INSERT OR IGNORE INTO derivation_reads VALUES ('link','event','event-a',?)", (key,)
+        (
+            "INSERT INTO derivation_reads (stage, unit_kind, unit_id, read_key) VALUES ('link', 'event', "
+            "'event-a', %s) ON CONFLICT DO NOTHING"
+        ),
+        (key,),
     )
 
 
 def test_a_stale_dancer_blocks_only_the_links_that_read_it(settled, monkeypatch):
     f = settled
-    f.conn.execute("DELETE FROM derivation_reads WHERE read_key='project/dancer/1'")
+    f.conn.execute("DELETE FROM derivation_reads WHERE read_key = 'project/dancer/1'")
     stale_dancer(f)
 
     def forbidden(*args, **kwargs):
@@ -62,8 +66,10 @@ def test_a_link_that_never_ran_waits_for_every_dancer_to_exist(settled):
     never = WorkUnit("link", "event", "never-ran")
     assert derivations.selected_generation(f.conn, never) is None
     f.conn.execute(
-        "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-        "VALUES ('project','dancer','2',?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+            "'dancer', '2', %s)"
+        ),
         (f.corpus.clock.now().isoformat(),),
     )
     with derivation_query.read_snapshot(f.conn):
@@ -96,8 +102,10 @@ def test_a_link_still_waits_for_its_event_and_resolution_and_never_a_year(settle
 
 def _queue_row(f, unit, state, next_attempt):
     f.conn.execute(
-        "INSERT INTO work_queue(stage,unit_kind,unit_id,partition,state,attempts,"
-        "next_attempt_at,enqueued_at,updated_at) VALUES (?,?,?,?,?,3,?,?,?)",
+        (
+            "INSERT INTO work_queue (stage, unit_kind, unit_id, partition, state, attempts, "
+            "next_attempt_at, enqueued_at, updated_at) VALUES (%s, %s, %s, %s, %s, 3, %s, %s, %s)"
+        ),
         (
             unit.stage,
             unit.unit_kind,

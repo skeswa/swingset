@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import sqlite3
 from dataclasses import dataclass, field, replace
 from typing import TypedDict
 
@@ -22,11 +21,14 @@ from swingset.model.observations import decode_payload
 from swingset.normalize.divisions import ContestVocabulary, classify_contest
 from swingset.normalize.names import normalize_name, paired_names
 from swingset.sources.records import Cell, ResultTable, RoundSheet
+from swingset.state import engine
 from swingset.state.findings import Finding
 
 from .steprightsolutions import round_sheet as step_right_round_sheet
 from .swingdirector import round_sheets as swingdirector_round_sheets
 from .writer import Projection
+
+VERSION = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +70,7 @@ class ProvenanceValues(TypedDict):
     run_id: str
 
 
-def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -> Projection:
+def project_event(conn: engine.Connection, event: str, now: str, run_id: str) -> Projection:
     evidence = _evidence(conn, event)
     groups: dict[str, list[Evidence]] = {}
     for item in evidence:
@@ -386,7 +388,9 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
 
 
 def _display_contest_name(name: str) -> str:
-    return " ".join(re.sub(r"\b(?:leaders?|followers?)\b", "", name, flags=re.I).casefold().split())
+    return " ".join(
+        re.sub("\\b(%s:leaders%s|followers%s)\\b", "", name, flags=re.I).casefold().split()
+    )
 
 
 def _explicit_role(name: str) -> str | None:
@@ -877,13 +881,12 @@ def _record_partner(entry: EntryFacts, partner: EntryFacts) -> None:
     entry.partner_conflicted = True
 
 
-def _evidence(conn: sqlite3.Connection, event: str) -> list[Evidence]:
+def _evidence(conn: engine.Connection, event: str) -> list[Evidence]:
     pending: list[tuple[object, tuple[str, str, str, str, str]]] = []
     for row in conn.execute(
-        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.kind
-        FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        JOIN source_event_map m ON m.source=w.source AND m.source_ref=o.scope_id
-        WHERE o.scope_kind='source_event' AND m.event_id=? ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq""",
+        (
+            "SELECT o.kind, o.payload_json, o.snapshot_id, o.parser_version, w.source, COALESCE(s.observed_at, s.fetched_at) AS _value_5, w.kind AS watch_kind FROM observations AS o JOIN watches AS w USING (watch_id) JOIN snapshots AS s USING (snapshot_id) JOIN source_event_map AS m ON m.source = w.source AND m.source_ref = o.scope_id WHERE o.scope_kind = 'source_event' AND m.event_id = %s ORDER BY COALESCE(s.observed_at, s.fetched_at) NULLS FIRST, s.snapshot_id NULLS FIRST, o.seq NULLS FIRST"
+        ),
         (event,),
     ):
         payload = decode_payload(str(row[0]), str(row[1]))

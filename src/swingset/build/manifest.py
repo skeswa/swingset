@@ -26,14 +26,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from swingset.state import objects, release_store
+from swingset.state import engine, objects, release_store
 from swingset.state.objects import Store
 from swingset.state.release_store import ManifestRow
 from swingset.state.retention import manifest_file
@@ -90,14 +89,22 @@ def support_digest(support: Iterable[Iterable[Any]]) -> str:
     )
 
 
-def policies_digest(conn: sqlite3.Connection) -> str:
+def policies_digest(conn: engine.Connection) -> str:
     """The admission policies the support states were read under (as `closure._policy`)."""
     return digest(
-        [dict(row) for row in conn.execute("SELECT * FROM admission_policies ORDER BY page_kind")]
+        [
+            dict(row)
+            for row in conn.execute(
+                "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+                "admission_policies.mode, admission_policies.policy_revision, "
+                "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+                "admission_policies.reviewed_at FROM admission_policies ORDER BY page_kind NULLS FIRST"
+            )
+        ]
     )
 
 
-def support_token(conn: sqlite3.Connection, support: str) -> str:
+def support_token(conn: engine.Connection, support: str) -> str:
     """The admission part of a partitioned release's correction token.
 
     The artifacts' support digest with the live admission policies and
@@ -115,7 +122,7 @@ def support_token(conn: sqlite3.Connection, support: str) -> str:
     )
 
 
-def correction_token(conn: sqlite3.Connection, support: str) -> dict[str, Any]:
+def correction_token(conn: engine.Connection, support: str) -> dict[str, Any]:
     """`identity_policy.correction_token` with the partitions' support as admission.
 
     ``support`` is the manifest's support digest. A public closure manifest
@@ -137,12 +144,12 @@ def overrides_digest(file_hashes: Mapping[str, str]) -> str:
     return digest({name: file_hashes.get(name) for name in ASSEMBLY_INPUTS})
 
 
-def code_digests(conn: sqlite3.Connection) -> dict[str, str]:
+def code_digests(conn: engine.Connection) -> dict[str, str]:
     return {
         str(name): str(value)
         for name, value in conn.execute(
-            "SELECT input_name,digest FROM accepted_inputs WHERE consumer='pipeline' "
-            "AND input_name IN ('recipe/env','recipe/code/build') ORDER BY input_name"
+            "SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'pipeline' AND input_name "
+            "IN ('recipe/env', 'recipe/code/build') ORDER BY input_name NULLS FIRST"
         )
     }
 
@@ -154,7 +161,7 @@ def _chunks(values: Iterable[str]) -> Iterator[list[str]]:
 
 
 def evidence_cutoff(
-    conn: sqlite3.Connection, generations: Iterable[str], source_generations: Iterable[str]
+    conn: engine.Connection, generations: Iterable[str], source_generations: Iterable[str]
 ) -> str | None:
     """The newest `created_at` among the named generations: the release's evidence time."""
     newest: datetime | None = None
@@ -164,8 +171,7 @@ def evidence_cutoff(
     ):
         for chunk in _chunks(ids):
             for (created,) in conn.execute(
-                f"SELECT created_at FROM {table} WHERE generation_id IN "
-                f"({','.join('?' * len(chunk))})",
+                f"SELECT created_at FROM {table} WHERE generation_id IN ({','.join(['%s'] * len(chunk))})",
                 chunk,
             ):
                 moment = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
@@ -202,7 +208,7 @@ def store(database: Any, body: bytes, manifest_digest: str, *, now: datetime) ->
         )
 
 
-def name_candidate(conn: sqlite3.Connection, manifest_digest: str, candidate_id: str) -> None:
+def name_candidate(conn: engine.Connection, manifest_digest: str, candidate_id: str) -> None:
     """Record which candidate a manifest built, in the caller's write."""
     existing = release_store.get(conn, ManifestRow, manifest_digest)
     if existing is None:

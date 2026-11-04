@@ -4,9 +4,10 @@ import pytest
 
 from swingset.backup.archive import upload_checkpoint
 from swingset.backup.checkpoint import Checkpoint
+from swingset.state.environment import FixtureIO
 
 
-class FakeArchive:
+class FakeArchive(FixtureIO):
     def __init__(self, *, initial: bool) -> None:
         self.initial = initial
         self.commits = 0

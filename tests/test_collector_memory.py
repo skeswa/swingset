@@ -34,15 +34,29 @@ def fixture(directory: Path, scale: int) -> None:
     named, children = sets // 2, sets // 6
     with open_database(directory) as database:
         run = database.start_run(NOW)
-        with database.transaction() as conn:
+        from swingset.dev.services import ensure_service
+
+        with ensure_service().connect(database.connection.info.dbname) as conn:
+            # Only synthetic fixture construction bypasses guards. Collection
+            # below runs as the restricted worker with every trigger enabled.
+            conn.execute('SET search_path=derive,ops,"fetch",plan,evidence,project,release')
+            conn.execute("SET session_replication_role='replica'")
+
+            def copy_rows(table, columns, values):
+                with conn.cursor().copy(f"COPY {table} ({columns}) FROM STDIN") as copy:
+                    for row in values:
+                        copy.write_row(row)
+
             conn.execute(
-                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-                "VALUES ('project','event','u',?)",
+                (
+                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                    "'event', 'u', %s)"
+                ),
                 (OLD,),
             )
-            conn.executemany(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES (?,?)",
+            copy_rows(
+                "derivation_dependency_sets",
+                "dependency_set_id, manifest_json",
                 (
                     (
                         f"set{index:07d}",
@@ -61,33 +75,51 @@ def fixture(directory: Path, scale: int) -> None:
                     for index in range(named)
                 ),
             )
-            conn.executemany(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES (?,?)",
+            copy_rows(
+                "derivation_dependency_sets",
+                "dependency_set_id, manifest_json",
                 ((f"child{index:07d}", "[]") for index in range(children)),
             )
-            conn.executemany(
-                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-                "VALUES (?,?)",
+            copy_rows(
+                "derivation_dependency_sets",
+                "dependency_set_id, manifest_json",
                 (
                     (f"orphan{index:07d}", canonical([{"kind": "input_row", "row": {"i": index}}]))
                     for index in range(sets - named - children)
                 ),
             )
-            conn.executemany(
-                "INSERT INTO derivation_generations VALUES (?,'project','event','u','f','{}',?,"
-                "NULL,?,0,?,?)",
+            copy_rows(
+                "derivation_generations",
+                "generation_id, stage, unit_kind, unit_id, input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, row_count, created_at, run_id",
                 (
-                    (f"dg{index:07d}", f"set{index % named:07d}", f"{index:064x}", OLD, run)
+                    (
+                        f"dg{index:07d}",
+                        "project",
+                        "event",
+                        "u",
+                        "f",
+                        "{}",
+                        f"set{index % named:07d}",
+                        None,
+                        f"{index:064x}",
+                        0,
+                        OLD,
+                        run,
+                    )
                     for index in range(labels)
                 ),
             )
-            conn.executemany(
-                "INSERT INTO objects(class,digest,raw_bytes,stored_bytes,stored_at) "
-                "VALUES ('derivation_output',?,1,1,?)",
-                # Even ones name a label's output; odd ones nothing.
+            copy_rows(
+                "objects",
+                "class, digest, raw_bytes, stored_bytes, stored_at",
                 (
-                    (f"{index if index % 2 == 0 else labels + index:064x}", OLD)
+                    (
+                        "derivation_output",
+                        f"{index if index % 2 == 0 else labels + index:064x}",
+                        1,
+                        1,
+                        OLD,
+                    )
                     for index in range(count)
                 ),
             )

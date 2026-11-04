@@ -68,7 +68,10 @@ def refresh(
     captured = state.policy(config)
     subjects = list(
         conn.execute(
-            "SELECT source,source_ref FROM event_pressure_subjects ORDER BY checked_sequence,source,source_ref LIMIT ?",
+            (
+                "SELECT source, source_ref FROM event_pressure_subjects ORDER BY checked_sequence NULLS "
+                "FIRST, source NULLS FIRST, source_ref NULLS FIRST LIMIT %s"
+            ),
             (bound,),
         )
     )
@@ -80,7 +83,7 @@ def refresh(
         with database.transaction(immediate=False) as reader:
             fence = state.token(reader, source, source_ref, captured["digest"])
             row = reader.execute(
-                "SELECT scan_json FROM event_pressure_subjects WHERE source=? AND source_ref=?",
+                "SELECT scan_json FROM event_pressure_subjects WHERE source = %s AND source_ref = %s",
                 (source, source_ref),
             ).fetchone()
             scan = json.loads(row[0]) if row[0] else None
@@ -125,14 +128,17 @@ def refresh(
             # Preserve a closure caused by expiry before new observations reduce
             # pressure into the hysteresis interval.
             state.persist_latches(writer, config, now=now)
-            writer.execute("UPDATE event_pressure_state SET sequence=sequence+1")
+            writer.execute("UPDATE event_pressure_state SET sequence = sequence + 1")
             sequence = writer.execute("SELECT sequence FROM event_pressure_state").fetchone()[0]
             if (
                 state.token(writer, source, source_ref, captured["digest"]) != fence
                 or batch["enumeration_id"] != fence["enumeration_id"]
             ):
                 writer.execute(
-                    "UPDATE event_pressure_subjects SET scan_json=NULL,observation_json=NULL,checked_sequence=? WHERE source=? AND source_ref=?",
+                    (
+                        "UPDATE event_pressure_subjects SET scan_json = NULL, observation_json = NULL, "
+                        "checked_sequence = %s WHERE source = %s AND source_ref = %s"
+                    ),
                     (sequence, source, source_ref),
                 )
                 discarded += 1
@@ -149,7 +155,10 @@ def refresh(
                 else:
                     partial += 1
                 writer.execute(
-                    "UPDATE event_pressure_subjects SET scan_json=?,observation_json=?,checked_sequence=? WHERE source=? AND source_ref=?",
+                    (
+                        "UPDATE event_pressure_subjects SET scan_json = %s, observation_json = %s, checked_sequence "
+                        "= %s WHERE source = %s AND source_ref = %s"
+                    ),
                     (
                         None if observation else state._json(combined),
                         state._json(observation) if observation else None,

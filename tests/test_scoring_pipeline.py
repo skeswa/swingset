@@ -47,20 +47,20 @@ def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
             result = {**ticks["release"], "failed": ticks.failed}
             if (
                 result.get("candidate_id")
-                and database.connection.execute("SELECT count(*) FROM entries").fetchone()[0] == 317
+                and database.connection.execute("SELECT COUNT(*) FROM entries").fetchone()[0] == 317
             ):
                 break
         conn = database.connection
-        assert conn.execute("SELECT count(*) FROM contests").fetchone()[0] == 6
-        assert conn.execute("SELECT count(*) FROM rounds").fetchone()[0] == 12
-        assert conn.execute("SELECT count(*) FROM entries").fetchone()[0] == 317
-        assert conn.execute("SELECT count(*) FROM callbacks").fetchone()[0] == 336
-        assert conn.execute("SELECT count(*) FROM callback_marks").fetchone()[0] == 1684
-        assert conn.execute("SELECT count(*) FROM placements").fetchone()[0] == 62
-        assert conn.execute("SELECT count(*) FROM final_marks").fetchone()[0] == 420
+        assert conn.execute("SELECT COUNT(*) FROM contests").fetchone()[0] == 6
+        assert conn.execute("SELECT COUNT(*) FROM rounds").fetchone()[0] == 12
+        assert conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0] == 317
+        assert conn.execute("SELECT COUNT(*) FROM callbacks").fetchone()[0] == 336
+        assert conn.execute("SELECT COUNT(*) FROM callback_marks").fetchone()[0] == 1684
+        assert conn.execute("SELECT COUNT(*) FROM placements").fetchone()[0] == 62
+        assert conn.execute("SELECT COUNT(*) FROM final_marks").fetchone()[0] == 420
         assert (
             conn.execute(
-                "SELECT count(*) FROM identity_links WHERE method='source_id' AND status='confirmed'"
+                "SELECT COUNT(*) FROM identity_links WHERE method = 'source_id' AND status = 'confirmed'"
             ).fetchone()[0]
             == 236
         )

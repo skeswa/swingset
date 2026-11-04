@@ -2,7 +2,6 @@
 
 import json
 import runpy
-import sqlite3
 import tracemalloc
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta, timezone
@@ -233,23 +232,28 @@ def test_insert_failure_closes_comparison_even_when_traceback_is_retained(tmp_pa
 
     opened = []
 
-    class Connection(sqlite3.Connection):
+    original_open = changelog._open
+
+    class Connection:
         closed = False
 
-        def executemany(self, sql, parameters):
-            if sql == "INSERT INTO delta VALUES (?,?,?)":
-                iterator = iter(parameters)
-                next(iterator)  # The comparison generator now owns an open database.
+        def __init__(self, path):
+            self.inner = original_open(path)
+
+        def __getattr__(self, name):
+            return getattr(self.inner, name)
+
+        def execute(self, sql, *parameters):
+            if sql == "INSERT INTO delta SELECT value0,value1,value2 FROM spool_batch":
                 raise OSError("injected spool failure")
-            return super().executemany(sql, parameters)
+            return self.inner.execute(sql, *parameters)
 
         def close(self):
             self.closed = True
-            super().close()
+            self.inner.close()
 
     def tracked(path):
-        # Production pragmas do not affect deterministic handle ownership.
-        conn = sqlite3.connect(path, factory=Connection)
+        conn = Connection(path)
         opened.append(conn)
         return conn
 

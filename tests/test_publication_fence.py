@@ -7,13 +7,13 @@ the loops write through it; a closure-mode publication keeps the full fence.
 
 import json
 import shutil
-import sqlite3
 
 import pytest
 
 from swingset.build.service import build_release
 from swingset.clock import FakeClock
 from swingset.publish import safety
+from swingset.state import engine
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
 from swingset.state.publication_fence import (
@@ -71,10 +71,13 @@ def partitioned(tmp_path, monkeypatch):
         yield database, candidate.path, clock
 
 
-def _admit(conn: sqlite3.Connection, kind: str, action_id: str = "publication_x") -> None:
+def _admit(conn: engine.Connection, kind: str, action_id: str = "publication_x") -> None:
     conn.execute(
-        "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,"
-        "all_sources,all_kinds,state) VALUES (?,?,'2026-01-01T00:00:00+00:00',0,1,1,'active')",
+        (
+            "INSERT INTO execution_admissions (action_id, action_kind, admitted_at, control_revision, "
+            "all_sources, all_kinds, state) VALUES (%s, %s, '2026-01-01T00:00:00+00:00', 0, 1, 1, "
+            "'active')"
+        ),
         (action_id, kind),
     )
 
@@ -96,83 +99,112 @@ def test_the_fence_covers_every_table_a_partitioned_check_reads(partitioned):
     assert manifest["release_policy"]["mode"] == "partitioned"
     read: set[str] = set()
 
-    def authorize(action, table, _column, _db, _trigger):
-        if action == sqlite3.SQLITE_READ and table:
-            read.add(table)
-        return sqlite3.SQLITE_OK
-
-    conn = sqlite3.connect(database.state_dir / "state.sqlite")
-    conn.row_factory = sqlite3.Row
-    try:
-        conn.set_authorizer(authorize)
-        safety._validate_candidate(conn, database.state_dir, candidate, built, manifest)
-    finally:
-        conn.close()
+    with database.reader() as conn:
+        with conn.observing(
+            lambda query, parameters: read.update(conn.planned_relations(query, parameters))
+        ):
+            safety._validate_candidate(conn, database.state_dir, candidate, built, manifest)
     # `derivation_rows` is a view over row refs and payloads (migration 32).
-    assert read - {"sqlite_master", "derivation_rows"} <= set(NARROW), read
+    assert read - {"pg_class", "derivation_rows"} <= set(NARROW), read
     assert {"meta", "revisions", "admission_policies", "source_generations"} <= read
 
 
-def _seed(conn: sqlite3.Connection) -> None:
+def _seed(conn: engine.Connection) -> None:
     """Rows the statements below change, written before the publication."""
     conn.execute(
-        "INSERT INTO admission_policies(page_kind,contract_version,mode,policy_revision) "
-        "VALUES ('seeded','1','shadow','seeded')"
+        "INSERT INTO admission_policies (page_kind, contract_version, mode, policy_revision) VALUES "
+        "('seeded', '1', 'shadow', 'seeded')"
     )
 
 
 FENCED_WRITES = [
-    "UPDATE meta SET value='changed' WHERE key='input_bundle_hash'",
-    "UPDATE meta SET value='changed' WHERE key='identity_journal_digest'",
-    "DELETE FROM meta WHERE key='input_bundle_hash'",
-    "UPDATE revisions SET value=value+1 WHERE name='identity_decisions'",
-    "INSERT INTO identity_decisions VALUES ('d','eepro','event','contest','round','p','42',"
-    "'same_person','evidence','reason','author','2026-09-13',NULL,'{}','sha','digest','now')",
-    "INSERT INTO identity_journal_acceptances VALUES ('new','bundle','now',0,9)",
-    "INSERT INTO admission_policies(page_kind,contract_version,mode,policy_revision) "
-    "VALUES ('fixture','1','enforce','changed')",
-    "UPDATE admission_policies SET mode='paused' WHERE page_kind='seeded'",
-    "DELETE FROM admission_policies WHERE page_kind='seeded'",
+    "UPDATE meta SET value = 'changed' WHERE key = 'input_bundle_hash'",
+    "UPDATE meta SET value = 'changed' WHERE key = 'identity_journal_digest'",
+    "DELETE FROM meta WHERE key = 'input_bundle_hash'",
+    "UPDATE revisions SET value = value + 1 WHERE name = 'identity_decisions'",
+    (
+        "INSERT INTO identity_decisions (decision_id, source, source_event, contest, round, "
+        "participant, wsdc_id, decision, evidence, reason, author, date, supersedes, row_json, "
+        "row_sha256, accepted_digest, accepted_at) VALUES ('d', 'eepro', 'event', 'contest', "
+        "'round', 'p', '42', 'same_person', 'evidence', 'reason', 'author', '2026-09-13', NULL, "
+        "'{}', 'sha', 'digest', 'now')"
+    ),
+    (
+        "INSERT INTO identity_journal_acceptances (digest, bundle_digest, accepted_at, "
+        "decision_count, generation) VALUES ('new', 'bundle', 'now', 0, 9)"
+    ),
+    (
+        "INSERT INTO admission_policies (page_kind, contract_version, mode, policy_revision) VALUES "
+        "('fixture', '1', 'enforce', 'changed')"
+    ),
+    "UPDATE admission_policies SET mode = 'paused' WHERE page_kind = 'seeded'",
+    "DELETE FROM admission_policies WHERE page_kind = 'seeded'",
     # A revocation, whatever its unit: the trigger runs before any key check.
-    "INSERT INTO source_generations VALUES ('g','u','k','1','f','{}','{}','{}','{}',NULL,"
-    "NULL,'now','r','revoked','none')",
-    "UPDATE derivation_scopes SET desired_fingerprint='x' WHERE stage='build'",
-    "UPDATE derivation_generations SET row_count=row_count WHERE stage='build'",
-    "DELETE FROM derivation_row_refs WHERE generation_id IN "
-    "(SELECT generation_id FROM derivation_generations WHERE stage='build')",
+    (
+        "INSERT INTO source_generations (generation_id, unit_key, page_kind, contract_version, "
+        "input_fingerprint, manifest_json, recipe_json, result_json, report_json, "
+        "previous_generation_id, work_token, created_at, run_id, state, removal_authority) VALUES "
+        "('g', 'u', 'k', '1', 'f', '{}', '{}', '{}', '{}', NULL, NULL, 'now', 'r', 'revoked', 'none')"
+    ),
+    "UPDATE derivation_scopes SET desired_fingerprint = 'x' WHERE stage = 'build'",
+    "UPDATE derivation_generations SET row_count = row_count WHERE stage = 'build'",
+    (
+        "DELETE FROM derivation_row_refs WHERE generation_id IN (SELECT generation_id FROM "
+        "derivation_generations WHERE stage = 'build')"
+    ),
     "DELETE FROM derivation_payloads",
     "DELETE FROM release_manifests",
-    "UPDATE release_manifests SET verdict_json='{}'",
-    "INSERT INTO release_artifacts VALUES ('d','event/x',1,'now','now')",
-    "INSERT INTO release_partitions VALUES ('event/x','i',NULL,'withheld','r',NULL,'now','run')",
+    "UPDATE release_manifests SET verdict_json = '{}'",
+    (
+        "INSERT INTO release_artifacts (artifact_digest, partition, bytes, created_at, "
+        "last_named_at) VALUES ('d', 'event/x', 1, 'now', 'now')"
+    ),
+    (
+        "INSERT INTO release_partitions (partition, inputs_digest, artifact_digest, state, reason, "
+        "detail_json, built_at, run_id) VALUES ('event/x', 'i', NULL, 'withheld', 'r', NULL, 'now', "
+        "'run')"
+    ),
 ]
 #: Writes the loops make that a narrow publication lets through.
 LOOP_WRITES = [
-    "INSERT INTO pending_work VALUES ('parse','snapshot','x','2026-09-13')",
-    "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_narrow','now',1)",
-    "UPDATE revisions SET value=value+1 WHERE name<>'identity_decisions'",
-    "INSERT INTO meta VALUES ('event_site_review_cursor','x') "
-    "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+    (
+        "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+        "'snapshot', 'x', '2026-09-13')"
+    ),
+    "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_narrow', 'now', 1)",
+    "UPDATE revisions SET value = value + 1 WHERE name <> 'identity_decisions'",
+    (
+        "INSERT INTO meta (key, value) VALUES ('event_site_review_cursor', 'x') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+    ),
     # An unchanged acceptance: derive re-accepts the same bundle each tick.
-    "INSERT INTO meta(key,value) SELECT key,value FROM meta WHERE key='input_bundle_hash' "
-    "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-    "UPDATE meta SET value=value WHERE key='identity_journal_digest'",
+    (
+        "INSERT INTO meta (key, value) SELECT key, value FROM meta WHERE key = 'input_bundle_hash' ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+    ),
+    "UPDATE meta SET value = value WHERE key = 'identity_journal_digest'",
     # Parse upserts the policy row of its kind; present, it changes nothing.
-    "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) "
-    "VALUES ('seeded','2','shadow:2') ON CONFLICT(page_kind) DO NOTHING",
-    "INSERT OR IGNORE INTO identity_journal_acceptances SELECT * FROM identity_journal_acceptances",
-    "UPDATE derivation_scopes SET desired_fingerprint='x' WHERE stage<>'build'",
-    "INSERT INTO derivation_payloads VALUES ('sha-narrow','{}')",
+    (
+        "INSERT INTO admission_policies (page_kind, contract_version, policy_revision) VALUES ('seeded', '2', 'shadow:2') ON CONFLICT(page_kind) DO NOTHING"
+    ),
+    (
+        "INSERT INTO identity_journal_acceptances (digest, bundle_digest, accepted_at, "
+        "decision_count, generation) SELECT identity_journal_acceptances.digest, "
+        "identity_journal_acceptances.bundle_digest, identity_journal_acceptances.accepted_at, "
+        "identity_journal_acceptances.decision_count, identity_journal_acceptances.generation FROM "
+        "identity_journal_acceptances ON CONFLICT DO NOTHING"
+    ),
+    "UPDATE derivation_scopes SET desired_fingerprint = 'x' WHERE stage <> 'build'",
+    "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES ('sha-narrow', '{}')",
 ]
 
 
-def _each(conn: sqlite3.Connection, statements: list[str], *, fenced: bool) -> None:
+def _each(conn: engine.Connection, statements: list[str], *, fenced: bool) -> None:
     """Run each statement in a savepoint rolled back after it."""
+    conn.execute("BEGIN")
     for statement in statements:
         conn.execute("SAVEPOINT probe")
         try:
             if fenced:
-                with pytest.raises(sqlite3.IntegrityError, match=FENCED):
+                with pytest.raises(engine.IntegrityError, match=FENCED):
                     conn.execute(statement)
             else:
                 conn.execute(statement)
@@ -182,6 +214,7 @@ def _each(conn: sqlite3.Connection, statements: list[str], *, fenced: bool) -> N
         finally:
             conn.execute("ROLLBACK TO probe")
             conn.execute("RELEASE probe")
+    conn.rollback()
 
 
 def test_a_narrow_publication_fences_what_its_check_reads_and_nothing_else(partitioned):
@@ -198,35 +231,45 @@ def test_a_full_publication_still_fences_every_table(partitioned):
     conn = database.connection
     _admit(conn, "publication")
     for statement in (
-        "INSERT INTO pending_work VALUES ('parse','snapshot','x','2026-09-13')",
-        "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_full','now',1)",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('parse', "
+            "'snapshot', 'x', '2026-09-13')"
+        ),
+        "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('run_full', 'now', 1)",
     ):
-        with pytest.raises(sqlite3.IntegrityError, match=FENCED):
+        with pytest.raises(engine.IntegrityError, match=FENCED):
             conn.execute(statement)
 
 
 def test_a_missing_narrow_trigger_takes_the_full_fence(tmp_path):
     with open_database(tmp_path / "state") as database:
         conn = database.connection
-        conn.execute('DROP TRIGGER "publication_narrow_fence_meta_update"')
+        import psycopg
+
+        from swingset.dev.services import ensure_service
+
+        with psycopg.connect(ensure_service().dsn(conn.info.dbname), autocommit=True) as owner:
+            owner.execute('DROP TRIGGER "a_publication_narrow_fence_meta_update" ON ops.meta')
         assert admission_kind(conn, narrow=True) == "publication"
 
 
 def test_the_boundary_admits_a_partitioned_candidate_narrow_and_one_at_a_time(partitioned):
     database, candidate, _clock = partitioned
     conn = database.connection
-    with safety.publication_boundary(database.state_dir, candidate, narrow=True):
+    with safety.publication_boundary(database.state_dir, candidate, narrow=True, connection=conn):
         row = conn.execute(
-            "SELECT action_kind,state FROM execution_admissions WHERE candidate_id=?",
+            "SELECT action_kind, state FROM execution_admissions WHERE candidate_id = %s",
             (candidate.name,),
         ).fetchone()
         assert tuple(row) == (NARROW_KIND, "active")
         with pytest.raises(safety.PublicationHeldError, match="another publication"):
-            with safety.publication_boundary(database.state_dir, candidate, narrow=True):
+            with safety.publication_boundary(
+                database.state_dir, candidate, narrow=True, connection=conn
+            ):
                 pass
     assert (
         conn.execute(
-            "SELECT state FROM execution_admissions WHERE candidate_id=?", (candidate.name,)
+            "SELECT state FROM execution_admissions WHERE candidate_id = %s", (candidate.name,)
         ).fetchone()[0]
         == "settled"
     )
@@ -241,9 +284,9 @@ def test_recovery_keeps_a_narrow_publication_uncertain(partitioned):
     with database.transaction() as conn:
         _admit(conn, NARROW_KIND)
         assert recover_admissions(conn, now=datetime.now(UTC)) == 1
-    assert database.connection.execute("SELECT state,outcome FROM execution_admissions").fetchone()[
-        :
-    ] == ("uncertain", "receipt_reconciliation_required")
+    assert database.connection.execute(
+        "SELECT state, outcome FROM execution_admissions"
+    ).fetchone()[:] == ("uncertain", "receipt_reconciliation_required")
 
 
 def test_no_code_replaces_a_narrow_fenced_row():

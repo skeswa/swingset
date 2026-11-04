@@ -1,13 +1,13 @@
 """Transactional dispatch for durable projection work."""
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from datetime import UTC
 from typing import TYPE_CHECKING, Protocol
 
 from swingset.clock import Clock
 from swingset.model.history import HISTORY_START
+from swingset.state import engine
 from swingset.state.db import Database
 from swingset.state.read_sets import guarding, recording
 from swingset.state.work import WorkUnit, enqueue
@@ -57,14 +57,14 @@ def process_unit(
         derived = available(conn)
         if derived and retired(unit):
             conn.execute(
-                "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
                 (unit.stage, unit.unit_kind, unit.unit_id),
             )
             return False
         if (
             not derived
             and conn.execute(
-                "SELECT 1 FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                "SELECT 1 AS _value_0 FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
                 (unit.stage, unit.unit_kind, unit.unit_id),
             ).fetchone()
             is None
@@ -77,7 +77,7 @@ def process_unit(
                 # Inventory may have enriched this selected calendar's rows.
                 # Replaying a current base generation must not overwrite it.
                 conn.execute(
-                    "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                    "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
                     (unit.stage, unit.unit_kind, unit.unit_id),
                 )
                 return False
@@ -111,14 +111,14 @@ def process_unit(
             elif unit.unit_kind != "history":
                 enqueue(conn, (WorkUnit("project", "history", "all"),), enqueued_at=now)
             conn.execute(
-                "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
                 (unit.stage, unit.unit_kind, unit.unit_id),
             )
         return changed
 
 
 def _hint_links(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     before: "frozenset[tuple[str | None, str]]",
     now: str,
@@ -132,14 +132,16 @@ def _hint_links(
 
     events = hinted_events(before, hint_state(conn, unit))
     conn.executemany(
-        "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
-        "VALUES ('link','event',?,?)",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('link', 'event', "
+            "%s, %s) ON CONFLICT DO NOTHING"
+        ),
         ((event, now) for event in sorted(events)),
     )
 
 
 def _dispatch(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     bundle: InputBundleLike,
     now: str,
@@ -192,7 +194,7 @@ def _dispatch(
 
 
 def _replace_dancer(
-    conn: sqlite3.Connection, scope_id: str, bundle: InputBundleLike, now: str, run_id: str
+    conn: engine.Connection, scope_id: str, bundle: InputBundleLike, now: str, run_id: str
 ) -> bool:
     """Project one registry dancer and probe the link pools its change reaches.
 
@@ -232,14 +234,16 @@ def _replace_dancer(
     return reconciled or changed
 
 
-def _dancer_ids(conn: sqlite3.Connection, scope_id: str) -> set[int]:
+def _dancer_ids(conn: engine.Connection, scope_id: str) -> set[int]:
     """The registry ids whose rows the dancer scope owns, and its own."""
     ids = {int(scope_id)} if scope_id.isdigit() else set()
     ids.update(
         int(json.loads(str(row[0]))[0])
         for row in conn.execute(
-            "SELECT record_key FROM canonical_scope_rows WHERE scope_kind='dancer' "
-            "AND scope_id=? AND table_name='dancers'",
+            (
+                "SELECT record_key FROM canonical_scope_rows WHERE scope_kind = 'dancer' AND scope_id = %s "
+                "AND table_name = 'dancers'"
+            ),
             (scope_id,),
         )
     )
@@ -247,7 +251,7 @@ def _dancer_ids(conn: sqlite3.Connection, scope_id: str) -> set[int]:
 
 
 def _replace_calendar(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     scope_id: str,
     now: str,
     run_id: str,
@@ -272,7 +276,7 @@ def _replace_calendar(
     return reconcile_registry_events(conn, reconciled_at=now, run_id=run_id) or changed
 
 
-def _replace_event(conn: sqlite3.Connection, event_id: str, now: str, run_id: str) -> bool:
+def _replace_event(conn: engine.Connection, event_id: str, now: str, run_id: str) -> bool:
     return replace_scope(
         conn,
         scope_kind="event",
@@ -284,17 +288,20 @@ def _replace_event(conn: sqlite3.Connection, event_id: str, now: str, run_id: st
 
 
 def _project_source_event(
-    conn: sqlite3.Connection, source_ref: str, bundle: InputBundleLike, now: str, run_id: str
+    conn: engine.Connection, source_ref: str, bundle: InputBundleLike, now: str, run_id: str
 ) -> bool:
     source_row = conn.execute(
-        "SELECT DISTINCT w.source FROM observations o JOIN watches w USING(watch_id) WHERE o.scope_kind='source_event' AND o.scope_id=? ORDER BY w.source LIMIT 1",
+        (
+            "SELECT DISTINCT w.source FROM observations AS o JOIN watches AS w USING (watch_id) WHERE "
+            "o.scope_kind = 'source_event' AND o.scope_id = %s ORDER BY w.source NULLS FIRST LIMIT 1"
+        ),
         (source_ref,),
     ).fetchone()
     if source_row is None:
         return False
     key = str(source_row[0]), source_ref
     mapped = conn.execute(
-        "SELECT event_id FROM source_event_map WHERE source=? AND source_ref=?", key
+        "SELECT event_id FROM source_event_map WHERE source = %s AND source_ref = %s", key
     ).fetchone()
     changed = False
     # An unmapped listing waits for its mapping and resolution (plan F19):

@@ -1,6 +1,5 @@
 """Loops share the state; one exclusive writer waits for them and is not starved."""
 
-import fcntl
 import subprocess
 import sys
 import textwrap
@@ -9,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from swingset.state import rwlock
+from swingset.state import engine, rwlock
 from swingset.state.db import (
-    MIGRATION_PENDING,
     SCHEMA_VERSION,
     DatabaseLockedError,
     open_database,
     open_for_loop,
 )
+from swingset.state.engine.locks import release, try_lock
 
 HOLDER = textwrap.dedent(
     """
@@ -56,13 +55,11 @@ def _finish(child: subprocess.Popen[str]) -> str:
 
 
 def _intent_held_exclusive(state: Path) -> bool:
-    with (state / rwlock.STATE_INTENT).open("a+b") as handle:
-        try:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
-        except BlockingIOError:
-            return True
-        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        return False
+    with engine.connect(engine.resolve_dsn(state)) as conn:
+        acquired = try_lock(conn, rwlock.STATE_INTENT, shared=True)
+        if acquired:
+            release(conn, rwlock.STATE_INTENT, shared=True)
+        return not acquired
 
 
 @pytest.fixture
@@ -131,34 +128,33 @@ def test_a_second_open_of_one_loop_fails(state):
         pass
 
 
-def test_a_loop_hands_an_old_schema_to_one_exclusive_migration(tmp_path):
-    with pytest.raises(DatabaseLockedError) as refused:
-        open_database(tmp_path, mode="shared", loop="derive")
-    assert refused.value.reason == MIGRATION_PENDING
-    with open_for_loop(tmp_path, "derive") as database:
-        assert database.lock_mode == "shared"
-        assert database.schema_version == SCHEMA_VERSION
-        assert not database.holds_writer_lock
+def test_a_loop_refuses_old_schema_without_running_migrations(state):
+    with open_database(state) as database:
+        database.connection.execute("UPDATE ops.meta SET value='36' WHERE key='schema_version'")
+    with pytest.raises(RuntimeError, match="schema version"):
+        open_for_loop(state, "derive")
+    with engine.connect(engine.resolve_dsn(state)) as conn:
+        assert (
+            conn.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+            == "36"
+        )
 
 
-def test_a_loop_that_loses_the_migration_race_skips(tmp_path):
-    # Another loop holds the state shared (as the lock pair alone, before any
-    # schema), so this loop's one exclusive try fails and it skips its tick.
-    other = rwlock.shared(tmp_path, loop="acquire")
-    try:
+def test_a_loop_skips_while_an_exclusive_operation_owns_the_state(state):
+    with open_database(state):
         with pytest.raises(DatabaseLockedError) as refused:
-            open_for_loop(tmp_path, "derive")
-        assert refused.value.reason == "in use"
-    finally:
-        other.release()
-    with open_for_loop(tmp_path, "derive") as database:
+            open_for_loop(state, "derive")
+        assert refused.value.reason == "writer pending"
+    with open_for_loop(state, "derive") as database:
         assert database.schema_version == SCHEMA_VERSION
 
 
 def test_a_shared_open_refuses_a_newer_schema(state):
     with open_database(state) as database:
-        database.connection.execute(f"PRAGMA user_version={SCHEMA_VERSION + 1}")
-    with pytest.raises(RuntimeError, match="newer than supported"):
+        database.connection.execute(
+            "UPDATE ops.meta SET value=%s WHERE key='schema_version'", (str(SCHEMA_VERSION + 1),)
+        )
+    with pytest.raises(RuntimeError, match="schema version"):
         open_database(state, mode="shared", loop="derive")
 
 
@@ -182,17 +178,21 @@ def test_shared_opens_need_a_loop_and_exclusive_ones_refuse_one(state):
 
 
 def test_heavy_work_excludes_heavy_ticks_and_waits_for_them(state):
-    derive = rwlock.heavy_shared(state)
-    with pytest.raises(rwlock.LockBusy) as refused:
-        rwlock.heavy_exclusive(state, timeout=0)
-    assert refused.value.reason == "heavy work running"
-    derive.release()
-    release = rwlock.heavy_exclusive(state, timeout=0)
-    with pytest.raises(rwlock.LockBusy) as deferred:
-        rwlock.heavy_shared(state)
-    assert deferred.value.reason == "heavy work pending"
-    release.release()
-    rwlock.heavy_shared(state).release()
+    with (
+        engine.connect(engine.resolve_dsn(state)) as derive_conn,
+        engine.connect(engine.resolve_dsn(state)) as release_conn,
+    ):
+        derive = rwlock.heavy_shared(state, connection=derive_conn)
+        with pytest.raises(rwlock.LockBusy) as refused:
+            rwlock.heavy_exclusive(state, connection=release_conn, timeout=0)
+        assert refused.value.reason == "heavy work running"
+        derive.release()
+        release_lock = rwlock.heavy_exclusive(state, connection=release_conn, timeout=0)
+        with pytest.raises(rwlock.LockBusy) as deferred:
+            rwlock.heavy_shared(state, connection=derive_conn)
+        assert deferred.value.reason == "heavy work pending"
+        release_lock.release()
+        rwlock.heavy_shared(state, connection=derive_conn).release()
 
 
 def test_lock_files_are_never_state():
@@ -213,7 +213,8 @@ def test_lock_files_are_never_state():
 def test_a_checkpoint_copies_no_lock_file(state, tmp_path_factory):
     from swingset.backup.checkpoint import create_checkpoint
 
-    rwlock.heavy_shared(state).release()
+    with engine.connect(engine.resolve_dsn(state)) as conn:
+        rwlock.heavy_shared(state, connection=conn).release()
     with open_database(state, mode="shared", loop="derive"):
         pass
     with open_database(state) as database:
@@ -225,5 +226,5 @@ def test_a_checkpoint_copies_no_lock_file(state, tmp_path_factory):
             versions={},
             input_bundle_hash=None,
         )
-    assert (state / "loop-derive.lock").exists() and (state / "state.intent").exists()
+    assert not any(rwlock.is_lock_file(path.name) for path in state.iterdir())
     assert not [name for name in checkpoint.files if rwlock.is_lock_file(Path(name).name)]

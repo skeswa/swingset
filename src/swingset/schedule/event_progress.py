@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import math
-import sqlite3
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -15,6 +14,7 @@ from swingset.admission.evidence_budget import BudgetExceeded
 from swingset.admission.page_evidence import FORMAT, Limits, Session
 from swingset.config import Config
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 from swingset.state.db import Database
 from swingset.state.event_progress import available
 
@@ -47,9 +47,9 @@ def policy(config: Config, limits: Limits) -> dict[str, Any]:
     return {"digest": sha256(_json(values).encode()).hexdigest(), "values": values}
 
 
-def _fence(conn: sqlite3.Connection, source: str, ref: str, digest: str) -> dict[str, Any]:
+def _fence(conn: engine.Connection, source: str, ref: str, digest: str) -> dict[str, Any]:
     if conn.execute(
-        "SELECT 1 FROM meta WHERE key='input_bundle_hash' AND length(CAST(value AS BLOB))>4096"
+        "SELECT 1 AS _value_0 FROM meta WHERE key = 'input_bundle_hash' AND octet_length(value::text) > 4096"
     ).fetchone():
         raise ValueError("input_bundle_token_oversized")
     return token(conn, source, ref, digest)
@@ -71,7 +71,7 @@ def _compatible(previous: dict[str, Any], fence: dict[str, Any], now: datetime) 
 
 def _qualify(
     session: Session,
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     page: dict[str, Any],
     stage: str,
@@ -87,7 +87,12 @@ def _qualify(
     if stage == "acquired":
         searches = [
             (
-                "SELECT o.* FROM event_stage_operations o WHERE source=? AND stage=? AND request_id=? AND operation_id>? ORDER BY operation_id LIMIT ?",
+                (
+                    "SELECT o.operation_id, o.stage, o.source, o.request_id, o.watch_id, o.snapshot_id, "
+                    "o.generation_id, o.decision_id, o.occurred_at, o.run_id FROM event_stage_operations AS o "
+                    "WHERE source = %s AND stage = %s AND request_id = %s AND operation_id > %s ORDER BY "
+                    "operation_id NULLS FIRST LIMIT %s"
+                ),
                 (page["source"], stage, request_id(page), previous["operation_frontier"], cap),
             )
         ]
@@ -102,14 +107,19 @@ def _qualify(
         )
         searches = [
             (
-                "SELECT DISTINCT o.* FROM source_event_member_watches m JOIN event_stage_operations o USING(watch_id) "
-                "WHERE m.enumeration_id=? AND m.request_id=? AND o.source=? AND o.stage=? AND o.operation_id>? ORDER BY o.operation_id LIMIT ?",
+                (
+                    "SELECT DISTINCT o.operation_id, o.stage, o.source, o.request_id, o.watch_id, o.snapshot_id, "
+                    "o.generation_id, o.decision_id, o.occurred_at, o.run_id FROM source_event_member_watches AS "
+                    "m JOIN event_stage_operations AS o USING (watch_id) WHERE m.enumeration_id = %s AND "
+                    "m.request_id = %s AND o.source = %s AND o.stage = %s AND o.operation_id > %s ORDER BY "
+                    "o.operation_id NULLS FIRST LIMIT %s"
+                ),
                 parameters,
             ),
             (
-                "SELECT o.* FROM event_stage_operations o WHERE NOT EXISTS(SELECT 1 FROM source_event_member_watches m "
-                "WHERE m.enumeration_id=? AND m.request_id=? AND m.watch_id=o.watch_id) "
-                "AND o.source=? AND o.stage=? AND o.operation_id>? ORDER BY o.operation_id LIMIT ?",
+                (
+                    "SELECT o.operation_id, o.stage, o.source, o.request_id, o.watch_id, o.snapshot_id, o.generation_id, o.decision_id, o.occurred_at, o.run_id FROM event_stage_operations AS o WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM source_event_member_watches AS m WHERE m.enumeration_id = %s AND m.request_id = %s AND m.watch_id = o.watch_id) AND o.source = %s AND o.stage = %s AND o.operation_id > %s ORDER BY o.operation_id NULLS FIRST LIMIT %s"
+                ),
                 parameters,
             ),
         ]
@@ -136,7 +146,7 @@ def _qualify(
 
 def _observe(
     session: Session,
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     subject: dict[str, Any],
     captured: dict[str, Any],
     now: datetime,
@@ -171,7 +181,7 @@ def _observe(
             limit=ENUMERATION_MEMBERS,
         )
         scans = session.read(
-            "SELECT enumeration_id,after_request_id FROM event_progress_scans WHERE source=? AND source_ref=?",
+            "SELECT enumeration_id, after_request_id FROM event_progress_scans WHERE source = %s AND source_ref = %s",
             (source, ref),
             ("enumeration_id", "after_request_id"),
             cap=1,
@@ -225,8 +235,11 @@ def _observe(
             observed["gap"] = event_gaps.observation(evidence, result["gap_revision"])
             for stage in ("acquired", "interpreted"):
                 previous_rows = session.read(
-                    "SELECT enumeration_id,availability,valid_until,token_json,operation_frontier,observed_at "
-                    "FROM event_progress_observations WHERE source=? AND source_ref=? AND request_id=? AND stage=?",
+                    (
+                        "SELECT enumeration_id, availability, valid_until, token_json, operation_frontier, "
+                        "observed_at FROM event_progress_observations WHERE source = %s AND source_ref = %s AND "
+                        "request_id = %s AND stage = %s"
+                    ),
                     (source, ref, key, stage),
                     (
                         "enumeration_id",
@@ -330,20 +343,23 @@ def refresh(
     captured = policy(config, effective_limits)
     with database.transaction(immediate=False) as conn:
         cursor = conn.execute(
-            "SELECT CAST(last_rowid AS INTEGER),CAST(high_water AS INTEGER) FROM event_progress_cursor"
+            "SELECT CAST(last_rowid AS INT) AS _value_0, CAST(high_water AS INT) AS _value_1 FROM event_progress_cursor"
         ).fetchone()
         last, high = cursor
         if last >= high:
             last = 0
             high = conn.execute(
-                "SELECT coalesce(max(rowid),0) FROM source_event_inventory"
+                "SELECT COALESCE(MAX(rowid), 0) AS _value_0 FROM source_event_inventory"
             ).fetchone()[0]
         subjects = conn.execute(
-            "SELECT rowid FROM source_event_inventory WHERE rowid>? AND rowid<=? ORDER BY rowid LIMIT ?",
+            (
+                "SELECT rowid FROM source_event_inventory WHERE rowid > %s AND rowid <= %s ORDER BY rowid "
+                "NULLS FIRST LIMIT %s"
+            ),
             (last, high, max_events),
         ).fetchall()
         frontier = conn.execute(
-            "SELECT coalesce(max(operation_id),0) FROM event_stage_operations"
+            "SELECT COALESCE(MAX(operation_id), 0) AS _value_0 FROM event_stage_operations"
         ).fetchone()[0]
         session = Session(conn, archive, cutoff=now, now=now, limits=effective_limits)
         batches = []
@@ -356,7 +372,7 @@ def refresh(
             summary["scanned_events"] += 1
             try:
                 loaded = session.read(
-                    "SELECT rowid,source,source_ref,enumeration_id FROM source_event_inventory WHERE rowid=?",
+                    "SELECT rowid, source, source_ref, enumeration_id FROM source_event_inventory WHERE rowid = %s",
                     (key[0],),
                     ("rowid", "source", "source_ref", "enumeration_id"),
                     cap=1,
@@ -387,7 +403,9 @@ def refresh(
         summary["budget_exhausted"] = session.exhausted()
     with database.transaction() as conn:
         conn.execute(
-            "INSERT INTO event_progress_policies VALUES(?,?) ON CONFLICT(digest) DO NOTHING",
+            (
+                "INSERT INTO event_progress_policies (digest, policy_json) VALUES (%s, %s) ON CONFLICT(digest) DO NOTHING"
+            ),
             (captured["digest"], _json(captured["values"])),
         )
         for batch in batches:
@@ -404,8 +422,9 @@ def refresh(
                 for stage, observed in page["stages"].items():
                     if observed["operation"] is not None:
                         receipt = conn.execute(
-                            "INSERT INTO event_progress_receipts(source,source_ref,request_id,stage,enumeration_id,operation_id,missing_observed_at,verified_at,token_json) "
-                            "VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(source,source_ref,request_id,stage,operation_id) DO NOTHING",
+                            (
+                                "INSERT INTO event_progress_receipts (source, source_ref, request_id, stage, enumeration_id, operation_id, missing_observed_at, verified_at, token_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref, request_id, stage, operation_id) DO NOTHING"
+                            ),
                             (
                                 source,
                                 ref,
@@ -420,10 +439,9 @@ def refresh(
                         )
                         summary["qualified_progress"] += receipt.rowcount
                     conn.execute(
-                        "INSERT INTO event_progress_observations VALUES(?,?,?,?,?,?,?,?,?,?,?) "
-                        "ON CONFLICT(source,source_ref,request_id,stage) DO UPDATE SET "
-                        "enumeration_id=excluded.enumeration_id,observed_at=excluded.observed_at,valid_until=excluded.valid_until,"
-                        "availability=excluded.availability,operation_frontier=excluded.operation_frontier,token_json=excluded.token_json,reasons_json=excluded.reasons_json",
+                        (
+                            "INSERT INTO event_progress_observations (source, source_ref, request_id, stage, enumeration_id, observed_at, valid_until, availability, operation_frontier, token_json, reasons_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref, request_id, stage) DO UPDATE SET enumeration_id = excluded.enumeration_id, observed_at = excluded.observed_at, valid_until = excluded.valid_until, availability = excluded.availability, operation_frontier = excluded.operation_frontier, token_json = excluded.token_json, reasons_json = excluded.reasons_json"
+                        ),
                         (
                             source,
                             ref,
@@ -435,7 +453,11 @@ def refresh(
                                 now
                                 + timedelta(seconds=config.scheduler.event_pressure_max_age_seconds)
                             ).isoformat(),
-                            observed["availability"],
+                            (
+                                None
+                                if observed["availability"] is None
+                                else int(observed["availability"])
+                            ),
                             batch["frontier"],
                             _json(batch["token"]),
                             _json(observed["reasons"]),
@@ -458,11 +480,9 @@ def refresh(
             summary["retirement_receipts"] += event_retirement.persist(conn, batch)
             summary["unknown_pages"] += batch["unknown"]
             conn.execute(
-                "INSERT INTO event_progress_scans VALUES(?,?,?,?,?,?) "
-                "ON CONFLICT(source,source_ref) DO UPDATE SET enumeration_id=excluded.enumeration_id,"
-                "after_request_id=CASE WHEN ? OR event_progress_scans.enumeration_id IS NOT excluded.enumeration_id "
-                "THEN excluded.after_request_id ELSE event_progress_scans.after_request_id END,"
-                "assessment_reason=excluded.assessment_reason,assessed_at=excluded.assessed_at",
+                (
+                    "INSERT INTO event_progress_scans (source, source_ref, enumeration_id, after_request_id, assessment_reason, assessed_at) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref) DO UPDATE SET enumeration_id = excluded.enumeration_id, after_request_id = CASE WHEN %s OR event_progress_scans.enumeration_id IS DISTINCT FROM excluded.enumeration_id THEN excluded.after_request_id ELSE event_progress_scans.after_request_id END, assessment_reason = excluded.assessment_reason, assessed_at = excluded.assessed_at"
+                ),
                 (
                     source,
                     ref,
@@ -473,5 +493,7 @@ def refresh(
                     batch["cursor_assessed"],
                 ),
             )
-        conn.execute("UPDATE event_progress_cursor SET last_rowid=?,high_water=?", (last, high))
+        conn.execute(
+            "UPDATE event_progress_cursor SET last_rowid = %s, high_water = %s", (last, high)
+        )
     return summary

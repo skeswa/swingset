@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -12,6 +11,7 @@ from hashlib import sha256
 from urllib.parse import urlencode, urlsplit
 
 from swingset.sources.base import ExtractError
+from swingset.state import engine
 
 
 @dataclass(frozen=True)
@@ -132,7 +132,7 @@ def select_captures(captures: tuple[Capture, ...], event_end: date) -> tuple[Cap
 
 
 def store_cdx_page(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     source: str,
     prefix: str,
@@ -149,12 +149,15 @@ def store_cdx_page(
     captures = parse_cdx(body)
     query_id = query_id or sha256(f"{source}\0{prefix}\0{year}".encode()).hexdigest()
     existing = conn.execute(
-        "SELECT next_page FROM archive_queries WHERE query_id=?", (query_id,)
+        "SELECT next_page FROM archive_queries WHERE query_id = %s", (query_id,)
     ).fetchone()
     if page != (int(existing[0]) if existing else 0):
         raise ValueError("CDX pages must be accepted in order")
     conn.executemany(
-        "INSERT OR IGNORE INTO archive_captures(source,url,timestamp,digest,status,mimetype,length,queried_at,cdx_query_id) VALUES (?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
+        ),
         [
             (
                 source,
@@ -171,7 +174,9 @@ def store_cdx_page(
         ],
     )
     conn.execute(
-        "INSERT INTO archive_queries(query_id,source,prefix,year,next_page,total_pages,completed_at,started_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(query_id) DO UPDATE SET next_page=excluded.next_page,total_pages=excluded.total_pages,completed_at=excluded.completed_at",
+        (
+            "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, total_pages, completed_at, started_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(query_id) DO UPDATE SET next_page = excluded.next_page, total_pages = excluded.total_pages, completed_at = excluded.completed_at"
+        ),
         (
             query_id,
             source,
@@ -192,12 +197,19 @@ def query_due(year: int, completed_at: str | None, now: datetime) -> bool:
     return year >= now.year - 1 and now - datetime.fromisoformat(completed_at) >= timedelta(days=90)
 
 
-def schedule_capture(conn: sqlite3.Connection, spec: object, *, now: datetime) -> bool:
+def schedule_capture(conn: engine.Connection, spec: object, *, now: datetime) -> bool:
     """Select another immutable capture on the original URL's one watch.
 
     Index callers can walk every capture oldest first; score-sheet callers must
     pass the year/deployment gates enforced by watch insertion.
     """
+    if not conn.in_transaction:
+        from pathlib import Path
+
+        from swingset.state.db import Database
+
+        with Database(conn.state_dir or Path("."), conn, None).transaction():
+            return schedule_capture(conn, spec, now=now)
     from swingset.history.acquisition import is_phase_one_index
     from swingset.schedule.watches import upsert_watch
     from swingset.sources.base import WatchSpec
@@ -205,13 +217,18 @@ def schedule_capture(conn: sqlite3.Connection, spec: object, *, now: datetime) -
     if not isinstance(spec, WatchSpec) or not spec.archive_url:
         raise ValueError("capture scheduling requires an archive watch specification")
     if conn.execute(
-        "SELECT 1 FROM snapshots WHERE url=? AND (archive_url=? OR requested_archive_url=?) AND http_status=200 AND classification='Ok'",
+        (
+            "SELECT 1 AS _value_0 FROM snapshots WHERE url = %s AND (archive_url = %s OR requested_archive_url = %s) AND http_status = 200 AND classification = 'Ok'"
+        ),
         (spec.url, spec.archive_url, spec.archive_url),
     ).fetchone():
         return False
     upsert_watch(conn, spec, now)
     conn.execute(
-        "UPDATE watches SET archive_url=?,state='backfill',next_check_at=?,priority=? WHERE watch_id=?",
+        (
+            "UPDATE watches SET archive_url = %s, state = 'backfill', next_check_at = %s, priority = %s "
+            "WHERE watch_id = %s"
+        ),
         (
             spec.archive_url,
             now.isoformat(),
@@ -222,14 +239,33 @@ def schedule_capture(conn: sqlite3.Connection, spec: object, *, now: datetime) -
     return True
 
 
-def retry_capture(conn: sqlite3.Connection, watch_id: str, *, now: datetime) -> bool:
+def retry_capture(conn: engine.Connection, watch_id: str, *, now: datetime) -> bool:
     """After a sheet parse failure, try the next distinct capture (three total)."""
+    if not conn.in_transaction:
+        from pathlib import Path
+
+        from swingset.state.db import Database
+
+        with Database(conn.state_dir or Path("."), conn, None).transaction():
+            return retry_capture(conn, watch_id, now=now)
     import calendar
 
     from swingset.history.acquisition import is_phase_one_index, phase_two_gate
     from swingset.sources.base import WatchSpec
 
-    watch = conn.execute("SELECT * FROM watches WHERE watch_id=?", (watch_id,)).fetchone()
+    watch = conn.execute(
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s"
+        ),
+        (watch_id,),
+    ).fetchone()
     if (
         watch is None
         or not watch["archive_url"]
@@ -237,7 +273,10 @@ def retry_capture(conn: sqlite3.Connection, watch_id: str, *, now: datetime) -> 
     ):
         return False
     event = conn.execute(
-        "SELECT e.end_date,e.event_month,e.year FROM source_event_map m JOIN events e USING(event_id) WHERE m.source=? AND m.source_ref=?",
+        (
+            "SELECT e.end_date, e.event_month, e.year FROM source_event_map AS m JOIN events AS e USING "
+            "(event_id) WHERE m.source = %s AND m.source_ref = %s"
+        ),
         (watch["source"], watch["source_ref"]),
     ).fetchone()
     if event is None or phase_two_gate(
@@ -248,7 +287,9 @@ def retry_capture(conn: sqlite3.Connection, watch_id: str, *, now: datetime) -> 
     ):
         return False
     failed = conn.execute(
-        "SELECT COUNT(DISTINCT body_sha256) FROM snapshots WHERE watch_id=? AND via='wayback' AND http_status=200 AND classification='Ok' AND parse_status='failed'",
+        (
+            "SELECT COUNT(DISTINCT body_sha256) AS _value_0 FROM snapshots WHERE watch_id = %s AND via = 'wayback' AND http_status = 200 AND classification = 'Ok' AND parse_status = 'failed'"
+        ),
         (watch_id,),
     ).fetchone()[0]
     if failed >= 3:
@@ -261,13 +302,18 @@ def retry_capture(conn: sqlite3.Connection, watch_id: str, *, now: datetime) -> 
     captures = tuple(
         Capture(str(row[0]), str(row[1]), str(row[2]), str(row[3]), int(row[4]), int(row[5]))
         for row in conn.execute(
-            "SELECT url,timestamp,digest,mimetype,length,status FROM archive_captures WHERE source=? AND url=?",
+            (
+                "SELECT url, timestamp, digest, mimetype, length, status FROM archive_captures WHERE source "
+                "= %s AND url = %s"
+            ),
             (watch["source"], watch["url"]),
         )
     )
     for capture in select_captures(captures, end):
         if conn.execute(
-            "SELECT 1 FROM snapshots WHERE watch_id=? AND (archive_url=? OR requested_archive_url=?) AND http_status=200 AND classification='Ok'",
+            (
+                "SELECT 1 AS _value_0 FROM snapshots WHERE watch_id = %s AND (archive_url = %s OR requested_archive_url = %s) AND http_status = 200 AND classification = 'Ok'"
+            ),
             (watch_id, capture.archive_url, capture.archive_url),
         ).fetchone():
             continue

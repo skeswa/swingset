@@ -77,7 +77,16 @@ def test_accounting_does_not_create_acquisition_or_success_receipts(event):
     prepare(f)
     unsupported(f)
     enroll(f, config())
-    before = tuple(f.conn.execute("SELECT * FROM event_stage_operations"))
+    before = tuple(
+        f.conn.execute(
+            "SELECT event_stage_operations.operation_id, event_stage_operations.stage, "
+            "event_stage_operations.source, event_stage_operations.request_id, "
+            "event_stage_operations.watch_id, event_stage_operations.snapshot_id, "
+            "event_stage_operations.generation_id, event_stage_operations.decision_id, "
+            "event_stage_operations.occurred_at, event_stage_operations.run_id FROM "
+            "event_stage_operations"
+        )
+    )
     settle(f)
     value = event_view(f)
     assert value["assessment"] == "locally_accounted"
@@ -85,7 +94,19 @@ def test_accounting_does_not_create_acquisition_or_success_receipts(event):
     assert value["unavailable"] == dict(positive=0, negative=2, unknown=0)
     assert value["stages"]["interpreted"] == dict(positive=1, negative=1, unknown=0)
     assert value["stages"]["acquired"] == dict(positive=2, negative=0, unknown=0)
-    assert tuple(f.conn.execute("SELECT * FROM event_stage_operations")) == before
+    assert (
+        tuple(
+            f.conn.execute(
+                "SELECT event_stage_operations.operation_id, event_stage_operations.stage, "
+                "event_stage_operations.source, event_stage_operations.request_id, "
+                "event_stage_operations.watch_id, event_stage_operations.snapshot_id, "
+                "event_stage_operations.generation_id, event_stage_operations.decision_id, "
+                "event_stage_operations.occurred_at, event_stage_operations.run_id FROM "
+                "event_stage_operations"
+            )
+        )
+        == before
+    )
     assert not f.conn.execute("SELECT 1 FROM event_progress_receipts").fetchone()
 
 
@@ -93,7 +114,7 @@ def test_body_loss_reopens_sampled_accounting_after_bounded_refresh(event):
     f = event
     context, _ = ready(f)
     sha = f.conn.execute(
-        "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (context.snapshot_id,)
+        "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (context.snapshot_id,)
     ).fetchone()[0]
     path = f.archive.blob_path(sha)
     saved = path.read_bytes()
@@ -110,7 +131,7 @@ def test_new_generation_without_admission_invalidates_sampled_gap(event):
     f = event
     context, _ = ready(f)
     old = f.conn.execute(
-        "SELECT revision FROM event_gap_revisions WHERE source='eepro'"
+        "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
     ).fetchone()[0]
     f.corpus.stage(
         context,
@@ -119,9 +140,9 @@ def test_new_generation_without_admission_invalidates_sampled_gap(event):
         ),
     )
     assert (
-        f.conn.execute("SELECT revision FROM event_gap_revisions WHERE source='eepro'").fetchone()[
-            0
-        ]
+        f.conn.execute(
+            "SELECT revision FROM event_gap_revisions WHERE source = 'eepro'"
+        ).fetchone()[0]
         > old
     )
     assert event_view(f)["unsupported"]["positive"] == 0
@@ -133,7 +154,7 @@ def test_revocation_invalidates_classification_and_does_not_retire_page(event):
     f = event
     _, generation = ready(f)
     f.conn.execute(
-        "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (generation,)
+        "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s", (generation,)
     )
     observe(f)
     value = event_view(f)
@@ -145,7 +166,16 @@ def test_revocation_invalidates_classification_and_does_not_retire_page(event):
 def test_legacy_gap_record_does_not_invent_unsupported_history(event):
     f = event
     ready(f)
-    row = dict(f.conn.execute("SELECT * FROM event_gap_observations LIMIT 1").fetchone())
+    row = dict(
+        f.conn.execute(
+            "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+            "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+            "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+            "event_gap_observations.availability, event_gap_observations.token_json, "
+            "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+            "event_gap_observations.evidence_digest FROM event_gap_observations LIMIT 1"
+        ).fetchone()
+    )
     evidence = json.loads(row["evidence_json"])
     evidence["format"] = "unavailable-origin-observation-v1"
     del evidence["unsupported"]
@@ -165,7 +195,17 @@ def test_legacy_gap_record_does_not_invent_unsupported_history(event):
 def test_malformed_positive_metadata_stays_unknown_even_with_matching_digest(event, damage):
     f = event
     ready(f)
-    rows = [dict(r) for r in f.conn.execute("SELECT * FROM event_gap_observations")]
+    rows = [
+        dict(r)
+        for r in f.conn.execute(
+            "SELECT event_gap_observations.source, event_gap_observations.source_ref, "
+            "event_gap_observations.request_id, event_gap_observations.enumeration_id, "
+            "event_gap_observations.observed_at, event_gap_observations.valid_until, "
+            "event_gap_observations.availability, event_gap_observations.token_json, "
+            "event_gap_observations.source_revision, event_gap_observations.evidence_json, "
+            "event_gap_observations.evidence_digest FROM event_gap_observations"
+        )
+    ]
     row = next(r for r in rows if json.loads(r["evidence_json"])["unsupported"])
     evidence = copy.deepcopy(json.loads(row["evidence_json"]))
     support = evidence["unsupported_support"]

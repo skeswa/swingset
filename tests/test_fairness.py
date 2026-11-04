@@ -71,7 +71,7 @@ def test_scheduler_bundle_change_is_accepted_without_reinterpreting_sources(tmp_
         assert second.config.scheduler.pending_parse_items == 501
         assert second.digest != first.digest
         assert accept(db, second, clock) == {"config/sources.toml"}
-        assert db.connection.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
         assert not accept(db, second, clock)
 
 
@@ -98,7 +98,7 @@ def test_continuous_independent_demand_does_not_starve_other_unit_kinds_after_re
             enqueue(db.connection, units, enqueued_at=clock.now().isoformat())
         assert set(selected) == set(units)
         assert (
-            db.connection.execute("SELECT sum(attempts) FROM scheduler_offline_service").fetchone()[
+            db.connection.execute("SELECT SUM(attempts) FROM scheduler_offline_service").fetchone()[
                 0
             ]
             == 4
@@ -167,11 +167,11 @@ def test_derivation_hints_do_not_pause_acquisition(tmp_path):
         assert backpressure(db.connection, config)["reasons"] == ["pending_work_items"]
 
 
-def test_report_keeps_objectives_separate_and_supports_unmigrated_schema12(tmp_path):
+def test_report_keeps_objectives_separate_when_request_history_is_unavailable(tmp_path):
     clock = FakeClock()
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO host_budget VALUES ('example.test',?,75,1234)",
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('example.test', %s, 75, 1234)",
             (clock.now().date().isoformat(),),
         )
         before = report(db.connection, Config({}, {}), now=clock.now())
@@ -179,32 +179,28 @@ def test_report_keeps_objectives_separate_and_supports_unmigrated_schema12(tmp_p
         assert before["observed_attributed_service"] == []
         assert before["observed_host_usage"][0]["requests"] == 75
         assert before["initial_objectives"]["service_gap_seconds"] == 86400
-        db.connection.execute("DROP TABLE scheduler_requests")
-        db.connection.execute("UPDATE meta SET value='12' WHERE key='schema_version'")
-        db.connection.execute("PRAGMA query_only=ON")
-        old = report(db.connection, Config({}, {}), now=clock.now())
+        db.connection.execute(
+            'SET search_path=pg_catalog,pg_temp,"fetch",plan,evidence,derive,project,release,ops'
+        )
+        db.connection.execute("CREATE TEMP VIEW scheduler_requests AS SELECT 1 AS unavailable")
+        with db.connection.read_snapshot():
+            old = report(db.connection, Config({}, {}), now=clock.now())
         assert not old["supported"]
         assert old["observed_attributed_service"] is None
         assert old["observed_host_usage"] == before["observed_host_usage"]
-        assert (
-            db.connection.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0]
-            == "12"
-        )
+        assert db.schema_version == 37
 
 
 def test_daily_fair_share_counts_have_a_day_bounded_index(tmp_path):
     with open_database(tmp_path) as db:
-        plan = " ".join(
-            str(row[-1])
-            for row in db.connection.execute(
-                "EXPLAIN QUERY PLAN SELECT host,category,count(*) FROM scheduler_requests WHERE day=? GROUP BY host,category",
-                ("2026-09-13",),
-            )
-        )
-        assert (
-            "SEARCH scheduler_requests USING COVERING INDEX scheduler_requests_class (day=?)"
-            in plan
-        )
+        db.connection.execute("SET enable_seqscan=off")
+        plan = db.connection.execute(
+            "EXPLAIN (FORMAT JSON) SELECT host,category,count(*) FROM scheduler_requests "
+            "WHERE day=%s GROUP BY host,category",
+            ("2026-09-13",),
+        ).fetchone()[0]
+        assert "scheduler_requests_class" in str(plan)
+        assert "Index Cond" in str(plan)
 
 
 def test_offline_batch_matches_single_selection_order_and_stays_within_one_group(tmp_path):
@@ -274,8 +270,8 @@ def test_a_kind_without_a_code_scope_leaves_the_other_kinds_runnable(tmp_path, m
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.executemany(
-            "INSERT INTO accepted_inputs VALUES ('pipeline',?,?)",
-            (("recipe/env", "env"), ("recipe/code/project/calendar", "calendar")),
+            "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', %s, %s)",
+            (("recipe/code/project/calendar", "calendar"),),
         )
         enqueue(conn, [dancer, calendar], enqueued_at=clock.now().isoformat())
         errors: dict[str, str] = {}
@@ -305,9 +301,11 @@ def test_backpressure_counts_only_parse_units_derive_could_run(tmp_path):
         units = [WorkUnit("parse", "snapshot", f"s{i}") for i in range(first, first + 2000)]
         enqueue(conn, units, enqueued_at=now.isoformat())
         conn.executemany(
-            "INSERT INTO work_queue(stage,unit_kind,unit_id,partition,state,next_attempt_at,"
-            "lease_owner,lease_until,enqueued_at,updated_at) "
-            "VALUES ('parse','snapshot',?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO work_queue (stage, unit_kind, unit_id, partition, state, next_attempt_at, "
+                "lease_owner, lease_until, enqueued_at, updated_at) VALUES ('parse', 'snapshot', %s, %s, %s, "
+                "%s, %s, %s, %s, %s)"
+            ),
             [
                 (unit.unit_id, f"snapshot/{unit.unit_id}", state, next_attempt)
                 + (("derive:r", at(now)) if state == "leased" else (None, None))
@@ -359,7 +357,7 @@ def _robots_world(tmp_path, db, clock, *, blocked_due):
         upsert_watch(conn, spec, clock.now())
     # Due two hours ago, so the blocked host ranks first; or not due at all.
     when = clock.now() + timedelta(hours=-2 if blocked_due else 2)
-    conn.execute("UPDATE watches SET next_check_at=?", (when.isoformat(),))
+    conn.execute("UPDATE watches SET next_check_at = %s", (when.isoformat(),))
     upsert_watch(
         conn,
         WatchSpec(
@@ -369,8 +367,10 @@ def _robots_world(tmp_path, db, clock, *, blocked_due):
     )
     fetched = clock.now() - timedelta(minutes=20)
     conn.execute(
-        "INSERT INTO hosts(host,robots_sha256,robots_fetched_at,robots_status,pause_streak) "
-        "VALUES ('blocked.test',?,?,599,3)",
+        (
+            "INSERT INTO hosts (host, robots_sha256, robots_fetched_at, robots_status, pause_streak) "
+            "VALUES ('blocked.test', %s, %s, 599, 3)"
+        ),
         (Archive(tmp_path).store_body(b""), fetched.isoformat()),
     )
     return config, fetched
@@ -466,14 +466,9 @@ def test_a_blocked_host_with_nothing_due_leaves_no_guard_and_acquire_idle_alarms
     """The guard says a fetch was held: a host whose robots read failed but
     had no due watch writes none, so it cannot silence acquire [loop-idle]
     (the watchdog's `guards_recent`)."""
-    import importlib.util
-
+    from swingset.ops import watchdog
     from swingset.state import guards
 
-    spec = importlib.util.spec_from_file_location("swingset_watchdog", "nix/watchdog.py")
-    assert spec is not None and spec.loader is not None
-    watchdog = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(watchdog)
     clock = FakeClock()
     with open_database(tmp_path) as db:
         config, _ = _robots_world(tmp_path, db, clock, blocked_due=False)

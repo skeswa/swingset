@@ -13,7 +13,6 @@ process's global recovery.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -21,6 +20,8 @@ from dataclasses import astuple, dataclass, fields, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
+
+from swingset.state import engine
 
 from .work import WorkUnit
 
@@ -45,7 +46,7 @@ IO_REASON = "unit_io_error"
 UNSUPPORTED_REASON = "unsupported_page_kind"
 #: A write that met an active publication's fence: retried soon, never counted.
 FENCED_REASON = "publication_fenced"
-#: A write whose `BEGIN IMMEDIATE` outwaited the busy timeout behind another
+#: A write that exhausted its writer-lock timeout behind another
 #: process: retried soon, never counted. Contention is not the unit's fault.
 LOCK_REASON = "write_lock_timeout"
 #: Reasons that keep the unit's run of failures as it was.
@@ -132,45 +133,46 @@ def error_class(reason_code: str | None, evidence_json: str | None = None) -> st
     return f"{reason_code}:{exception}" if isinstance(exception, str) and exception else reason_code
 
 
-def get(conn: sqlite3.Connection, unit: WorkUnit) -> QueueRow | None:
+def get(conn: engine.Connection, unit: WorkUnit) -> QueueRow | None:
     row = conn.execute(
-        f"SELECT {','.join(_COLUMNS)} FROM work_queue WHERE stage=? AND unit_kind=? AND unit_id=?",
+        f"SELECT {','.join(_COLUMNS)} FROM work_queue WHERE stage=%s AND unit_kind=%s AND unit_id=%s",
         (unit.stage, unit.unit_kind, unit.unit_id),
     ).fetchone()
     return None if row is None else QueueRow(*row)
 
 
-def upsert(conn: sqlite3.Connection, row: QueueRow) -> None:
+def upsert(conn: engine.Connection, row: QueueRow) -> None:
     updates = ",".join(f"{name}=excluded.{name}" for name in _COLUMNS if name not in _KEY)
     conn.execute(
-        f"INSERT INTO work_queue({','.join(_COLUMNS)}) VALUES ({','.join('?' * len(_COLUMNS))}) "
-        f"ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET {updates}",
+        f"INSERT INTO work_queue({','.join(_COLUMNS)}) VALUES ({','.join(['%s'] * len(_COLUMNS))}) ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET {updates}",
         astuple(row),
     )
 
 
-def delete(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+def delete(conn: engine.Connection, unit: WorkUnit) -> bool:
     cursor = conn.execute(
-        "DELETE FROM work_queue WHERE stage=? AND unit_kind=? AND unit_id=?",
+        "DELETE FROM work_queue WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
         (unit.stage, unit.unit_kind, unit.unit_id),
     )
     return cursor.rowcount > 0
 
 
-def counts_by_state(conn: sqlite3.Connection) -> dict[str, int]:
+def counts_by_state(conn: engine.Connection) -> dict[str, int]:
     """Rows per state, every state present."""
     counts: dict[str, int] = dict.fromkeys(STATES, 0)
-    for state, count in conn.execute("SELECT state,count(*) FROM work_queue GROUP BY state"):
+    for state, count in conn.execute(
+        "SELECT state, COUNT(*) AS _value_1 FROM work_queue GROUP BY state"
+    ):
         counts[str(state)] = int(count)
     return counts
 
 
-def counts_by_class(conn: sqlite3.Connection, state: QueueState | None = None) -> dict[str, int]:
+def counts_by_class(conn: engine.Connection, state: QueueState | None = None) -> dict[str, int]:
     """Rows per error class, optionally in one state; no class counts as ''."""
-    query = "SELECT coalesce(error_class,''),count(*) FROM work_queue"
+    query = "SELECT COALESCE(error_class, '') AS _value_0, COUNT(*) AS _value_1 FROM work_queue"
     arguments: tuple[str, ...] = ()
     if state is not None:
-        query += " WHERE state=?"
+        query += " WHERE state=%s"
         arguments = (state,)
     return {
         str(name): int(count)
@@ -178,7 +180,7 @@ def counts_by_class(conn: sqlite3.Connection, state: QueueState | None = None) -
     }
 
 
-def seed(conn: sqlite3.Connection, now: datetime, policy: Policy | None = None) -> dict[str, int]:
+def seed(conn: engine.Connection, now: datetime, policy: Policy | None = None) -> dict[str, int]:
     """Give each failing pending unit its row; run once by migration 34.
 
     A unit whose latest attempt is blocked or unavailable, or parked as an
@@ -194,14 +196,16 @@ def seed(conn: sqlite3.Connection, now: datetime, policy: Policy | None = None) 
     depth = max(policy.quarantine_after, policy.io_quarantine_after)
     seeded: dict[str, int] = dict.fromkeys(STATES, 0)
     pending = conn.execute(
-        "SELECT stage,unit_kind,unit_id,enqueued_at FROM pending_work "
-        "WHERE stage IN ('parse','project','link') ORDER BY stage,unit_kind,unit_id"
+        "SELECT stage, unit_kind, unit_id, enqueued_at FROM pending_work WHERE stage IN ('parse', "
+        "'project', 'link') ORDER BY stage NULLS FIRST, unit_kind NULLS FIRST, unit_id NULLS FIRST"
     ).fetchall()
     for stage, unit_kind, unit_id, enqueued_at in pending:
         attempts = conn.execute(
-            "SELECT outcome,reason_code,evidence_json,retry_at,input_fingerprint "
-            "FROM work_attempts WHERE stage=? AND unit_kind=? AND unit_id=? "
-            "ORDER BY attempt_id DESC LIMIT ?",
+            (
+                "SELECT outcome, reason_code, evidence_json, retry_at, input_fingerprint FROM work_attempts "
+                "WHERE stage = %s AND unit_kind = %s AND unit_id = %s ORDER BY attempt_id DESC NULLS LAST "
+                "LIMIT %s"
+            ),
             (stage, unit_kind, unit_id, depth),
         ).fetchall()
         if not attempts:
@@ -340,7 +344,7 @@ def lease_dead(row: QueueRow, now: datetime, owner: Owner | None = None) -> bool
     return row.lease_until <= at(now)
 
 
-def running_lease_dead(conn: sqlite3.Connection, unit: WorkUnit, now: datetime) -> bool:
+def running_lease_dead(conn: engine.Connection, unit: WorkUnit, now: datetime) -> bool:
     """Whether a unit's `running` attempt belongs to a dead lease (`attempts.eligible`).
 
     A running attempt with no leased row was begun outside the queue; only
@@ -348,7 +352,7 @@ def running_lease_dead(conn: sqlite3.Connection, unit: WorkUnit, now: datetime) 
     """
     try:
         row = get(conn, unit)
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" in str(exc):
             return False
         raise
@@ -375,7 +379,7 @@ def run_finished(database: Database, run_id: str | None) -> bool:
     if run_id is None:
         return False
     row = database.connection.execute(
-        "SELECT finished_at FROM runs WHERE run_id=?", (run_id,)
+        "SELECT finished_at FROM runs WHERE run_id = %s", (run_id,)
     ).fetchone()
     if row is not None and row[0] is not None:
         return True
@@ -447,7 +451,7 @@ def died_unclaimed(
 
 def interrupted(
     database: Database,
-    attempt: sqlite3.Row,
+    attempt: engine.Row,
     *,
     now: datetime,
     died: bool,
@@ -617,7 +621,7 @@ def lease(
 
 
 def holds(
-    conn: sqlite3.Connection, unit: WorkUnit, now: datetime, fingerprint: Callable[[], str]
+    conn: engine.Connection, unit: WorkUnit, now: datetime, fingerprint: Callable[[], str]
 ) -> bool:
     """Whether the unit's row keeps it out of selection now.
 
@@ -629,7 +633,7 @@ def holds(
     """
     try:
         row = get(conn, unit)
-    except sqlite3.OperationalError as exc:
+    except engine.OperationalError as exc:
         if "no such table" in str(exc):
             return False
         raise
@@ -658,12 +662,7 @@ def collect_orphans(database: Database, *, now: datetime) -> int:
 
     conn = database.connection
     rows = conn.execute(
-        "SELECT q.stage,q.unit_kind,q.unit_id FROM work_queue q "
-        "WHERE q.state<>'leased' AND NOT EXISTS (SELECT 1 FROM pending_work p "
-        "WHERE p.stage=q.stage AND p.unit_kind=q.unit_kind AND p.unit_id=q.unit_id) "
-        "AND NOT EXISTS (SELECT 1 FROM work_attempts a WHERE a.stage=q.stage "
-        "AND a.unit_kind=q.unit_kind AND a.unit_id=q.unit_id AND a.outcome='running') "
-        "ORDER BY q.stage,q.unit_kind,q.unit_id"
+        "SELECT q.stage, q.unit_kind, q.unit_id FROM work_queue AS q WHERE q.state <> 'leased' AND NOT EXISTS(SELECT 1 AS _value_0 FROM pending_work AS p WHERE p.stage = q.stage AND p.unit_kind = q.unit_kind AND p.unit_id = q.unit_id) AND NOT EXISTS(SELECT 1 AS _value_0 FROM work_attempts AS a WHERE a.stage = q.stage AND a.unit_kind = q.unit_kind AND a.unit_id = q.unit_id AND a.outcome = 'running') ORDER BY q.stage NULLS FIRST, q.unit_kind NULLS FIRST, q.unit_id NULLS FIRST"
     ).fetchall()
     derived = available(conn)
     orphans = []
@@ -681,20 +680,19 @@ def collect_orphans(database: Database, *, now: datetime) -> int:
     with database.transaction() as write:
         return sum(
             write.execute(
-                "DELETE FROM work_queue WHERE stage=? AND unit_kind=? AND unit_id=? "
-                "AND state<>'leased'",
+                "DELETE FROM work_queue WHERE stage = %s AND unit_kind = %s AND unit_id = %s AND state <> 'leased'",
                 (unit.stage, unit.unit_kind, unit.unit_id),
             ).rowcount
             for unit in orphans
         )
 
 
-def succeed(conn: sqlite3.Connection, unit: WorkUnit) -> None:
+def succeed(conn: engine.Connection, unit: WorkUnit) -> None:
     """The unit committed its output: it leaves the queue (inside that transaction)."""
     delete(conn, unit)
 
 
-def release(conn: sqlite3.Connection, unit: WorkUnit, now: datetime) -> None:
+def release(conn: engine.Connection, unit: WorkUnit, now: datetime) -> None:
     """Give a lease back without counting anything (a real supersession, a skip)."""
     row = get(conn, unit)
     if row is None:
@@ -714,15 +712,17 @@ def release(conn: sqlite3.Connection, unit: WorkUnit, now: datetime) -> None:
     )
 
 
-def release_all(conn: sqlite3.Connection, now: datetime) -> int:
+def release_all(conn: engine.Connection, now: datetime) -> int:
     """Global recovery by the exclusive process: every lease goes back to `ready`."""
     stamp = at(now)
     deleted = conn.execute(
-        "DELETE FROM work_queue WHERE state='leased' AND attempts=0 AND error_class IS NULL"
+        "DELETE FROM work_queue WHERE state = 'leased' AND attempts = 0 AND error_class IS NULL"
     ).rowcount
     updated = conn.execute(
-        "UPDATE work_queue SET state='ready',lease_owner=NULL,lease_until=NULL,updated_at=? "
-        "WHERE state='leased'",
+        (
+            "UPDATE work_queue SET state = 'ready', lease_owner = NULL, lease_until = NULL, updated_at = "
+            "%s WHERE state = 'leased'"
+        ),
         (stamp,),
     ).rowcount
     return int(deleted) + int(updated)
@@ -752,7 +752,7 @@ class Failure:
 
 
 def fail(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     unit: WorkUnit,
     *,
     reason: str,
@@ -854,17 +854,20 @@ def wake(
 
     with database.transaction() as conn:
         rows = conn.execute(
-            "SELECT stage,unit_kind,unit_id FROM work_queue "
-            "WHERE state IN ('waiting_input','quarantined') AND next_attempt_at<=? "
-            "ORDER BY next_attempt_at LIMIT ?",
+            (
+                "SELECT stage, unit_kind, unit_id FROM work_queue WHERE state IN ('waiting_input', "
+                "'quarantined') AND next_attempt_at <= %s ORDER BY next_attempt_at NULLS FIRST LIMIT %s"
+            ),
             (at(now), limit),
         ).fetchall()
         stamp = at(now)
         for stage, unit_kind, unit_id in rows:
             unit = WorkUnit(stage, unit_kind, unit_id)
             conn.execute(
-                "UPDATE work_queue SET state='ready',updated_at=? "
-                "WHERE stage=? AND unit_kind=? AND unit_id=?",
+                (
+                    "UPDATE work_queue SET state = 'ready', updated_at = %s WHERE stage = %s AND unit_kind = %s "
+                    "AND unit_id = %s"
+                ),
                 (stamp, stage, unit_kind, unit_id),
             )
             latest = latest_attempt(conn, unit)
@@ -878,7 +881,7 @@ def wake(
 
 
 def requeue(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime,
     by: str,
@@ -897,32 +900,33 @@ def requeue(
     clauses = ["state IN ('quarantined','waiting_input')"]
     values: list[str] = []
     if unit is not None:
-        clauses.append("stage=? AND unit_kind=? AND unit_id=?")
+        clauses.append("stage=%s AND unit_kind=%s AND unit_id=%s")
         values.extend((unit.stage, unit.unit_kind, unit.unit_id))
     if error_class is not None:
-        clauses.append("error_class=?")
+        clauses.append("error_class=%s")
         values.append(error_class)
     if stage is not None:
-        clauses.append("stage=?")
+        clauses.append("stage=%s")
         values.append(stage)
     if kind is not None:
-        clauses.append("unit_kind=?")
+        clauses.append("unit_kind=%s")
         values.append(kind)
     where = " AND ".join(clauses)
     units = [
         WorkUnit(*row)
         for row in conn.execute(
-            f"SELECT stage,unit_kind,unit_id FROM work_queue WHERE {where} "
-            "ORDER BY stage,unit_kind,unit_id",
+            f"SELECT stage,unit_kind,unit_id FROM work_queue WHERE {where} ORDER BY stage,unit_kind,unit_id",
             values,
         ).fetchall()
     ]
     stamp = at(now)
     for found in units:
         conn.execute(
-            "UPDATE work_queue SET state='ready',attempts=0,next_attempt_at=?,"
-            "quarantined_at=NULL,last_reason='operator_requeue',updated_at=? "
-            "WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE work_queue SET state = 'ready', attempts = 0, next_attempt_at = %s, quarantined_at = "
+                "NULL, last_reason = 'operator_requeue', updated_at = %s WHERE stage = %s AND unit_kind = %s "
+                "AND unit_id = %s"
+            ),
             (stamp, stamp, found.stage, found.unit_kind, found.unit_id),
         )
         try:
@@ -933,21 +937,24 @@ def requeue(
 
 
 def report(
-    conn: sqlite3.Connection, now: datetime, *, state: QueueState | None = None
+    conn: engine.Connection, now: datetime, *, state: QueueState | None = None
 ) -> dict[str, object]:
     """Counts by state and class, the oldest due ready row, and the units in
     `state` (quarantined by default), at most 200."""
     oldest = _parsed(
         conn.execute(
-            "SELECT min(coalesce(next_attempt_at,updated_at)) FROM work_queue "
-            "WHERE state='ready' AND coalesce(next_attempt_at,updated_at)<=?",
+            (
+                "SELECT MIN(COALESCE(next_attempt_at, updated_at)) AS _value_0 FROM work_queue WHERE state = 'ready' AND COALESCE(next_attempt_at, updated_at) <= %s"
+            ),
             (at(now),),
         ).fetchone()[0]
     )
     listed = conn.execute(
-        "SELECT stage,unit_kind,unit_id,state,attempts,error_class,last_error,quarantined_at,"
-        "next_attempt_at FROM work_queue WHERE state=coalesce(?,'quarantined') "
-        "ORDER BY stage,unit_kind,unit_id LIMIT 200",
+        (
+            "SELECT stage, unit_kind, unit_id, state, attempts, error_class, last_error, quarantined_at, "
+            "next_attempt_at FROM work_queue WHERE state = COALESCE(%s, 'quarantined') ORDER BY stage "
+            "NULLS FIRST, unit_kind NULLS FIRST, unit_id NULLS FIRST LIMIT 200"
+        ),
         (state,),
     ).fetchall()
     return {

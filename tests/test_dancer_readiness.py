@@ -26,7 +26,8 @@ def registry_fixture(source_fixture):
     body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
     context = f.corpus.snapshot("registry-real", body, spec=spec)
     f.conn.execute(
-        "UPDATE snapshots SET method=? WHERE snapshot_id=?", (spec.method, context.snapshot_id)
+        "UPDATE snapshots SET method = %s WHERE snapshot_id = %s",
+        (spec.method, context.snapshot_id),
     )
     generation, report = f.corpus.stage(context, body=body)
     assert not report.failures
@@ -46,32 +47,38 @@ def compare(f):
 
 
 @pytest.mark.parametrize(
-    "mutation", ["payload", "delete", "snapshot", "selection", "watch_source", "raw_token"]
+    "mutation", ["payload", "DELETE", "snapshot", "selection", "watch_source", "raw_token"]
 )
 def test_differential_retained_input_mutations(registry_fixture, mutation):
     f = registry_fixture
     assert compare(f)
     row = f.conn.execute(
-        "SELECT observation_id,watch_id,snapshot_id FROM observations WHERE scope_kind='dancer'"
+        "SELECT observation_id, watch_id, snapshot_id FROM observations WHERE scope_kind = 'dancer'"
     ).fetchone()
     if mutation == "payload":
         f.conn.execute(
-            "UPDATE observations SET payload_json=replace(payload_json,'Diane','Different') WHERE observation_id=?",
+            (
+                "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Different') WHERE "
+                "observation_id = %s"
+            ),
             (row[0],),
         )
-    elif mutation == "delete":
-        f.conn.execute("DELETE FROM observations WHERE observation_id=?", (row[0],))
+    elif mutation == "DELETE":
+        f.conn.execute("DELETE FROM observations WHERE observation_id = %s", (row[0],))
     elif mutation == "snapshot":
-        f.conn.execute("UPDATE snapshots SET via='wayback' WHERE snapshot_id=?", (row[2],))
+        f.conn.execute("UPDATE snapshots SET via = 'wayback' WHERE snapshot_id = %s", (row[2],))
     elif mutation == "selection":
         f.conn.execute(
-            "UPDATE source_units SET accepted_generation_id=NULL WHERE watch_id=?", (row[1],)
+            "UPDATE source_units SET accepted_generation_id = NULL WHERE watch_id = %s", (row[1],)
         )
     elif mutation == "watch_source":
-        f.conn.execute("UPDATE watches SET source='changed-source' WHERE watch_id=?", (row[1],))
+        f.conn.execute(
+            "UPDATE watches SET source = 'changed-source' WHERE watch_id = %s", (row[1],)
+        )
     else:
         f.conn.execute(
-            "UPDATE derivation_input_versions SET version=version+1 WHERE namespace='raw' AND input_key='[\"dancer\",\"1\"]'"
+            "UPDATE derivation_input_versions SET version = version + 1 WHERE namespace = 'raw' AND "
+            'input_key = \'["dancer","1"]\''
         )
     assert compare(f) == (mutation == "raw_token")
 
@@ -83,17 +90,21 @@ def test_missing_or_forged_current_input_proof_never_hides_changed_facts(
     f = registry_fixture
     unit = WorkUnit("project", "dancer", "1")
     f.conn.execute(
-        "UPDATE observations SET payload_json=replace(payload_json,'Diane','Changed') WHERE scope_kind='dancer'"
+        "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Changed') WHERE "
+        "scope_kind = 'dancer'"
     )
     signature = certificate(f.conn, unit, recipe_inputs(f.conn, "project", unit.unit_kind), {})
     proof, key = materialized_proof(derivations.selected_generation(f.conn, unit), signature)
     f.conn.execute(
-        "UPDATE derivation_scopes SET materialized_signature=? WHERE stage='project' AND unit_kind='dancer' AND unit_id='1'",
+        (
+            "UPDATE derivation_scopes SET materialized_signature = %s WHERE stage = 'project' AND "
+            "unit_kind = 'dancer' AND unit_id = '1'"
+        ),
         (key,),
     )
     if proof_state == "forged":
         f.conn.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
             (key, proof + " "),
         )
     assert not compare(f)
@@ -103,7 +114,8 @@ def test_invalid_fast_hint_falls_back_to_full_current_proof(registry_fixture):
     f = registry_fixture
     unit = WorkUnit("project", "dancer", "1")
     f.conn.execute(
-        "UPDATE derivation_scopes SET materialized_signature='missing' WHERE stage='project' AND unit_kind='dancer' AND unit_id='1'"
+        "UPDATE derivation_scopes SET materialized_signature = 'missing' WHERE stage = 'project' AND "
+        "unit_kind = 'dancer' AND unit_id = '1'"
     )
     called = []
 
@@ -124,7 +136,8 @@ def test_bulk_result_does_not_survive_write_and_rollback(registry_fixture):
         with pytest.raises(RuntimeError, match="rollback"):
             with f.db.transaction():
                 f.conn.execute(
-                    "UPDATE observations SET payload_json=replace(payload_json,'Diane','Changed') WHERE scope_kind='dancer'"
+                    "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Changed') WHERE "
+                    "scope_kind = 'dancer'"
                 )
                 assert not dancers_current(f.conn, (unit,), current=derivations.current)
                 raise RuntimeError("rollback")
@@ -134,15 +147,20 @@ def test_bulk_result_does_not_survive_write_and_rollback(registry_fixture):
 def test_unregistered_physical_dancer_remains_required_after_scope_deletion(registry_fixture):
     f = registry_fixture
     f.conn.execute(
-        "INSERT INTO canonical_scope_rows VALUES ('dancer','unmaterialized','dancers','[999]')"
+        "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+        "('dancer', 'unmaterialized', 'dancers', '[999]')"
     )
     f.conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project','dancer','unmaterialized',?)",
+        (
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+            "'dancer', 'unmaterialized', %s) ON CONFLICT DO NOTHING"
+        ),
         (f.corpus.clock.now().isoformat(),),
     )
     assert (
         f.conn.execute(
-            "DELETE FROM derivation_scopes WHERE stage='project' AND unit_kind='dancer' AND unit_id='unmaterialized'"
+            "DELETE FROM derivation_scopes WHERE stage = 'project' AND unit_kind = 'dancer' AND unit_id "
+            "= 'unmaterialized'"
         ).rowcount
         == 1
     )
@@ -168,11 +186,8 @@ def test_healthy_bulk_proofs_use_bounded_queries_and_no_fallback(registry_fixtur
         raise AssertionError("valid immutable certificate unexpectedly fell back")
 
     with f.db.transaction():
-        f.conn.set_trace_callback(statements.append)
-        try:
+        with f.conn.observing(lambda sql, params: statements.append(str(sql))):
             assert dancers_current(f.conn, units, current=forbidden)
-        finally:
-            f.conn.set_trace_callback(None)
     assert len(statements) <= 6
     assert len(units) == 51
 
@@ -187,7 +202,8 @@ def test_changed_accepted_recipe_invalidates_bulk_and_individual_proofs(registry
     f = registry_fixture
     assert compare(f)
     f.conn.execute(
-        "UPDATE accepted_inputs SET digest='new-reviewed-runtime' WHERE consumer='pipeline' AND input_name='recipe/env'"
+        "UPDATE accepted_inputs SET digest = 'new-reviewed-projector-version' WHERE consumer = "
+        "'pipeline' AND input_name = 'recipe/code/project/dancer'"
     )
     assert not compare(f)
 
@@ -214,45 +230,44 @@ def test_active_consistency_group_preserves_individual_readiness_path(
 def test_ready_reuses_caller_transaction_without_committing_or_rolling_it_back(registry_fixture):
     f = registry_fixture
     with f.db.transaction():
-        f.conn.execute("INSERT INTO meta VALUES ('readiness-caller-marker','retained')")
+        f.conn.execute(
+            "INSERT INTO meta (key, value) VALUES ('readiness-caller-marker', 'retained')"
+        )
         derivations.ready(f.conn, WorkUnit("link", "event", "event-a"))
         assert f.conn.in_transaction
         assert (
-            f.conn.execute("SELECT value FROM meta WHERE key='readiness-caller-marker'").fetchone()[
-                0
-            ]
+            f.conn.execute(
+                "SELECT value FROM meta WHERE key = 'readiness-caller-marker'"
+            ).fetchone()[0]
             == "retained"
         )
     assert (
-        f.conn.execute("SELECT value FROM meta WHERE key='readiness-caller-marker'").fetchone()[0]
+        f.conn.execute("SELECT value FROM meta WHERE key = 'readiness-caller-marker'").fetchone()[0]
         == "retained"
     )
 
 
 def test_bulk_reads_one_snapshot_when_another_connection_changes_input(registry_fixture):
-    import sqlite3
     from contextlib import closing
+
+    from swingset.state import engine
 
     f = registry_fixture
     unit = WorkUnit("project", "dancer", "1")
     changed = False
 
-    def concurrent_change(statement):
+    def concurrent_change(statement, parameters):
         nonlocal changed
-        if not changed and "SELECT input_key,version" in statement:
+        if not changed and "SELECT input_key, version" in statement:
             changed = True
-            with closing(
-                sqlite3.connect(f.db.state_dir / "state.sqlite", isolation_level=None)
-            ) as other:
+            with closing(engine.connect(engine.resolve_dsn(f.db.state_dir))) as other:
                 other.execute(
-                    "UPDATE observations SET payload_json=replace(payload_json,'Diane','Concurrent') WHERE scope_kind='dancer'"
+                    "UPDATE observations SET payload_json = REPLACE(payload_json, 'Diane', 'Concurrent') WHERE "
+                    "scope_kind = 'dancer'"
                 )
 
-    with f.db.transaction(immediate=False):
-        f.conn.set_trace_callback(concurrent_change)
-        try:
+    with f.conn.read_snapshot():
+        with f.conn.observing(concurrent_change):
             assert dancers_current(f.conn, (unit,), current=derivations.current)
-        finally:
-            f.conn.set_trace_callback(None)
         assert changed and derivations.current(f.conn, unit)
     assert not derivations.current(f.conn, unit)

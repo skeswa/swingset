@@ -67,7 +67,7 @@ def test_newer_historical_offers_join_behind_admitted_waiting_events(event, monk
         plan_rows[:0] = new_rows
         # This regression isolates already-eligible historical offers. Ordinary
         # watch polling and year/capture gate tests have their own fixtures.
-        f.conn.execute("UPDATE watches SET next_check_at=NULL")
+        f.conn.execute("UPDATE watches SET next_check_at = NULL")
         f.conn.execute("DELETE FROM pending_work")
 
     def eligible(database, configuration, time, item, plan, **_):
@@ -139,5 +139,5 @@ def test_newer_historical_offers_join_behind_admitted_waiting_events(event, monk
         clock.sleep(5)
     assert served[:6] == ["eepro:large"] * 2 + ["eepro:older"] * 2 + ["eepro:large"] * 2
     assert Counter(served) == {"eepro:large": 6, "eepro:older": 2, "eepro:newest": 2}
-    assert f.conn.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 10
-    assert f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 10
+    assert f.conn.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == 10
+    assert f.conn.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 10

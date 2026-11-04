@@ -117,7 +117,19 @@ def test_archive_fetch_parse_provenance_seals_and_never_contacts_origin(tmp_path
         )
         result = client.fetch(spec.watch_id, EventsPage(), run)
         assert result.snapshot_id
-        snap = dict(db.connection.execute("SELECT * FROM snapshots").fetchone())
+        snap = dict(
+            db.connection.execute(
+                "SELECT snapshots.snapshot_id, snapshots.watch_id, snapshots.method, snapshots.url, "
+                "snapshots.form, snapshots.fetched_at, snapshots.http_status, snapshots.etag, "
+                "snapshots.last_modified, snapshots.content_type, snapshots.body_sha256, "
+                "snapshots.body_bytes, snapshots.content_changed, snapshots.run_id, snapshots.via, "
+                "snapshots.headers_json, snapshots.classification, snapshots.extract_status, "
+                "snapshots.extract_sha256, snapshots.parse_status, snapshots.parsed_at, "
+                "snapshots.extract_version, snapshots.parser_version, snapshots.captured_at, "
+                "snapshots.observed_at, snapshots.archive_url, snapshots.requested_archive_url, "
+                "snapshots.extract_recipe_sha256 FROM snapshots"
+            ).fetchone()
+        )
         assert snap["via"] == "wayback" and snap["observed_at"] == "2019-08-01T00:00:00+00:00"
         assert snap["url"] == spec.url and snap["etag"] == "original"
         assert requests[1][0] - requests[0][0] >= timedelta(seconds=10)
@@ -266,12 +278,14 @@ def test_sheet_parse_failure_tries_next_distinct_capture(tmp_path):
             projected_at=now,
         )
         db.connection.execute(
-            "INSERT INTO source_event_map VALUES ('eepro','example','2019-07-example','override',1)"
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'example', '2019-07-example', 'override', 1)"
         )
         materialize_seeded_outputs(db, now=now, run_id=run)
         accept_year(db.connection, 2019, accepted_by="owner", accepted_at=now)
         db.connection.executemany(
-            "INSERT INTO meta VALUES (?,'true')", [("h7_deployed",), ("h10_deployed",)]
+            "INSERT INTO meta (key, value) VALUES (%s, 'true')",
+            [("h7_deployed",), ("h10_deployed",)],
         )
         url = "https://eepro.com/results/example/round.htm"
         spec = WatchSpec(
@@ -286,7 +300,10 @@ def test_sheet_parse_failure_tries_next_distinct_capture(tmp_path):
         )
         upsert_watch(db.connection, spec, clock.now())
         db.connection.executemany(
-            "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,?)",
+            (
+                "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+                "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, %s)"
+            ),
             [
                 (spec.source, url, stamp, digest, "text/html", 30, now, "query")
                 for stamp, digest in [
@@ -320,7 +337,7 @@ def test_sheet_parse_failure_tries_next_distinct_capture(tmp_path):
         assert (
             "201909"
             in db.connection.execute(
-                "SELECT archive_url FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT archive_url FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()[0]
         )
         success = client.fetch(spec.watch_id, corpus.page, run)
@@ -329,7 +346,7 @@ def test_sheet_parse_failure_tries_next_distinct_capture(tmp_path):
         ).failed
         assert (
             db.connection.execute(
-                "SELECT state FROM watches WHERE watch_id=?", (spec.watch_id,)
+                "SELECT state FROM watches WHERE watch_id = %s", (spec.watch_id,)
             ).fetchone()[0]
             == "sealed"
         )
@@ -380,7 +397,7 @@ def test_redirected_capture_is_reused_by_requested_and_final_url(tmp_path):
         )
         result = client.fetch(spec.watch_id, EventsPage(), run)
         snapshot = db.connection.execute(
-            "SELECT url,archive_url,requested_archive_url,captured_at FROM snapshots"
+            "SELECT url, archive_url, requested_archive_url, captured_at FROM snapshots"
         ).fetchone()
         assert tuple(snapshot) == (original, final, requested, "2019-08-02T00:00:00+00:00")
         assert result.snapshot_id
@@ -427,7 +444,7 @@ def test_empty_cdx_probe_is_complete_and_raw_response_is_retained(tmp_path):
         finally:
             client.close()
         row = db.connection.execute(
-            "SELECT total_pages,completed_at FROM archive_queries"
+            "SELECT total_pages, completed_at FROM archive_queries"
         ).fetchone()
         assert row[0] == 0 and row[1]
         receipt = json.loads(next((tmp_path / "archive-cdx").glob("*/probe.json")).read_bytes())
@@ -469,7 +486,7 @@ def test_platform_archive_indexing_covers_enabled_platforms_and_stops_at_deadlin
         assert not any("scoring.dance" in url for url in requests)
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM archive_queries WHERE source='eepro'"
+                "SELECT COUNT(*) FROM archive_queries WHERE source = 'eepro'"
             ).fetchone()[0]
             == 2
         )

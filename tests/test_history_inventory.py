@@ -17,15 +17,26 @@ NOW = "2026-09-12T00:00:00+00:00"
 def evidence(conn, payload, *, source="wsdc_registry", scope="dancer", ref="1", snapshot="snap"):
     watch = "watch-" + snapshot
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES (?,?,'index','GET','https://example.test/','events','live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, %s, "
+            "'index', 'GET', 'https://example.test/', 'events', 'live')"
+        ),
         (watch, source),
     )
     conn.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET','https://example.test/',?,200,1,1,'run','Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+            "'https://example.test/', %s, 200, 1, 1, 'run', 'Ok')"
+        ),
         (snapshot, watch, NOW),
     )
     conn.execute(
-        "INSERT INTO observations VALUES (?,?,?,?,?,?,0,'1','1',?)",
+        (
+            "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+            "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, %s, "
+            "%s, 0, '1', '1', %s)"
+        ),
         ("obs-" + snapshot, watch, snapshot, payload.kind, scope, ref, encode_payload(payload)),
     )
 
@@ -73,18 +84,30 @@ def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
         assert reconcile_history(conn, now=NOW, run_id="run")
-        event = dict(conn.execute("SELECT * FROM events").fetchone())
+        event = dict(
+            conn.execute(
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events"
+            ).fetchone()
+        )
         assert event["event_id"] == "2012-08-example-swing"
         assert event["start_date"] is None and event["end_date"] is None
         assert event["date_precision"] == "month"
         assert (
             conn.execute(
-                "SELECT event_id FROM registry_placements WHERE event_month LIKE '2009%' "
+                "SELECT event_id FROM registry_placements WHERE event_month ILIKE '2009%'"
             ).fetchone()[0]
             is None
         )
@@ -103,7 +126,16 @@ def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
             conn, listing, source="wsdc_calendar", scope="calendar", ref="wsdc", snapshot="listing"
         )
         assert reconcile_history(conn, now=NOW, run_id="run")
-        event = dict(conn.execute("SELECT * FROM events").fetchone())
+        event = dict(
+            conn.execute(
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events"
+            ).fetchone()
+        )
         assert event["event_id"] == "2012-08-example-swing"
         assert event["event_month"] == "2012-08"
         assert event["end_date"] == "2012-07-29" and event["date_precision"] == "day"
@@ -114,24 +146,27 @@ def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
         accept_year(conn, 2012, accepted_by="owner", accepted_at=NOW)
         assert not phase_two_allowed(conn, 2012)
         conn.executemany(
-            "INSERT INTO meta VALUES (?, 'true')", [("h7_deployed",), ("h10_deployed",)]
+            "INSERT INTO meta (key, value) VALUES (%s, 'true')",
+            [("h7_deployed",), ("h10_deployed",)],
         )
         assert phase_two_allowed(conn, 2012)
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='year'"
+            "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = 'project' AND "
+            "unit_kind = 'year'"
         )
         # A pending year writes no inventory digest column, so it neither
         # closes phase two nor blocks acceptance (D-0198).
         assert phase_two_allowed(conn, 2012)
         accept_year(conn, 2012, accepted_by="owner", accepted_at=NOW)
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='inventory'"
+            "UPDATE derivation_scopes SET materialized_generation_id = NULL WHERE stage = 'project' AND "
+            "unit_kind = 'inventory'"
         )
         assert not phase_two_allowed(conn, 2012)
         with pytest.raises(ValueError, match="projection is pending"):
             accept_year(conn, 2012, accepted_by="owner", accepted_at=NOW)
-        conn.execute("DELETE FROM pending_work WHERE stage='project'")
-        conn.execute("UPDATE events SET end_date='2012-07-30'")
+        conn.execute("DELETE FROM pending_work WHERE stage = 'project'")
+        conn.execute("UPDATE events SET end_date = '2012-07-30'")
         assert not phase_two_allowed(conn, 2012)
 
 
@@ -139,7 +174,10 @@ def test_unresolved_names_are_findings_and_listing_alias_is_reviewed(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
@@ -160,7 +198,7 @@ def test_unresolved_names_are_findings_and_listing_alias_is_reviewed(tmp_path):
         reconcile_history(conn, now=NOW, run_id="run")
         assert (
             conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE kind='series_alias' AND closed_at IS NULL"
+                "SELECT COUNT(*) FROM findings WHERE kind = 'series_alias' AND closed_at IS NULL"
             ).fetchone()[0]
             == 1
         )
@@ -174,12 +212,12 @@ def test_unresolved_names_are_findings_and_listing_alias_is_reviewed(tmp_path):
             aliases=b"printed_name,series_id,source,note\nOther Festival,listed-other-festival,calendar,reviewed\n",
         )
         event = conn.execute(
-            "SELECT held,wsdc_status FROM events WHERE event_id='2012-09-other-festival'"
+            "SELECT held, wsdc_status FROM events WHERE event_id = '2012-09-other-festival'"
         ).fetchone()
         assert tuple(event) == ("cancelled", "trial")
         assert (
             conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE kind='series_alias' AND closed_at IS NULL"
+                "SELECT COUNT(*) FROM findings WHERE kind = 'series_alias' AND closed_at IS NULL"
             ).fetchone()[0]
             == 0
         )
@@ -192,7 +230,10 @@ def test_rolling_calendar_keeps_registry_editions_and_legacy_ids(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         listing = CalendarRow(
@@ -219,7 +260,7 @@ def test_rolling_calendar_keeps_registry_editions_and_legacy_ids(tmp_path):
         )
         registry(conn)
         reconcile_history(conn, now=NOW, run_id="run")
-        event = conn.execute("SELECT event_id,event_month FROM events").fetchone()
+        event = conn.execute("SELECT event_id, event_month FROM events").fetchone()
         assert tuple(event) == ("2012-07-example-swing", "2012-08")
         assert conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
         replace_scope(
@@ -237,7 +278,10 @@ def test_later_observed_listing_corrects_dates_without_losing_corroboration(tmp_
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
@@ -277,15 +321,15 @@ def test_later_observed_listing_corrects_dates_without_losing_corroboration(tmp_
                 snapshot=snapshot,
             )
             conn.execute(
-                "UPDATE snapshots SET observed_at=? WHERE snapshot_id=?",
+                "UPDATE snapshots SET observed_at = %s WHERE snapshot_id = %s",
                 (observed + "T00:00:00+00:00", snapshot),
             )
         reconcile_history(conn, now=NOW, run_id="run")
-        event = conn.execute("SELECT end_date,snapshot_id,history_source FROM events").fetchone()
+        event = conn.execute("SELECT end_date, snapshot_id, history_source FROM events").fetchone()
         assert event[0] == "2012-07-29" and event[1] == "new"
         assert set(__import__("json").loads(event[2])) == {"registry", "calendar", "newsletter"}
         assert not conn.execute(
-            "SELECT 1 FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
+            "SELECT 1 FROM findings WHERE kind = 'event_alias' AND closed_at IS NULL"
         ).fetchone()
 
 
@@ -293,7 +337,10 @@ def test_single_day_result_span_inside_listed_weekend_is_one_edition(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
@@ -328,16 +375,20 @@ def test_single_day_result_span_inside_listed_weekend_is_one_edition(tmp_path):
             snapshot="listing",
         )
         conn.execute(
-            "INSERT INTO observations VALUES ('obs-day','watch-listing','listing','calendar_row','calendar','wsdc-history',1,'1','1',?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-day', "
+                "'watch-listing', 'listing', 'calendar_row', 'calendar', 'wsdc-history', 1, '1', '1', %s)"
+            ),
             (encode_payload(finals_day),),
         )
         reconcile_history(conn, now=NOW, run_id="run")
         # Nested spans are one edition dated by the widest span (D-0184).
         assert not conn.execute(
-            "SELECT 1 FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
+            "SELECT 1 FROM findings WHERE kind = 'event_alias' AND closed_at IS NULL"
         ).fetchone()
         assert tuple(
-            conn.execute("SELECT start_date,end_date,date_precision FROM events").fetchone()
+            conn.execute("SELECT start_date, end_date, date_precision FROM events").fetchone()
         ) == ("2012-07-20", "2012-07-22", "day")
 
 
@@ -389,7 +440,10 @@ def test_a_dismissed_finding_is_not_opened_again(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
@@ -424,14 +478,18 @@ def test_a_dismissed_finding_is_not_opened_again(tmp_path):
             snapshot="listing",
         )
         conn.execute(
-            "INSERT INTO observations VALUES ('obs-second','watch-listing','listing','calendar_row','calendar','wsdc-history',1,'1','1',?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-second', "
+                "'watch-listing', 'listing', 'calendar_row', 'calendar', 'wsdc-history', 1, '1', '1', %s)"
+            ),
             (encode_payload(second),),
         )
         reconcile_history(conn, now=NOW, run_id="run", reviews=reviews)
         open_rows = [
             tuple(row)
             for row in conn.execute(
-                "SELECT kind,subject_id,summary FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
+                "SELECT kind, subject_id, summary FROM findings WHERE kind = 'event_alias' AND closed_at IS NULL"
             )
         ]
         assert not open_rows, open_rows
@@ -441,7 +499,10 @@ def test_two_editions_in_same_capture_require_review(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
@@ -476,27 +537,42 @@ def test_two_editions_in_same_capture_require_review(tmp_path):
             snapshot="listing",
         )
         conn.execute(
-            "INSERT INTO observations VALUES ('obs-second','watch-listing','listing','calendar_row','calendar','wsdc-history',1,'1','1',?)",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('obs-second', "
+                "'watch-listing', 'listing', 'calendar_row', 'calendar', 'wsdc-history', 1, '1', '1', %s)"
+            ),
             (encode_payload(second),),
         )
         reconcile_history(conn, now=NOW, run_id="run")
         assert conn.execute(
-            "SELECT 1 FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
+            "SELECT 1 FROM findings WHERE kind = 'event_alias' AND closed_at IS NULL"
         ).fetchone()
         assert conn.execute("SELECT date_precision FROM events").fetchone()[0] == "month"
 
 
 def _platform_listing(conn, source, ref, name, start, end, snapshot):
     conn.execute(
-        "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,state) VALUES (?,?,'index','GET','https://example.test/','events','live')",
+        (
+            "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES (%s, %s, "
+            "'index', 'GET', 'https://example.test/', 'events', 'live') ON CONFLICT DO NOTHING"
+        ),
         ("watch-" + snapshot, source),
     )
     conn.execute(
-        "INSERT OR IGNORE INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET','https://example.test/',?,200,1,1,'run','Ok')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+            "'https://example.test/', %s, 200, 1, 1, 'run', 'Ok') ON CONFLICT DO NOTHING"
+        ),
         (snapshot, "watch-" + snapshot, NOW),
     )
     conn.execute(
-        "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,'https://example.test/',?,'4',?,?,'run')",
+        (
+            "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, url, "
+            "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, %s, %s, %s, "
+            "%s, 'https://example.test/', %s, '4', %s, %s, 'run')"
+        ),
         (source, ref, name, start, end, snapshot, NOW, NOW),
     )
 
@@ -511,7 +587,10 @@ def test_an_adopted_placeholder_is_a_registry_event(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         placeholder = Event(
@@ -542,11 +621,11 @@ def test_an_adopted_placeholder_is_a_registry_event(tmp_path):
         )
         registry(conn)
         reconcile_history(conn, now=NOW, run_id="run")
-        query = "SELECT event_id,series_id,held,wsdc_status FROM events"
+        query = "SELECT event_id, series_id, held, wsdc_status FROM events"
         assert [tuple(row) for row in conn.execute(query)] == [
             ("2012-08-example-swing", "wsdc-7", "held", "registry")
         ]
-        conn.execute("UPDATE events SET wsdc_status='unknown'")
+        conn.execute("UPDATE events SET wsdc_status = 'unknown'")
         reconcile_history(conn, now=NOW, run_id="run")
         assert [tuple(row) for row in conn.execute(query)] == [
             ("2012-08-example-swing", "wsdc-7", "held", "registry")
@@ -559,7 +638,10 @@ def test_a_results_platform_listing_does_not_claim_registry_status(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         registry(conn)
@@ -588,7 +670,7 @@ def test_a_results_platform_listing_does_not_claim_registry_status(tmp_path):
             conn, "eepro", "eepro:river", "River Nights", "2012-09-14", "2012-09-16", "e2"
         )
         conn.execute(
-            "UPDATE snapshots SET observed_at='2026-09-13T00:00:00+00:00' WHERE snapshot_id='e2'"
+            "UPDATE snapshots SET observed_at = '2026-09-13T00:00:00+00:00' WHERE snapshot_id = 'e2'"
         )
         reconcile_history(
             conn,
@@ -604,7 +686,7 @@ def test_a_results_platform_listing_does_not_claim_registry_status(tmp_path):
         assert [
             tuple(row)
             for row in conn.execute(
-                "SELECT event_id,source,wsdc_status FROM events WHERE held!='held' ORDER BY 1"
+                "SELECT event_id, source, wsdc_status FROM events WHERE held <> 'held' ORDER BY 1 NULLS FIRST"
             )
         ] == [
             ("2012-09-river-nights", "eepro", "trial"),
@@ -625,23 +707,37 @@ def seed_years(conn):
     predates the history start, and two 2025 events share a series and month.
     """
     conn.execute(
-        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+        (
+            "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+            "%s, NULL, 1, NULL)"
+        ),
         (NOW,),
     )
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
-        "VALUES ('w','wsdc_registry','index','GET','https://example.test/','events','live')"
+        "INSERT INTO watches (watch_id, source, kind, method, url, parser, state) VALUES ('w', "
+        "'wsdc_registry', 'index', 'GET', 'https://example.test/', 'events', 'live')"
     )
     for snapshot, via in (("snap", "origin"), ("snap-archive", "wayback")):
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification,via) "
-            "VALUES (?,'w','GET','https://example.test/',?,200,1,1,'run','Ok',?)",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_bytes, content_changed, run_id, classification, via) VALUES (%s, 'w', 'GET', "
+                "'https://example.test/', %s, 200, 1, 1, 'run', 'Ok', %s)"
+            ),
             (snapshot, NOW, via),
         )
     for wsdc_id in (1, 2, 3):
         conn.execute(
-            "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-            "VALUES (?,'A','B','a b',0,'leader','novice','advanced','novice','advanced','novice',1,'novice',1,2026,?,'t','wsdc_registry','snap','1',?,?,'run')",
+            (
+                "INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, "
+                "leader_required_level, leader_allowed_level, follower_required_level, "
+                "follower_allowed_level, leader_highest_level, leader_highest_points, "
+                "follower_highest_level, follower_highest_points, recent_year, registry_internal_id, "
+                "registry_fetched_at, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                "run_id) VALUES (%s, 'A', 'B', 'a b', 0, 'leader', 'novice', 'advanced', 'novice', "
+                "'advanced', 'novice', 1, 'novice', 1, 2026, %s, 't', 'wsdc_registry', 'snap', '1', %s, %s, "
+                "'run')"
+            ),
             (wsdc_id, wsdc_id, NOW, NOW),
         )
     events = (
@@ -654,8 +750,13 @@ def seed_years(conn):
     )
     for event_id, series, year, month, history, snapshot in events:
         conn.execute(
-            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source) "
-            "VALUES (?,?,?,?,NULL,NULL,'registry','[\"wsdc_registry\"]','wsdc_registry',?,'1',?,?,'run',?,'month','held','registry_only',?)",
+            (
+                "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+                "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, "
+                "event_month, date_precision, held, coverage_tier, history_source) VALUES (%s, %s, %s, %s, "
+                "NULL, NULL, 'registry', '[\"wsdc_registry\"]', 'wsdc_registry', %s, '1', %s, %s, 'run', %s, "
+                "'month', 'held', 'registry_only', %s)"
+            ),
             (event_id, series, event_id, year, snapshot, NOW, NOW, month, history),
         )
     placements = (
@@ -671,7 +772,12 @@ def seed_years(conn):
     )
     for wsdc_id, series, month, division, event_id in placements:
         conn.execute(
-            "INSERT INTO registry_placements VALUES (?,'leader','wcs',?,?,'Series',?,?,'1',1,'wsdc_registry',?,'1',?,?,'run')",
+            (
+                "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+                "series_name_raw, event_month, event_id, result, points, source, snapshot_id, "
+                "parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, 'leader', 'wcs', %s, %s, "
+                "'Series', %s, %s, '1', 1, 'wsdc_registry', %s, '1', %s, %s, 'run')"
+            ),
             (
                 wsdc_id,
                 division,
@@ -684,13 +790,23 @@ def seed_years(conn):
             ),
         )
     conn.execute(
-        "INSERT INTO contests(contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-        "VALUES ('c25','e25','Novice','novice','open','jnj','random','wcs',1,'[]','parsed','c','eepro','snap-archive','1',?,?,'run')",
+        (
+            "INSERT INTO contests (contest_id, event_id, name_raw, division, age_division, contest_type, "
+            "partner_mode, dance_style, wsdc_points_eligible, combined_from, parse_status, "
+            "source_contest_ref, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+            "run_id) VALUES ('c25', 'e25', 'Novice', 'novice', 'open', 'jnj', 'random', 'wcs', 1, '[]', "
+            "'parsed', 'c', 'eepro', 'snap-archive', '1', %s, %s, 'run')"
+        ),
         (NOW, NOW),
     )
     conn.execute(
-        "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-        "VALUES ('r25','c25','final',0,'Final','relative','{}',3,5,'r','eepro','snap-archive','1',?,?,'run')",
+        (
+            "INSERT INTO rounds (round_id, contest_id, round_type, round_index, name_raw, "
+            "scoring_method, callback_legend, judge_count, entry_count, source_round_ref, source, "
+            "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('r25', 'c25', "
+            "'final', 0, 'Final', 'relative', '{}', 3, 5, 'r', 'eepro', 'snap-archive', '1', %s, %s, "
+            "'run')"
+        ),
         (NOW, NOW),
     )
 
@@ -698,10 +814,33 @@ def seed_years(conn):
 def year_state(conn):
     return {
         "placements": conn.execute(
-            "SELECT * FROM registry_placements ORDER BY wsdc_id,role,series_id,event_month,division"
+            "SELECT registry_placements.wsdc_id, registry_placements.role, "
+            "registry_placements.dance_style, registry_placements.division, "
+            "registry_placements.series_id, registry_placements.series_name_raw, "
+            "registry_placements.event_month, registry_placements.event_id, registry_placements.result, "
+            "registry_placements.points, registry_placements.source, registry_placements.snapshot_id, "
+            "registry_placements.parser_version, registry_placements.first_seen_at, "
+            "registry_placements.last_seen_at, registry_placements.run_id FROM registry_placements ORDER "
+            "BY wsdc_id NULLS FIRST, role NULLS FIRST, series_id NULLS FIRST, event_month NULLS FIRST, "
+            "division NULLS FIRST"
         ).fetchall(),
-        "events": conn.execute("SELECT * FROM events ORDER BY event_id").fetchall(),
-        "coverage": conn.execute("SELECT * FROM coverage ORDER BY year,source,via").fetchall(),
+        "events": conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events ORDER BY event_id NULLS FIRST"
+        ).fetchall(),
+        "coverage": conn.execute(
+            "SELECT coverage.year, coverage.source, coverage.via, coverage.events, coverage.contests, "
+            "coverage.rounds, coverage.entries, coverage.events_registry_only, "
+            "coverage.events_index_only, coverage.events_sheets_partial, "
+            "coverage.events_sheets_complete, coverage.events_day_precision, "
+            "coverage.events_listed_only, coverage.events_accepted, coverage.expected_rounds, "
+            "coverage.parsed_rounds, coverage.unresolved_findings, coverage.last_changed_at FROM "
+            "coverage ORDER BY year NULLS FIRST, source NULLS FIRST, via NULLS FIRST"
+        ).fetchall(),
     }
 
 
@@ -714,8 +853,11 @@ def test_each_year_associates_and_counts_what_the_global_pass_does(tmp_path):
     with open_database(tmp_path / "global") as db:
         seed_years(db.connection)
         db.connection.execute(
-            "INSERT INTO findings(finding_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,owner_kind,owner_id,run_id) "
-            "VALUES ('f','series_alias','history_listing','x','warning','s','{}',?,'history_year','2026','run')",
+            (
+                "INSERT INTO findings (finding_id, kind, subject_kind, subject_id, severity, summary, "
+                "evidence_json, opened_at, owner_kind, owner_id, run_id) VALUES ('f', 'series_alias', "
+                "'history_listing', 'x', 'warning', 's', '{}', %s, 'history_year', '2026', 'run')"
+            ),
             (NOW,),
         )
         finalize_history(db.connection, now=NOW)
@@ -724,8 +866,11 @@ def test_each_year_associates_and_counts_what_the_global_pass_does(tmp_path):
         conn = db.connection
         seed_years(conn)
         conn.execute(
-            "INSERT INTO findings(finding_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,owner_kind,owner_id,run_id) "
-            "VALUES ('f','series_alias','history_listing','x','warning','s','{}',?,'history_year','2026','run')",
+            (
+                "INSERT INTO findings (finding_id, kind, subject_kind, subject_id, severity, summary, "
+                "evidence_json, opened_at, owner_kind, owner_id, run_id) VALUES ('f', 'series_alias', "
+                "'history_listing', 'x', 'warning', 's', '{}', %s, 'history_year', '2026', 'run')"
+            ),
             (NOW,),
         )
         years = [int(unit.unit_id) for unit in year_units(conn)]
@@ -773,10 +918,10 @@ def test_year_coverage_equals_the_global_rebuild(tmp_path):
             assert not rebuild_year_coverage(conn, year, now="2026-10-01T00:00:00+00:00")
         assert year_state(conn) == expected
         # A year whose events left clears only its own rows.
-        conn.execute("UPDATE events SET year=2025 WHERE year=2024")
+        conn.execute("UPDATE events SET year = 2025 WHERE year = 2024")
         assert rebuild_year_coverage(conn, 2024, now=NOW)
-        assert not conn.execute("SELECT 1 FROM coverage WHERE year=2024").fetchone()
-        assert conn.execute("SELECT 1 FROM coverage WHERE year=2026").fetchone()
+        assert not conn.execute("SELECT 1 FROM coverage WHERE year = 2024").fetchone()
+        assert conn.execute("SELECT 1 FROM coverage WHERE year = 2026").fetchone()
 
 
 def derived_years(db):
@@ -794,8 +939,14 @@ def derived_years(db):
 
 def global_pass_agrees(conn):
     """finalize_history over the live state changes nothing the years wrote."""
-    from swingset.project.history import finalize_history
+    from pathlib import Path
 
+    from swingset.project.history import finalize_history
+    from swingset.state.db import Database
+
+    if not conn.in_transaction:
+        with Database(conn.state_dir or Path("."), conn, None).transaction():
+            return global_pass_agrees(conn)
     before = year_state(conn)
     conn.execute("SAVEPOINT global_pass")
     try:
@@ -822,7 +973,7 @@ def test_a_year_that_rewrote_its_own_association_is_current_at_once(tmp_path):
         from swingset.project.process import process_unit
 
         def canonical():
-            row = conn.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()
+            row = conn.execute("SELECT value FROM revisions WHERE name = 'canonical'").fetchone()
             return None if row is None else int(row[0])
 
         unchanged = canonical()
@@ -838,8 +989,7 @@ def test_a_year_that_rewrote_its_own_association_is_current_at_once(tmp_path):
         # a cutoff, which moves the dancer epoch (F23).
         with db.transaction():
             conn.execute(
-                "UPDATE registry_placements SET event_id='e25' "
-                "WHERE event_month='2026-01' AND division='INT'"
+                "UPDATE registry_placements SET event_id = 'e25' WHERE event_month = '2026-01' AND division = 'INT'"
             )
             derivations.bump_replay(conn, "project", "dancer", now=NOW)
         stale = {unit.unit_id for unit in derivations.pending_units(conn, "project")}
@@ -868,7 +1018,9 @@ def test_an_event_moving_across_years_re_derives_both_years_only(tmp_path):
         years = derived_years(db)
         conn.execute("DELETE FROM pending_work")
         with db.transaction():
-            conn.execute("UPDATE events SET year=2025,event_month='2025-06' WHERE event_id='mid24'")
+            conn.execute(
+                "UPDATE events SET year = 2025, event_month = '2025-06' WHERE event_id = 'mid24'"
+            )
         pending = {
             unit.unit_id
             for unit in derivations.pending_units(conn, "project")
@@ -885,12 +1037,12 @@ def test_an_event_moving_across_years_re_derives_both_years_only(tmp_path):
         # Its 2024 placement lost its event; 2025 counts it now.
         assert (
             conn.execute(
-                "SELECT event_id FROM registry_placements WHERE series_id='wsdc-4'"
+                "SELECT event_id FROM registry_placements WHERE series_id = 'wsdc-4'"
             ).fetchone()[0]
             is None
         )
         assert not conn.execute(
-            "SELECT 1 FROM coverage WHERE year=2024 AND via='wayback'"
+            "SELECT 1 FROM coverage WHERE year = 2024 AND via = 'wayback'"
         ).fetchone()
 
 
@@ -909,9 +1061,9 @@ def test_accept_year_stages_its_year_alone(tmp_path):
             derivations.finish_building(db, chunk.deferred)
         assert derivations.selected_generation(conn, unit) != years["2025"]
         assert (
-            conn.execute("SELECT events_accepted FROM coverage WHERE year=2025 LIMIT 1").fetchone()[
-                0
-            ]
+            conn.execute(
+                "SELECT events_accepted FROM coverage WHERE year = 2025 LIMIT 1"
+            ).fetchone()[0]
             == 1
         )
         for year, generation in years.items():
@@ -938,10 +1090,12 @@ def test_a_year_waits_for_the_events_reported_in_its_months(tmp_path):
             ("elsewhere", 2025, "2025-06"),
         ):
             conn.execute(
-                "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,"
-                "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,"
-                "event_month) VALUES (?,?,?,?,NULL,NULL,'registry','[]','test','snap','1',"
-                "'t','t','run',?)",
+                (
+                    "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+                    "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, "
+                    "event_month) VALUES (%s, %s, %s, %s, NULL, NULL, 'registry', '[]', 'test', 'snap', '1', "
+                    "'t', 't', 'run', %s)"
+                ),
                 (event_id, "s-" + event_id, event_id, year, month),
             )
         events = {
@@ -973,7 +1127,7 @@ def _registry_months(conn, snapshot, *months):
             for month in months
         ),
     )
-    conn.execute("DELETE FROM observations WHERE scope_kind='dancer'")
+    conn.execute("DELETE FROM observations WHERE scope_kind = 'dancer'")
     evidence(conn, payload, snapshot=snapshot)
     replace_scope(
         conn,
@@ -994,18 +1148,23 @@ def test_a_listed_edition_of_a_known_series_becomes_the_held_occurrence(tmp_path
 
     def listed(event_id, source, history):
         conn.execute(
-            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,"
-            "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,"
-            "event_month,date_precision,held,coverage_tier,history_source) VALUES "
-            "(?,'wsdc-7',?,2012,'2012-08-03','2012-08-05','registry',?,?,'s','1',?,?,'run',"
-            "'2012-08','day','listed','index_only',?)",
+            (
+                "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+                "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, "
+                "event_month, date_precision, held, coverage_tier, history_source) VALUES (%s, 'wsdc-7', %s, "
+                "2012, '2012-08-03', '2012-08-05', 'registry', %s, %s, 's', '1', %s, %s, 'run', '2012-08', "
+                "'day', 'listed', 'index_only', %s)"
+            ),
             (event_id, event_id, f'["{source}"]', source, NOW, NOW, f'["{history}"]'),
         )
 
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         _registry_months(conn, "registry-2011", "August 2011")
@@ -1014,7 +1173,7 @@ def test_a_listed_edition_of_a_known_series_becomes_the_held_occurrence(tmp_path
         listed("2012-08-example-swing", "wsdc_calendar", "calendar")
         _registry_months(conn, "registry-2012", "August 2011", "August 2012")
         reconcile_history(conn, now=NOW, run_id="run")
-        query = "SELECT event_id,held,wsdc_status FROM events WHERE year=2012 ORDER BY 1"
+        query = "SELECT event_id, held, wsdc_status FROM events WHERE year = 2012 ORDER BY 1 NULLS FIRST"
         # The listing's row beside the occurrence, empty and written by no
         # listing now, goes (D-0260).
         assert [tuple(row) for row in conn.execute(query)] == [
@@ -1023,11 +1182,11 @@ def test_a_listed_edition_of_a_known_series_becomes_the_held_occurrence(tmp_path
         assert {
             row[0]
             for row in conn.execute(
-                "SELECT event_id FROM registry_placements WHERE event_month LIKE '2012%'"
+                "SELECT event_id FROM registry_placements WHERE event_month ILIKE '2012%'"
             )
         } == {"2012-08-example-swing"}
         assert not conn.execute(
-            "SELECT 1 FROM findings WHERE owner_kind='history_year' AND closed_at IS NULL"
+            "SELECT 1 FROM findings WHERE owner_kind = 'history_year' AND closed_at IS NULL"
         ).fetchone()
         assert not reconcile_history(conn, now=NOW, run_id="run")
 
@@ -1040,7 +1199,10 @@ def test_an_unreported_editions_results_listing_joins_its_calendar_row(tmp_path)
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         _registry_months(conn, "registry-2011", "August 2011")
@@ -1061,8 +1223,8 @@ def test_an_unreported_editions_results_listing_joins_its_calendar_row(tmp_path)
         )
         reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
         query = (
-            "SELECT event_id,series_id,held,wsdc_status,sources,city FROM events "
-            "WHERE year=2012 ORDER BY 1"
+            "SELECT event_id, series_id, held, wsdc_status, sources, city FROM events WHERE year = 2012 "
+            "ORDER BY 1 NULLS FIRST"
         )
         assert [tuple(row) for row in conn.execute(query)] == [
             (
@@ -1106,7 +1268,10 @@ def test_a_cancelled_edition_is_never_adopted(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         replace_scope(
@@ -1119,7 +1284,7 @@ def test_a_cancelled_edition_is_never_adopted(tmp_path):
         )
         _registry_months(conn, "registry-2012", "August 2012")
         reconcile_history(conn, now=NOW, run_id="run")
-        query = "SELECT event_id,held FROM events WHERE year=2012 ORDER BY 1"
+        query = "SELECT event_id, held FROM events WHERE year = 2012 ORDER BY 1 NULLS FIRST"
         assert [tuple(r) for r in conn.execute(query)] == [("2012-08-a-cancelled", "cancelled")]
         replace_scope(
             conn,
@@ -1147,7 +1312,11 @@ def _calendar(conn, snapshot, *rows, observed):
             )
         else:
             conn.execute(
-                "INSERT INTO observations VALUES (?,?,?,?,'calendar','wsdc',?,'1','1',?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, %s, %s, %s, "
+                    "'calendar', 'wsdc', %s, '1', '1', %s)"
+                ),
                 (
                     f"obs-{snapshot}-{seq}",
                     "watch-" + snapshot,
@@ -1157,7 +1326,9 @@ def _calendar(conn, snapshot, *rows, observed):
                     encode_payload(row),
                 ),
             )
-    conn.execute("UPDATE snapshots SET observed_at=? WHERE snapshot_id=?", (observed, snapshot))
+    conn.execute(
+        "UPDATE snapshots SET observed_at = %s WHERE snapshot_id = %s", (observed, snapshot)
+    )
 
 
 def _listing(name, start, end, location="Raleigh, North Carolina, USA", flag="USA"):
@@ -1183,7 +1354,10 @@ def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         _calendar(
@@ -1197,13 +1371,13 @@ def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path
         reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
         # The twin an earlier inventory wrote for the annotated name.
         conn.execute(
-            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,"
-            "source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
-            "date_precision,held,coverage_tier,history_source) SELECT "
-            "'2012-08-example-swing-cancelled-due-to-covid-19',series_id,name,year,start_date,"
-            "end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,"
-            "last_seen_at,run_id,event_month,date_precision,'cancelled',coverage_tier,history_source "
-            "FROM events WHERE event_id='2012-08-example-swing'"
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, "
+            "event_month, date_precision, held, coverage_tier, history_source) SELECT "
+            "'2012-08-example-swing-cancelled-due-to-covid-19', series_id, name, year, start_date, "
+            "end_date, wsdc_status, sources, source, snapshot_id, parser_version, first_seen_at, "
+            "last_seen_at, run_id, event_month, date_precision, 'cancelled', coverage_tier, "
+            "history_source FROM events WHERE event_id = '2012-08-example-swing'"
         )
         _calendar(
             conn,
@@ -1221,8 +1395,8 @@ def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path
         )
         reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
         query = (
-            "SELECT event_id,series_id,held,start_date,city,region,country FROM events "
-            "WHERE year=2012 ORDER BY 1"
+            "SELECT event_id, series_id, held, start_date, city, region, country FROM events WHERE year "
+            "= 2012 ORDER BY 1 NULLS FIRST"
         )
         assert [tuple(row) for row in conn.execute(query)] == [
             (
@@ -1254,7 +1428,7 @@ def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path
             ),
         ]
         assert not conn.execute(
-            "SELECT 1 FROM findings WHERE owner_kind='history_year' AND closed_at IS NULL"
+            "SELECT 1 FROM findings WHERE owner_kind = 'history_year' AND closed_at IS NULL"
         ).fetchone()
         assert not reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
 
@@ -1262,12 +1436,14 @@ def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path
 def _twin(conn, of, event_id):
     """The row an earlier inventory wrote for an annotated name of ``of``'s edition."""
     conn.execute(
-        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,"
-        "source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
-        "date_precision,held,coverage_tier,history_source) SELECT ?,series_id,name,year,"
-        "start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,"
-        "last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source "
-        "FROM events WHERE event_id=?",
+        (
+            "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, "
+            "event_month, date_precision, held, coverage_tier, history_source) SELECT %s, series_id, "
+            "name, year, start_date, end_date, wsdc_status, sources, source, snapshot_id, "
+            "parser_version, first_seen_at, last_seen_at, run_id, event_month, date_precision, held, "
+            "coverage_tier, history_source FROM events WHERE event_id = %s"
+        ),
         (event_id, of),
     )
 
@@ -1299,7 +1475,10 @@ def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path, monke
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         _calendar(
@@ -1315,7 +1494,8 @@ def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path, monke
         _twin(conn, "2012-03-tea-party", "2012-03-tea-party-cancelled-due-to-coronavirus")
         _twin(conn, "2012-03-tea-party", "2012-03-tea-party-mapped")
         conn.execute(
-            "INSERT INTO source_event_map VALUES ('eepro','eepro:tea','2012-03-tea-party-mapped','name_date',0.5)"
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'eepro:tea', '2012-03-tea-party-mapped', 'name_date', 0.5)"
         )
         _calendar(
             conn,
@@ -1351,10 +1531,10 @@ def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path, monke
         ):
             evidence(conn, row, source=source, scope="calendar", ref="wsdc", snapshot=snapshot)
             conn.execute(
-                "UPDATE snapshots SET observed_at=? WHERE snapshot_id=?", (observed, snapshot)
+                "UPDATE snapshots SET observed_at = %s WHERE snapshot_id = %s", (observed, snapshot)
             )
         reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
-        query = "SELECT event_id,held,wsdc_status FROM events WHERE year=2012 ORDER BY 1"
+        query = "SELECT event_id, held, wsdc_status FROM events WHERE year = 2012 ORDER BY 1 NULLS FIRST"
         assert [tuple(row) for row in conn.execute(query)] == [
             ("2012-02-crush-trial-event", "listed", "trial"),
             ("2012-03-tea-party", "cancelled", "registry"),
@@ -1376,7 +1556,10 @@ def test_until_the_calendar_contract_is_active_a_cancelled_twin_keeps_its_row(tm
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (
+                "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES ('run', "
+                "%s, NULL, 1, NULL)"
+            ),
             (NOW,),
         )
         _calendar(
@@ -1394,7 +1577,9 @@ def test_until_the_calendar_contract_is_active_a_cancelled_twin_keeps_its_row(tm
         reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
         assert [
             tuple(row)
-            for row in conn.execute("SELECT event_id,held FROM events WHERE year=2012 ORDER BY 1")
+            for row in conn.execute(
+                "SELECT event_id, held FROM events WHERE year = 2012 ORDER BY 1 NULLS FIRST"
+            )
         ] == [
             ("2012-01-monterey-swingfest", "listed"),
             ("2012-01-monterey-swingfest-cancelled-due-to-covid-19", "cancelled"),

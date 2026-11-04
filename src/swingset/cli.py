@@ -1,13 +1,11 @@
 """Operator commands sharing the same lock, input capture and durable stages."""
 
 import argparse
-import contextlib
 import getpass
 import json
 import math
 import os
 import signal
-import sqlite3
 import sys
 import time
 import uuid
@@ -21,6 +19,7 @@ from swingset.clock import SystemClock
 from swingset.config import RetentionConfig, duration, load_config
 from swingset.log import log
 from swingset.publish.service import Hub
+from swingset.state import engine
 from swingset.state.db import Database, DatabaseLockedError, open_database
 
 if TYPE_CHECKING:
@@ -109,7 +108,7 @@ def parser() -> argparse.ArgumentParser:
     step.add_argument(
         "--reclaim",
         action="store_true",
-        help="Rewrite state.sqlite in place so freed pages leave the file",
+        help="Rewrite Postgres tables so freed pages leave their files",
     )
     step.add_argument(
         "--closures",
@@ -124,14 +123,21 @@ def parser() -> argparse.ArgumentParser:
     collect.add_argument(
         "--collect",
         action="store_true",
-        help="With --plan or --apply: the mark-sweep collector over every stored class "
-        "(objects, release manifests, partition artifacts, dependency sets, orphans; D-0231)",
+        help=(
+            "/* plan or --apply: the mark-sweep collector over every stored class (objects, release "
+            "manifests, partition artifacts, dependency sets, orphans; D-0231) */ WITH  AS () /* plan or "
+            "--apply: the mark-sweep collector over every stored class (objects, release manifests, "
+            "partition artifacts, dependency sets, orphans; D-0231) */"
+        ),
     )
     collect.add_argument(
         "--candidates-only",
         action="store_true",
-        help="With --plan or --apply: candidate directories only, walking no graph, "
-        "so it runs on the worker",
+        help=(
+            "/* plan or --apply: candidate directories only, walking no graph, so it runs on the worker "
+            "*/ WITH  AS () /* plan or --apply: candidate directories only, walking no graph, so it runs "
+            "on the worker */"
+        ),
     )
     accept_year = commands.add_parser("accept-year", parents=[shared])
     accept_year.add_argument("--year", type=int, required=True)
@@ -254,7 +260,7 @@ def parser() -> argparse.ArgumentParser:
     partitions.add_argument(
         "--withheld",
         action="store_true",
-        help="with no action: the withheld partitions, counted by reason, with their detail",
+        help="WITH no AS (action AS %(the)s)",
     )
     storage = commands.add_parser(
         "storage",
@@ -270,11 +276,47 @@ def parser() -> argparse.ArgumentParser:
         nargs="?",
         help="apply: the plan digest `storage plan` printed; restore-body: a generation id",
     )
-    commands.add_parser(
+    checker = commands.add_parser(
+        "backup-check-serve", help="Run the separate owner job that restores and audits each backup"
+    )
+    checker.add_argument("--socket", type=Path, required=True)
+    checker.add_argument("--root", type=Path, required=True)
+    sample = commands.add_parser(
+        "sample-sqlite37",
+        help="Create a bounded frozen import sample without changing its SQLite source",
+    )
+    sample.add_argument("source", type=Path)
+    sample.add_argument("target", type=Path)
+    sample.add_argument("--unit-limit", type=int, default=2500)
+    sample.add_argument(
+        "--event-id",
+        action="append",
+        default=[],
+        help="Include this real event and its complete source closure; repeat for several events",
+    )
+    sample.add_argument(
+        "--without-derivation-history",
+        action="store_true",
+        help="Select source and canonical evidence only, excluding old transform anchors with unbounded legacy dependency groups",
+    )
+    sample.add_argument("--max-database-bytes", type=int, default=1 << 30)
+    sample.add_argument("--max-file-bytes", type=int, default=2 << 30)
+    sample.add_argument("--timeout-seconds", type=float, default=540)
+    importer = commands.add_parser(
+        "import-sqlite37",
+        parents=[shared],
+        help="Audit and import a frozen SQLite 37 checkpoint into a fresh owner-provisioned database",
+    )
+    importer.add_argument("source", type=Path)
+    importer.add_argument("--sha256")
+    importer.add_argument("--receipt", type=Path)
+    importer.add_argument("--environment", choices=("dev", "production"), default="dev")
+    migration = commands.add_parser(
         "migrate",
         parents=[shared],
-        help="Open the database once, applying pending migrations; print both schemas and seconds",
+        help="Apply pending Postgres migrations with the explicit owner credential",
     )
+    migration.add_argument("--environment", choices=("dev", "production"))
     verify = commands.add_parser(
         "verify-derivations",
         parents=[shared],
@@ -284,6 +326,26 @@ def parser() -> argparse.ArgumentParser:
         "--sample", type=float, default=0.01, help="share of each kind's units (at least one)"
     )
     verify.add_argument("--kinds", default="link,year", help="comma-separated: link, year")
+    verify.add_argument(
+        "--checkpoint", type=Path, help="Frozen checkpoint to verify on scratch copies"
+    )
+    verify.add_argument("--processes", type=int, default=1)
+    verify.add_argument(
+        "--scopes", help="Comma-separated audit scopes; omitted verifies the whole graph"
+    )
+    verify.add_argument("--receipt", type=Path, help="Write a graph verification receipt")
+    rekey = commands.add_parser(
+        "rekey", parents=[shared], help="Re-key clean verified units without transforming"
+    )
+    rekey.add_argument("--receipt", type=Path, required=True)
+    rekey.add_argument("--output", type=Path)
+    rekey.add_argument("--batch-size", type=int, default=100)
+    verify.add_argument(
+        "--bumped-transforms", default="", help="Comma-separated transforms excluded from re-keying"
+    )
+    from swingset.dev.cli import register_arguments as register_dev_arguments
+
+    register_dev_arguments(commands, shared)
     enums = commands.add_parser("enums")
     enums.add_argument("--write", action="store_true")
     backup = commands.add_parser("backup", parents=[shared])
@@ -321,6 +383,7 @@ def parser() -> argparse.ArgumentParser:
         help="A directory with the set layout (sets/, segments/) for --backup-set",
     )
     restore.add_argument("--writer-stopped", action="store_true", required=True)
+    restore.add_argument("--environment", choices=("dev", "production"), default="dev")
     return root
 
 
@@ -335,14 +398,13 @@ def hub() -> Hub:
 
 def _set_transport(directory: Path | None) -> Any:
     """Where `restore --backup-set` reads: a directory, else the private archive."""
-    from swingset.backup.transport import HuggingFaceSegments, LocalDirectoryTransport
+    from swingset.backup.transport import LocalDirectoryTransport
 
     if directory is not None:
         return LocalDirectoryTransport(directory)
-    token = os.environ.get("HF_TOKEN")
-    if not token:
-        raise ValueError("HF_TOKEN is required to read a set from the archive; or pass --from")
-    return HuggingFaceSegments(token=token)
+    from swingset.backup.r2 import configured
+
+    return configured(None, read_only=True)
 
 
 def _segmented_backup(args: argparse.Namespace) -> int:
@@ -354,7 +416,6 @@ def _segmented_backup(args: argparse.Namespace) -> int:
     from swingset.backup.segments import LOCAL_TRANSPORT, create_set
     from swingset.backup.transport import (
         REMOTE_KEPT,
-        HuggingFaceSegments,
         LocalDirectoryTransport,
     )
     from swingset.state.db import open_for_loop
@@ -368,10 +429,7 @@ def _segmented_backup(args: argparse.Namespace) -> int:
     elif args.local:
         transport = LocalDirectoryTransport(args.state / "checkpoints", name=LOCAL_TRANSPORT)
     else:
-        token = os.environ.get("HF_TOKEN")
-        if not token:
-            raise ValueError("HF_TOKEN required to upload a set; --local keeps it in checkpoints/")
-        transport = HuggingFaceSegments(token=token)
+        transport = None
     clock = SystemClock()
     started = time.monotonic()
     while True:
@@ -383,6 +441,10 @@ def _segmented_backup(args: argparse.Namespace) -> int:
                 raise
             time.sleep(min(5.0, max(args.lock_timeout, 0.1)))
     with database:
+        if transport is None:
+            from swingset.backup.r2 import configured
+
+            transport = configured(database.connection)
         result = create_set(
             database,
             transport,
@@ -478,8 +540,8 @@ def _verify_local_checkpoint(created: Path) -> str | None:
     A local backup has no upload to prove its copy, and pruning after it can
     leave that copy as the only one (D-0203). So the whole copy is read back
     as a restore would read it: closure, every file hash, the schema, foreign
-    keys and the artifact closure, with `PRAGMA quick_check` in place of the
-    slower `integrity_check` that restore still runs. Any exception is a
+    keys and the referenced history closure. The owner job separately proves
+    restoration into a fresh database before the checkpoint is complete. Any exception is a
     verdict, not a crash: a malformed manifest can raise TypeError, and the
     copy must still leave the timer namespace.
     """
@@ -632,10 +694,14 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
         )
     ]
     result["operator_hold"] = describe_hold(args.state / "operator-hold", now=time.time())
-    if not (args.state / "state.sqlite").exists():
+    if not (args.state / "database.json").exists() and not (
+        os.environ.get("SWINGSET_DATABASE_URL") or os.environ.get("DATABASE_URL")
+    ):
         result["schema_version"] = 0
         return result
-    with open_database(args.state, lock=False, read_only=True) as database:
+    with open_database(
+        args.state, lock=False, read_only=True, allow_restore_pending=True
+    ) as database:
         with database.transaction(immediate=False) as conn:
             result["schema_version"] = database.schema_version
             from swingset.state.requirement_report import inventory
@@ -680,50 +746,63 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                 conn, now=now, unit_scope=unit_scope
             )
             if conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='registry_verifications'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'registry_verifications' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone():
                 result["registry_verification"] = verification_summary(conn, now)
             if conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='admission_policies'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'admission_policies' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone():
                 from swingset.admission.support import admission_summary
 
                 result["admission"] = admission_summary(conn)
             if conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='identity_decisions'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'identity_decisions' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone():
                 from swingset.state.identity_journal import token
 
                 result["identity_journal"] = {
                     **asdict(token(conn)),
-                    "decisions": conn.execute("SELECT COUNT(*) FROM identity_decisions").fetchone()[
-                        0
-                    ],
+                    "decisions": conn.execute(
+                        "SELECT COUNT(*) AS _value_0 FROM identity_decisions"
+                    ).fetchone()[0],
                     "pending_reference_migrations": conn.execute(
-                        "SELECT COUNT(*) FROM identity_reference_migrations WHERE status!='approved' AND migration_id NOT IN (SELECT supersedes FROM identity_reference_migrations WHERE supersedes IS NOT NULL)"
+                        "SELECT COUNT(*) AS _value_0 FROM identity_reference_migrations WHERE status <> 'approved' AND NOT migration_id IN (SELECT supersedes FROM identity_reference_migrations WHERE NOT supersedes IS NULL)"
                     ).fetchone()[0],
                     "resolution_states": {
                         str(row[0]): int(row[1])
                         for row in conn.execute(
-                            "SELECT state,COUNT(*) FROM identity_link_resolutions GROUP BY state"
+                            "SELECT state, COUNT(*) AS _value_1 FROM identity_link_resolutions GROUP BY state"
                         )
                     },
                 }
             for label, query in {
-                "registry_cursors": "SELECT name,value FROM cursors WHERE name LIKE 'registry_%' ORDER BY name",
-                "operator_pauses": "SELECT * FROM operator_pauses",
-                "host_pauses": "SELECT host,paused_until,pause_reason,pause_streak FROM hosts WHERE paused_until IS NOT NULL",
-                "budgets": "SELECT * FROM host_budget ORDER BY day DESC,host",
-                "watches": "SELECT source,state,COUNT(*) AS count FROM watches GROUP BY source,state",
-                "pending_work": "SELECT stage,COUNT(*) AS count FROM pending_work GROUP BY stage",
-                "link_statuses": "SELECT status,COUNT(*) AS count FROM identity_links GROUP BY status",
-                "last_run": "SELECT * FROM runs ORDER BY started_at DESC LIMIT 1",
-                "last_success_by_source": "SELECT w.source,MAX(s.parsed_at) AS last_success FROM snapshots s JOIN watches w USING(watch_id) WHERE s.parse_status='ok' GROUP BY w.source",
-                "last_backup": "SELECT key,value FROM meta WHERE key LIKE 'last_backup%'",
+                "registry_cursors": "SELECT name, value FROM cursors WHERE name ILIKE 'registry_%' ORDER BY name NULLS FIRST",
+                "operator_pauses": (
+                    "SELECT operator_pauses.scope_kind, operator_pauses.scope_id, operator_pauses.until_at, "
+                    "operator_pauses.reason, operator_pauses.pause_id, operator_pauses.actor, "
+                    "operator_pauses.control_revision, operator_pauses.created_at FROM operator_pauses"
+                ),
+                "host_pauses": "SELECT host, paused_until, pause_reason, pause_streak FROM hosts WHERE NOT paused_until IS NULL",
+                "budgets": (
+                    "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM "
+                    "host_budget ORDER BY day DESC NULLS LAST, host NULLS FIRST"
+                ),
+                "watches": "SELECT source, state, COUNT(*) AS count FROM watches GROUP BY source, state",
+                "pending_work": "SELECT stage, COUNT(*) AS count FROM pending_work GROUP BY stage",
+                "link_statuses": "SELECT status, COUNT(*) AS count FROM identity_links GROUP BY status",
+                "last_run": (
+                    "SELECT runs.run_id, runs.started_at, runs.finished_at, runs.dry_run, runs.summary_json, "
+                    "runs.loop FROM runs ORDER BY started_at DESC NULLS LAST LIMIT 1"
+                ),
+                "last_success_by_source": (
+                    "SELECT w.source, MAX(s.parsed_at) AS last_success FROM snapshots AS s JOIN watches AS w "
+                    "USING (watch_id) WHERE s.parse_status = 'ok' GROUP BY w.source"
+                ),
+                "last_backup": "SELECT key, value FROM meta WHERE key ILIKE 'last_backup%'",
             }.items():
                 result[label] = [dict(row) for row in conn.execute(query)]
             if conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='derivation_payload_removal_authority'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'derivation_payload_removal_authority' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone():
                 # Anything here means a writer left the derivation payload delete
                 # gate open. A grant cannot commit with foreign keys on, so the
@@ -731,7 +810,7 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                 result["derivation_payload_removal_grants"] = [
                     dict(row)
                     for row in conn.execute(
-                        "SELECT reason,granted_at FROM derivation_payload_removal_authority"
+                        "SELECT reason, granted_at FROM derivation_payload_removal_authority"
                     )
                 ]
             if not getattr(args, "retention", False):
@@ -742,12 +821,14 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                 # summary report the file's bytes; `--retention` walks.
                 result["retention"] = {
                     "usage": usage(conn, args.state),
-                    "over_size_cap": (args.state / "state.sqlite").stat().st_size
+                    "over_size_cap": int(
+                        conn.execute("SELECT pg_database_size(current_database())").fetchone()[0]
+                    )
                     > config.retention.max_database_bytes,
                     "walk": "skipped; pass --retention (gc --plan's walk)",
                 }
             elif conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='derivation_generations'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'derivation_generations' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone():
                 from swingset.state.retention import report as retention_report
 
@@ -768,15 +849,12 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
             # their expiry (D-0219).
             result["guards"] = guards.report(conn, now=now)
             result["open_findings"] = conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE closed_at IS NULL"
+                "SELECT COUNT(*) AS _value_0 FROM findings WHERE closed_at IS NULL"
             ).fetchone()[0]
             result["review_queue_size"] = (
                 result["open_findings"]
                 + conn.execute(
-                    "SELECT (SELECT COUNT(*) FROM identity_links WHERE status='ambiguous') + "
-                    "(SELECT COUNT(*) FROM contests WHERE parse_status='unsupported') + "
-                    "(SELECT COUNT(*) FROM source_events e LEFT JOIN source_event_map m "
-                    "ON m.source=e.source AND m.source_ref=e.source_ref WHERE m.event_id IS NULL)"
+                    "SELECT (SELECT COUNT(*) AS _value_0 FROM identity_links WHERE status = 'ambiguous') + (SELECT COUNT(*) AS _value_0 FROM contests WHERE parse_status = 'unsupported') + (SELECT COUNT(*) AS _value_0 FROM source_events AS e LEFT JOIN source_event_map AS m ON m.source = e.source AND m.source_ref = e.source_ref WHERE m.event_id IS NULL) AS _value_0"
                 ).fetchone()[0]
             )
     from swingset.publish.service import pending_candidates
@@ -831,7 +909,7 @@ def _finish_failed_manual_run(
 ) -> None:
     """Close the current command's run after an exception without masking it."""
     row = database.connection.execute(
-        "SELECT run_id FROM runs WHERE finished_at IS NULL ORDER BY started_at DESC"
+        "SELECT run_id FROM runs WHERE finished_at IS NULL ORDER BY started_at DESC NULLS LAST"
     ).fetchone()
     if row is None or str(row[0]) in previous_unfinished:
         return
@@ -841,7 +919,7 @@ def _finish_failed_manual_run(
 def _write_failed_run(database: Database, run_id: str, command: str, error: str) -> None:
     """Record a run as failed with `error`, keeping any summary it already has."""
     row = database.connection.execute(
-        "SELECT summary_json FROM runs WHERE run_id=?", (run_id,)
+        "SELECT summary_json FROM runs WHERE run_id = %s", (run_id,)
     ).fetchone()
     completed: dict[str, Any] = (
         json.loads(row[0])
@@ -855,7 +933,7 @@ def _write_failed_run(database: Database, run_id: str, command: str, error: str)
     durable_write(database.state_dir / "runs" / f"{run_id}.json", canonical(completed))
     with database.transaction() as conn:
         conn.execute(
-            "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+            "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
             (finished_at, json.dumps(completed, sort_keys=True), run_id),
         )
 
@@ -952,12 +1030,12 @@ def _mutate(
         clauses = []
         values = []
         if args.kind:
-            clauses.append("w.parser=?")
+            clauses.append("w.parser=%s")
             values.append(args.kind)
         if args.since:
-            clauses.append("s.fetched_at>=?")
+            clauses.append("s.fetched_at>=%s")
             values.append(datetime.fromisoformat(args.since).isoformat())
-        query = "SELECT s.snapshot_id FROM snapshots s JOIN watches w USING(watch_id)"
+        query = "SELECT s.snapshot_id FROM snapshots AS s JOIN watches AS w USING (watch_id)"
         if clauses:
             query += " WHERE " + " AND ".join(clauses)
         from swingset.state.attempts import latest_attempt, request_retry
@@ -1154,7 +1232,7 @@ def _mutate(
             from swingset.state.controls import ControlPaused, operation
 
             if database.connection.execute(
-                "SELECT 1 FROM meta WHERE key='registry_crosscheck_due'"
+                "SELECT 1 AS _value_0 FROM meta WHERE key = 'registry_crosscheck_due'"
             ).fetchone():
                 try:
                     with operation(
@@ -1239,8 +1317,18 @@ def _mutate(
                 raise ValueError(
                     "HF_TOKEN required to upload backup; --local creates a local checkpoint only"
                 )
+            from swingset.backup.checkpoint import verify_checkpoint
+
+            verified = verify_checkpoint(
+                checkpoint.path, maximum_schema_version=database.schema_version
+            )
+            from swingset.backup.check import check
+
+            check(checkpoint.path / "database", manifest_sha256=verified["history_manifest_sha256"])
             sha = upload_checkpoint(
-                checkpoint, HuggingFaceArchive("skeswa/swingset-archive", token=token)
+                checkpoint,
+                HuggingFaceArchive("skeswa/swingset-archive", token=token),
+                connection=database.connection,
             )
             with database.transaction() as conn:
                 receipt_values = [("last_backup_at", clock.now().isoformat())]
@@ -1248,7 +1336,9 @@ def _mutate(
                     receipt_values.append(("last_backup_commit", sha))
                 for key, value in receipt_values:
                     conn.execute(
-                        "INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                        (
+                            "INSERT INTO meta (key, value) VALUES (%s, %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+                        ),
                         (key, value),
                     )
         # Only a checkpoint that was written, and uploaded when it had to be,
@@ -1423,7 +1513,7 @@ def _mutate(
     durable_write(args.state / "runs" / f"{run_id}.json", canonical(completed))
     with database.transaction() as conn:
         conn.execute(
-            "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+            "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
             (completed["finished_at"], json.dumps(completed), run_id),
         )
     return int(command_failed)
@@ -1474,7 +1564,9 @@ def _control(args: argparse.Namespace) -> int:
         deadline = time.monotonic() + args.wait
         try:
             while True:
-                with open_database(args.state, lock=False, read_only=True) as database:
+                with open_database(
+                    args.state, lock=False, read_only=True, allow_restore_pending=True
+                ) as database:
                     with database.transaction(immediate=False) as conn:
                         current = status(
                             conn, now=clock.now(), selector=selector, unit_scope=for_unit
@@ -1514,7 +1606,9 @@ def _relabel(args: argparse.Namespace) -> int:
     if not args.apply:
         if args.by:
             raise ValueError("--by belongs to `relabel --apply`")
-        with open_database(args.state, lock=False, read_only=True) as database:
+        with open_database(
+            args.state, lock=False, read_only=True, allow_restore_pending=True
+        ) as database:
             found = relabel.report(relabel.drift(database.connection, kinds=args.kind))
         if not args.json:
             found = {**found, "units": len(found["units"])}
@@ -1530,7 +1624,7 @@ def _relabel(args: argparse.Namespace) -> int:
         summary = {**result, "command": "relabel", "by": args.by.strip()}
         with database.transaction() as conn:
             conn.execute(
-                "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+                "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
                 (clock.now().isoformat(), json.dumps(summary, sort_keys=True), run_id),
             )
     print(json.dumps({**summary, "run_id": run_id}, indent=2))
@@ -1551,7 +1645,9 @@ def _contract(args: argparse.Namespace) -> int:
     if args.action == "status":
         if args.by or args.evidence or args.generation or args.cohort:
             raise ValueError("`contract status` takes only --kind")
-        with open_database(args.state, lock=False, read_only=True) as database:
+        with open_database(
+            args.state, lock=False, read_only=True, allow_restore_pending=True
+        ) as database:
             print(json.dumps(activation.status(database.connection, args.kind), indent=2))
         return 0
     cohort = list(args.generation)
@@ -1615,14 +1711,14 @@ def _accept_year(args: argparse.Namespace) -> int:
                     history_start=config.history_start,
                 )
                 row = conn.execute(
-                    "SELECT year,accepted_at,accepted_by,inventory_digest FROM history_acceptance WHERE year=?",
+                    "SELECT year, accepted_at, accepted_by, inventory_digest FROM history_acceptance WHERE year = %s",
                     (args.year,),
                 ).fetchone()
             if chunk.deferred is not None:
 
-                def finished(write: sqlite3.Connection) -> None:
+                def finished(write: engine.Connection) -> None:
                     write.execute(
-                        "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                        "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
                         (unit.stage, unit.unit_kind, unit.unit_id),
                     )
 
@@ -1637,22 +1733,17 @@ def _accept_year(args: argparse.Namespace) -> int:
 
 
 def _migrate_only(args: argparse.Namespace) -> int:
-    """Open the database once, as a switch's hold does, and time the migration.
+    """Migrate explicitly under state-exclusive, control and writer locks."""
+    from swingset.state.migration_job import run
 
-    Run as the service user, so the WAL and shared-memory files it creates
-    belong to that user. Prints the schema before and after and the seconds
-    the open took (the preflight receipt's migration time).
-    """
-    path = args.state / "state.sqlite" if args.state.is_dir() else args.state
-    before = None
-    if path.exists():
-        with contextlib.closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
-            before = int(conn.execute("PRAGMA user_version").fetchone()[0])
     started = time.monotonic()
-    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
-        after = database.schema_version
-    seconds = round(time.monotonic() - started, 3)
-    print(json.dumps({"schema_before": before, "schema_after": after, "seconds": seconds}))
+    result = run(
+        args.state,
+        os.environ.get("SWINGSET_OWNER_DATABASE_URL", ""),
+        environment=args.environment,
+        timeout=args.lock_timeout,
+    )
+    print(json.dumps({**result, "seconds": round(time.monotonic() - started, 3)}))
     return 0
 
 
@@ -1722,12 +1813,16 @@ def _partitions(args: argparse.Namespace) -> int:
     if args.withheld or args.action is None:
         if args.action is not None or not args.withheld:
             raise ValueError("partitions takes an action (build, list, show) or --withheld")
-        with open_database(args.state, lock=False, read_only=True) as database:
+        with open_database(
+            args.state, lock=False, read_only=True, allow_restore_pending=True
+        ) as database:
             report = withheld_report(database.connection)
         print(json.dumps(report, indent=2, default=str))
         return 0
     if args.action in {"list", "show"}:
-        with open_database(args.state, lock=False, read_only=True) as database:
+        with open_database(
+            args.state, lock=False, read_only=True, allow_restore_pending=True
+        ) as database:
             if args.action == "list":
                 result: object = partitions.listing(database, state=args.partition_state)
             else:
@@ -1752,7 +1847,7 @@ def _partitions(args: argparse.Namespace) -> int:
     return 0
 
 
-def withheld_report(conn: sqlite3.Connection) -> dict[str, object]:
+def withheld_report(conn: engine.Connection) -> dict[str, object]:
     """`partitions --withheld`: the count, the count by reason, and each partition.
 
     The watchdog's daily `[partitions-withheld]` line counts the same rows.
@@ -1790,6 +1885,27 @@ def _verify_derivations(args: argparse.Namespace) -> int:
     from swingset.state.inputs import capture
     from swingset.versions import versions
 
+    if args.checkpoint is not None:
+        from swingset.state import verify_graph
+
+        bundle = capture(args.config, args.overrides, args.state, versions())
+        summary = verify_graph.run(
+            args.checkpoint,
+            bundle,
+            processes=args.processes,
+            scopes=None if not args.scopes else tuple(args.scopes.split(",")),
+            receipt_path=args.receipt or args.state / "verification" / "receipt.json",
+            bumped_transforms=tuple(filter(None, args.bumped_transforms.split(","))),
+        )
+        print(json.dumps(summary, indent=2, default=str))
+        return 0 if summary.get("complete") and summary.get("clean") else 1
+    if (
+        args.receipt is not None
+        or args.scopes is not None
+        or args.processes != 1
+        or args.bumped_transforms
+    ):
+        raise ValueError("--receipt, --scopes and --processes require --checkpoint")
     kinds = verify.parse_kinds(args.kinds)
     if not 0 < args.sample <= 1:
         raise ValueError("--sample must be greater than 0 and at most 1")
@@ -1806,6 +1922,42 @@ def _verify_derivations(args: argparse.Namespace) -> int:
         )
     print(json.dumps(summary, indent=2, default=str))
     return 1 if summary["mismatches"] else 0
+
+
+def _rekey(args: argparse.Namespace) -> int:
+    from swingset.fetch.archive import canonical, digest, durable_write
+    from swingset.state import rekey
+    from swingset.state.inputs import accept, capture
+    from swingset.versions import versions
+
+    receipt = json.loads(args.receipt.read_text())
+    clock = SystemClock()
+    bundle = capture(args.config, args.overrides, args.state, versions())
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        accept(database, bundle, clock)
+        output = args.output or args.state / "rekey" / "receipt.json"
+        durable_write(
+            output,
+            canonical(
+                {
+                    "format": "swingset-rekey-v1",
+                    "complete": False,
+                    "verify_receipt": digest(canonical(receipt)),
+                    "checkpoint": receipt.get("checkpoint"),
+                    "at": clock.now().isoformat(),
+                    "equivalences": None,
+                }
+            ),
+        )
+        summary = rekey.run(database, receipt, now=clock.now(), batch_size=args.batch_size)
+        with database.transaction() as conn:
+            conn.execute(
+                "UPDATE runs SET finished_at = %s, summary_json = %s WHERE run_id = %s",
+                (clock.now().isoformat(), json.dumps(summary, sort_keys=True), summary["run_id"]),
+            )
+        durable_write(output, canonical(summary))
+    print(json.dumps(summary, indent=2, default=str))
+    return 0 if summary.get("complete") else 1
 
 
 def _hold(args: argparse.Namespace) -> int:
@@ -1829,7 +1981,9 @@ def _hold(args: argparse.Namespace) -> int:
         return 0 if removed else 1
     if not (args.who or "").strip() or not (args.why or "").strip():
         raise ValueError("hold add requires --who and --why")
-    with open_database(args.state, lock=False, read_only=True) as database:
+    with open_database(
+        args.state, lock=False, read_only=True, allow_restore_pending=True
+    ) as database:
         record = add_hold(
             args.state,
             database.connection,
@@ -1858,7 +2012,9 @@ def _queue(args: argparse.Namespace) -> int:
     if args.action != "requeue":
         if args.error_class or args.unit or args.by:
             raise ValueError("--error-class, --unit and --by belong to `queue requeue`")
-        with open_database(args.state, lock=False, read_only=True) as database:
+        with open_database(
+            args.state, lock=False, read_only=True, allow_restore_pending=True
+        ) as database:
             result = queue.report(database.connection, clock.now(), state=args.queue_state)
         if args.json:
             print(json.dumps(result, indent=2, default=str))
@@ -1944,13 +2100,62 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "storage":
         try:
             return _storage(args)
-        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
+    if args.command == "backup-check-serve":
+        from swingset.backup.check import serve
+
+        serve(args.socket, args.root, os.environ.get("SWINGSET_SCRATCH_ADMIN_DSN", ""))
+        return 0
+    if args.command == "sample-sqlite37":
+        from swingset.state.postgres_sample import sample
+
+        result = sample(
+            args.source,
+            args.target,
+            unit_limit=args.unit_limit,
+            event_ids=tuple(args.event_id),
+            include_derivation_history=not args.without_derivation_history,
+            max_database_bytes=args.max_database_bytes,
+            max_file_bytes=args.max_file_bytes,
+            timeout_seconds=args.timeout_seconds,
+        )
+        print(json.dumps(result, indent=2))
+        return 0
+    if args.command == "import-sqlite37":
+        from swingset.backup.destination import owner
+        from swingset.state.postgres_import import load
+
+        with owner(args.state) as connection:
+            result = load(
+                args.source,
+                connection,
+                expected_sha256=args.sha256,
+                receipt_path=args.receipt,
+                environment=args.environment,
+            )
+        print(json.dumps(result, indent=2))
+        return 0
     if args.command == "migrate":
         try:
             return _migrate_only(args)
-        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+    if args.command == "rekey":
+        try:
+            return _rekey(args)
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+    from swingset.dev.cli import COMMANDS as DEV_COMMANDS
+    from swingset.dev.cli import command as dev_command
+
+    if args.command in DEV_COMMANDS:
+        try:
+            return dev_command(args)
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "verify-derivations":
@@ -1962,13 +2167,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "contract":
         try:
             return _contract(args)
-        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "relabel":
         try:
             return _relabel(args)
-        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "accept-year":
@@ -1980,7 +2185,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "backup" and args.segmented and args.remove_checkpoint is None:
         try:
             return _segmented_backup(args)
-        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+        except (OSError, ValueError, RuntimeError, engine.Error) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "backup" and args.remove_checkpoint is not None:
@@ -2071,6 +2276,7 @@ def main(argv: list[str] | None = None) -> int:
                     remote,
                     SystemClock(),
                     lock_timeout=args.lock_timeout,
+                    environment=args.environment,
                 )
                 print(json.dumps(summary, indent=2, default=str))
             elif args.archive_commit:
@@ -2092,6 +2298,7 @@ def main(argv: list[str] | None = None) -> int:
                         remote,
                         SystemClock(),
                         lock_timeout=args.lock_timeout,
+                        environment=args.environment,
                     )
             else:
                 restore_from_checkpoint(
@@ -2100,6 +2307,7 @@ def main(argv: list[str] | None = None) -> int:
                     remote,
                     SystemClock(),
                     lock_timeout=args.lock_timeout,
+                    environment=args.environment,
                 )
             return 0
         timeout = (

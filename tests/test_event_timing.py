@@ -177,7 +177,7 @@ def test_unqualified_success_disables_alarm_and_new_policy_preserves_old_episode
             policy={},
             at=boundary(clock, token="changed"),
         )
-        assert db.connection.execute("SELECT count(*) FROM event_timing_history").fetchone()[0] == 2
+        assert db.connection.execute("SELECT COUNT(*) FROM event_timing_history").fetchone()[0] == 2
 
 
 def prepared(f, *, names=("one.htm",)):
@@ -186,13 +186,16 @@ def prepared(f, *, names=("one.htm",)):
     policy = config()
     enroll(f, policy)
     f.conn.execute(
-        "UPDATE watches SET next_check_at=?,state='live',paused_until=NULL",
+        "UPDATE watches SET next_check_at = %s, state = 'live', paused_until = NULL",
         (f.corpus.clock.now().isoformat(),),
     )
     f.conn.execute("DELETE FROM pending_work")
     sha = f.archive.store_body(b"User-agent: *\nAllow: /\n")
     f.conn.execute(
-        "INSERT OR REPLACE INTO hosts(host,robots_sha256,robots_fetched_at,robots_status) VALUES('eepro.com',?,?,200)",
+        (
+            "INSERT INTO hosts (host, robots_sha256, robots_fetched_at, robots_status) VALUES "
+            "('eepro.com', %s, %s, 200) ON CONFLICT(host) DO UPDATE SET robots_sha256=excluded.robots_sha256, robots_fetched_at=excluded.robots_fetched_at, robots_status=excluded.robots_status"
+        ),
         (sha, f.corpus.clock.now().isoformat()),
     )
     return policy
@@ -218,7 +221,21 @@ def test_real_observer_records_waiting_without_fetch_and_closes_phase(event):
             clock.sleep(12)
             checkpoint()
             resume()
-        row = f.conn.execute("SELECT * FROM event_timing WHERE source_ref='eepro:test'").fetchone()
+        row = f.conn.execute(
+            "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+            "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+            "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+            "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+            "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+            "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+            "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+            "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+            "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+            "event_timing.operation_origin, event_timing.last_progress_at, "
+            "event_timing.last_service_action, event_timing.last_service_at, "
+            "event_timing.unresolved_success, event_timing.control_revision, "
+            "event_timing.marker_mtime_ns FROM event_timing WHERE source_ref = 'eepro:test'"
+        ).fetchone()
         assert row["eligible_seconds"] == 12
         assert row["state"] == "inactive"
         assert not f.conn.execute("SELECT 1 FROM host_budget").fetchone()
@@ -241,7 +258,21 @@ def test_real_observer_oversized_membership_and_missing_robots_remain_unknown(ev
             )
         ):
             clock.sleep(10)
-        row = f.conn.execute("SELECT * FROM event_timing WHERE source_ref='eepro:test'").fetchone()
+        row = f.conn.execute(
+            "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+            "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+            "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+            "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+            "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+            "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+            "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+            "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+            "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+            "event_timing.operation_origin, event_timing.last_progress_at, "
+            "event_timing.last_service_action, event_timing.last_service_at, "
+            "event_timing.unresolved_success, event_timing.control_revision, "
+            "event_timing.marker_mtime_ns FROM event_timing WHERE source_ref = 'eepro:test'"
+        ).fetchone()
         assert row["eligible_seconds"] == 0
         assert row["unknown_seconds"] == 10
     finally:
@@ -262,12 +293,15 @@ def test_actual_network_wait_credits_other_host_event_and_preserves_one_debit_ow
     enroll(f, policy)
     f.conn.execute("DELETE FROM pending_work")
     f.conn.execute(
-        "UPDATE watches SET next_check_at=?,state='live',paused_until=NULL",
+        "UPDATE watches SET next_check_at = %s, state = 'live', paused_until = NULL",
         (clock.now().isoformat(),),
     )
     sha = f.archive.store_body(b"User-agent: *\nAllow: /\n")
     f.conn.execute(
-        "INSERT OR REPLACE INTO hosts(host,robots_sha256,robots_fetched_at,robots_status) VALUES('other.test',?,?,200)",
+        (
+            "INSERT INTO hosts (host, robots_sha256, robots_fetched_at, robots_status) VALUES "
+            "('other.test', %s, %s, 200)"
+        ),
         (sha, clock.now().isoformat()),
     )
 
@@ -295,7 +329,7 @@ def test_actual_network_wait_credits_other_host_event_and_preserves_one_debit_ow
         )
         with observing(observer), servicing(choice, run_id=f.corpus.run):
             parser = f.conn.execute(
-                "SELECT parser FROM watches WHERE watch_id=?", (choice.watch_id,)
+                "SELECT parser FROM watches WHERE watch_id = %s", (choice.watch_id,)
             ).fetchone()[0]
             client.fetch(
                 choice.watch_id,
@@ -306,7 +340,20 @@ def test_actual_network_wait_credits_other_host_event_and_preserves_one_debit_ow
         rows = {
             row["source_ref"]: dict(row)
             for row in f.conn.execute(
-                "SELECT * FROM event_timing WHERE source_ref IN ('eepro:test','eepro:second')"
+                "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+                "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+                "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+                "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+                "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+                "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+                "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+                "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+                "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+                "event_timing.operation_origin, event_timing.last_progress_at, "
+                "event_timing.last_service_action, event_timing.last_service_at, "
+                "event_timing.unresolved_success, event_timing.control_revision, "
+                "event_timing.marker_mtime_ns FROM event_timing WHERE source_ref IN ('eepro:test', "
+                "'eepro:second')"
             )
         }
         assert sum(row["eligible_seconds"] for row in rows.values()) >= 12
@@ -357,7 +404,7 @@ def test_preexisting_success_without_progress_receipt_does_not_disable_new_episo
         ),
     )
     snapshot = f.conn.execute(
-        "SELECT snapshot_id FROM snapshots WHERE watch_id=?", (f.parent.watch_id,)
+        "SELECT snapshot_id FROM snapshots WHERE watch_id = %s", (f.parent.watch_id,)
     ).fetchone()[0]
     with f.db.transaction():
         acquired(f.conn, snapshot_id=snapshot, source="eepro", parser="eepro.autoindex")
@@ -389,7 +436,7 @@ def test_real_failed_fetch_does_not_reset_success_wait_across_reverified_phase(e
     f, clock = event, event.corpus.clock
     policy = prepared(f)
     watch = f.conn.execute(
-        "SELECT watch_id,parser FROM watches WHERE url LIKE '%one.htm'"
+        "SELECT watch_id, parser FROM watches WHERE url ILIKE '%one.htm'"
     ).fetchone()
     client = FetchClient(
         f.conn,
@@ -412,7 +459,21 @@ def test_real_failed_fetch_does_not_reset_success_wait_across_reverified_phase(e
                 deadline=clock.now() + timedelta(seconds=30),
             )
         old = dict(
-            f.conn.execute("SELECT * FROM event_timing WHERE source_ref='eepro:test'").fetchone()
+            f.conn.execute(
+                "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+                "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+                "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+                "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+                "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+                "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+                "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+                "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+                "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+                "event_timing.operation_origin, event_timing.last_progress_at, "
+                "event_timing.last_service_action, event_timing.last_service_at, "
+                "event_timing.unresolved_success, event_timing.control_revision, "
+                "event_timing.marker_mtime_ns FROM event_timing WHERE source_ref = 'eepro:test'"
+            ).fetchone()
         )
         assert old["since_progress_seconds"] == 12
         clock.sleep(1000)
@@ -424,7 +485,21 @@ def test_real_failed_fetch_does_not_reset_success_wait_across_reverified_phase(e
             assert rec.row["episode_id"] == old["episode_id"]
             assert rec.row["since_progress_seconds"] == 12
             clock.sleep(12)
-        row = f.conn.execute("SELECT * FROM event_timing WHERE source_ref='eepro:test'").fetchone()
+        row = f.conn.execute(
+            "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+            "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+            "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+            "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+            "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+            "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+            "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+            "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+            "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+            "event_timing.operation_origin, event_timing.last_progress_at, "
+            "event_timing.last_service_action, event_timing.last_service_at, "
+            "event_timing.unresolved_success, event_timing.control_revision, "
+            "event_timing.marker_mtime_ns FROM event_timing WHERE source_ref = 'eepro:test'"
+        ).fetchone()
         assert row["since_progress_seconds"] == 24
         assert row["last_progress_at"] is None
     finally:
@@ -531,7 +606,21 @@ def test_advancing_clock_cycle_emits_lower_bound_breach_despite_bookkeeping_gaps
     select = fairness.next_watch
 
     def inspect_then_select(*args, **kwargs):
-        for row in f.conn.execute("SELECT * FROM event_timing WHERE source_ref='eepro:test'"):
+        for row in f.conn.execute(
+            "SELECT event_timing.source, event_timing.source_ref, event_timing.episode_id, "
+            "event_timing.token_json, event_timing.policy_json, event_timing.observation_origin, "
+            "event_timing.saved_at, event_timing.run_id, event_timing.phase_open, "
+            "event_timing.eligible_seconds, event_timing.blocked_seconds, event_timing.unknown_seconds, "
+            "event_timing.inactive_seconds, event_timing.since_service_seconds, "
+            "event_timing.since_progress_seconds, event_timing.complete_coverage, "
+            "event_timing.service_bound_valid, event_timing.progress_bound_valid, "
+            "event_timing.reason_seconds_json, event_timing.state, event_timing.reason, "
+            "event_timing.valid_until, event_timing.service_frontier, event_timing.progress_frontier, "
+            "event_timing.operation_origin, event_timing.last_progress_at, "
+            "event_timing.last_service_action, event_timing.last_service_at, "
+            "event_timing.unresolved_success, event_timing.control_revision, "
+            "event_timing.marker_mtime_ns FROM event_timing WHERE source_ref = 'eepro:test'"
+        ):
             observed.append((dict(row), alarms(dict(row), now=clock.now(), operator_hold=False)))
         return select(*args, **kwargs)
 

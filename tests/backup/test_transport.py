@@ -15,6 +15,7 @@ from test_segments import NOW, backup, build_state
 
 import swingset.backup.transport as transport_module
 from swingset.backup.restore_set import install
+from swingset.backup.segments import create_set
 from swingset.backup.transport import (
     MAX_FILE_BYTES,
     HuggingFaceSegments,
@@ -22,9 +23,10 @@ from swingset.backup.transport import (
     TransportError,
 )
 from swingset.state.db import open_database
+from swingset.state.environment import EnvironmentRefused, FixtureIO
 
 
-class RecordingApi:
+class RecordingApi(FixtureIO):
     """A repository as a dict of path to bytes; every commit is recorded."""
 
     def __init__(self) -> None:
@@ -75,6 +77,106 @@ class RecordingApi:
         return str(target)
 
 
+class UntrustedApi:
+    """A non-fixture API identity, with a recorder instead of any outside calls."""
+
+    def __init__(self):
+        self.calls = []
+        self.recorder = RecordingApi()
+
+    def __getattr__(self, name):
+        def call(*args, **kwargs):
+            self.calls.append(name)
+            return getattr(self.recorder, name)(*args, **kwargs)
+
+        return call
+
+
+@pytest.mark.parametrize("flag", [None, "dev", "production"])
+def test_stored_dev_identity_blocks_every_real_archive_io_before_the_api(
+    tmp_path, monkeypatch, flag
+):
+    state = tmp_path / "state"
+    build_state(state)
+    api = UntrustedApi()
+    with open_database(state) as database:
+        if flag is not None:
+            monkeypatch.setenv("SWINGSET_ENV", flag)
+        remote = HuggingFaceSegments(
+            "owner/archive", token="fixture", api=api, connection=database.connection
+        )
+        for operation in (
+            remote.segments,
+            remote.sets,
+            remote.collect,
+            remote._sizes,
+            lambda: remote.publish(state, "unused", []),
+            lambda: remote.fetch("README.md", tmp_path),
+        ):
+            with pytest.raises(EnvironmentRefused):
+                operation()
+        with pytest.raises(EnvironmentRefused):
+            create_set(database, remote, now=NOW, versions={})
+        assert api.calls == []
+        assert not (state / "checkpoints").exists()
+
+
+def test_unbound_operator_reads_are_explicit_but_real_archive_writes_need_identity(tmp_path):
+    api = UntrustedApi()
+    remote = HuggingFaceSegments("owner/archive", token="fixture", api=api)
+    assert remote.sets() == []
+    assert api.calls == ["list_repo_files"]
+    for operation in (remote.collect, lambda: remote.publish(tmp_path, "unused", [])):
+        with pytest.raises(EnvironmentRefused, match="attached database identity"):
+            operation()
+    assert api.calls == ["list_repo_files"]
+
+
+def test_archive_binding_restores_previous_connection_and_rejects_another_uuid(tmp_path):
+    with open_database(tmp_path / "one") as first, open_database(tmp_path / "two") as second:
+        remote = HuggingFaceSegments(
+            "owner/archive", token="fixture", api=RecordingApi(), connection=first.connection
+        )
+        with pytest.raises(EnvironmentRefused, match="another database"):
+            with remote.bound(second.connection):
+                pytest.fail("binding must compare actual UUIDs first")
+        assert remote.connection is first.connection
+        detached = HuggingFaceSegments("owner/archive", token="fixture", api=RecordingApi())
+        with pytest.raises(RuntimeError, match="cancelled"):
+            with detached.bound(first.connection):
+                assert detached.sets() == []
+                raise RuntimeError("cancelled")
+        assert detached.connection is None
+
+
+def test_archive_rechecks_stored_identity_between_listing_and_commit(tmp_path):
+    from swingset.dev.services import ensure_service
+
+    with (
+        open_database(tmp_path / "state") as database,
+        ensure_service().connect(database.connection.info.dbname) as owner,
+    ):
+        owner.execute("UPDATE ops.environment_identity SET environment='production'")
+        api = UntrustedApi()
+
+        def listed(*args, **kwargs):
+            api.calls.append("list_repo_files")
+            owner.execute("UPDATE ops.environment_identity SET environment='dev'")
+            return []
+
+        api.list_repo_files = listed
+        remote = HuggingFaceSegments(
+            "owner/archive", token="fixture", api=api, connection=database.connection
+        )
+        local = tmp_path / "backup"
+        directory = local / "sets" / "set_20261002T120000Z"
+        directory.mkdir(parents=True)
+        (directory / "backup.json").write_text("{}")
+        with pytest.raises(EnvironmentRefused, match="development database"):
+            remote.publish(local, directory.name, [])
+        assert api.calls == ["list_repo_files"]
+
+
 def test_the_archive_gets_one_commit_per_set_and_keeps_three(tmp_path: Path) -> None:
     state = tmp_path / "state"
     build_state(state)
@@ -117,7 +219,7 @@ def test_the_archive_gets_one_commit_per_set_and_keeps_three(tmp_path: Path) -> 
             "SELECT DISTINCT transport FROM backup_objects"
         ).fetchall()
         uploaded = database.connection.execute(
-            "SELECT count(*) FROM backup_sets WHERE uploaded_at IS NOT NULL"
+            "SELECT COUNT(*) FROM backup_sets WHERE NOT uploaded_at IS NULL"
         ).fetchone()[0]
     assert [row[0] for row in rows] == ["hf:owner/archive"]
     assert uploaded == 4
@@ -155,7 +257,7 @@ def test_the_collector_removes_a_segment_no_kept_set_names_and_squashes(tmp_path
     # No row names the removed segment, so a file in it would be sent again.
     with open_database(state) as database:
         stale = database.connection.execute(
-            "SELECT count(*) FROM backup_objects WHERE segment=?", (gone[0],)
+            "SELECT COUNT(*) FROM backup_objects WHERE segment = %s", (gone[0],)
         ).fetchone()[0]
     assert stale == 0
     # Every kept set still installs from the archive alone.
@@ -209,7 +311,7 @@ def test_a_failed_collection_keeps_the_set_and_says_so(tmp_path: Path) -> None:
     result = backup(state, transport=remote)
     assert result["remote"]["collect_error"].startswith("TransportError: cannot size archive")
     with open_database(state) as database:
-        assert database.connection.execute("SELECT count(*) FROM backup_sets").fetchone()[0] == 1
+        assert database.connection.execute("SELECT COUNT(*) FROM backup_sets").fetchone()[0] == 1
 
 
 def test_a_failed_commit_records_nothing_and_resends_next_time(tmp_path: Path) -> None:
@@ -225,7 +327,7 @@ def test_a_failed_commit_records_nothing_and_resends_next_time(tmp_path: Path) -
     with pytest.raises(TransportError, match="network down"):
         backup(state, transport=remote)
     with open_database(state) as database:
-        assert database.connection.execute("SELECT count(*) FROM backup_sets").fetchone()[0] == 0
+        assert database.connection.execute("SELECT COUNT(*) FROM backup_sets").fetchone()[0] == 0
     del api.create_commit
     retry = backup(state, now=NOW + timedelta(hours=1), transport=remote)
     assert retry["new_items"] == retry["items"]

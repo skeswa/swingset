@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 import uuid
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -43,6 +42,7 @@ from typing import Any
 
 from swingset.build.closure_manifest import ClosureError, leaves
 from swingset.build.files import canonical_json, durable_write, fsync_dir
+from swingset.state import engine
 
 from . import output_packs
 from .derivations import interned
@@ -94,10 +94,12 @@ def _is_digest(value: object) -> bool:
     )
 
 
-def _tables(connection: sqlite3.Connection) -> set[str]:
+def _tables(connection: engine.Connection) -> set[str]:
     return {
         str(row[0])
-        for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        for row in connection.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
     }
 
 
@@ -112,7 +114,7 @@ def _blob_path(state_dir: Path, digest: str) -> Path:
 
 def artifact_closure(
     state_dir: Path,
-    connection: sqlite3.Connection,
+    connection: engine.Connection,
     candidates: set[Path],
     *,
     require_present: bool = True,
@@ -131,7 +133,7 @@ def artifact_closure(
 
 
 def missing_artifacts(
-    state_dir: Path, connection: sqlite3.Connection, candidates: set[Path]
+    state_dir: Path, connection: engine.Connection, candidates: set[Path]
 ) -> list[Path]:
     """Declared files that are not there. A checkpoint would refuse on these."""
     _, missing = _artifact_closure(state_dir, connection, candidates, require_present=False)
@@ -140,7 +142,7 @@ def missing_artifacts(
 
 def _artifact_closure(
     state_dir: Path,
-    connection: sqlite3.Connection,
+    connection: engine.Connection,
     candidates: set[Path],
     *,
     require_present: bool,
@@ -184,7 +186,7 @@ def _artifact_closure(
                     )
     if "hosts" in table_names:
         for (body,) in connection.execute(
-            "SELECT robots_sha256 FROM hosts WHERE robots_sha256 IS NOT NULL"
+            "SELECT robots_sha256 FROM hosts WHERE NOT robots_sha256 IS NULL"
         ):
             included.add(_blob_path(state_dir, str(body)))
     included.update(_finding_artifacts(state_dir, connection, table_names))
@@ -199,7 +201,9 @@ def _artifact_closure(
         )
     bundle_hashes: set[str] = set()
     if "meta" in table_names:
-        row = connection.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+        row = connection.execute(
+            "SELECT value FROM meta WHERE key = 'input_bundle_hash'"
+        ).fetchone()
         if row and row[0]:
             bundle_hashes.add(str(row[0]))
     for candidate in candidates:
@@ -225,7 +229,7 @@ def _artifact_closure(
 
 
 def _generation_manifests(
-    state_dir: Path, connection: sqlite3.Connection, table_names: set[str], missing: list[Path]
+    state_dir: Path, connection: engine.Connection, table_names: set[str], missing: list[Path]
 ) -> Iterator[tuple[str, str]]:
     """Every source generation's `manifest_json`; a packed one's from its parse body.
 
@@ -237,8 +241,10 @@ def _generation_manifests(
     from .objects import Store
 
     for generation_id, manifest_json in connection.execute(
-        "SELECT generation_id,manifest_json FROM source_generations WHERE manifest_json<>? "
-        "ORDER BY generation_id",
+        (
+            "SELECT generation_id, manifest_json FROM source_generations WHERE manifest_json <> %s ORDER "
+            "BY generation_id NULLS FIRST"
+        ),
         (STUB,),
     ):
         yield str(generation_id), manifest_json
@@ -246,7 +252,7 @@ def _generation_manifests(
         return
     store = Store(state_dir)
     for (digest,) in connection.execute(
-        "SELECT DISTINCT pack_digest FROM source_generation_packs ORDER BY pack_digest"
+        "SELECT DISTINCT pack_digest FROM source_generation_packs ORDER BY pack_digest NULLS FIRST"
     ):
         try:
             yield f"parse_body/{digest}", pack_manifest(store, str(digest))
@@ -255,7 +261,7 @@ def _generation_manifests(
 
 
 def _finding_artifacts(
-    state_dir: Path, connection: sqlite3.Connection, table_names: set[str]
+    state_dir: Path, connection: engine.Connection, table_names: set[str]
 ) -> Iterator[Path]:
     """Files open findings rely on.
 
@@ -268,8 +274,8 @@ def _finding_artifacts(
         return
     if "finding_support_references" in table_names:
         for kind, digest in connection.execute(
-            "SELECT r.kind,r.sha256 FROM finding_support_references r "
-            "JOIN findings f USING(finding_id) WHERE f.closed_at IS NULL ORDER BY r.sha256,r.kind"
+            "SELECT r.kind, r.sha256 FROM finding_support_references AS r JOIN findings AS f USING "
+            "(finding_id) WHERE f.closed_at IS NULL ORDER BY r.sha256 NULLS FIRST, r.kind NULLS FIRST"
         ):
             if kind == "body":
                 path = _blob_path(state_dir, str(digest))
@@ -296,7 +302,7 @@ def _finding_artifacts(
             yield from (path for path in possibilities if path.is_file())
 
 
-def _missing_declared_references(conn: sqlite3.Connection, state_dir: Path) -> list[str]:
+def _missing_declared_references(conn: engine.Connection, state_dir: Path) -> list[str]:
     """Files an open finding declares that are not on disk, as `finding/kind/sha256`.
 
     Doctor shows these so a wrong declaration is found and fixed. They are
@@ -307,9 +313,9 @@ def _missing_declared_references(conn: sqlite3.Connection, state_dir: Path) -> l
         return []
     found = []
     for finding_id, kind, digest in conn.execute(
-        "SELECT r.finding_id,r.kind,r.sha256 FROM finding_support_references r "
-        "JOIN findings f USING(finding_id) WHERE f.closed_at IS NULL AND r.kind IN ('body',"
-        "'extract') ORDER BY r.finding_id,r.kind,r.sha256"
+        "SELECT r.finding_id, r.kind, r.sha256 FROM finding_support_references AS r JOIN findings AS "
+        "f USING (finding_id) WHERE f.closed_at IS NULL AND r.kind IN ('body', 'extract') ORDER BY "
+        "r.finding_id NULLS FIRST, r.kind NULLS FIRST, r.sha256 NULLS FIRST"
     ):
         path = (
             _blob_path(state_dir, str(digest))
@@ -335,7 +341,7 @@ def declared_digests(evidence_json: str) -> Iterator[str]:
 
 
 def referenced_candidates(state_dir: Path) -> set[Path]:
-    from swingset.publish.service import pending_candidates
+    from swingset.publish.journal import pending_candidates
 
     result: set[Path] = set()
     baseline = state_dir / "baseline"
@@ -391,7 +397,7 @@ class Root:
     generations: tuple[str, ...]
 
 
-def roots(conn: sqlite3.Connection, state_dir: Path, *, window: int) -> tuple[Root, ...]:
+def roots(conn: engine.Connection, state_dir: Path, *, window: int) -> tuple[Root, ...]:
     """Every starting point of the walk, read from state that already exists.
 
     The restore marker and the operator hold pin the current pointers and the
@@ -405,8 +411,9 @@ def roots(conn: sqlite3.Connection, state_dir: Path, *, window: int) -> tuple[Ro
     found.extend(_candidate_roots(state_dir))
     pointers: list[str] = []
     for stage, unit_kind, unit_id, generation_id in conn.execute(
-        "SELECT stage,unit_kind,unit_id,materialized_generation_id FROM derivation_scopes "
-        "WHERE materialized_generation_id IS NOT NULL ORDER BY stage,unit_kind,unit_id"
+        "SELECT stage, unit_kind, unit_id, materialized_generation_id FROM derivation_scopes WHERE "
+        "NOT materialized_generation_id IS NULL ORDER BY stage NULLS FIRST, unit_kind NULLS FIRST, "
+        "unit_id NULLS FIRST"
     ):
         pointers.append(str(generation_id))
         found.append(Root("pointer", f"{stage}/{unit_kind}/{unit_id}", (str(generation_id),)))
@@ -429,7 +436,7 @@ def _candidate_roots(state_dir: Path) -> Iterator[Root]:
         seen.add(target)
         yield Root("baseline", target.name, _candidate_selection(target))
         yield from _manifest_roots(state_dir, target)
-    from swingset.publish.service import pending_candidates
+    from swingset.publish.journal import pending_candidates
 
     if (state_dir / "candidates").exists():
         for path in sorted(pending_candidates(state_dir)):
@@ -571,21 +578,21 @@ def artifact_generations(state_dir: Path, digest: str) -> tuple[str, ...]:
     return tuple(str(item) for item in sidecar["generations"])
 
 
-def _finding_roots(conn: sqlite3.Connection) -> Iterator[Root]:
+def _finding_roots(conn: engine.Connection) -> Iterator[Root]:
     if "finding_support_references" not in _tables(conn):
         return
     grouped: dict[str, list[str]] = {}
     for finding_id, digest in conn.execute(
-        "SELECT r.finding_id,r.sha256 FROM finding_support_references r "
-        "JOIN findings f USING(finding_id) WHERE f.closed_at IS NULL AND r.kind='generation' "
-        "ORDER BY r.finding_id,r.sha256"
+        "SELECT r.finding_id, r.sha256 FROM finding_support_references AS r JOIN findings AS f USING "
+        "(finding_id) WHERE f.closed_at IS NULL AND r.kind = 'generation' ORDER BY r.finding_id "
+        "NULLS FIRST, r.sha256 NULLS FIRST"
     ):
         grouped.setdefault(str(finding_id), []).append(str(digest))
     for finding_id, generations in sorted(grouped.items()):
         yield Root("finding", finding_id, tuple(generations))
 
 
-def _window_roots(conn: sqlite3.Connection, *, window: int) -> Iterator[Root]:
+def _window_roots(conn: engine.Connection, *, window: int) -> Iterator[Root]:
     """The newest `window` generations of every scope.
 
     The window picks roots and never replaces the walk, so an old generation a
@@ -595,17 +602,13 @@ def _window_roots(conn: sqlite3.Connection, *, window: int) -> Iterator[Root]:
         return
     unfinished = _unfinished(conn)
     for stage, unit_kind, unit_id, generation_id in conn.execute(
-        "SELECT stage,unit_kind,unit_id,generation_id FROM ("
-        "SELECT stage,unit_kind,unit_id,generation_id,"
-        "row_number() OVER (PARTITION BY stage,unit_kind,unit_id "
-        "ORDER BY created_at DESC,rowid DESC) AS position FROM derivation_generations"
-        f"{unfinished}) WHERE position<=? ORDER BY stage,unit_kind,unit_id,generation_id",
+        f"SELECT stage,unit_kind,unit_id,generation_id FROM (SELECT stage,unit_kind,unit_id,generation_id,row_number() OVER (PARTITION BY stage,unit_kind,unit_id ORDER BY created_at DESC,rowid DESC) AS position FROM derivation_generations{unfinished}) WHERE position<=%s ORDER BY stage,unit_kind,unit_id,generation_id",
         (window,),
     ):
         yield Root("window", f"{stage}/{unit_kind}/{unit_id}", (str(generation_id),))
 
 
-def _unfinished(conn: sqlite3.Connection) -> str:
+def _unfinished(conn: engine.Connection) -> str:
     """A WHERE clause leaving out generations a staged completion has not finished.
 
     Such a generation was never selected: it takes no window slot from a
@@ -614,7 +617,7 @@ def _unfinished(conn: sqlite3.Connection) -> str:
     from .derivations import unfinished_excluded
 
     condition = unfinished_excluded(conn)
-    return " WHERE 1" + condition if condition else ""
+    return " WHERE TRUE" + condition if condition else ""
 
 
 # ---------------------------------------------------------------------------
@@ -672,7 +675,7 @@ def hold_artifacts(state_dir: Path) -> set[str]:
 
 def add_hold(
     state_dir: Path,
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     who: str,
     why: str,
@@ -683,8 +686,8 @@ def add_hold(
 ) -> dict[str, Any]:
     """Write one hold, but only when everything it needs is already local.
 
-    The caller must not hold a SQLite write transaction: this takes the control
-    lock, which is ordered before SQLite. A hold is a promise that a restore
+    The caller must not hold a write transaction: this takes the control
+    lock, which is ordered before the database writer lock. A hold is a promise that a restore
     with no network has what the hold is about, so a hold whose closure is
     archived, or which names a file that is not there, is refused and nothing is
     written.
@@ -707,7 +710,7 @@ def add_hold(
         "generation_ids": sorted(set(generations)),
         "artifact_digests": sorted(set(artifacts)),
     }
-    with control_lock(state_dir, timeout=timeout):
+    with control_lock(state_dir, connection=conn, timeout=timeout):
         require_local(conn, record["generation_ids"])
         # A digest is held as a file, so the file has to be there. Restoring one
         # is not this plan's job, but claiming one that is gone would be a
@@ -728,13 +731,15 @@ def add_hold(
 
 def remove_hold(state_dir: Path, hold_id: str, *, timeout: float = 60) -> bool:
     from .control_lock import control_lock
+    from .db import open_database
 
     path = hold_directory(state_dir) / f"{hold_id}.json"
-    with control_lock(state_dir, timeout=timeout):
-        if not path.is_file():
-            return False
-        path.unlink()
-        fsync_dir(path.parent)
+    with open_database(state_dir, lock=False) as database:
+        with control_lock(state_dir, connection=database.connection, timeout=timeout):
+            if not path.is_file():
+                return False
+            path.unlink()
+            fsync_dir(path.parent)
     return True
 
 
@@ -743,7 +748,7 @@ def remove_hold(state_dir: Path, hold_id: str, *, timeout: float = 60) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def archived_generations(conn: sqlite3.Connection) -> frozenset[str]:
+def archived_generations(conn: engine.Connection) -> frozenset[str]:
     """Generations step 4 has archived. Empty until that table exists.
 
     The plan carries this, so the digest an operator reviews covers it. Reading
@@ -758,7 +763,7 @@ def archived_generations(conn: sqlite3.Connection) -> frozenset[str]:
     )
 
 
-def _dependency_sets(conn: sqlite3.Connection) -> dict[str, tuple[str, ...]]:
+def _dependency_sets(conn: engine.Connection) -> dict[str, tuple[str, ...]]:
     """Every labelled generation and the dependency sets that name its inputs.
 
     A generation's own set comes first. An equivalence says a later run with
@@ -769,13 +774,13 @@ def _dependency_sets(conn: sqlite3.Connection) -> dict[str, tuple[str, ...]]:
     sets: dict[str, tuple[str, ...]] = {
         str(row[0]): (() if row[1] is None else (str(row[1]),))
         for row in conn.execute(
-            "SELECT generation_id,dependency_set_id FROM derivation_generations"
+            "SELECT generation_id, dependency_set_id FROM derivation_generations"
         )
     }
     if "derivation_equivalences" in _tables(conn):
         for generation_id, set_id in conn.execute(
-            "SELECT DISTINCT generation_id,dependency_set_id FROM derivation_equivalences "
-            "ORDER BY generation_id,dependency_set_id"
+            "SELECT DISTINCT generation_id, dependency_set_id FROM derivation_equivalences ORDER BY "
+            "generation_id NULLS FIRST, dependency_set_id NULLS FIRST"
         ):
             named = sets.get(str(generation_id))
             if named is not None and str(set_id) not in named:
@@ -783,7 +788,7 @@ def _dependency_sets(conn: sqlite3.Connection) -> dict[str, tuple[str, ...]]:
     return sets
 
 
-def _children(conn: sqlite3.Connection, dependency_set_id: str | None) -> tuple[str, ...]:
+def _children(conn: engine.Connection, dependency_set_id: str | None) -> tuple[str, ...]:
     """Generations one dependency set names, through the shared manifest reader.
 
     This decodes the same immutable manifests the release closure decodes. It
@@ -802,7 +807,7 @@ def _children(conn: sqlite3.Connection, dependency_set_id: str | None) -> tuple[
 
 
 def reachable(
-    conn: sqlite3.Connection, starting: Iterable[Root]
+    conn: engine.Connection, starting: Iterable[Root]
 ) -> tuple[dict[str, frozenset[str]], set[str]]:
     """Walk from every root and record which root kinds reached each generation.
 
@@ -878,39 +883,36 @@ class Residency:
         return self.reference_count == self.row_count and not self.missing_payloads
 
 
-def residency(conn: sqlite3.Connection, generation_ids: Iterable[str]) -> list[Residency]:
+def residency(conn: engine.Connection, generation_ids: Iterable[str]) -> list[Residency]:
     shared = interned(conn)
     result = []
     for generation_id in generation_ids:
         label = conn.execute(
-            "SELECT row_count FROM derivation_generations WHERE generation_id=?",
+            "SELECT row_count FROM derivation_generations WHERE generation_id = %s",
             (generation_id,),
         ).fetchone()
         if label is None:
             raise RetentionError(f"no such generation: {generation_id}")
         if shared:
             row = conn.execute(
-                "SELECT count(*),count(DISTINCT payload_sha256) FROM derivation_row_refs "
-                "WHERE generation_id=?",
+                "SELECT COUNT(*) AS _value_0, COUNT(DISTINCT payload_sha256) AS _value_1 FROM derivation_row_refs WHERE generation_id = %s",
                 (generation_id,),
             ).fetchone()
             bytes_and_missing = conn.execute(
-                "SELECT coalesce(sum(octet_length(p.payload_json)),0),"
-                "count(*) FILTER (WHERE p.payload_sha256 IS NULL) FROM "
-                "(SELECT DISTINCT payload_sha256 FROM derivation_row_refs WHERE generation_id=?) r "
-                "LEFT JOIN derivation_payloads p ON p.payload_sha256=r.payload_sha256",
+                (
+                    "SELECT COALESCE(CAST(SUM(OCTET_LENGTH(p.payload_json)) AS BIGINT), 0) AS _value_0, COUNT(*) FILTER(WHERE p.payload_sha256 IS NULL) AS _value_1 FROM (SELECT DISTINCT payload_sha256 FROM derivation_row_refs WHERE generation_id = %s) AS r LEFT JOIN derivation_payloads AS p ON p.payload_sha256 = r.payload_sha256"
+                ),
                 (generation_id,),
             ).fetchone()
         else:
             # Before interning nothing is shared and a row carries its own
             # bytes: each row is its own payload and none of them can be gone.
             row = conn.execute(
-                "SELECT count(*),count(*) FROM derivation_rows WHERE generation_id=?",
+                "SELECT COUNT(*) AS _value_0, COUNT(*) AS _value_1 FROM derivation_rows WHERE generation_id = %s",
                 (generation_id,),
             ).fetchone()
             bytes_and_missing = conn.execute(
-                "SELECT coalesce(sum(octet_length(payload_json)),0),0 FROM derivation_rows "
-                "WHERE generation_id=?",
+                "SELECT COALESCE(CAST(SUM(OCTET_LENGTH(payload_json)) AS BIGINT), 0) AS _value_0, 0 AS _value_1 FROM derivation_rows WHERE generation_id = %s",
                 (generation_id,),
             ).fetchone()
         evicted = output_packs.evicted(conn, str(generation_id))
@@ -929,7 +931,7 @@ def residency(conn: sqlite3.Connection, generation_ids: Iterable[str]) -> list[R
     return result
 
 
-def require_local(conn: sqlite3.Connection, generation_ids: Sequence[str]) -> None:
+def require_local(conn: engine.Connection, generation_ids: Sequence[str]) -> None:
     """Refuse a new root whose closure is not completely in the live database.
 
     A marker never claims data that is not there. The refusal names every
@@ -971,7 +973,7 @@ class Plan:
 
 
 def plan(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     *,
     max_database_bytes: int,
@@ -996,8 +998,7 @@ def plan(
         "orphan_row_references": sorted(
             str(row[0])
             for row in conn.execute(
-                f"SELECT DISTINCT generation_id FROM {stored} r WHERE NOT EXISTS("
-                "SELECT 1 FROM derivation_generations g WHERE g.generation_id=r.generation_id)"
+                f"SELECT DISTINCT generation_id FROM {stored} r WHERE NOT EXISTS(SELECT 1 FROM derivation_generations g WHERE g.generation_id=r.generation_id)"
             )
         ),
         "undeclared_files": unknown_files,
@@ -1039,7 +1040,7 @@ def plan(
     return Plan({**content, "digest": _digest(content)})
 
 
-def equivalence_totals(conn: sqlite3.Connection) -> dict[str, int] | None:
+def equivalence_totals(conn: engine.Connection) -> dict[str, int] | None:
     """Output-cutoff rows (schema 33) and how many the collector rule keeps.
 
     Nothing collects them yet (invalidation step 3). A derivation equivalence
@@ -1055,43 +1056,32 @@ def equivalence_totals(conn: sqlite3.Connection) -> dict[str, int] | None:
         return int(conn.execute(sql).fetchone()[0] or 0)
 
     return {
-        "derivation_equivalences": one("SELECT count(*) FROM derivation_equivalences"),
+        "derivation_equivalences": one("SELECT COUNT(*) AS _value_0 FROM derivation_equivalences"),
         "derivation_equivalences_live": one(
-            "SELECT count(*) FROM derivation_equivalences e JOIN derivation_scopes s "
-            "USING(stage,unit_kind,unit_id) WHERE e.input_fingerprint=s.desired_fingerprint "
-            "OR (e.generation_id=s.materialized_generation_id AND e.created_at=("
-            "SELECT max(n.created_at) FROM derivation_equivalences n WHERE n.stage=e.stage "
-            "AND n.unit_kind=e.unit_kind AND n.unit_id=e.unit_id "
-            "AND n.generation_id=e.generation_id))"
+            "SELECT COUNT(*) AS _value_0 FROM derivation_equivalences AS e JOIN derivation_scopes AS s USING (stage, unit_kind, unit_id) WHERE e.input_fingerprint = s.desired_fingerprint OR (e.generation_id = s.materialized_generation_id AND e.created_at = (SELECT MAX(n.created_at) AS _value_0 FROM derivation_equivalences AS n WHERE n.stage = e.stage AND n.unit_kind = e.unit_kind AND n.unit_id = e.unit_id AND n.generation_id = e.generation_id))"
         ),
-        "derivation_recipes": one("SELECT count(*) FROM derivation_recipes"),
+        "derivation_recipes": one("SELECT COUNT(*) AS _value_0 FROM derivation_recipes"),
         "derivation_recipe_bytes": one(
-            "SELECT sum(octet_length(recipe_json)) FROM derivation_recipes"
+            "SELECT CAST(SUM(OCTET_LENGTH(recipe_json)) AS BIGINT) AS _value_0 FROM derivation_recipes"
         ),
         "root_sets": one(
-            "SELECT count(DISTINCT e.dependency_set_id) FROM derivation_equivalences e "
-            "WHERE NOT EXISTS (SELECT 1 FROM derivation_generations g "
-            "WHERE g.dependency_set_id=e.dependency_set_id)"
+            "SELECT COUNT(DISTINCT e.dependency_set_id) AS _value_0 FROM derivation_equivalences AS e WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_generations AS g WHERE g.dependency_set_id = e.dependency_set_id)"
         ),
         "root_set_bytes": one(
-            "SELECT sum(octet_length(d.manifest_json)) FROM derivation_dependency_sets d "
-            "WHERE d.dependency_set_id IN (SELECT e.dependency_set_id "
-            "FROM derivation_equivalences e WHERE NOT EXISTS (SELECT 1 FROM "
-            "derivation_generations g WHERE g.dependency_set_id=e.dependency_set_id))"
+            "SELECT CAST(SUM(OCTET_LENGTH(d.manifest_json)) AS BIGINT) AS _value_0 FROM derivation_dependency_sets AS d WHERE d.dependency_set_id IN (SELECT e.dependency_set_id FROM derivation_equivalences AS e WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_generations AS g WHERE g.dependency_set_id = e.dependency_set_id))"
         ),
-        "source_equivalences": one("SELECT count(*) FROM source_equivalences"),
+        "source_equivalences": one("SELECT COUNT(*) AS _value_0 FROM source_equivalences"),
         "source_equivalences_live": one(
-            "SELECT count(*) FROM source_equivalences e JOIN source_units u "
-            "USING(unit_key) WHERE e.input_fingerprint=u.desired_fingerprint"
+            "SELECT COUNT(*) AS _value_0 FROM source_equivalences AS e JOIN source_units AS u USING (unit_key) WHERE e.input_fingerprint = u.desired_fingerprint"
         ),
         "source_recipe_bytes": one(
-            "SELECT sum(octet_length(recipe_json)) FROM source_equivalences"
+            "SELECT CAST(SUM(OCTET_LENGTH(recipe_json)) AS BIGINT) AS _value_0 FROM source_equivalences"
         ),
     }
 
 
 def _generation_rows(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     reached: Mapping[str, frozenset[str]],
     archived: frozenset[str],
 ) -> list[dict[str, Any]]:
@@ -1099,17 +1089,13 @@ def _generation_rows(
         references = {
             str(row[0]): (int(row[1]), int(row[2]))
             for row in conn.execute(
-                "SELECT generation_id,count(*),count(DISTINCT payload_sha256) "
-                "FROM derivation_row_refs GROUP BY generation_id"
+                "SELECT generation_id, COUNT(*) AS _value_1, COUNT(DISTINCT payload_sha256) AS _value_2 FROM derivation_row_refs GROUP BY generation_id"
             )
         }
         payload_bytes = {
             str(row[0]): int(row[1])
             for row in conn.execute(
-                "SELECT r.generation_id,coalesce(sum(octet_length(p.payload_json)),0) FROM "
-                "(SELECT DISTINCT generation_id,payload_sha256 FROM derivation_row_refs) r "
-                "JOIN derivation_payloads p ON p.payload_sha256=r.payload_sha256 "
-                "GROUP BY r.generation_id"
+                "SELECT r.generation_id, COALESCE(CAST(SUM(OCTET_LENGTH(p.payload_json)) AS BIGINT), 0) AS _value_1 FROM (SELECT DISTINCT generation_id, payload_sha256 FROM derivation_row_refs) AS r JOIN derivation_payloads AS p ON p.payload_sha256 = r.payload_sha256 GROUP BY r.generation_id"
             )
         }
     else:
@@ -1118,8 +1104,7 @@ def _generation_rows(
         references = {}
         payload_bytes = {}
         for row in conn.execute(
-            "SELECT generation_id,count(*),coalesce(sum(octet_length(payload_json)),0) "
-            "FROM derivation_rows GROUP BY generation_id"
+            "SELECT generation_id, COUNT(*) AS _value_1, COALESCE(CAST(SUM(OCTET_LENGTH(payload_json)) AS BIGINT), 0) AS _value_2 FROM derivation_rows GROUP BY generation_id"
         ):
             references[str(row[0])] = (int(row[1]), int(row[1]))
             payload_bytes[str(row[0])] = int(row[2])
@@ -1132,8 +1117,8 @@ def _generation_rows(
     evicted = _evicted(conn)
     rows = []
     for generation_id, stage, unit_kind, unit_id, row_count in conn.execute(
-        "SELECT generation_id,stage,unit_kind,unit_id,row_count FROM derivation_generations "
-        "ORDER BY generation_id"
+        "SELECT generation_id, stage, unit_kind, unit_id, row_count FROM derivation_generations "
+        "ORDER BY generation_id NULLS FIRST"
     ):
         identifier = str(generation_id)
         reference_count, payload_count = references.get(identifier, (0, 0))
@@ -1166,7 +1151,7 @@ def _generation_rows(
     return rows
 
 
-def _evicted(conn: sqlite3.Connection) -> frozenset[str]:
+def _evicted(conn: engine.Connection) -> frozenset[str]:
     """Generations whose references left for their packs (schema 36)."""
     if not output_packs.available(conn):
         return frozenset()
@@ -1176,7 +1161,7 @@ def _evicted(conn: sqlite3.Connection) -> frozenset[str]:
 
 
 def _residence(
-    conn: sqlite3.Connection, generations: Sequence[Mapping[str, Any]]
+    conn: engine.Connection, generations: Sequence[Mapping[str, Any]]
 ) -> dict[str, int] | None:
     """Resident, evicted and partial generations and the bytes of their packs.
 
@@ -1186,7 +1171,7 @@ def _residence(
         return None
     evicted = sum(1 for row in generations if row.get("evicted"))
     packs, pack_bytes = conn.execute(
-        "SELECT count(*),coalesce(sum(stored_bytes),0) FROM objects WHERE class=?",
+        "SELECT COUNT(*) AS _value_0, COALESCE(CAST(SUM(stored_bytes) AS BIGINT), 0) AS _value_1 FROM objects WHERE class = %s",
         (output_packs.CLASS,),
     ).fetchone()
     if not evicted and not packs:
@@ -1206,7 +1191,7 @@ def _residence(
 
 
 def _file_rows(
-    conn: sqlite3.Connection, state_dir: Path, *, collect_older_than: float
+    conn: engine.Connection, state_dir: Path, *, collect_older_than: float
 ) -> tuple[list[dict[str, Any]], list[str], list[str]]:
     """Every artifact file and candidate directory, with the list it is on.
 
@@ -1247,7 +1232,7 @@ def _file_rows(
     return rows, unknown, missing
 
 
-def built_candidates(conn: sqlite3.Connection) -> set[str]:
+def built_candidates(conn: engine.Connection) -> set[str]:
     """Candidate ids the selected build generations name (release, correction).
 
     A build reuses the candidate its generation names, so neither plan
@@ -1258,25 +1243,25 @@ def built_candidates(conn: sqlite3.Connection) -> set[str]:
     return {
         str(row[0])
         for row in conn.execute(
-            "SELECT r.record_key FROM derivation_scopes s JOIN derivation_rows r "
-            "ON r.generation_id=s.materialized_generation_id "
-            "WHERE s.stage='build' AND r.table_name='artifact'"
+            "SELECT r.record_key FROM derivation_scopes AS s JOIN derivation_rows AS r ON "
+            "r.generation_id = s.materialized_generation_id WHERE s.stage = 'build' AND r.table_name = "
+            "'artifact'"
         )
     }
 
 
-def _has_derivation_rows(conn: sqlite3.Connection) -> bool:
+def _has_derivation_rows(conn: engine.Connection) -> bool:
     names = {
         str(row[0])
         for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE name IN ('derivation_scopes','derivation_rows')"
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relname IN ('derivation_scopes', 'derivation_rows') AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
         )
     }
     return names == {"derivation_scopes", "derivation_rows"}
 
 
 def _candidate_rows(
-    conn: sqlite3.Connection, state_dir: Path, *, collect_older_than: float
+    conn: engine.Connection, state_dir: Path, *, collect_older_than: float
 ) -> list[dict[str, Any]]:
     """Each candidate directory, kept or removable, as both plans list it.
 
@@ -1329,7 +1314,7 @@ def _tree_bytes(path: Path) -> int:
     return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
 
 
-def candidate_plan(conn: sqlite3.Connection, state_dir: Path, *, collect_older_than: float) -> Plan:
+def candidate_plan(conn: engine.Connection, state_dir: Path, *, collect_older_than: float) -> Plan:
     """A plan that names candidate directories only and walks no graph.
 
     The full plan walks every generation's dependencies, which the 8 GB worker
@@ -1417,7 +1402,7 @@ class PayloadBytes:
         return tuple(sorted({*self.orphan_payloads, *self.unowned_payloads}))
 
 
-def _payload_bytes(conn: sqlite3.Connection, local: set[str]) -> PayloadBytes:
+def _payload_bytes(conn: engine.Connection, local: set[str]) -> PayloadBytes:
     """Split every distinct payload's bytes into local, archivable and unknown.
 
     One pass, grouped by payload, so neither the owners of a payload nor the set
@@ -1462,12 +1447,7 @@ def _payload_bytes(conn: sqlite3.Connection, local: set[str]) -> PayloadBytes:
             archivable += size
 
     for payload_sha256, generation_id, length, labelled in conn.execute(
-        "SELECT r.payload_sha256,r.generation_id,octet_length(p.payload_json),"
-        "g.generation_id IS NOT NULL FROM "
-        "(SELECT DISTINCT payload_sha256,generation_id FROM derivation_row_refs) r "
-        "JOIN derivation_payloads p ON p.payload_sha256=r.payload_sha256 "
-        "LEFT JOIN derivation_generations g ON g.generation_id=r.generation_id "
-        "ORDER BY r.payload_sha256"
+        "SELECT r.payload_sha256, r.generation_id, OCTET_LENGTH(p.payload_json) AS _value_2, CAST(NOT g.generation_id IS NULL AS INTEGER) AS _value_3 FROM (SELECT DISTINCT payload_sha256, generation_id FROM derivation_row_refs) AS r JOIN derivation_payloads AS p ON p.payload_sha256 = r.payload_sha256 LEFT JOIN derivation_generations AS g ON g.generation_id = r.generation_id ORDER BY r.payload_sha256 NULLS FIRST"
     ):
         if payload_sha256 != current:
             close()
@@ -1479,15 +1459,12 @@ def _payload_bytes(conn: sqlite3.Connection, local: set[str]) -> PayloadBytes:
     orphans = [
         str(row[0])
         for row in conn.execute(
-            "SELECT payload_sha256 FROM derivation_payloads p WHERE NOT EXISTS("
-            "SELECT 1 FROM derivation_row_refs r WHERE r.payload_sha256=p.payload_sha256)"
+            "SELECT payload_sha256 FROM derivation_payloads AS p WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_row_refs AS r WHERE r.payload_sha256 = p.payload_sha256)"
         )
     ]
     unknown_bytes += int(
         conn.execute(
-            "SELECT coalesce(sum(octet_length(payload_json)),0) FROM derivation_payloads p "
-            "WHERE NOT EXISTS(SELECT 1 FROM derivation_row_refs r "
-            "WHERE r.payload_sha256=p.payload_sha256)"
+            "SELECT COALESCE(CAST(SUM(OCTET_LENGTH(payload_json)) AS BIGINT), 0) AS _value_0 FROM derivation_payloads AS p WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_row_refs AS r WHERE r.payload_sha256 = p.payload_sha256)"
         ).fetchone()[0]
     )
     return PayloadBytes(
@@ -1495,7 +1472,7 @@ def _payload_bytes(conn: sqlite3.Connection, local: set[str]) -> PayloadBytes:
     )
 
 
-def _row_bytes(conn: sqlite3.Connection, local: set[str]) -> PayloadBytes:
+def _row_bytes(conn: engine.Connection, local: set[str]) -> PayloadBytes:
     """The same three numbers on a database whose rows are not interned yet.
 
     A row's bytes belong to its own generation, so the split is by generation:
@@ -1508,10 +1485,7 @@ def _row_bytes(conn: sqlite3.Connection, local: set[str]) -> PayloadBytes:
     archivable = 0
     unknown_bytes = 0
     for generation_id, labelled, total in conn.execute(
-        "SELECT r.generation_id,g.generation_id IS NOT NULL,"
-        "coalesce(sum(octet_length(r.payload_json)),0) FROM derivation_rows r "
-        "LEFT JOIN derivation_generations g ON g.generation_id=r.generation_id "
-        "GROUP BY r.generation_id"
+        "SELECT r.generation_id, CAST(NOT g.generation_id IS NULL AS BIGINT) AS _value_1, COALESCE(CAST(SUM(OCTET_LENGTH(r.payload_json)) AS BIGINT), 0) AS _value_2 FROM derivation_rows AS r LEFT JOIN derivation_generations AS g ON g.generation_id = r.generation_id GROUP BY r.generation_id"
     ):
         if str(generation_id) in local:
             local_bytes += int(total)
@@ -1564,34 +1538,15 @@ def _prune_plans(directory: Path, *, keep: int) -> list[Path]:
 # ---------------------------------------------------------------------------
 
 
-def usage(conn: sqlite3.Connection, state_dir: Path) -> dict[str, Any]:
-    """Bytes in use, file size, write-ahead log size and free-list bytes.
+def usage(conn: engine.Connection, state_dir: Path) -> dict[str, Any]:
+    """Allocated database and relation bytes, measured by Postgres itself."""
+    from .engine.usage import database_usage
 
-    Deleting rows returns pages to SQLite's free list and leaves the file the
-    size it was, so a cap measured on the file needs all four numbers to be
-    read honestly. `dbstat` is a compile-time option; when it is missing the
-    bytes in use are reported as unknown rather than guessed.
-    """
-    database = state_dir / "state.sqlite"
-    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
-    free_pages = int(conn.execute("PRAGMA freelist_count").fetchone()[0])
-    try:
-        row = conn.execute("SELECT coalesce(sum(pgsize),0) FROM dbstat").fetchone()
-        in_use: int | None = int(row[0])
-    except sqlite3.Error:
-        in_use = None
-    return {
-        "bytes_in_use": in_use,
-        "file_bytes": database.stat().st_size if database.is_file() else 0,
-        "wal_bytes": (state_dir / "state.sqlite-wal").stat().st_size
-        if (state_dir / "state.sqlite-wal").is_file()
-        else 0,
-        "free_list_bytes": page_size * free_pages,
-    }
+    return database_usage(conn)
 
 
 def report(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     *,
     max_database_bytes: int,
@@ -1686,9 +1641,12 @@ def enforce_size_cap(
     find out by resuming twice.
     """
     from .controls import Selector, _at, change_control
+    from .db import open_database
 
-    database = state_dir / "state.sqlite"
-    size = database.stat().st_size if database.is_file() else 0
+    with open_database(
+        state_dir, lock=False, read_only=True, allow_restore_pending=True
+    ) as measured:
+        size = int(usage(measured.connection, state_dir)["file_bytes"])
     result: dict[str, Any] = {
         "file_bytes": size,
         "max_database_bytes": max_database_bytes,
@@ -1697,7 +1655,8 @@ def enforce_size_cap(
     }
     if size <= max_database_bytes or (state_dir / "RESTORE_PENDING").is_file():
         return result
-    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    database = open_database(state_dir, lock=False, read_only=True)
+    connection = database.connection
     try:
         if "operator_pauses" not in _tables(connection):
             return result
@@ -1707,12 +1666,14 @@ def enforce_size_cap(
         # over the cap with nothing paused, so this asks the same question
         # controls asks, in the format controls writes.
         existing = connection.execute(
-            "SELECT reason FROM operator_pauses WHERE scope_kind='all' AND scope_id='all' "
-            "AND (until_at IS NULL OR until_at>?)",
+            (
+                "SELECT reason FROM operator_pauses WHERE scope_kind = 'all' AND scope_id = 'all' AND "
+                "(until_at IS NULL OR until_at > %s)"
+            ),
             (_at(now),),
         ).fetchone()
     finally:
-        connection.close()
+        database.close()
     if existing is not None:
         result["existing_pause_reason"] = str(existing[0])
         return result

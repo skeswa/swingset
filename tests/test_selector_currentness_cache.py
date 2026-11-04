@@ -1,6 +1,5 @@
 """Selection shares exact prerequisite answers without extending worker authority."""
 
-import sqlite3
 from collections import Counter
 
 import pytest
@@ -8,9 +7,9 @@ from test_h15_acceptance import source_fixture as source_fixture
 
 from swingset.clock import FakeClock
 from swingset.schedule.fairness import next_offline
-from swingset.state import derivation_query, derivations
+from swingset.state import derivation_query, derivations, engine
 from swingset.state.control_scopes import unit_allowed
-from swingset.state.controls import ActionScope, ControlPaused, admission
+from swingset.state.controls import ActionScope, ControlPaused, Selector, admission, change_control
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit, enqueue
 
@@ -28,13 +27,17 @@ def test_blocked_resolution_fleet_checks_shared_inventory_once_and_selects_same_
         )
     assert derivations.current(f.conn, shared)
     f.conn.execute(
-        "UPDATE accepted_inputs SET digest='new reviewed recipe' WHERE input_name='recipe/env'"
+        "UPDATE accepted_inputs SET digest = 'new reviewed recipe' WHERE input_name = "
+        "'recipe/code/project/inventory'"
     )
     fleet = [WorkUnit("project", "resolution", f"blocked-{i}") for i in range(40)]
     healthy = WorkUnit("parse", "snapshot", "healthy")
     enqueue(f.conn, (*fleet, healthy), enqueued_at=f.corpus.clock.now().isoformat())
     f.conn.execute(
-        "INSERT INTO scheduler_offline_service VALUES ('parse','snapshot',1,?,999)",
+        (
+            "INSERT INTO scheduler_offline_service (stage, unit_kind, attempts, last_served_at, "
+            "sequence) VALUES ('parse', 'snapshot', 1, %s, 999)"
+        ),
         (f.corpus.clock.now().isoformat(),),
     )
     calls = Counter()
@@ -55,7 +58,10 @@ def test_blocked_resolution_fleet_checks_shared_inventory_once_and_selects_same_
     monkeypatch.setattr(derivation_query, "currentness", lambda conn, key, compute: compute())
     reference = next_offline(f.conn, now=f.corpus.clock.now(), allowed=allowed)
     assert reference == optimized and calls[shared] >= len(fleet)
-    assert not f.conn.in_transaction and f.conn.execute("PRAGMA query_only").fetchone()[0] == 0
+    assert (
+        not f.conn.in_transaction
+        and f.conn.execute("SHOW transaction_read_only").fetchone()[0] == "off"
+    )
 
 
 def test_currentness_lru_eviction_and_failed_compute_do_not_invent_answers(tmp_path, monkeypatch):
@@ -88,11 +94,11 @@ def test_currentness_lru_eviction_and_failed_compute_do_not_invent_answers(tmp_p
 def test_mutable_caller_and_savepoint_rollback_never_reuse_currentness(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO meta VALUES ('selector-test','old')")
+        conn.execute("INSERT INTO meta (key, value) VALUES ('selector-test', 'old')")
 
         def value():
             return (
-                conn.execute("SELECT value FROM meta WHERE key='selector-test'").fetchone()[0]
+                conn.execute("SELECT value FROM meta WHERE key = 'selector-test'").fetchone()[0]
                 == "old"
             )
 
@@ -100,29 +106,32 @@ def test_mutable_caller_and_savepoint_rollback_never_reuse_currentness(tmp_path)
             with derivation_query.read_snapshot(conn):
                 assert derivation_query.currentness(conn, "key", value)
                 conn.execute("SAVEPOINT temporary")
-                conn.execute("UPDATE meta SET value='dirty' WHERE key='selector-test'")
+                conn.execute("UPDATE meta SET value = 'dirty' WHERE key = 'selector-test'")
                 assert not derivation_query.currentness(conn, "key", value)
                 conn.execute("ROLLBACK TO temporary")
                 conn.execute("RELEASE temporary")
                 assert derivation_query.currentness(conn, "key", value)
-            assert conn.in_transaction and conn.execute("PRAGMA query_only").fetchone()[0] == 0
+            assert (
+                conn.in_transaction
+                and conn.execute("SHOW transaction_read_only").fetchone()[0] == "off"
+            )
 
 
 def test_other_connection_change_is_stable_within_snapshot_and_fresh_afterward(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO meta VALUES ('selector-test','old')")
-        with sqlite3.connect(tmp_path / "state.sqlite", isolation_level=None) as other:
+        conn.execute("INSERT INTO meta (key, value) VALUES ('selector-test', 'old')")
+        with engine.connect(engine.resolve_dsn(tmp_path)) as other:
 
             def value():
                 return (
-                    conn.execute("SELECT value FROM meta WHERE key='selector-test'").fetchone()[0]
+                    conn.execute("SELECT value FROM meta WHERE key = 'selector-test'").fetchone()[0]
                     == "old"
                 )
 
             with derivation_query.read_snapshot(conn):
                 assert derivation_query.currentness(conn, "key", value)
-                other.execute("UPDATE meta SET value='new' WHERE key='selector-test'")
+                other.execute("UPDATE meta SET value = 'new' WHERE key = 'selector-test'")
                 assert derivation_query.currentness(conn, "key", value)
             with derivation_query.read_snapshot(conn):
                 assert not derivation_query.currentness(conn, "key", value)
@@ -136,18 +145,20 @@ def test_callback_write_is_rejected_and_exception_restores_transaction_and_pragm
     with open_database(tmp_path) as db:
         conn = db.connection
         enqueue(conn, [WorkUnit("parse", "snapshot", "one")], enqueued_at=clock.now().isoformat())
-        conn.execute(f"PRAGMA query_only={initial_read_only}")
+        conn.execute("SET default_transaction_read_only=" + ("on" if initial_read_only else "off"))
 
         def forbidden(unit):
-            conn.execute("INSERT INTO meta VALUES ('callback-write','forbidden')")
+            conn.execute("INSERT INTO meta (key, value) VALUES ('callback-write', 'forbidden')")
             return True
 
-        with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        with pytest.raises(engine.OperationalError, match="readonly"):
             next_offline(conn, now=clock.now(), allowed=forbidden)
         assert not conn.in_transaction
-        assert conn.execute("PRAGMA query_only").fetchone()[0] == initial_read_only
-        assert conn.execute("SELECT 1 FROM meta WHERE key='callback-write'").fetchone() is None
-        conn.execute("PRAGMA query_only=OFF")
+        assert conn.execute("SHOW default_transaction_read_only").fetchone()[0] == (
+            "on" if initial_read_only else "off"
+        )
+        assert conn.execute("SELECT 1 FROM meta WHERE key = 'callback-write'").fetchone() is None
+        conn.execute("SET default_transaction_read_only=off")
 
 
 def test_control_change_during_snapshot_is_rechecked_by_admission(tmp_path):
@@ -156,16 +167,20 @@ def test_control_change_during_snapshot_is_rechecked_by_admission(tmp_path):
         conn = db.connection
         unit = WorkUnit("parse", "snapshot", "one")
         enqueue(conn, [unit], enqueued_at=clock.now().isoformat())
-        with sqlite3.connect(tmp_path / "state.sqlite", isolation_level=None) as other:
 
-            def allowed(candidate):
-                result = unit_allowed(conn, candidate, now=clock.now())
-                other.execute(
-                    "INSERT INTO operator_pauses(scope_kind,scope_id,reason) VALUES ('all','all','new pause')"
-                )
-                return result
+        def allowed(candidate):
+            result = unit_allowed(conn, candidate, now=clock.now())
+            change_control(
+                tmp_path,
+                selector=Selector("all", "all"),
+                paused=True,
+                actor="snapshot-test",
+                reason="new pause",
+                now=clock.now(),
+            )
+            return result
 
-            assert next_offline(conn, now=clock.now(), allowed=allowed) == unit
+        assert next_offline(conn, now=clock.now(), allowed=allowed) == unit
         with pytest.raises(ControlPaused):
             with admission(
                 db,
@@ -215,16 +230,16 @@ def test_context_is_part_of_the_currentness_key(tmp_path, monkeypatch):
 def test_no_currentness_answer_survives_same_connection_committed_input_change(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO meta VALUES ('selector-test','old')")
+        conn.execute("INSERT INTO meta (key, value) VALUES ('selector-test', 'old')")
 
         def value():
             return (
-                conn.execute("SELECT value FROM meta WHERE key='selector-test'").fetchone()[0]
+                conn.execute("SELECT value FROM meta WHERE key = 'selector-test'").fetchone()[0]
                 == "old"
             )
 
         with derivation_query.read_snapshot(conn):
             assert derivation_query.currentness(conn, "key", value)
-        conn.execute("UPDATE meta SET value='changed' WHERE key='selector-test'")
+        conn.execute("UPDATE meta SET value = 'changed' WHERE key = 'selector-test'")
         with derivation_query.read_snapshot(conn):
             assert not derivation_query.currentness(conn, "key", value)

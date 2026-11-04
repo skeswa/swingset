@@ -1,0 +1,66 @@
+{
+  "after": {
+    "compiled_selection_sha256": "7a44ca3ea8e466010f272df99ec4aac33e4f31f22be6a48806c8e65a7599303f",
+    "deadline_setting_statements": 7507,
+    "driver_cursor_execute_calls": 17524,
+    "fixture_body_profile_cumulative_seconds": 3.015743667,
+    "pytest_exit_code": 1,
+    "wall_seconds": 3.431941583752632
+  },
+  "before": {
+    "compiled_selection_sha256": "c61711591c22d74fcee5e0a264008c2f0ba541f3d0cc0973de4fbaaecfb04fc0",
+    "deadline_setting_statements": 13984,
+    "driver_cursor_execute_calls": 36915,
+    "fixture_body_profile_cumulative_seconds": 5.209711166,
+    "pytest_exit_code": 1,
+    "wall_seconds": 7.0108188749291
+  },
+  "first20_outcome": {
+    "categories": {
+      "current": 9,
+      "new": 11
+    },
+    "completed_target_pages": 3,
+    "lanes": {
+      "discovery": 6,
+      "listed_result": 5
+    },
+    "wire_requests": 21
+  },
+  "fixed_runtime_dependency_tree_sha256": "fdbf6aa5fdac8528badc5d8a718076d79405bfec475eeddd1ae4c7e2c11da644",
+  "format": "swingset-postgres-stage1-selection-profile-v1",
+  "identical_first20_outcome_sha256": "360caa7f7443cc0a97cc1cac33f57d4dfe53bfa52c2f86aa18864b124b21dead",
+  "iterations": 20,
+  "measured_at": "2026-11-05T00:21:43.723299+00:00",
+  "method": {
+    "commands": [
+      "mise exec -- uv run python /tmp/swingset-pg-selection-measure.py baseline",
+      "mise exec -- uv run python /tmp/swingset-pg-selection-measure.py final"
+    ],
+    "expected_result": "The shortened fixture reaches its final completed==target_urls assertion with3 of33 target pages; pytest exits1 intentionally. It is a profile, not a passed completion test.",
+    "full_profiles_location": "Scratch /tmp/swingset-pg-selection-{baseline,final}.pstats; full profiles and logs are not retained.",
+    "incomplete_fixture": true,
+    "instrumentation": "Only the fixture module range(600) lookup was shortened to20 in each fresh process; repository test source was unchanged. The baseline loads the pre-optimization selection module from scratch by compile/exec; all other runtime source hashes are identical.",
+    "query_counts": "Counts instrument psycopg.Cursor.execute, including deadline-setting statements and fixture setup. Protocol COMMIT and server-internal trigger statements are not counted."
+  },
+  "psycopg": "3.3.8",
+  "python": "3.12.16",
+  "source_hashes": {
+    "src/swingset/schedule/event_pressure.py": "579333546a350c9e642053589ce7dc024530cadce0a6e4cb32f8b7504e27bd31",
+    "src/swingset/state/control_scopes.py": "3f2384dca284c6db13a65b6878d940b2c66a17686db6016869e25888dd69f83b",
+    "src/swingset/state/db.py": "14b3bc033ed63b2cb53af6c69498ce42ed12eb42e98cb8b92d0644746c7e630e",
+    "src/swingset/state/engine/connection.py": "cf64a4193e8e95b43cf4d1d7771ed8f0690525c45b5b378a2d6fa50678af30d7",
+    "src/swingset/state/write_deadline.py": "3806c9d34e7f19058787dbe3b2a780f14d2aa8605335594f151127a4df53b42c",
+    "tests/test_event_completion_cohort.py": "f3b7085c30368ed2a39d9df3701de548fd254aa968b93be90ebf81243c89536b",
+    "uv.lock": "ab20f56ad7552e68699cf3f40f101a103f23e883ff07c4d5618956268ebcd36d"
+  },
+  "unchanged_full_coverage": {
+    "core_selection_unchanged": true,
+    "failed": 0,
+    "original_iteration_bound": 600,
+    "passed": 71,
+    "target_pages": 33,
+    "verification_command": "mise exec -- uv run pytest -q tests/test_event_completion_cohort.py tests/test_fairness.py tests/test_event_turns.py tests/test_event_capacity.py tests/test_control_scopes.py --tb=short --maxfail=8",
+    "wall_seconds": 133.69
+  }
+}

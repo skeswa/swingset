@@ -1,0 +1,99 @@
+{
+  "actual_work": {
+    "fresh_restores": 2,
+    "full_catalog_parity_passes": 3,
+    "runtime_capture_calls": 4
+  },
+  "command": [
+    "python",
+    "-m",
+    "cProfile",
+    "-o",
+    "/tmp/swingset-stage1-backup-profile/profile.bin",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "native_driver_profile",
+    "-p",
+    "swingset.dev.pytest_plugin",
+    "--timings",
+    "tests/backup/test_checkpoint.py::test_checkpoint_uses_postgres_copy_and_restores_pending"
+  ],
+  "driver": {
+    "copy_calls": 846,
+    "execute_calls": 7247,
+    "executemany_calls": 0,
+    "executemany_rows": 0,
+    "seconds": 3.0791083741933107
+  },
+  "exit_code": 0,
+  "format": "swingset-postgres-stage1-backup-profile-v1",
+  "hot_functions": [
+    {
+      "copy_calls": 0,
+      "execute_calls": 2124,
+      "executemany_calls": 0,
+      "executemany_rows": 0,
+      "function": "swingset.state.postgres_schema.verify",
+      "seconds": 0.5405557476915419
+    },
+    {
+      "copy_calls": 0,
+      "execute_calls": 184,
+      "executemany_calls": 0,
+      "executemany_rows": 0,
+      "function": "swingset.state.postgres_backup.restore",
+      "seconds": 0.48197904974222183
+    },
+    {
+      "copy_calls": 0,
+      "execute_calls": 1950,
+      "executemany_calls": 0,
+      "executemany_rows": 0,
+      "function": "swingset.state.postgres_schema.assign_owners",
+      "seconds": 0.40032953722402453
+    },
+    {
+      "copy_calls": 564,
+      "execute_calls": 0,
+      "executemany_calls": 0,
+      "executemany_rows": 0,
+      "function": "swingset.state.postgres_backup._copy_in",
+      "seconds": 0.22967508574947715
+    },
+    {
+      "copy_calls": 0,
+      "execute_calls": 426,
+      "executemany_calls": 0,
+      "executemany_rows": 0,
+      "function": "swingset.state.history_catalog.prepare",
+      "seconds": 0.21351504558697343
+    },
+    {
+      "copy_calls": 0,
+      "execute_calls": 670,
+      "executemany_calls": 0,
+      "executemany_rows": 0,
+      "function": "swingset.state.postgres_schema.grant_roles",
+      "seconds": 0.1608575889840722
+    }
+  ],
+  "measured_at": "2026-11-05T00:59:01.699888+00:00",
+  "phases_seconds": {
+    "call": 6.9163,
+    "collection": 0.2189,
+    "setup": 0.1328,
+    "teardown": 0.1262,
+    "wall": 8.2017
+  },
+  "runtime_capture_profile_cumulative_seconds": 1.456224,
+  "scope": "One mandatory native checkpoint with actual restore check, offline verify, and explicit fresh target restore. Instrumented profile; not comparable to an unprofiled wall time or a full core result.",
+  "scratch_artifacts": {
+    "driver.json": "e8633c2bdd4069d20230680ac8e053f621106dd5147eb808260a94f64322ae67",
+    "profile.bin": "3c75622c7e8754f3a617e3d2935e15598368ace60e8cec075cb0a9452b713071",
+    "pstats.txt": "828655ae1de6189fe553e0121a0a30bf632c99190359d169844743e008223c5b"
+  },
+  "source_freeze_sha256": "60becfbdb831b61ce1b4c22b1b38c69117533eb46316914233618eed89ce3d43",
+  "trigger": "The unchanged serial core exceeded180s after101passed/4failed, before completing its selection. This measured fixture performs thousands of owner/grant/catalog round trips. Batch transport and bulk catalog reads while preserving both actual restores, typed audits, closure and every parity comparison."
+}

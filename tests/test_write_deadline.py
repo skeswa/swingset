@@ -1,7 +1,6 @@
-"""A slow atomic worker releases SQLite without selecting partial output."""
+"""A slow atomic worker releases Postgres without selecting partial output."""
 
 import signal
-import sqlite3
 import subprocess
 import sys
 import time
@@ -10,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from swingset.state import write_deadline
+from swingset.state import engine, write_deadline
 from swingset.state.db import open_database, reset_write_counters, write_counters
 from swingset.state.write_deadline import WriteDeadlineExceeded
 
@@ -20,15 +19,15 @@ def test_python_work_rolls_back_and_next_transaction_can_commit(tmp_path, monkey
         monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
         with pytest.raises(WriteDeadlineExceeded):
             with db.transaction() as conn:
-                conn.execute("INSERT INTO meta VALUES ('partial','forbidden')")
+                conn.execute("INSERT INTO meta (key, value) VALUES ('partial', 'forbidden')")
                 while True:
                     pass
         assert not db.connection.in_transaction
-        assert db.connection.execute("SELECT 1 FROM meta WHERE key='partial'").fetchone() is None
+        assert db.connection.execute("SELECT 1 FROM meta WHERE key = 'partial'").fetchone() is None
         with db.transaction() as conn:
-            conn.execute("INSERT INTO meta VALUES ('independent','committed')")
+            conn.execute("INSERT INTO meta (key, value) VALUES ('independent', 'committed')")
         assert (
-            db.connection.execute("SELECT value FROM meta WHERE key='independent'").fetchone()[0]
+            db.connection.execute("SELECT value FROM meta WHERE key = 'independent'").fetchone()[0]
             == "committed"
         )
 
@@ -38,13 +37,46 @@ def test_nested_sql_work_inherits_deadline_and_rolls_back(tmp_path, monkeypatch)
         monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
         with pytest.raises(WriteDeadlineExceeded):
             with db.transaction() as conn:
-                conn.execute("INSERT INTO meta VALUES ('partial','forbidden')")
+                conn.execute("INSERT INTO meta (key, value) VALUES ('partial', 'forbidden')")
                 with db.transaction():
                     conn.execute(
-                        "WITH RECURSIVE counter(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM counter WHERE n<100000000) SELECT sum(n) FROM counter"
+                        "WITH RECURSIVE counter(n) AS (SELECT * FROM (VALUES (1)) AS _values UNION ALL SELECT n + 1 "
+                        "FROM counter WHERE n < 100000000) SELECT SUM(n) FROM counter"
                     ).fetchone()
         assert not db.connection.in_transaction
-        assert db.connection.execute("SELECT 1 FROM meta WHERE key='partial'").fetchone() is None
+        assert db.connection.execute("SELECT 1 FROM meta WHERE key = 'partial'").fetchone() is None
+
+
+def test_deadline_delivered_while_arming_rolls_back_and_restores_the_boundary(
+    tmp_path, monkeypatch
+):
+    with open_database(tmp_path) as db:
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
+        previous_handler = signal.getsignal(signal.SIGALRM)
+        previous_timer = signal.getitimer(signal.ITIMER_REAL)
+        assert previous_timer == (0, 0)
+        real_setitimer = signal.setitimer
+        armed = False
+
+        def deliver_while_arming(which, seconds, interval=0):
+            nonlocal armed
+            if seconds and not armed:
+                armed = True
+                signal.getsignal(signal.SIGALRM)(signal.SIGALRM, None)
+            return real_setitimer(which, seconds, interval)
+
+        monkeypatch.setattr(signal, "setitimer", deliver_while_arming)
+        before = write_deadline.fired()
+        with pytest.raises(WriteDeadlineExceeded):
+            with db.transaction():
+                pytest.fail("the deadline fired before the body was entered")
+        assert armed
+        assert write_deadline.fired() == before + 1
+        assert signal.getsignal(signal.SIGALRM) == previous_handler
+        assert signal.getitimer(signal.ITIMER_REAL) == previous_timer
+        assert db.connection._write_deadline is None
+        assert not db.connection.in_transaction
+        assert db.connection.execute("SELECT 1").fetchone()[0] == 1
 
 
 def test_long_read_snapshot_does_not_take_worker_write_budget(tmp_path, monkeypatch):
@@ -57,13 +89,13 @@ def test_long_read_snapshot_does_not_take_worker_write_budget(tmp_path, monkeypa
 
 def test_read_snapshot_cannot_upgrade_through_nested_write(tmp_path):
     with open_database(tmp_path) as db:
-        with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        with pytest.raises(RuntimeError, match="cannot upgrade"):
             with db.transaction(immediate=False):
                 with db.transaction() as conn:
-                    conn.execute("INSERT INTO meta VALUES ('unbounded','forbidden')")
+                    conn.execute("INSERT INTO meta (key, value) VALUES ('unbounded', 'forbidden')")
         assert not db.connection.in_transaction
         with db.transaction() as conn:
-            conn.execute("INSERT INTO meta VALUES ('bounded','allowed')")
+            conn.execute("INSERT INTO meta (key, value) VALUES ('bounded', 'allowed')")
 
 
 def test_existing_later_alarm_is_restored_with_elapsed_time(tmp_path, monkeypatch):
@@ -95,7 +127,9 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
     slow, healthy = [WorkUnit("project", "dancer", name) for name in ("slow", "healthy")]
 
     def project(db, unit, *_args, selection=None):
-        db.connection.execute("INSERT INTO meta VALUES (?, 'selected')", (unit.unit_id,))
+        db.connection.execute(
+            "INSERT INTO meta (key, value) VALUES (%s, 'selected')", (unit.unit_id,)
+        )
         if unit == slow:
             while True:
                 pass
@@ -108,7 +142,7 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
             now=clock.now(),
             run_id=selection.context.get("run_id", run),
         )
-        db.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        db.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     with open_database(tmp_path) as db:
@@ -118,16 +152,16 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
         outcome = derive_one(db, Archive(tmp_path), slow, bundle, clock, run)
         assert outcome.failed and outcome.reason == "write_deadline_exceeded"
         assert not derive_one(db, Archive(tmp_path), healthy, bundle, clock, run).failed
-        assert db.connection.execute("SELECT 1 FROM meta WHERE key='slow'").fetchone() is None
+        assert db.connection.execute("SELECT 1 FROM meta WHERE key = 'slow'").fetchone() is None
         assert (
-            db.connection.execute("SELECT value FROM meta WHERE key='healthy'").fetchone()[0]
+            db.connection.execute("SELECT value FROM meta WHERE key = 'healthy'").fetchone()[0]
             == "selected"
         )
         assert db.connection.execute("SELECT unit_id FROM pending_work").fetchone()[0] == "slow"
         assert next_work(db.connection, "project", now=clock.now()) is None
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM execution_admissions WHERE state!='settled'"
+                "SELECT COUNT(*) FROM execution_admissions WHERE state <> 'settled'"
             ).fetchone()[0]
             == 0
         )
@@ -135,7 +169,7 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
         assert next_work(db.connection, "project", now=clock.now()) is None
         assert tuple(
             db.connection.execute(
-                "SELECT outcome,reason_code,retry_at FROM work_attempts WHERE unit_id='slow'"
+                "SELECT outcome, reason_code, retry_at FROM work_attempts WHERE unit_id = 'slow'"
             ).fetchone()
         ) == (
             "transient",
@@ -151,7 +185,7 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
             "write_deadline_exceeded"
         )
         latest = db.connection.execute(
-            "SELECT outcome,retry_at FROM work_attempts WHERE unit_id='slow' ORDER BY attempt_id DESC"
+            "SELECT outcome, retry_at FROM work_attempts WHERE unit_id = 'slow' ORDER BY attempt_id DESC NULLS LAST"
         ).fetchone()
         assert tuple(latest) == ("transient", (clock.now() + timedelta(minutes=30)).isoformat())
 
@@ -186,7 +220,7 @@ def test_a_unit_that_raises_keeps_a_doubling_retry_clock(tmp_path, monkeypatch, 
             outcome = derive_one(db, Archive(tmp_path), unit, bundle, clock, run)
             assert outcome.failed and outcome.reason == reason
             latest = db.connection.execute(
-                "SELECT outcome,retry_at FROM work_attempts ORDER BY attempt_id DESC"
+                "SELECT outcome, retry_at FROM work_attempts ORDER BY attempt_id DESC NULLS LAST"
             ).fetchone()
             # Every non-success has a clock (I3): no input change or operator
             # retry is needed for a fixed deploy to pick the unit up again.
@@ -199,7 +233,7 @@ def test_a_unit_that_raises_keeps_a_doubling_retry_clock(tmp_path, monkeypatch, 
             assert next_work(db.connection, "project", now=clock.now()) == unit
 
 
-def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch):
+def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch, request):
     """The 60 s alarm is the one limit; the history allowance is gone (D-0217)."""
     from swingset.schedule import derive
     from swingset.state.write_deadline import bounded_write
@@ -208,7 +242,9 @@ def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch):
     assert not hasattr(write_deadline, "allowance")
     assert not hasattr(derive, "HISTORY_WRITE_SECONDS")
     monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
-    conn = sqlite3.connect(tmp_path / "x.sqlite")
+    database = open_database(tmp_path)
+    conn = database.connection
+    request.addfinalizer(database.close)
     with pytest.raises(WriteDeadlineExceeded), bounded_write(conn):
         time.sleep(0.1)
 
@@ -241,6 +277,56 @@ def test_a_year_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatch):
         assert write_deadline.fired() == before + 1
 
 
+def test_admission_write_deadline_rolls_back_and_keeps_its_retry_class(tmp_path, monkeypatch):
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+    from swingset.state import derivations, queue
+    from swingset.state.inputs import InputBundle
+    from swingset.state.work import WorkUnit, enqueue, next_work
+
+    clock = FakeClock()
+    unit = WorkUnit("project", "year", "2026")
+    bundle = InputBundle("test", tmp_path, {}, Config({}, {}))
+    entered = []
+
+    def capture(conn, *_args, **_kwargs):
+        entered.append(True)
+        conn.execute("INSERT INTO meta(key,value) VALUES('admission_partial','forbidden')")
+        while True:
+            pass
+
+    monkeypatch.setattr(derivations, "capture", capture)
+    monkeypatch.setattr(
+        swingset.project,
+        "process_unit",
+        lambda *_args, **_kwargs: pytest.fail("unit was not admitted"),
+    )
+    with open_database(tmp_path) as database:
+        run = database.start_run(clock.now())
+        enqueue(database.connection, [unit], enqueued_at=clock.now().isoformat())
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
+        before = write_deadline.fired()
+        result = derive_one(database, Archive(tmp_path), unit, bundle, clock, run)
+        assert entered == [True]
+        assert result.failed and result.reason == "write_deadline_exceeded"
+        assert write_deadline.fired() == before + 1
+        assert (
+            database.connection.execute(
+                "SELECT 1 FROM meta WHERE key='admission_partial'"
+            ).fetchone()
+            is None
+        )
+        assert database.connection.execute("SELECT count(*) FROM work_attempts").fetchone()[0] == 0
+        held = queue.get(database.connection, unit)
+        assert held is not None
+        assert held.error_class == "write_deadline_exceeded"
+        assert held.next_attempt_at == queue.at(clock.now() + timedelta(minutes=15))
+        assert next_work(database.connection, "project", now=clock.now()) is None
+
+
 class _Monotonic:
     """A monotonic clock the test moves by hand."""
 
@@ -251,12 +337,14 @@ class _Monotonic:
         return self.now
 
 
-def test_a_body_past_sixty_seconds_raises_and_is_counted(tmp_path, monkeypatch):
+def test_a_body_past_sixty_seconds_raises_and_is_counted(tmp_path, monkeypatch, request):
     from swingset.state.write_deadline import bounded_write
 
     clock = _Monotonic()
     monkeypatch.setattr(write_deadline, "time", clock)
-    conn = sqlite3.connect(tmp_path / "x.sqlite")
+    database = open_database(tmp_path)
+    conn = database.connection
+    request.addfinalizer(database.close)
     before = write_deadline.fired()
     with bounded_write(conn):
         clock.now += 59
@@ -275,7 +363,7 @@ def test_the_run_counters_report_firings_since_the_start(tmp_path, monkeypatch):
         reset_write_counters()
         before = write_deadline.fired()
         with db.transaction() as conn:
-            conn.execute("INSERT INTO meta VALUES ('fast','committed')")
+            conn.execute("INSERT INTO meta (key, value) VALUES ('fast', 'committed')")
         assert write_deadline.run_counters(before)["write_deadline_fired"] == 0
         monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
         with pytest.raises(WriteDeadlineExceeded), db.transaction():
@@ -335,7 +423,7 @@ def test_the_tick_record_carries_the_write_counters(tmp_path, monkeypatch):
         assert result["stage_errors"][0]["stage"] == "requirements_scan"
         saved = json.loads(
             db.connection.execute(
-                "SELECT summary_json FROM runs WHERE run_id=?", (result["run_id"],)
+                "SELECT summary_json FROM runs WHERE run_id = %s", (result["run_id"],)
             ).fetchone()[0]
         )
         assert saved["write_deadline_fired"] == 1
@@ -354,18 +442,18 @@ def test_the_tick_record_carries_the_write_counters(tmp_path, monkeypatch):
 
 
 _WRITER = """
-import sqlite3, sys, time
-conn = sqlite3.connect(sys.argv[1], isolation_level=None)
-conn.execute("BEGIN IMMEDIATE")
-print("LOCKED", flush=True)
-time.sleep(float(sys.argv[2]))
-conn.commit()
+import sys,time
+from swingset.state.db import open_database
+with open_database(sys.argv[1],lock=False) as database:
+    with database.transaction():
+        print("LOCKED",flush=True)
+        time.sleep(float(sys.argv[2]))
 """
 
 
-def _hold_sqlite_writer(path: Path, seconds: float) -> subprocess.Popen[str]:
+def _hold_postgres_writer(path: Path, seconds: float) -> subprocess.Popen[str]:
     child = subprocess.Popen(
-        [sys.executable, "-c", _WRITER, str(path / "state.sqlite"), str(seconds)],
+        [sys.executable, "-c", _WRITER, str(path), str(seconds)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -378,9 +466,9 @@ def test_waiting_for_another_writer_is_counted_but_not_bounded(tmp_path, monkeyp
     with open_database(tmp_path) as db:
         monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 2)
         reset_write_counters()
-        child = _hold_sqlite_writer(tmp_path, 3)
+        child = _hold_postgres_writer(tmp_path, 3)
         with db.transaction() as conn:
-            conn.execute("INSERT INTO meta VALUES ('after-wait','committed')")
+            conn.execute("INSERT INTO meta (key, value) VALUES ('after-wait', 'committed')")
         assert child.wait(timeout=10) == 0
         counters = write_counters()
         assert counters["writes"] == 1
@@ -394,10 +482,10 @@ def test_a_busy_timeout_raises_and_is_counted(tmp_path):
     open_database(tmp_path).close()
     with open_database(tmp_path, busy_timeout=0.2) as db:
         reset_write_counters()
-        child = _hold_sqlite_writer(tmp_path, 0.6)
-        with pytest.raises(sqlite3.OperationalError, match="locked"):
+        child = _hold_postgres_writer(tmp_path, 0.6)
+        with pytest.raises(engine.OperationalError, match="lock deadline"):
             with db.transaction() as conn:
-                conn.execute("INSERT INTO meta VALUES ('never','written')")
+                conn.execute("INSERT INTO meta (key, value) VALUES ('never', 'written')")
         assert not db.connection.in_transaction
         assert write_counters()["write_lock_timeouts"] == 1
         assert write_counters()["writes"] == 0
@@ -412,3 +500,27 @@ def test_a_body_over_the_bound_still_raises_and_its_length_is_kept(tmp_path, mon
             with db.transaction():
                 time.sleep(0.2)
         assert write_counters()["write_seconds_max"] >= 0.05
+
+
+def test_expiry_after_acknowledged_commit_never_claims_rollback(tmp_path, monkeypatch):
+    from swingset.state import engine
+    from swingset.state.write_deadline import bounded_write
+
+    monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
+    with open_database(tmp_path) as database:
+        conn = database.connection
+        with pytest.raises(engine.CommitUncertain), bounded_write(conn):
+            conn.execute("BEGIN")
+            conn.execute(
+                "INSERT INTO meta(key,value) VALUES('acknowledged-before-expiry','retained')"
+            )
+            conn.commit()
+            time.sleep(0.1)
+        assert conn.closed
+    with open_database(tmp_path) as database:
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='acknowledged-before-expiry'"
+            ).fetchone()[0]
+            == "retained"
+        )

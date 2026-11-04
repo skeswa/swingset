@@ -60,7 +60,9 @@ def test_blocked_parse_does_not_starve_independent_work_or_spin_after_restart(tm
             complete(
                 db,
                 GOOD,
-                lambda conn: conn.execute("INSERT INTO meta VALUES ('healthy-output','committed')"),
+                lambda conn: conn.execute(
+                    "INSERT INTO meta (key, value) VALUES ('healthy-output', 'committed')"
+                ),
             )
             finish_attempt(
                 db, good_attempt, outcome="succeeded", reason_code="output_committed", now=NOW
@@ -73,7 +75,9 @@ def test_blocked_parse_does_not_starve_independent_work_or_spin_after_restart(tm
             == attempt.work_token
         )
         assert (
-            db.connection.execute("SELECT value FROM meta WHERE key='healthy-output'").fetchone()[0]
+            db.connection.execute("SELECT value FROM meta WHERE key = 'healthy-output'").fetchone()[
+                0
+            ]
             == "committed"
         )
 
@@ -143,20 +147,26 @@ def test_success_and_output_roll_back_together_and_retry_commits_once(tmp_path):
                 complete(
                     db,
                     GOOD,
-                    lambda conn: conn.execute("INSERT INTO meta VALUES ('atomic-output','yes')"),
+                    lambda conn: conn.execute(
+                        "INSERT INTO meta (key, value) VALUES ('atomic-output', 'yes')"
+                    ),
                 )
                 finish_attempt(
                     db, attempt, outcome="succeeded", reason_code="output_committed", now=NOW
                 )
                 raise RuntimeError("crash before commit")
-        assert not db.connection.execute("SELECT 1 FROM meta WHERE key='atomic-output'").fetchone()
+        assert not db.connection.execute(
+            "SELECT 1 FROM meta WHERE key = 'atomic-output'"
+        ).fetchone()
         assert latest_attempt(db.connection, GOOD)["outcome"] == "running"
         assert db.connection.execute("SELECT 1 FROM pending_work").fetchone()
         with db.transaction():
             complete(
                 db,
                 GOOD,
-                lambda conn: conn.execute("INSERT INTO meta VALUES ('atomic-output','yes')"),
+                lambda conn: conn.execute(
+                    "INSERT INTO meta (key, value) VALUES ('atomic-output', 'yes')"
+                ),
             )
             finish_attempt(
                 db, attempt, outcome="succeeded", reason_code="output_committed", now=NOW
@@ -175,12 +185,14 @@ def test_new_parse_invalidation_fences_old_completion_even_with_identical_timest
                 complete(
                     db,
                     BAD,
-                    lambda conn: conn.execute("INSERT INTO meta VALUES ('stale-output','bad')"),
+                    lambda conn: conn.execute(
+                        "INSERT INTO meta (key, value) VALUES ('stale-output', 'bad')"
+                    ),
                 )
                 finish_attempt(
                     db, attempt, outcome="succeeded", reason_code="output_committed", now=NOW
                 )
-        assert not db.connection.execute("SELECT 1 FROM meta WHERE key='stale-output'").fetchone()
+        assert not db.connection.execute("SELECT 1 FROM meta WHERE key = 'stale-output'").fetchone()
         finish_attempt(db, attempt, outcome="superseded", reason_code="newer_work_pending", now=NOW)
         assert db.connection.execute("SELECT 1 FROM pending_work").fetchone()
         assert next_work(db.connection, "parse", now=NOW, exclude={BAD}) is None
@@ -228,12 +240,12 @@ def test_recovery_of_old_running_attempt_cannot_revive_newer_completed_work(tmp_
         assert latest_attempt(db.connection, BAD)["outcome"] == "succeeded"
         assert (
             db.connection.execute(
-                "SELECT outcome FROM work_attempts WHERE attempt_id=?", (old.attempt_id,)
+                "SELECT outcome FROM work_attempts WHERE attempt_id = %s", (old.attempt_id,)
             ).fetchone()[0]
             == "superseded"
         )
         assert not db.connection.execute(
-            "SELECT 1 FROM findings WHERE kind='work_attempt' AND closed_at IS NULL"
+            "SELECT 1 FROM findings WHERE kind = 'work_attempt' AND closed_at IS NULL"
         ).fetchone()
 
 
@@ -256,7 +268,11 @@ def snapshot(db):
     watch = SOURCE.watch(123)
     upsert_watch(db.connection, watch, NOW)
     db.connection.execute(
-        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) VALUES (?,?,?,?,?,200,?,12,1,?,'Found')",
+        (
+            "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+            "body_sha256, body_bytes, content_changed, run_id, classification) VALUES (%s, %s, %s, %s, "
+            "%s, 200, %s, 12, 1, %s, 'Found')"
+        ),
         (BAD.unit_id, watch.watch_id, "POST", watch.url, NOW.isoformat(), "a" * 64, run),
     )
     return run, watch
@@ -267,13 +283,14 @@ def test_parse_fingerprint_ignores_own_failure_and_unrelated_progress(tmp_path):
         _, watch = snapshot(db)
         before = input_fingerprint(db.connection, BAD)
         db.connection.execute(
-            "UPDATE snapshots SET parse_status='failed',extract_status='failed',parser_version='old',extract_version='old'"
+            "UPDATE snapshots SET parse_status = 'failed', extract_status = 'failed', parser_version = "
+            "'old', extract_version = 'old'"
         )
-        db.connection.execute("UPDATE revisions SET value=value+1")
+        db.connection.execute("UPDATE revisions SET value = value + 1")
         enqueue(db.connection, [BAD], enqueued_at=(NOW + timedelta(days=1)).isoformat())
         assert input_fingerprint(db.connection, BAD) == before
         db.connection.execute(
-            "UPDATE watches SET archive_url='https://archive.example/capture' WHERE watch_id=?",
+            "UPDATE watches SET archive_url = 'https://archive.example/capture' WHERE watch_id = %s",
             (watch.watch_id,),
         )
         assert input_fingerprint(db.connection, BAD) != before
@@ -282,7 +299,7 @@ def test_parse_fingerprint_ignores_own_failure_and_unrelated_progress(tmp_path):
 def test_missing_parser_has_stable_fingerprint_and_does_not_block_healthy_selection(tmp_path):
     with open_database(tmp_path) as db:
         run, _ = snapshot(db)
-        db.connection.execute("UPDATE watches SET parser='unimplemented.page'")
+        db.connection.execute("UPDATE watches SET parser = 'unimplemented.page'")
         original = input_fingerprint(db.connection, BAD)
         attempt = begin_attempt(db, BAD, now=NOW, run_id=run)
         finish_attempt(db, attempt, outcome="blocked", reason_code="unknown_parser", now=NOW)
@@ -290,7 +307,7 @@ def test_missing_parser_has_stable_fingerprint_and_does_not_block_healthy_select
         assert input_fingerprint(db.connection, BAD) == original
         assert next_work(db.connection, "parse", now=NOW) is None
         assert next_work(db.connection, "project", now=NOW) == GOOD
-        db.connection.execute("UPDATE watches SET parser='wsdc_registry.dancer'")
+        db.connection.execute("UPDATE watches SET parser = 'wsdc_registry.dancer'")
         assert input_fingerprint(db.connection, BAD) != original
         assert next_work(db.connection, "parse", now=NOW) == BAD
 
@@ -303,21 +320,23 @@ def test_parse_changed_evidence_recipe_or_admission_policy_reopens_retry(tmp_pat
         attempt = begin_attempt(db, BAD, now=NOW, run_id=run)
         finish_attempt(db, attempt, outcome="blocked", reason_code="guard_failed", now=NOW)
         if change == "body":
-            db.connection.execute("UPDATE snapshots SET body_sha256=?", ("b" * 64,))
+            db.connection.execute("UPDATE snapshots SET body_sha256 = %s", ("b" * 64,))
         elif change == "recipe":
             db.connection.execute(
-                "INSERT INTO accepted_inputs "
-                "VALUES ('pipeline','recipe/code/parse/wsdc_registry.dancer','new-code')"
+                "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', "
+                "'recipe/code/parse/wsdc_registry.dancer', 'new-code')"
             )
         elif change == "package":
             # A fix outside the kind's scopes (admission, observations) still
             # re-opens a blocked parse, though it re-parses nothing (D-0207).
             db.connection.execute(
-                "INSERT INTO accepted_inputs VALUES ('pipeline','version/repository','new-code')"
+                "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES ('pipeline', "
+                "'version/repository', 'new-code')"
             )
         else:
             db.connection.execute(
-                "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) VALUES ('wsdc_registry.dancer','4','new-policy')"
+                "INSERT INTO admission_policies (page_kind, contract_version, policy_revision) VALUES "
+                "('wsdc_registry.dancer', '4', 'new-policy')"
             )
         current = input_fingerprint(db.connection, BAD)
         assert current != original
@@ -329,12 +348,20 @@ def test_project_fingerprint_is_scoped_to_its_own_observations(tmp_path):
         run, watch = snapshot(db)
         first = input_fingerprint(db.connection, GOOD)
         db.connection.execute(
-            "INSERT INTO observations VALUES ('unrelated',?,?, 'x','dancer','other',0,'1','1','{}')",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('unrelated', %s, %s, "
+                "'x', 'dancer', 'other', 0, '1', '1', '{}')"
+            ),
             (watch.watch_id, BAD.unit_id),
         )
         assert input_fingerprint(db.connection, GOOD) == first
         db.connection.execute(
-            "INSERT INTO observations VALUES ('related',?,?, 'x','dancer','healthy',1,'1','1','{}')",
+            (
+                "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                "scope_id, seq, extract_version, parser_version, payload_json) VALUES ('related', %s, %s, "
+                "'x', 'dancer', 'healthy', 1, '1', '1', '{}')"
+            ),
             (watch.watch_id, BAD.unit_id),
         )
         assert input_fingerprint(db.connection, GOOD) != first
@@ -362,21 +389,21 @@ def test_a_derivation_writes_no_admission_and_keeps_its_attempt(tmp_path, monkey
         if unit.unit_id in failing:
             raise RuntimeError("fixture failure")
         derivations.complete(db.connection, selection, rows=(), now=clock.now(), run_id=run)
-        db.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        db.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
 
     def bookkeeping(conn, unit_id):
         attempt = conn.execute(
-            "SELECT attempt_id FROM work_attempts WHERE unit_id=? ORDER BY attempt_id DESC",
+            "SELECT attempt_id FROM work_attempts WHERE unit_id = %s ORDER BY attempt_id DESC NULLS LAST",
             (unit_id,),
         ).fetchone()[0]
         ledger = sum(
-            conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+            conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             for table in ("execution_admissions", "execution_dependencies")
         )
         outcome = conn.execute(
-            "SELECT outcome,reason_code FROM work_attempts WHERE attempt_id=?", (attempt,)
+            "SELECT outcome, reason_code FROM work_attempts WHERE attempt_id = %s", (attempt,)
         ).fetchone()
         return ledger, tuple(outcome)
 
@@ -390,19 +417,19 @@ def test_a_derivation_writes_no_admission_and_keeps_its_attempt(tmp_path, monkey
         assert bookkeeping(conn, "healthy") == (0, ("succeeded", "output_committed"))
         assert bookkeeping(conn, "broken") == (0, ("transient", "unit_exception"))
         queued = conn.execute(
-            "SELECT state,attempts,last_reason,last_error FROM work_queue WHERE unit_id='broken'"
+            "SELECT state, attempts, last_reason, last_error FROM work_queue WHERE unit_id = 'broken'"
         ).fetchone()
         assert queued["state"] == "ready" and queued["attempts"] == 1
         assert queued["last_reason"] == "unit_exception"
         assert "fixture failure" in queued["last_error"]
-        assert conn.execute("SELECT count(*) FROM findings").fetchone()[0] == 0
-        assert conn.execute("SELECT count(*) FROM finding_support").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM finding_support").fetchone()[0] == 0
         failing.clear()
         clock.sleep(24 * 3600)
         assert not derive_one(db, Archive(tmp_path), units[1], bundle, clock, run).failed
         assert bookkeeping(conn, "broken") == (0, ("succeeded", "output_committed"))
-        assert conn.execute("SELECT count(*) FROM findings").fetchone()[0] == 0
-        assert conn.execute("SELECT count(*) FROM work_attempts").fetchone()[0] == 3
+        assert conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM work_attempts").fetchone()[0] == 3
 
 
 def _pause_world(tmp_path, monkeypatch, ran):
@@ -421,7 +448,7 @@ def _pause_world(tmp_path, monkeypatch, ran):
     def project(db, unit, _bundle, _clock, run_id, selection=None):
         ran.append(status(db.connection, now=clock.now()))
         derivations.complete(db.connection, selection, rows=(), now=clock.now(), run_id=run_id)
-        db.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+        db.connection.execute("DELETE FROM pending_work WHERE unit_id = %s", (unit.unit_id,))
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     return clock, InputBundle("test", Path(tmp_path), {}, Config({}, {}))
@@ -456,8 +483,8 @@ def test_a_pause_before_the_lease_holds_the_unit_with_nothing_written(tmp_path, 
         assert ran == []
         conn = db.connection
         for table in ("work_attempts", "work_queue", "execution_admissions"):
-            assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0, table
-        assert conn.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 1
+            assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0, table
+        assert conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 1
 
 
 def test_a_units_pause_scope_is_read_before_its_write_lock(tmp_path, monkeypatch):
@@ -550,9 +577,9 @@ def test_a_pause_between_the_scope_probe_and_the_write_lock_is_matched_inside(
         assert fired == [True] and inside == [True]
         assert (outcome.reason == "operator_pause") is held and not outcome.failed
         assert len(ran) == (0 if held else 1)
-        attempts = db.connection.execute("SELECT count(*) FROM work_attempts").fetchone()[0]
+        attempts = db.connection.execute("SELECT COUNT(*) FROM work_attempts").fetchone()[0]
         assert attempts == (0 if held else 1)
-        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
 
 
 def test_a_pause_during_a_lease_drains_the_unit_then_holds_the_next(tmp_path, monkeypatch):
@@ -600,7 +627,7 @@ def test_a_pause_during_a_lease_drains_the_unit_then_holds_the_next(tmp_path, mo
         assert derive_one(db, Archive(tmp_path), other, bundle, clock, run).reason == (
             "operator_pause"
         )
-        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+        assert db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
 
 
 def test_a_supersession_with_unchanged_inputs_retries_on_a_clock(tmp_path, monkeypatch):
@@ -680,7 +707,7 @@ def test_a_committed_parse_keeps_its_attempt_but_not_its_admission(tmp_path):
         attempt = latest_attempt(conn, unit)
         assert attempt["outcome"] == "succeeded"
         for table in ("execution_admissions", "execution_dependencies", "findings"):
-            assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0, table
+            assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0, table
 
 
 def test_a_running_attempt_is_eligible_once_its_queue_lease_is_dead(tmp_path):

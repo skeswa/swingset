@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
+
+from swingset.state import engine
 
 from .db import Database
 
@@ -23,14 +24,16 @@ class WorkUnit:
 MAP_ALL = WorkUnit("project", "map", "all")
 
 
-def enqueue(conn: sqlite3.Connection, units: Iterable[WorkUnit], *, enqueued_at: str) -> None:
+def enqueue(conn: engine.Connection, units: Iterable[WorkUnit], *, enqueued_at: str) -> None:
     queued = list(units)
     if MAP_ALL in queued:
         from .derivation_dependencies import mapping_units
 
         queued = [unit for unit in queued if unit != MAP_ALL] + list(mapping_units(conn))
     conn.executemany(
-        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES (?,?,?,?) ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET enqueued_at=excluded.enqueued_at",
+        (
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES (%s, %s, %s, %s) ON CONFLICT(stage, unit_kind, unit_id) DO UPDATE SET enqueued_at = excluded.enqueued_at"
+        ),
         ((unit.stage, unit.unit_kind, unit.unit_id, enqueued_at) for unit in queued),
     )
 
@@ -48,7 +51,7 @@ def accept_inputs(
     database: Database,
     consumer: str,
     inputs: Mapping[str, str],
-    affected: Callable[[str, str | None, str, sqlite3.Connection], Iterable[WorkUnit]],
+    affected: Callable[[str, str | None, str, engine.Connection], Iterable[WorkUnit]],
     *,
     accepted_at: str | None = None,
 ) -> set[str]:
@@ -58,7 +61,7 @@ def accept_inputs(
     with database.transaction() as conn:
         for name, digest in inputs.items():
             row = conn.execute(
-                "SELECT digest FROM accepted_inputs WHERE consumer=? AND input_name=?",
+                "SELECT digest FROM accepted_inputs WHERE consumer = %s AND input_name = %s",
                 (consumer, name),
             ).fetchone()
             old = None if row is None else str(row[0])
@@ -66,7 +69,9 @@ def accept_inputs(
                 continue
             enqueue(conn, affected(name, old, digest, conn), enqueued_at=timestamp)
             conn.execute(
-                "INSERT INTO accepted_inputs(consumer,input_name,digest) VALUES (?,?,?) ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+                (
+                    "INSERT INTO accepted_inputs (consumer, input_name, digest) VALUES (%s, %s, %s) ON CONFLICT(consumer, input_name) DO UPDATE SET digest = excluded.digest"
+                ),
                 (consumer, name, digest),
             )
             changed.add(name)
@@ -94,7 +99,7 @@ def accept_input(
 
 
 def next_work(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     stage: str,
     *,
     now: datetime | None = None,
@@ -118,7 +123,7 @@ def next_work(
 
 
 def iter_work(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     stage: str,
     *,
     now: datetime | None = None,
@@ -140,7 +145,9 @@ def iter_work(
         else "enqueued_at,unit_kind,unit_id"
     )
     attempts_available = (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='work_attempts'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'work_attempts' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
     from . import derivations
@@ -152,7 +159,7 @@ def iter_work(
         else (
             WorkUnit(str(row[0]), str(row[1]), str(row[2]))
             for row in conn.execute(
-                f"SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=? ORDER BY {order}",
+                f"SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=%s ORDER BY {order}",
                 (stage,),
             )
         )
@@ -189,7 +196,7 @@ def iter_work(
 
 
 def unfinished_units(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     stages: Iterable[str] = ("parse", "project", "link"),
 ) -> Iterable[WorkUnit]:
     """All unfinished work, regardless of retry or control eligibility."""
@@ -202,14 +209,17 @@ def unfinished_units(
             yield from (
                 WorkUnit(*row)
                 for row in conn.execute(
-                    "SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=? ORDER BY unit_kind,unit_id",
+                    (
+                        "SELECT stage, unit_kind, unit_id FROM pending_work WHERE stage = %s ORDER BY unit_kind "
+                        "NULLS FIRST, unit_id NULLS FIRST"
+                    ),
                     (stage,),
                 )
             )
 
 
 def runnable_exists(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: datetime | None = None,
     fingerprint: Callable[[WorkUnit], str] | None = None,
@@ -225,12 +235,12 @@ def runnable_exists(
 
 
 def complete(
-    database: Database, unit: WorkUnit, write: Callable[[sqlite3.Connection], None]
+    database: Database, unit: WorkUnit, write: Callable[[engine.Connection], None]
 ) -> None:
     """Commit a unit's output, downstream work, and completion together."""
     with database.transaction() as conn:
         exists = conn.execute(
-            "SELECT 1 FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+            "SELECT 1 AS _value_0 FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
             (unit.stage, unit.unit_kind, unit.unit_id),
         ).fetchone()
         from . import derivations
@@ -241,23 +251,23 @@ def complete(
             return
         write(conn)
         conn.execute(
-            "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+            "DELETE FROM pending_work WHERE stage = %s AND unit_kind = %s AND unit_id = %s",
             (unit.stage, unit.unit_kind, unit.unit_id),
         )
 
 
-def bump_revision(conn: sqlite3.Connection, name: str) -> None:
-    cursor = conn.execute("UPDATE revisions SET value=value+1 WHERE name=?", (name,))
+def bump_revision(conn: engine.Connection, name: str) -> None:
+    cursor = conn.execute("UPDATE revisions SET value = value + 1 WHERE name = %s", (name,))
     if cursor.rowcount != 1:
         raise ValueError(f"unknown revision: {name}")
 
 
-def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUnit]:
+def affected_work(conn: engine.Connection, input_name: str) -> Iterable[WorkUnit]:
     """The centralized invalidation map from the state contract.
 
     Code scopes (D-0207): an extract or parse scope invalidates like its kind's
     version label. A project or link scope queues that kind's units, and
-    `recipe/env` and the legacy package-wide `recipe/runtime` queue every
+    the legacy package-wide `recipe/runtime` queues every
     parse, project and link unit. Derivations see these inputs in their
     fingerprints anyway; the queue rows are hints, so the watchdog, which
     reads only `pending_work`, sees the backlog (I4). The build is paced and
@@ -269,7 +279,9 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
         input_name = "version/parser/" + input_name.removeprefix("recipe/code/parse/")
     elif input_name.startswith("recipe/code/"):
         return derivation_hints(conn, input_name.removeprefix("recipe/code/"))
-    if input_name in {"recipe/env", "recipe/runtime"}:
+    if input_name == "recipe/env":
+        return ()
+    if input_name == "recipe/runtime":
         manual_crosscheck = (
             "source='crosscheck' AND kind='registry_dump' AND method='MANUAL' "
             "AND parser='registry_crosscheck'"
@@ -279,9 +291,9 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
             *(
                 WorkUnit("parse", "snapshot", str(row[0]))
                 for row in conn.execute(
-                    "SELECT s.snapshot_id FROM snapshots s JOIN watches w USING(watch_id) "
-                    "WHERE NOT (w.source='crosscheck' AND w.kind='registry_dump' "
-                    "AND w.method='MANUAL' AND w.parser='registry_crosscheck')"
+                    "SELECT s.snapshot_id FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE NOT "
+                    "(w.source = 'crosscheck' AND w.kind = 'registry_dump' AND w.method = 'MANUAL' AND w.parser "
+                    "= 'registry_crosscheck')"
                 )
             ),
             *derivation_hints(conn, None),
@@ -289,17 +301,23 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
     if input_name.startswith(("extract_version:", "version/extract/")):
         kind = input_name.rsplit(":" if ":" in input_name else "/", 1)[1]
         conn.execute(
-            "UPDATE watches SET extract_version=NULL WHERE parser=? OR kind=?", (kind, kind)
+            "UPDATE watches SET extract_version = NULL WHERE parser = %s OR kind = %s", (kind, kind)
         )
         rows = conn.execute(
-            "SELECT snapshot_id FROM snapshots WHERE watch_id IN (SELECT watch_id FROM watches WHERE parser=? OR kind=?)",
+            (
+                "SELECT snapshot_id FROM snapshots WHERE watch_id IN (SELECT watch_id FROM watches WHERE "
+                "parser = %s OR kind = %s)"
+            ),
             (kind, kind),
         )
         return tuple(WorkUnit("parse", "snapshot", str(row[0])) for row in rows)
     if input_name.startswith(("parser_version:", "version/parser/")):
         kind = input_name.rsplit(":" if ":" in input_name else "/", 1)[1]
         rows = conn.execute(
-            "SELECT snapshot_id FROM snapshots WHERE watch_id IN (SELECT watch_id FROM watches WHERE parser=? OR kind=?)",
+            (
+                "SELECT snapshot_id FROM snapshots WHERE watch_id IN (SELECT watch_id FROM watches WHERE "
+                "parser = %s OR kind = %s)"
+            ),
             (kind, kind),
         )
         return tuple(WorkUnit("parse", "snapshot", str(row[0])) for row in rows)
@@ -311,12 +329,13 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
     }:
         units = {
             WorkUnit("project", str(row[0]), str(row[1]))
-            for row in conn.execute("SELECT DISTINCT scope_kind,scope_id FROM observations")
+            for row in conn.execute("SELECT DISTINCT scope_kind, scope_id FROM observations")
         }
         units.update(
             WorkUnit("project", str(row[0]), str(row[1]))
             for row in conn.execute(
-                "SELECT DISTINCT scope_kind,scope_id FROM canonical_scope_rows WHERE scope_kind IN ('calendar','event','dancer')"
+                "SELECT DISTINCT scope_kind, scope_id FROM canonical_scope_rows WHERE scope_kind IN "
+                "('calendar', 'event', 'dancer')"
             )
         )
         units.update(
@@ -331,7 +350,7 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
         # The inventory reads both files; the years read what it writes, and
         # a year the edit does not change cuts off (plan F17).
         if conn.execute(
-            "SELECT 1 FROM events UNION SELECT 1 FROM registry_placements UNION SELECT 1 FROM observations WHERE scope_kind='calendar' LIMIT 1"
+            "SELECT 1 AS _value_0 FROM events UNION SELECT 1 AS _value_0 FROM registry_placements UNION SELECT 1 AS _value_0 FROM observations WHERE scope_kind = 'calendar' LIMIT 1"
         ).fetchone():
             from . import derivations
 
@@ -363,13 +382,13 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
         "version/linker",
     }:
         rows = conn.execute(
-            "SELECT event_id FROM events UNION SELECT substr(subject_id,1,instr(subject_id,'/')-1) FROM identity_links WHERE instr(subject_id,'/')>0"
+            "SELECT event_id FROM events UNION SELECT SUBSTRING(subject_id FROM 1 FOR POSITION('/' IN subject_id) - 1) AS _value_0 FROM identity_links WHERE POSITION('/' IN subject_id) > 0"
         )
         return tuple(WorkUnit("link", "event", str(row[0])) for row in rows)
     return ()
 
 
-def derivation_hints(conn: sqlite3.Connection, scope: str | None) -> tuple[WorkUnit, ...]:
+def derivation_hints(conn: engine.Connection, scope: str | None) -> tuple[WorkUnit, ...]:
     """Queue hints for the derivation units a code scope names.
 
     `project/<kind>` names that kind's units, `link` every link unit, and

@@ -2,18 +2,19 @@
 
 import gzip
 import json
-import sqlite3
 
 import pytest
 from test_cycle import overrides as overrides
 from test_event_enumerations import admit_parent, child, finish_bootstrap
 from test_event_enumerations import event as event
 from test_event_pressure import config, enroll, index
+from test_event_pressure_probe import fault_update
 from test_event_progress import observe
 
 from swingset.admission.page_evidence import Limits
 from swingset.schedule import event_progress as progress
 from swingset.schedule.event_accounting_report import report
+from swingset.state import engine
 
 
 def complete(f, names=("one.htm",)):
@@ -36,7 +37,15 @@ def event_view(f):
 def receipts(f):
     return [
         dict(r)
-        for r in f.conn.execute("SELECT * FROM event_accounting_receipts ORDER BY receipt_id")
+        for r in f.conn.execute(
+            "SELECT event_accounting_receipts.receipt_id, event_accounting_receipts.source, "
+            "event_accounting_receipts.source_ref, event_accounting_receipts.enumeration_id, "
+            "event_accounting_receipts.previous_receipt_id, event_accounting_receipts.assessment, "
+            "event_accounting_receipts.transition, event_accounting_receipts.observed_at, "
+            "event_accounting_receipts.earliest_checked_at, event_accounting_receipts.valid_until, "
+            "event_accounting_receipts.token_json, event_accounting_receipts.summary_json FROM "
+            "event_accounting_receipts ORDER BY receipt_id NULLS FIRST"
+        )
     ]
 
 
@@ -61,7 +70,7 @@ def test_initial_available_is_not_successful_progress_and_unchanged_checks_are_q
     before = receipts(f)
     observe(f)
     assert receipts(f) == before
-    with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+    with pytest.raises(engine.IntegrityError, match="immutable"):
         f.conn.execute("DELETE FROM event_accounting_receipts")
 
 
@@ -82,20 +91,21 @@ def test_loss_reopens_and_restoration_is_availability_not_operation(event, loss)
     f = event
     parent, children = complete(f)
     settle(f)
-    operations = f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+    operations = f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
     generation = parent if loss == "parent" else children[0][1]
     if loss == "revocation":
         f.conn.execute(
-            "UPDATE source_generations SET state='revoked' WHERE generation_id=?", (generation,)
+            "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
+            (generation,),
         )
     else:
         context = json.loads(
             f.conn.execute(
-                "SELECT recipe_json FROM source_generations WHERE generation_id=?", (generation,)
+                "SELECT recipe_json FROM source_generations WHERE generation_id = %s", (generation,)
             ).fetchone()[0]
         )["context"]
         sha = f.conn.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (context["snapshot_id"],)
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (context["snapshot_id"],)
         ).fetchone()[0]
         path = f.archive.blob_path(sha)
         original = path.read_bytes()
@@ -110,7 +120,7 @@ def test_loss_reopens_and_restoration_is_availability_not_operation(event, loss)
         settle(f)
         assert receipts(f)[-1]["transition"] == "availability_restored"
         assert (
-            f.conn.execute("SELECT count(*) FROM event_stage_operations").fetchone()[0]
+            f.conn.execute("SELECT COUNT(*) FROM event_stage_operations").fetchone()[0]
             == operations
         )
         assert not f.conn.execute("SELECT 1 FROM event_progress_receipts").fetchone()
@@ -135,7 +145,7 @@ def test_unknown_between_negatives_does_not_duplicate_reopening(event):
     _, children = complete(f)
     settle(f)
     sha = f.conn.execute(
-        "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (children[0][0].snapshot_id,)
+        "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (children[0][0].snapshot_id,)
     ).fetchone()[0]
     f.archive.blob_path(sha).unlink()
     observe(f)
@@ -188,14 +198,14 @@ def test_fences_and_malformed_observations_are_unassessed(event):
     f = event
     complete(f)
     settle(f)
-    f.conn.execute("UPDATE event_accounting_support_observations SET token_json='[]'")
+    f.conn.execute("UPDATE event_accounting_support_observations SET token_json = '[]'")
     assert event_view(f)["assessment"] == "unassessed"
     settle(f)
-    f.conn.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+    f.conn.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
     assert event_view(f)["assessment"] == "unassessed"
     settle(f)
     f.conn.execute(
-        "INSERT INTO meta VALUES('input_bundle_hash','changed') ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+        "INSERT INTO meta (key, value) VALUES ('input_bundle_hash', 'changed') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
     )
     assert event_view(f)["assessment"] == "unassessed"
 
@@ -209,8 +219,8 @@ def test_concurrent_invalidation_discards_accounting_with_progress(event, monkey
 
     def change(*args, **kwargs):
         value = original(*args, **kwargs)
-        with sqlite3.connect(f.db.state_dir / "state.sqlite") as other:
-            other.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+        with engine.connect(engine.resolve_dsn(f.db.state_dir)) as other:
+            other.execute("UPDATE event_pressure_state SET epoch = epoch + 1")
         return value
 
     monkeypatch.setattr(event_accounting, "parent_support", change)
@@ -222,16 +232,21 @@ def test_concurrent_invalidation_discards_accounting_with_progress(event, monkey
 def test_failed_accounting_write_rolls_back_whole_batch(event):
     f = event
     complete(f)
-    f.conn.execute(
-        "CREATE TRIGGER fail_accounting BEFORE INSERT ON event_accounting_receipts BEGIN SELECT RAISE(ABORT,'accounting failure'); END"
+    fault_update(
+        f,
+        "CREATE FUNCTION ops.fail_accounting() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='accounting failure'; END $$",
     )
-    with pytest.raises(sqlite3.IntegrityError, match="accounting failure"):
+    fault_update(
+        f,
+        "CREATE TRIGGER fail_accounting BEFORE INSERT ON event_accounting_receipts FOR EACH ROW EXECUTE FUNCTION ops.fail_accounting()",
+    )
+    with pytest.raises(engine.IntegrityError, match="SQLSTATE 23514"):
         observe(f)
     assert not receipts(f)
     assert not f.conn.execute("SELECT 1 FROM event_progress_observations").fetchone()
     assert not f.conn.execute("SELECT 1 FROM event_accounting_support_observations").fetchone()
     assert tuple(
-        f.conn.execute("SELECT last_rowid,high_water FROM event_progress_cursor").fetchone()
+        f.conn.execute("SELECT last_rowid, high_water FROM event_progress_cursor").fetchone()
     ) == (0, 0)
 
 
@@ -271,7 +286,7 @@ def test_parent_budget_is_shared_and_other_events_get_opportunity(event, monkeyp
         observe(f)
     assert len(set(visited)) >= 2
     assert f.conn.execute(
-        "SELECT 1 FROM event_progress_observations WHERE source_ref=?", (other.source_ref,)
+        "SELECT 1 FROM event_progress_observations WHERE source_ref = %s", (other.source_ref,)
     ).fetchone()
     assert event_view(f)["assessment"] == "unassessed"
     monkeypatch.setattr(event_accounting, "parent_support", original)
@@ -291,14 +306,24 @@ def test_legacy_and_oversized_membership_never_vacuously_complete(event):
 
 
 def test_checkpoint_and_readonly_reopen_preserve_accounting(event, tmp_path):
-    from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint
+    from copy import copy
+    from types import SimpleNamespace
+
+    from test_event_completion_restore import retain_configuration
+
+    from swingset.backup.checkpoint import (
+        activate_restored_state,
+        create_checkpoint,
+        restore_checkpoint,
+    )
     from swingset.state.db import SCHEMA_VERSION
 
     f = event
+    retain_configuration(f, f.db.state_dir / "tmp" / "configuration", pressure=True)
     complete(f)
     settle(f)
     tables = ("event_accounting_support_observations", "event_accounting_receipts")
-    before = {t: list(map(tuple, f.conn.execute("SELECT * FROM " + t))) for t in tables}
+    before = {t: list(map(tuple, f.conn.execute(" SELECT * FROM " + t))) for t in tables}
     saved = create_checkpoint(
         f.db.state_dir,
         f.conn,
@@ -309,16 +334,39 @@ def test_checkpoint_and_readonly_reopen_preserve_accounting(event, tmp_path):
     )
     target = tmp_path / "restored"
     restore_checkpoint(saved.path, target, maximum_schema_version=SCHEMA_VERSION)
-    with sqlite3.connect((target / "state.sqlite").as_uri() + "?mode=ro", uri=True) as conn:
-        conn.row_factory = sqlite3.Row
-        assert {t: list(map(tuple, conn.execute("SELECT * FROM " + t))) for t in tables} == before
-        conn.execute("PRAGMA query_only=ON")
-        conn.execute("BEGIN")
+    from swingset.state.db import open_database
+    from swingset.state.postgres_schema import verify
+
+    with open_database(target, lock=False, read_only=True, allow_restore_pending=True) as database:
+        conn = database.connection
+        assert {t: list(map(tuple, conn.execute(" SELECT * FROM " + t))) for t in tables} == before
         from swingset.fetch.archive import Archive
 
-        value = report(conn, Archive(target), config(), now=f.corpus.clock.now())
-        assert value["events"][0]["assessment"] == "locally_accounted"
-        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+        with conn.read_snapshot():
+            value = report(conn, Archive(target), config(), now=f.corpus.clock.now())
+            assert value["events"][0]["assessment"] == "unassessed"
+            assert verify(conn)["equal"]
+    activate_restored_state(target, clock=f.corpus.clock)
+    with open_database(target) as database:
+        corpus = copy(f.corpus)
+        corpus.db, corpus.conn = database, database.connection
+        corpus.archive = Archive(target)
+        restored = SimpleNamespace(
+            db=database, conn=database.connection, corpus=corpus, archive=corpus.archive
+        )
+        from swingset.schedule.event_pressure import bootstrap
+
+        for _ in range(10):
+            if not bootstrap(database, config(), now=corpus.clock.now())["metadata_pending"]:
+                break
+        else:
+            pytest.fail("ordinary restored metadata did not finish enrollment")
+        settle(restored)
+    with open_database(target, lock=False, read_only=True) as database:
+        with database.connection.read_snapshot():
+            value = report(database.connection, Archive(target), config(), now=f.corpus.clock.now())
+            assert value["events"][0]["assessment"] == "locally_accounted"
+            assert verify(database.connection)["equal"]
     assert observe(f)["accounting_transitions"] == 0
 
 
@@ -348,7 +396,8 @@ def test_aggregate_support_counts_normalized_requests_once(event):
 
 
 def test_report_old_schema_is_explicitly_unsupported(event):
-    with sqlite3.connect(":memory:") as conn:
+    with engine.connect(engine.resolve_dsn(event.db.state_dir), read_only=True) as conn:
+        conn.execute("SET search_path=pg_catalog,pg_temp")
         value = report(conn, event.archive, config(), now=event.corpus.clock.now())
     assert not value["supported"] and value["retirement"] == "unassessed"
 
@@ -382,11 +431,11 @@ def test_chronological_bounds_and_policy_ttl_validation(event):
     early = now - timedelta(seconds=60)
     offset = timezone(timedelta(hours=-4))
     f.conn.execute(
-        "UPDATE event_progress_observations SET observed_at=?,valid_until=?",
+        "UPDATE event_progress_observations SET observed_at = %s, valid_until = %s",
         (early.isoformat(), (early + timedelta(days=1)).isoformat()),
     )
     f.conn.execute(
-        "UPDATE event_accounting_support_observations SET observed_at=?,valid_until=?",
+        "UPDATE event_accounting_support_observations SET observed_at = %s, valid_until = %s",
         (
             now.astimezone(offset).isoformat(),
             (now + timedelta(days=1)).astimezone(offset).isoformat(),
@@ -396,7 +445,7 @@ def test_chronological_bounds_and_policy_ttl_validation(event):
     assert datetime.fromisoformat(value["earliest_checked_at"]) == early
     assert datetime.fromisoformat(value["valid_until"]) == early + timedelta(days=1)
     f.conn.execute(
-        "UPDATE event_accounting_support_observations SET valid_until='2099-01-01T00:00:00+00:00'"
+        "UPDATE event_accounting_support_observations SET valid_until = '2099-01-01T00:00:00+00:00'"
     )
     assert event_view(f)["assessment"] == "unassessed"
     settle(f)  # Malformed observations must not trap the priority preflight.
@@ -420,11 +469,11 @@ def test_malformed_page_times_cannot_trap_parent_priority(event, damage):
     settle(f)
     if damage == "overlong":
         f.conn.execute(
-            "UPDATE event_progress_observations SET valid_until='2099-01-01T00:00:00+00:00'"
+            "UPDATE event_progress_observations SET valid_until = '2099-01-01T00:00:00+00:00'"
         )
     else:
         f.conn.execute(
-            "UPDATE event_progress_observations SET observed_at=substr(observed_at,1,19)"
+            "UPDATE event_progress_observations SET observed_at = SUBSTRING(observed_at FROM 1 FOR 19)"
         )
     f.conn.execute("DELETE FROM event_accounting_support_observations")
     assert event_view(f)["assessment"] == "unassessed"

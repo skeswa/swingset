@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
+
+from swingset.state import engine
+from swingset.state.large_values import column_reader
 
 
 class _Digest:
@@ -23,7 +25,7 @@ class _Digest:
         self.hash.update(type(value).__name__.encode() + b":" + str(len(body)).encode() + b":")
         self.hash.update(body)
 
-    def rows(self, conn: sqlite3.Connection, sql: str, parameters: tuple[str, ...] = ()) -> None:
+    def rows(self, conn: engine.Connection, sql: str, parameters: tuple[str, ...] = ()) -> None:
         self.value(sql)
         for row in conn.execute(sql, parameters):
             self.value(len(row))
@@ -56,40 +58,51 @@ class _ReadSet:
             else None,
         )
 
-    def fingerprint(self, conn: sqlite3.Connection) -> str | None:
+    def fingerprint(self, conn: engine.Connection) -> str | None:
         result = _Digest()
         result.rows(
             conn,
-            "SELECT * FROM derivation_generations WHERE generation_id IN "
-            "(SELECT value FROM json_each(?)) ORDER BY generation_id",
+            (
+                "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+                "derivation_generations.unit_kind, derivation_generations.unit_id, "
+                "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+                "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+                "derivation_generations.output_digest, derivation_generations.row_count, "
+                "derivation_generations.created_at, derivation_generations.run_id FROM "
+                "derivation_generations WHERE generation_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY "
+                "generation_id NULLS FIRST"
+            ),
             (self.generations,),
         )
         # Some dependency arrays are registry-sized. Verify their bytes in
         # bounded chunks, just as full closure validation does.
         result.value("dependency manifests")
         for row in conn.execute(
-            "SELECT dependency_set_id,rowid FROM derivation_dependency_sets "
-            "WHERE dependency_set_id IN (SELECT value FROM json_each(?)) "
-            "ORDER BY dependency_set_id",
+            (
+                "SELECT dependency_set_id, rowid FROM derivation_dependency_sets WHERE dependency_set_id IN "
+                "(SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY dependency_set_id NULLS FIRST"
+            ),
             (self.dependencies,),
         ):
             result.value(row[0])
-            with conn.blobopen(
-                "derivation_dependency_sets", "manifest_json", row[1], readonly=True
+            with column_reader(
+                conn, "derivation_dependency_sets", "manifest_json", row[1], readonly=True
             ) as blob:
                 result.value(len(blob))
                 while block := blob.read(65536):
                     result.hash.update(block)
         result.rows(
             conn,
-            "SELECT generation_id,state,input_fingerprint,contract_version,page_kind,"
-            "created_at,recipe_json,report_json,result_json FROM source_generations "
-            "WHERE generation_id IN (SELECT value FROM json_each(?)) ORDER BY generation_id",
+            (
+                "SELECT generation_id, state, input_fingerprint, contract_version, page_kind, created_at, "
+                "recipe_json, report_json, result_json FROM source_generations WHERE generation_id IN "
+                "(SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY generation_id NULLS FIRST"
+            ),
             (self.sources,),
         )
         if (
             conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='source_generation_packs'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'source_generation_packs') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone()
             is not None
         ):
@@ -97,27 +110,43 @@ class _ReadSet:
             # (immutable, restored only byte-exact) stands for its body.
             result.rows(
                 conn,
-                "SELECT generation_id,pack_digest FROM source_generation_packs "
-                "WHERE generation_id IN (SELECT value FROM json_each(?)) ORDER BY generation_id",
+                (
+                    "SELECT generation_id, pack_digest FROM source_generation_packs WHERE generation_id IN "
+                    "(SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY generation_id NULLS FIRST"
+                ),
                 (self.sources,),
             )
         result.rows(
             conn,
-            "SELECT DISTINCT generation_id FROM admission_decisions WHERE state='accepted' "
-            "AND generation_id IN (SELECT value FROM json_each(?)) ORDER BY generation_id",
+            (
+                "SELECT DISTINCT generation_id FROM admission_decisions WHERE state = 'accepted' AND "
+                "generation_id IN (SELECT value FROM jsonb_array_elements_text(%s::jsonb)) ORDER BY generation_id NULLS FIRST"
+            ),
             (self.sources,),
         )
-        result.rows(conn, "SELECT * FROM admission_policies ORDER BY page_kind")
         result.rows(
             conn,
-            "SELECT snapshot_id,body_sha256 FROM snapshots WHERE snapshot_id IN "
-            "(SELECT value FROM json_each(?)) ORDER BY snapshot_id",
+            (
+                "SELECT admission_policies.page_kind, admission_policies.contract_version, "
+                "admission_policies.mode, admission_policies.policy_revision, "
+                "admission_policies.reviewed_report_digest, admission_policies.reviewed_by, "
+                "admission_policies.reviewed_at FROM admission_policies ORDER BY page_kind NULLS FIRST"
+            ),
+        )
+        result.rows(
+            conn,
+            (
+                "SELECT snapshot_id, body_sha256 FROM snapshots WHERE snapshot_id IN (SELECT value FROM "
+                "jsonb_array_elements_text(%s::jsonb)) ORDER BY snapshot_id NULLS FIRST"
+            ),
             (self.snapshots,),
         )
         result.rows(
             conn,
-            "SELECT generation_id,input_fingerprint,recipe_json FROM source_generations "
-            "WHERE state='revoked' ORDER BY generation_id",
+            (
+                "SELECT generation_id, input_fingerprint, recipe_json FROM source_generations WHERE state = "
+                "'revoked' ORDER BY generation_id NULLS FIRST"
+            ),
         )
         if self.event_witness is not None:
             from .event_coverage import fingerprint
@@ -138,7 +167,7 @@ class _Proof:
 
 @dataclass
 class _Scope:
-    connection: sqlite3.Connection
+    connection: engine.Connection
     proof: _Proof | None = None
 
 
@@ -146,7 +175,7 @@ _scope: ContextVar[_Scope | None] = ContextVar("closure_validation_scope", defau
 
 
 @contextmanager
-def validation_scope(conn: sqlite3.Connection) -> Iterator[None]:
+def validation_scope(conn: engine.Connection) -> Iterator[None]:
     """Limit proof reuse to one completion operation; retain no parsed payloads.
 
     The scope may open before the transactions it serves, so a proof taken in
@@ -161,7 +190,7 @@ def validation_scope(conn: sqlite3.Connection) -> Iterator[None]:
         _scope.reset(token)
 
 
-def unchanged(conn: sqlite3.Connection, manifest_digest: str) -> bool:
+def unchanged(conn: engine.Connection, manifest_digest: str) -> bool:
     scope = _scope.get()
     if scope is None or scope.connection is not conn or not conn.in_transaction:
         return False
@@ -174,7 +203,7 @@ def unchanged(conn: sqlite3.Connection, manifest_digest: str) -> bool:
     return False
 
 
-def remember(conn: sqlite3.Connection, manifest: Mapping[str, Any], sources: Iterable[str]) -> None:
+def remember(conn: engine.Connection, manifest: Mapping[str, Any], sources: Iterable[str]) -> None:
     scope = _scope.get()
     if scope is None or scope.connection is not conn or not conn.in_transaction:
         return

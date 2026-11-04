@@ -1,6 +1,5 @@
 """Registry dancer and placement projection."""
 
-import sqlite3
 from datetime import datetime
 from typing import TypedDict
 
@@ -9,9 +8,12 @@ from swingset.model.ids import series_id
 from swingset.model.observations import decode_payload
 from swingset.normalize.names import normalize_name
 from swingset.sources.records import DancerLookup
+from swingset.state import engine
 from swingset.state.findings import Finding
 
 from .writer import Projection
+
+VERSION = 1
 
 
 class ProvenanceValues(TypedDict):
@@ -82,11 +84,11 @@ _STYLES = {
 }
 
 
-def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: str) -> Projection:
+def project_dancer(conn: engine.Connection, scope_id: str, now: str, run_id: str) -> Projection:
     evidence_rows = conn.execute(
-        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at)
-        FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='dancer' AND o.scope_id=? ORDER BY COALESCE(s.observed_at,s.fetched_at) DESC,s.snapshot_id DESC""",
+        (
+            "SELECT o.kind, o.payload_json, o.snapshot_id, o.parser_version, w.source, COALESCE(s.observed_at, s.fetched_at) AS _value_5 FROM observations AS o JOIN watches AS w USING (watch_id) JOIN snapshots AS s USING (snapshot_id) WHERE o.scope_kind = 'dancer' AND o.scope_id = %s ORDER BY COALESCE(s.observed_at, s.fetched_at) DESC NULLS LAST, s.snapshot_id DESC NULLS LAST"
+        ),
         (scope_id,),
     ).fetchall()
     found = []

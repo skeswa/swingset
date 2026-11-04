@@ -96,7 +96,7 @@ def released(database: Database) -> Iterator[Path]:
         yield database.state_dir
     finally:
         if held is not None:
-            database._locks = rwlock.exclusive(database.state_dir)
+            database._locks = rwlock.exclusive(database.state_dir, connection=database.connection)
 
 
 def run_tick(

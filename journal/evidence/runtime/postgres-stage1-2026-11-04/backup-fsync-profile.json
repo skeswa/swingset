@@ -1,0 +1,73 @@
+{
+  "all_typed_stream_and_file_hashes_equal": true,
+  "permitted_varying_fields": [
+    "seconds",
+    "manifest_sha256",
+    "bytes"
+  ],
+  "results": [
+    {
+      "files": 531,
+      "fsync_calls": 816,
+      "fsync_worker_seconds": 1.7211674905847758,
+      "logical_sha256": "2d9df9eb33a6f5d83a167ebaf7f9f9a8ee73528aef314839da99dda4fb6958c2",
+      "mode": "serial",
+      "pending_fd_peak": 0,
+      "rows": 30,
+      "seconds": 1.9998233700171113
+    },
+    {
+      "files": 531,
+      "fsync_calls": 816,
+      "fsync_worker_seconds": 4.177041923278011,
+      "logical_sha256": "2d9df9eb33a6f5d83a167ebaf7f9f9a8ee73528aef314839da99dda4fb6958c2",
+      "mode": "parallel",
+      "pending_fd_peak": 8,
+      "rows": 30,
+      "seconds": 0.7439785330789164
+    },
+    {
+      "files": 531,
+      "fsync_calls": 816,
+      "fsync_worker_seconds": 4.759799154475331,
+      "logical_sha256": "2d9df9eb33a6f5d83a167ebaf7f9f9a8ee73528aef314839da99dda4fb6958c2",
+      "mode": "parallel",
+      "pending_fd_peak": 8,
+      "rows": 30,
+      "seconds": 0.8921241740463302
+    },
+    {
+      "files": 531,
+      "fsync_calls": 816,
+      "fsync_worker_seconds": 1.7503012066008523,
+      "logical_sha256": "2d9df9eb33a6f5d83a167ebaf7f9f9a8ee73528aef314839da99dda4fb6958c2",
+      "mode": "serial",
+      "pending_fd_peak": 0,
+      "rows": 30,
+      "seconds": 2.0768550579668954
+    }
+  ],
+  "format": "swingset-backup-fsync-profile-v1",
+  "timestamp": "2026-11-05T04:34:38.348707+00:00",
+  "client": {
+    "platform": "native Linux ARM64",
+    "image": "sha256:7f3ae98a9c1521c36f740bb88b7e43fbded024438a49d0530d235becea111761",
+    "memory_bytes": 2147483648,
+    "memory_plus_swap_bytes": 2147483648,
+    "cpus": 4,
+    "filesystem": "fresh named Docker volume"
+  },
+  "fsync_calls_per_export": 816,
+  "maximum_outstanding_descriptors": 8,
+  "serial_median_seconds": 2.0383392139920034,
+  "parallel_median_seconds": 0.8180513535626233,
+  "wall_reduction": 0.59866770557757,
+  "log_sha256": "810158f6aa9979557f354f0b18e8be0d0f66c9ed11117fad2424233ed3ec0b03",
+  "probe_sha256": "00dfc0883f25fa3731c5c99802925040b39e9c2da14a9670ca289de041b8cada",
+  "source_file_sha256": "a5b60e9b1ec94144a04339d0ef50ec5d85bed06669bc05f52f2be2932a0c9efa",
+  "limitations": [
+    "Four alternating exports of one pinned snapshot; this is not a complete core timing.",
+    "An immutable runtime bundle was captured before timing; no separate pre-start checkout aggregate was recorded.",
+    "Elapsed seconds and their derived manifest hash/byte count legitimately vary."
+  ]
+}

@@ -128,9 +128,9 @@ backed up and how a rebuild is checked against the original:
 
 | Class           | What it holds                                                                                                                                                                                                       | Backed up?                                 | After a rebuild                                                                                                               |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| **history**     | what was fetched and when, fetch state and budgets, every decision, identity journals and link history, runs, publications; any row something kept reads that re-derivation cannot make again (1 to 3 GB, estimate) | twice a week, and before every publication | preserved exactly: every row, every column, ids included                                                                      |
+| **history**     | what was fetched and when, fetch state and budgets, every decision, identity journals and link history, runs, publications; any row something kept reads that re-derivation cannot make again (1 to 3 GB, estimate) | twice a week, and before every publication | restored exactly before workers; immutable fields and ids stay exact after rebuilding; listed anchor fields may advance       |
 | **rebuilt**     | the current results: parse results, derivations, dependency sets, projections (most of the 37 GB)                                                                                                                   | no                                         | for every current unit, an equivalent output and dependency set, by unit key and content digest; ids and past rows may differ |
-| **bookkeeping** | past execution: superseded generations nothing kept names, equivalences, failed attempts, queue counters, work tokens                                                                                               | no                                         | reset by a written rule per table (empty, zero, or recomputed), and checked against that rule                                 |
+| **bookkeeping** | past execution nothing retained names: superseded generations, unreferenced equivalences and failed attempts; disposable queue counters, hints and leases                                                           | no                                         | reset by a written rule per table (empty, zero, or recomputed), and checked against that rule                                 |
 
 | Files                                                                                                                                                                                                  | Size (estimate) | Backed up?                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,11 +160,67 @@ them.
   admission decision names is backed up, though a rebuild could re-derive
   its unit. Nothing is remapped: history keeps every column and id, so
   every foreign key holds when the backup is restored and checked, before
-  any rebuild. The rebuild then adds its own new rows beside the restored
-  ones. A test walks the foreign keys and the listed stored ids out of
+  any rebuild. A **history anchor** is a retained scope, source unit or status
+  row whose existing writer can advance a pointer during rebuilding.
+  The class list names each mutable field and its allowed transition;
+  it never drops the anchor or its references from the backup. The first
+  audit compares every restored field before workers run. The second
+  compares immutable fields and ids after rebuilding, permits only the
+  listed field transitions, and allows new generated rows. A test walks
+  the foreign keys and the listed stored ids out of
   every history rule and fails on a reference that leaves history. The
   closure can make history larger than the 1 to 3 GB estimate; stage 1
   measures it, and a larger size changes the estimate, not the rule.
+- **Selected derivation provenance is history.** Every scope with a selected
+  generation is a root, including unpublished units. Its generation, predecessor
+  and output references follow the same closure rule. Their original timestamps
+  and run ids cannot be re-derived. Restore keeps the selected pointer but
+  invalidates its live-cache certificate: ordinary replay must recompute the
+  output before it can satisfy downstream work. An equal output keeps the
+  original receipt. Measure the resulting backup size; this closure can exceed
+  the early history estimate ([D-0272](../../../journal/decisions/0272-retain-selected-derivation-provenance.md)).
+- **Accepted semantic inputs are history anchors.** Keep `accepted_inputs`
+  rows for consumer `pipeline`, except `recipe/env`, which existing policy
+  excludes from recipes. This includes explicit empty-content digests for
+  removed optional or legacy inputs: accepting today's bundle cannot infer
+  which absent keys the source recipe still reads. Restore consumer, input
+  name and digest exactly before workers. Ordinary acceptance may advance
+  only the digest. Audit-consumer and environment rows reset; queue and
+  invalidation counters keep their existing reset rules
+  ([D-0274](../../../journal/decisions/0274-retain-semantic-input-tombstones.md)).
+- **Storage clocks and candidate pointers are anchors.** Restore every `objects` field
+  exactly before workers. Ordinary object reuse may advance only `stored_at`
+  under the existing GC age rule. After rebuilding, compare original clocks
+  through bounded native COPY and a temporary-table join: known clocks remain
+  known and never decrease in C text order; unknown clocks stay unknown.
+  Class, digest, raw/stored sizes and original keys remain exact. This does
+  not change source timestamps or collection policy.
+  The release manifest's current `candidate_id` may also advance through ordinary
+  `name_candidate`; its digest, byte count, creation time and verdict stay exact,
+  as do all original immutable build receipts
+  ([D-0275](../../../journal/decisions/0275-audit-object-gc-clocks-as-monotonic-anchors.md)).
+- **Unbacked legacy observations are history.** An observation context
+  without an approved immutable source counterpart cannot be reconstructed
+  from an admission generation. Keep those rows exactly, with their watch
+  and snapshot references. Rebuild only contexts covered by approved
+  evidence; restoration never invents approval for legacy observations.
+- **Pending parse tokens are history.** A `pending_work` row for a
+  `parse/snapshot` unit with a retained body keeps its exact `enqueued_at`:
+  the source-generation identity reads that token. Its snapshot reference
+  is closed transitively. Other hints and leases reset. A rebuild leaves
+  unrelated pending source work untouched; normal work may consume it after
+  activation. The native class test and interrupted paid-turn regression
+  require the same resulting generation ids as uninterrupted work.
+- **Source equivalences keep their revocation meaning.** Retain those
+  naming a retained source generation. They associate additional input
+  fingerprints with that generation, including when it is revoked.
+  Rebuilding may append an exact-source proof alias; original aliases
+  remain covered by the exact key, field and forward-reference audits.
+- **Old code scopes have archived witnesses.** A retained legacy recipe
+  can name a scoped byte hash rather than an input-bundle id. Resolve that
+  hash to a fully verified captured bundle and keep its members. Missing
+  code refuses a backup or re-key; it is not a guessed version declaration
+  ([D-0271](../../../journal/decisions/0271-keep-irreproducible-source-witnesses-in-history.md)).
 - **The publication files are named in the backup contract** because,
   until they become rows after the switch, recovery reads them as files
   (`verify_restored_public` in `backup/checkpoint.py`). Every top-level
@@ -285,7 +341,12 @@ publication files on full-size data.
 
   A failed rebuild starts again in a fresh database.
 
-- **Check every backup:** restore it into a scratch database; run schema,
+- **Check every backup:** a separate owner job listens on a private Unix
+  socket over the shared backup volume (D-0267). Only that job receives the
+  scratch administration credential. Loop containers submit a history path
+  below its configured root and its manifest digest. A missing checker or
+  failed check prevents recording the set and prevents a push. The checker
+  restores it into a scratch database; run schema,
   integrity and foreign-key checks; match each history table's row
   count; check every file with its hash, including the publication
   metadata. This proves the bytes, not that

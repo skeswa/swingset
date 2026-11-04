@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import uuid
-from collections.abc import Iterator
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, nullcontext
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
+from swingset.state import engine
 
 
 class StaleCandidateError(RuntimeError):
@@ -52,7 +52,7 @@ def verify_candidate_files(candidate: Path) -> None:
 
 
 def _validate_candidate(
-    conn: sqlite3.Connection | None,
+    conn: engine.Connection | None,
     state_dir: Path,
     candidate: Path,
     built: dict[str, Any],
@@ -70,7 +70,9 @@ def _validate_candidate(
     policy = manifest.get("release_policy")
     has_journal = (
         conn is not None
-        and conn.execute("SELECT 1 FROM sqlite_master WHERE name='identity_decisions'").fetchone()
+        and conn.execute(
+            "SELECT 1 FROM pg_catalog.pg_class WHERE relname = 'identity_decisions' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        ).fetchone()
         is not None
     )
     if has_journal and not policy:
@@ -119,7 +121,7 @@ def _validate_candidate(
             raise StaleCandidateError(
                 "current correction inputs are invalid; repair and rebuild"
             ) from exc
-        selected = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+        selected = conn.execute("SELECT value FROM meta WHERE key = 'input_bundle_hash'").fetchone()
         if (
             bundle.digest != policy["input_bundle_hash"]
             or selected is None
@@ -130,14 +132,15 @@ def _validate_candidate(
             if conn.execute("SELECT 1 FROM pending_work LIMIT 1").fetchone():
                 raise StaleCandidateError("new derivation work arrived after build")
             revisions = {
-                str(row[0]): int(row[1]) for row in conn.execute("SELECT name,value FROM revisions")
+                str(row[0]): int(row[1])
+                for row in conn.execute("SELECT name, value FROM revisions")
             }
             if revisions != policy["revisions"]:
                 raise StaleCandidateError("selected derivations changed after build")
 
 
 def _validate_partitioned(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     candidate: Path,
     built: dict[str, Any],
@@ -171,50 +174,78 @@ def _validate_partitioned(
         raise StaleCandidateError("identity journal or acceptance policy changed; rebuild")
 
 
-def _connection(state_dir: Path) -> sqlite3.Connection | None:
-    path = state_dir / "state.sqlite"
-    if not path.is_file():
-        return None
-    from swingset.state.db import BUSY_TIMEOUT_SECONDS
+def _connection(state_dir: Path) -> engine.Connection:
+    from swingset.state.db import Database
+    from swingset.state.postgres_schema import validate_schema
 
-    # Loops write beside a publication, so a write here waits as theirs do (F7).
-    conn = sqlite3.connect(path, isolation_level=None, timeout=BUSY_TIMEOUT_SECONDS)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA synchronous=FULL")
-    return conn
+    conn = engine.connect(engine.resolve_dsn(state_dir), application_name="swingset-publication")
+    try:
+        validate_schema(conn)
+        conn.state_dir = state_dir
+        environment = Database(state_dir, conn, None).environment
+        if (state_dir / "database.json").exists() and engine.read_settings(state_dir)[
+            "environment"
+        ] != environment:
+            raise RuntimeError(
+                "publication database environment identity conflicts with local settings"
+            )
+        return conn
+    except BaseException:
+        conn.close()
+        raise
 
 
-def _has_controls(conn: sqlite3.Connection | None) -> bool:
+@contextmanager
+def _publication_write(state_dir: Path, conn: engine.Connection) -> Iterator[engine.Connection]:
+    from swingset.state.control_lock import control_lock, holds_control_lock
+    from swingset.state.controls import ADMISSION_TIMEOUT_SECONDS
+    from swingset.state.db import Database
+
+    boundary = (
+        nullcontext()
+        if holds_control_lock(state_dir, connection=conn)
+        else control_lock(state_dir, connection=conn, timeout=ADMISSION_TIMEOUT_SECONDS)
+    )
+    with boundary, Database(state_dir, conn, None).transaction() as write:
+        yield write
+
+
+def _has_controls(conn: engine.Connection | None) -> bool:
     return (
         conn is not None
-        and conn.execute("SELECT 1 FROM sqlite_master WHERE name='execution_admissions'").fetchone()
+        and conn.execute(
+            "SELECT 1 FROM pg_catalog.pg_class WHERE relname = 'execution_admissions' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        ).fetchone()
         is not None
     )
 
 
-def _one_publication(conn: sqlite3.Connection) -> None:
+def _one_publication(conn: engine.Connection) -> None:
     """At most one publication of any kind is active (schema 12's index covers the full kinds)."""
     from swingset.state.publication_fence import PUBLICATION_KINDS, kinds_sql
 
     if conn.execute(
-        "SELECT 1 FROM execution_admissions WHERE state='active' "
-        f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
+        f"SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
     ).fetchone():
         raise PublicationHeldError("another publication is in flight")
 
 
 @contextmanager
 def publication_boundary(
-    state_dir: Path, candidate: Path, *, narrow: bool = False
-) -> Iterator[None]:
+    state_dir: Path,
+    candidate: Path,
+    *,
+    narrow: bool = False,
+    connection: engine.Connection | None = None,
+    reserve_intent: Callable[[str], None] | None = None,
+) -> Iterator[str]:
     """Reserve validated semantics while control writes remain available.
 
     The caller owns state.lock. On schema12 the short admission transaction
     installs an active reservation protected by semantic-write triggers. No
-    SQLite or control mutex remains held during the network request. A lost
-    response releases that fence but retains an uncertain draining action.
-    Legacy databases retain their original write-transaction boundary.
+    database write transaction or control turn remains held during the network
+    request. A lost response releases that fence but retains an uncertain
+    draining action. The caller supplies its state-lock owning connection.
 
     ``narrow``: a partitioned candidate, admitted as `publication_narrow`,
     whose fence covers only what its check reads, so the loops tick through
@@ -224,23 +255,16 @@ def publication_boundary(
     if (state_dir / "RESTORE_PENDING").exists():
         raise PublicationHeldError("publication is disabled while restore verification is pending")
     manifest = json.loads((candidate / "_meta/manifest.json").read_bytes())
-    conn = _connection(state_dir)
+    conn = connection if connection is not None else _connection(state_dir)
     try:
-        if not _has_controls(conn):
-            if conn is not None:
-                conn.execute("BEGIN IMMEDIATE")
-            _validate_candidate(conn, state_dir, candidate, built, manifest)
-            yield
-            return
-        assert conn is not None
-        from swingset.state.controls import ActionScope, admission, settle
+        from swingset.state.controls import ActionScope, admission, check_admission, settle
         from swingset.state.db import Database
         from swingset.state.publication_fence import admission_kind
 
         database = Database(state_dir, conn, None)
         action_id = "publication_" + uuid.uuid4().hex
 
-        def validate(current: sqlite3.Connection) -> None:
+        def validate(current: engine.Connection) -> None:
             _one_publication(current)
             _validate_candidate(current, state_dir, candidate, built, manifest)
 
@@ -253,15 +277,17 @@ def publication_boundary(
             candidate_id=candidate.name,
             validate=validate,
         ):
-            pass
+            if reserve_intent is not None:
+                reserve_intent(action_id)
         try:
-            yield
+            check_admission(conn, action_id)
+            yield action_id
         except BaseException:
             # A lost settle leaves the fence up until release's recovery, so
             # a busy writer gets a second wait.
             for last in (False, True):
                 try:
-                    with database.transaction():
+                    with _publication_write(state_dir, conn):
                         settle(
                             conn,
                             action_id,
@@ -270,60 +296,60 @@ def publication_boundary(
                             uncertain=True,
                         )
                     break
-                except sqlite3.OperationalError:
+                except engine.LockTimeout:
                     if last:
                         raise
             raise
         else:
-            with database.transaction():
+            with _publication_write(state_dir, conn):
                 settle(conn, action_id, now=datetime.now(UTC), outcome="published")
     finally:
-        if conn is not None:
-            conn.rollback()
+        if connection is None:
             conn.close()
 
 
-def publication_in_flight(state_dir: Path, candidate: Path) -> bool:
+def publication_in_flight(
+    state_dir: Path, candidate: Path, *, connection: engine.Connection | None = None
+) -> bool:
     """An unrecovered active request cannot be called unlanded from head alone."""
     from swingset.state.publication_fence import PUBLICATION_KINDS, kinds_sql
 
-    conn = _connection(state_dir)
+    conn = connection if connection is not None else _connection(state_dir)
     try:
         return bool(
             _has_controls(conn)
             and conn is not None
             and conn.execute(
-                "SELECT 1 FROM execution_admissions WHERE candidate_id=? "
-                f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} AND state='active' LIMIT 1",
+                f"SELECT 1 FROM execution_admissions WHERE candidate_id=%s AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} AND state='active' LIMIT 1",
                 (candidate.name,),
             ).fetchone()
         )
     finally:
-        if conn is not None:
+        if connection is None:
             conn.close()
 
 
-def settle_publication(state_dir: Path, candidate: Path, *, outcome: str) -> None:
+def settle_publication(
+    state_dir: Path, candidate: Path, *, outcome: str, connection: engine.Connection | None = None
+) -> None:
     """A verified receipt, or reconciled unlanded outcome, closes its drain."""
-    conn = _connection(state_dir)
+    conn = connection if connection is not None else _connection(state_dir)
     try:
         if not _has_controls(conn):
             return
         assert conn is not None
         from swingset.state.controls import settle
-        from swingset.state.db import Database
         from swingset.state.publication_fence import PUBLICATION_KINDS, kinds_sql
 
-        with Database(state_dir, conn, None).transaction():
+        with _publication_write(state_dir, conn):
             actions = conn.execute(
-                "SELECT action_id FROM execution_admissions WHERE candidate_id=? "
-                f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} AND state<>'settled'",
+                f"SELECT action_id FROM execution_admissions WHERE candidate_id=%s AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} AND state<>'settled'",
                 (candidate.name,),
             ).fetchall()
             for row in actions:
                 settle(conn, row[0], now=datetime.now(UTC), outcome=outcome)
     finally:
-        if conn is not None:
+        if connection is None:
             conn.close()
 
 

@@ -10,7 +10,6 @@ import gzip
 import hashlib
 import json
 import math
-import sqlite3
 import time
 import zlib
 from collections import Counter
@@ -18,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any, BinaryIO
 
 from swingset.fetch.archive import Archive
+from swingset.state import engine
 
 
 @dataclass(frozen=True)
@@ -89,7 +89,7 @@ class _Compressed:
 
 
 class Budget:
-    def __init__(self, conn: sqlite3.Connection, archive: Archive, limits: Limits):
+    def __init__(self, conn: engine.Connection, archive: Archive, limits: Limits):
         self.conn, self.archive, self.limits = conn, archive, limits
         self.deadline = time.monotonic() + limits.seconds
         self.rows = self.json_bytes = self.compressed = self.decoded = 0
@@ -119,20 +119,20 @@ class Budget:
     ) -> list[dict[str, Any]]:
         """Do not return an oversized SQL value to Python, including corrupt BLOBs.
 
-        SQLite may still inspect stored values internally. No PRAGMA, limit,
-        progress handler, transaction, or other caller connection setting changes.
+        Postgres may inspect stored values internally. The query returns only
+        fields within the byte cap and changes no caller connection setting.
         """
         self.tick()
         remaining = self.limits.rows - self.rows
         if remaining <= 0:
             raise _Unknown("row_budget")
         limit = min(cap + 1, remaining)
-        size = "+".join(f"coalesce(length(CAST({c} AS BLOB)),0)" for c in columns)
+        size = "+".join(f"coalesce(octet_length({c}::text),0)" for c in columns)
         bound = min(self.limits.json_bytes, self.limits.total_json_bytes - self.json_bytes)
         if bound <= 0:
             raise _Unknown("json_byte_budget")
         values = ",".join(f"CASE WHEN ({size})<={bound} THEN {c} END AS {c}" for c in columns)
-        query = f"SELECT {values},({size}) AS _bytes FROM ({sql}) LIMIT ?"
+        query = f"SELECT {values},({size}) AS _bytes FROM ({sql}) LIMIT %s"
         result: list[dict[str, Any]] = []
         cursor = self.conn.execute(query, (*parameters, limit))
         try:
@@ -200,7 +200,7 @@ class Budget:
 
     def policy_version(self, page_kind: str) -> str | None:
         rows = self.read(
-            "SELECT contract_version FROM admission_policies WHERE page_kind=?",
+            "SELECT contract_version FROM admission_policies WHERE page_kind = %s",
             (page_kind,),
             ("contract_version",),
             cap=1,

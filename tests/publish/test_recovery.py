@@ -8,9 +8,10 @@ import pytest
 
 from swingset.build.files import canonical_json
 from swingset.publish.service import PublishError, RemoteCommit, expected_parent, publish, reconcile
+from swingset.state.environment import FixtureIO
 
 
-class FakeHub:
+class FakeHub(FixtureIO):
     def __init__(self, head: str | None = "base", *, lose_response: bool = False) -> None:
         self.current = head
         self.commits: dict[str, RemoteCommit] = {}
@@ -48,6 +49,21 @@ class FakeHub:
             self.lose_response = False
             raise ConnectionError("response lost")
         return sha
+
+
+@pytest.fixture(autouse=True)
+def isolate_receipt_recovery(monkeypatch):
+    # These service tests isolate receipt recovery. test_safety exercises the
+    # complete sealed-candidate validation on a real database and build.
+    from swingset.publish import safety
+
+    monkeypatch.setattr(
+        safety,
+        "_validate_candidate",
+        lambda conn, state, candidate, built, manifest: safety._check_files(
+            candidate, built, manifest
+        ),
+    )
 
 
 def candidate(state: Path, name: str = "cand_a") -> Path:

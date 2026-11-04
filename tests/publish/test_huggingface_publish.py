@@ -38,7 +38,7 @@ def test_initial_head_accepts_generated_license_card(
     card = tmp_path / "README.md"
     card.write_bytes(b"---\nlicense: odc-by\n---\n")
     instance = hub([".gitattributes", "README.md"])
-    monkeypatch.setattr(instance, "_download", lambda name, commit: card)
+    monkeypatch.setattr(instance, "download", lambda name, commit: card)
 
     assert instance.is_initial_head("initial")
 
@@ -57,7 +57,7 @@ def test_initial_head_rejects_non_generated_card(
     card = tmp_path / "README.md"
     card.write_bytes(contents)
     instance = hub([".gitattributes", "README.md"])
-    monkeypatch.setattr(instance, "_download", lambda name, commit: card)
+    monkeypatch.setattr(instance, "download", lambda name, commit: card)
 
     assert not instance.is_initial_head("initial")
 
@@ -71,7 +71,7 @@ def test_inspect_translates_actual_remote_entry_error(monkeypatch: pytest.Monkey
     response = httpx.Response(404, request=httpx.Request("GET", "https://huggingface.co/missing"))
     error = RemoteEntryNotFoundError("missing", response=response)
     instance = hub([])
-    monkeypatch.setattr(instance, "_download", lambda *_args: (_ for _ in ()).throw(error))
+    monkeypatch.setattr(instance, "download", lambda *_args: (_ for _ in ()).throw(error))
 
     with pytest.raises(FileNotFoundError, match="remote manifest") as raised:
         instance.inspect("initial")

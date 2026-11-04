@@ -1,11 +1,14 @@
 # Repo-local tooling for working on swingset itself. `mise install` fetches
 # the formatters; `mise run fmt` formats everything hand-written. Nothing
 # here needs `nix develop` or the project venv, so fmt works from any shell
-# with mise on the path. Python, uv, and mypy still come from flake.nix.
+# with mise on the path. The Postgres bookmark uses mise Python and uv;
+# flake.nix remains for the production SQLite worker until the switch.
 
 # Formatter versions are pinned exactly so `mise run fmt` output never shifts
 # under us; bump them deliberately (and re-run fmt) like any other update.
 [tools]
+python = "3.12.16"
+uv = "0.13.7"
 # oxfmt's npm backend needs a node.
 node = "24"
 "npm:oxfmt" = "0.64.0"
@@ -18,6 +21,29 @@ node = "24"
 ruff = "0.16.6"
 shfmt = "3.13.1"
 taplo = "0.10.0"
+
+[env]
+TMPDIR = "/tmp"
+
+[tasks.dev]
+description = "Sync dependencies and ready the native local Postgres test service"
+run = "uv run python -m swingset.dev.commands dev"
+
+[tasks.db]
+description = "Start or reuse the separate persistent development Postgres service"
+run = "uv run python -m swingset.dev.commands db"
+
+[tasks.test]
+description = "Run selected tests, or the reviewed core, against isolated Postgres databases"
+run = "uv run python -m swingset.dev.commands test"
+
+[tasks.test-watch]
+description = "Watch source and tests; coalesce edits into one selected test run at a time"
+run = "uv run python -m swingset.dev.commands test-watch"
+
+[tasks.check]
+description = "Run reviewed core tests, Ruff and mypy"
+run = "uv run python -m swingset.dev.commands check"
 
 [tasks.evidence-size]
 description = "Report evidence sizes; reject files over 1 MiB and more than 200 KiB of new evidence per change"

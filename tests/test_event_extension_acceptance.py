@@ -46,11 +46,13 @@ def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f
     old_day = f.clock.now().date().isoformat()
     pending = [
         tuple(row)
-        for row in conn.execute("SELECT watch_id,source_ref FROM watches ORDER BY watch_id")
+        for row in conn.execute(
+            "SELECT watch_id, source_ref FROM watches ORDER BY watch_id NULLS FIRST"
+        )
     ]
     turn = tuple(
         conn.execute(
-            "SELECT position,used,target_requests,policy_digest FROM scheduler_event_turns WHERE owner_key=?",
+            "SELECT position, used, target_requests, policy_digest FROM scheduler_event_turns WHERE owner_key = %s",
             (choice.turn.owner_key,),
         ).fetchone()
     )
@@ -71,13 +73,13 @@ def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f
     assert [
         tuple(row)
         for row in f.db.connection.execute(
-            "SELECT watch_id,source_ref FROM watches ORDER BY watch_id"
+            "SELECT watch_id, source_ref FROM watches ORDER BY watch_id NULLS FIRST"
         )
     ] == pending
     assert (
         tuple(
             f.db.connection.execute(
-                "SELECT position,used,target_requests,policy_digest FROM scheduler_event_turns WHERE owner_key=?",
+                "SELECT position, used, target_requests, policy_digest FROM scheduler_event_turns WHERE owner_key = %s",
                 (choice.turn.owner_key,),
             ).fetchone()
         )
@@ -93,7 +95,7 @@ def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f
     )
     # Keep one obligation retry-blocked while its sibling can receive the next turn.
     f.db.connection.execute(
-        "UPDATE watches SET paused_until=? WHERE watch_id=?",
+        "UPDATE watches SET paused_until = %s WHERE watch_id = %s",
         ((f.clock.now() + timedelta(seconds=30)).isoformat(), first.watch_id),
     )
     resumed = select(f)
@@ -115,16 +117,16 @@ def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f
         )
     assert waiting == Wait(2) and action is None
     assert dict(
-        f.db.connection.execute("SELECT day,requests FROM host_budget WHERE host='example.test'")
+        f.db.connection.execute("SELECT day, requests FROM host_budget WHERE host = 'example.test'")
     ) == {old_day: 1}
     assert (
-        f.db.connection.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 1
+        f.db.connection.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == 1
     )
     f.clock.sleep(waiting.seconds)
     debit(f, resumed)
     new_day = f.clock.now().date().isoformat()
     assert dict(
-        f.db.connection.execute("SELECT day,requests FROM host_budget WHERE host='example.test'")
+        f.db.connection.execute("SELECT day, requests FROM host_budget WHERE host = 'example.test'")
     ) == {old_day: 1, new_day: 1}
     assert select(f) is None
     with servicing(resumed, run_id=f.run):
@@ -141,7 +143,7 @@ def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f
         )
     assert blocked == Paused("request budget") and action is None
     assert (
-        f.db.connection.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 2
+        f.db.connection.execute("SELECT COUNT(*) FROM scheduler_event_requests").fetchone()[0] == 2
     )
     assert not f.db.connection.execute("SELECT 1 FROM event_progress_receipts").fetchone()
 
@@ -188,6 +190,9 @@ def test_unsupported_unmapped_coverage_waits_for_exact_acknowledgment(event):
 
 def test_activated_restore_retains_whole_event_history_but_requires_fresh_proof(event, tmp_path):
     f = event
+    from test_event_completion_restore import retain_configuration
+
+    retain_configuration(f, tmp_path.parent / (tmp_path.name + "-retained-inputs"), pressure=True)
     withdrawn(f)
     enroll(f, config())
     for _ in range(5):
@@ -205,6 +210,9 @@ def test_activated_restore_retains_whole_event_history_but_requires_fresh_proof(
         )
         assert recorded["rows"] == before["rows"]
         assert retirement_view(restored)["whole_event_retired"] is None
+        from test_event_enumerations import finish_bootstrap
+
+        finish_bootstrap(restored)
         for _ in range(5):
             observe(restored)
         assert retirement_view(restored)["whole_event_retired"] is True

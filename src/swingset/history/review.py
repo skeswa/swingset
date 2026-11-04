@@ -104,24 +104,34 @@ def review_pack(
         next(pending_units(conn, "project"), None) is not None
         if available(conn)
         else bool(
-            conn.execute("SELECT 1 FROM pending_work WHERE stage='project' LIMIT 1").fetchone()
+            conn.execute(
+                "SELECT 1 AS _value_0 FROM pending_work WHERE stage = 'project' LIMIT 1"
+            ).fetchone()
         )
     )
     for year in range(history_start.year, int(now[:4]) + 1):
         counts = conn.execute(
-            "SELECT COUNT(*),SUM(date_precision='day'),SUM(date_precision='month'),SUM(held='listed'),SUM(held='cancelled') FROM events WHERE year=?",
+            (
+                "SELECT COUNT(*) AS _value_0, CAST(SUM(CAST(date_precision = 'day' AS INTEGER)) AS BIGINT) AS _value_1, CAST(SUM(CAST(date_precision = 'month' AS INTEGER)) AS BIGINT) AS _value_2, CAST(SUM(CAST(held = 'listed' AS INTEGER)) AS BIGINT) AS _value_3, CAST(SUM(CAST(held = 'cancelled' AS INTEGER)) AS BIGINT) AS _value_4 FROM events WHERE year = %s"
+            ),
             (year,),
         ).fetchone()
         occurrences = conn.execute(
-            "SELECT COUNT(*) FROM (SELECT series_id,event_month FROM registry_placements WHERE substr(event_month,1,4)=? GROUP BY series_id,event_month)",
+            (
+                "SELECT COUNT(*) AS _value_0 FROM (SELECT series_id, event_month FROM registry_placements WHERE SUBSTRING(event_month FROM 1 FOR 4) = %s GROUP BY series_id, event_month)"
+            ),
             (str(year),),
         ).fetchone()[0]
         unmatched = conn.execute(
-            "SELECT COUNT(*) FROM (SELECT series_id,event_month FROM registry_placements WHERE substr(event_month,1,4)=? GROUP BY series_id,event_month HAVING COUNT(DISTINCT event_id)!=1 OR SUM(event_id IS NULL)>0)",
+            (
+                "SELECT COUNT(*) AS _value_0 FROM (SELECT series_id, event_month FROM registry_placements WHERE SUBSTRING(event_month FROM 1 FOR 4) = %s GROUP BY series_id, event_month HAVING COUNT(DISTINCT event_id) <> 1 OR CAST(SUM(CAST(event_id IS NULL AS INTEGER)) AS BIGINT) > 0)"
+            ),
             (str(year),),
         ).fetchone()[0]
         open_findings = conn.execute(
-            "SELECT COUNT(*) FROM findings WHERE owner_kind IN ('history_year','phase1_year') AND owner_id=? AND closed_at IS NULL",
+            (
+                "SELECT COUNT(*) AS _value_0 FROM findings WHERE owner_kind IN ('history_year', 'phase1_year') AND owner_id = %s AND closed_at IS NULL"
+            ),
             (str(year),),
         ).fetchone()[0]
         capture_gaps = [gap.get("target_id", f"cdx:{year}") for gap in gaps_by_year[year]]
@@ -143,7 +153,8 @@ def review_pack(
                 and not projection_pending,
                 "events_accepted": bool(
                     conn.execute(
-                        "SELECT 1 FROM coverage WHERE year=? AND events_accepted=1", (year,)
+                        "SELECT 1 AS _value_0 FROM coverage WHERE year = %s AND events_accepted = 1",
+                        (year,),
                     ).fetchone()
                 ),
             }
@@ -151,7 +162,13 @@ def review_pack(
     findings = [
         dict(row)
         for row in conn.execute(
-            "SELECT kind,subject_kind,subject_id,summary,evidence_json,suggested_override,owner_kind,owner_id,snapshot_id FROM findings WHERE closed_at IS NULL AND (owner_kind IN ('history_year','phase1_capture','phase1_year') OR (owner_kind IN ('parse','parse_failure') AND snapshot_id IN (SELECT snapshot_id FROM snapshots WHERE via='wayback' OR watch_id IN (SELECT watch_id FROM watches WHERE source='wsdc_newsletter')))) ORDER BY owner_kind,owner_id,kind,subject_id"
+            "SELECT kind, subject_kind, subject_id, summary, evidence_json, suggested_override, "
+            "owner_kind, owner_id, snapshot_id FROM findings WHERE closed_at IS NULL AND (owner_kind IN "
+            "('history_year', 'phase1_capture', 'phase1_year') OR (owner_kind IN ('parse', "
+            "'parse_failure') AND snapshot_id IN (SELECT snapshot_id FROM snapshots WHERE via = "
+            "'wayback' OR watch_id IN (SELECT watch_id FROM watches WHERE source = 'wsdc_newsletter')))) "
+            "ORDER BY owner_kind NULLS FIRST, owner_id NULLS FIRST, kind NULLS FIRST, subject_id NULLS "
+            "FIRST"
         )
     ]
     alias_groups: dict[str, dict[str, Any]] = {}
@@ -178,14 +195,23 @@ def review_pack(
     event_rows = [
         dict(row)
         for row in conn.execute(
-            "SELECT event_id,series_id,name,year,event_month,start_date,end_date,date_precision,held,wsdc_status,history_source,source,snapshot_id FROM events WHERE year>=? ORDER BY year,event_month,event_id",
+            (
+                "SELECT event_id, series_id, name, year, event_month, start_date, end_date, date_precision, "
+                "held, wsdc_status, history_source, source, snapshot_id FROM events WHERE year >= %s ORDER "
+                "BY year NULLS FIRST, event_month NULLS FIRST, event_id NULLS FIRST"
+            ),
             (history_start.year,),
         )
     ]
     occurrence_rows = [
         dict(row)
         for row in conn.execute(
-            "SELECT series_id,event_month,MIN(series_name_raw) AS printed_name,COUNT(DISTINCT event_id) AS event_count,MIN(event_id) AS event_id,COUNT(*) AS placements FROM registry_placements WHERE event_month>=? GROUP BY series_id,event_month ORDER BY event_month,series_id",
+            (
+                "SELECT series_id, event_month, MIN(series_name_raw) AS printed_name, COUNT(DISTINCT "
+                "event_id) AS event_count, MIN(event_id) AS event_id, COUNT(*) AS placements FROM "
+                "registry_placements WHERE event_month >= %s GROUP BY series_id, event_month ORDER BY "
+                "event_month NULLS FIRST, series_id NULLS FIRST"
+            ),
             (history_start.isoformat(),),
         )
     ]
@@ -201,13 +227,16 @@ def review_pack(
         "request_budgets": [
             dict(row)
             for row in conn.execute(
-                "SELECT * FROM host_budget WHERE host IN ('web.archive.org','worldsdc.com','www.worldsdc.com') ORDER BY day,host"
+                "SELECT host_budget.host, host_budget.day, host_budget.requests, host_budget.bytes FROM "
+                "host_budget WHERE host IN ('web.archive.org', 'worldsdc.com', 'www.worldsdc.com') ORDER BY "
+                "day NULLS FIRST, host NULLS FIRST"
             )
         ],
         "cdx_queries": [
             dict(row)
             for row in conn.execute(
-                "SELECT source,prefix,year,next_page,total_pages,completed_at FROM archive_queries ORDER BY year,prefix"
+                "SELECT source, prefix, year, next_page, total_pages, completed_at FROM archive_queries "
+                "ORDER BY year NULLS FIRST, prefix NULLS FIRST"
             )
         ],
         "findings": findings,

@@ -20,6 +20,7 @@ import pytest
 import swingset.cli as cli
 from swingset.backup.pruning import TIMER_NAME
 from swingset.cli import FAILED_CHECKPOINT_PREFIX, main
+from swingset.state.environment import FixtureIO
 
 DAY = 86400.0
 
@@ -30,7 +31,7 @@ def checkpoint(
     """A checkpoint directory of the shape the pruner reads, aged by its mtime."""
     path = root / name
     path.mkdir(parents=True)
-    (path / "state.sqlite").write_bytes(b"x" * 16)
+    (path / "history.copy.zst").write_bytes(b"x" * 16)
     for index in range(files):
         (path / "blobs").mkdir(exist_ok=True)
         (path / "blobs" / f"f{index}").write_bytes(b"x" * 8)
@@ -154,7 +155,7 @@ def test_remove_checkpoint_removes_one_named_checkpoint_and_makes_no_backup(
     assert not named.exists()
     # No new checkpoint, no state database, no run: the command only removes.
     assert [path.name for path in checkpoints.iterdir()] == [timer.name]
-    assert not (state / "state.sqlite").exists()
+    assert not (state / "database.json").exists()
 
 
 def test_remove_checkpoint_refuses_a_timer_name_and_a_missing_one(tmp_path: Path) -> None:
@@ -188,7 +189,7 @@ def test_remove_checkpoint_refuses_a_timer_name_and_a_missing_one(tmp_path: Path
     assert (
         main(["backup", "--remove-checkpoint", "", "--state", str(state), *defaults(tmp_path)]) == 1
     )
-    assert not (state / "state.sqlite").exists()
+    assert not (state / "database.json").exists()
 
 
 def test_doctor_reports_every_checkpoint_and_removes_nothing(
@@ -272,7 +273,7 @@ def test_a_removal_that_fails_does_not_fail_a_backup_that_worked(
     assert '"run_20240102T040000Z"' in err
     assert blocked.is_dir() and kept.is_dir() and not removable.exists()
     # The backup itself stands: its checkpoint is there and the run did not fail.
-    assert (state / "state.sqlite").exists()
+    assert (state / "database.json").exists()
     assert 'event="error"' not in err
 
 
@@ -351,11 +352,11 @@ def test_an_uploaded_backup_prunes_after_the_upload(
     old = [checkpoint(checkpoints, f"run_2024010{day}T040000Z", age_days=30) for day in (1, 2, 3)]
     uploaded: list[str] = []
 
-    class FakeArchive:
+    class FakeArchive(FixtureIO):
         def __init__(self, repo: str, token: str) -> None:
             self.repo = repo
 
-    def upload(checkpoint_written: Any, archive: object) -> str:
+    def upload(checkpoint_written: Any, archive: object, **kwargs: Any) -> str:
         # Nothing may have been pruned yet: the upload could still fail.
         assert all(path.is_dir() for path in old)
         uploaded.append(str(checkpoint_written.path))
@@ -385,11 +386,11 @@ def test_a_failed_upload_prunes_nothing(
     checkpoints = state / "checkpoints"
     old = [checkpoint(checkpoints, f"run_2024010{day}T040000Z", age_days=30) for day in (1, 2, 3)]
 
-    class FakeArchive:
+    class FakeArchive(FixtureIO):
         def __init__(self, repo: str, token: str) -> None:
             self.repo = repo
 
-    def refuse(checkpoint_written: Any, archive: object) -> str:
+    def refuse(checkpoint_written: Any, archive: object, **kwargs: Any) -> str:
         raise RuntimeError("archive refused the commit")
 
     monkeypatch.setenv("HF_TOKEN", "token")
@@ -442,28 +443,33 @@ def test_a_pending_restore_stops_the_automatic_prune(
     assert all(path.is_dir() for path in old)
 
 
-def damage_database(database: Path, *, table: str | None = None) -> None:
-    """Overwrite one page of a SQLite file with junk, as a bad copy would carry.
+def damage_database(checkpoint: Path, *, table: str | None = None) -> None:
+    """Corrupt a typed COPY stream; optionally rehash all enclosing manifests."""
+    import hashlib
 
-    Without `table`, the second page; with it, the root page of that table,
-    which neither the schema check nor the foreign-key or closure checks read,
-    so only `quick_check` or `integrity_check` can see it.
-    """
-    import sqlite3
+    import pyarrow as pa
 
-    size = int.from_bytes(database.read_bytes()[16:18], "big")
-    page = 2
-    if table is not None:
-        connection = sqlite3.connect(database)
-        try:
-            (page,) = connection.execute(
-                "SELECT rootpage FROM sqlite_master WHERE name = ?", (table,)
-            ).fetchone()
-        finally:
-            connection.close()
-    with database.open("r+b") as handle:
-        handle.seek((page - 1) * size)
-        handle.write(b"\xa5" * size)
+    history_path = checkpoint / "database/history.json"
+    history = json.loads(history_path.read_text())
+    entry = history["tables"][table or "host_budget"]
+    stream = checkpoint / "database" / entry["data"]
+    if table is None:
+        stream.write_bytes(b"damaged compressed stream")
+        return
+    with pa.output_stream(str(stream), compression="zstd") as output:
+        output.write(b"invalid typed COPY signature")
+    entry["data_sha256"] = hashlib.sha256(stream.read_bytes()).hexdigest()
+    history_path.write_text(json.dumps(history))
+    manifest_path = checkpoint / "checkpoint.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["history_manifest_sha256"] = hashlib.sha256(history_path.read_bytes()).hexdigest()
+    for member in (stream, history_path):
+        name = member.relative_to(checkpoint).as_posix()
+        manifest["files"][name] = {
+            "sha256": hashlib.sha256(member.read_bytes()).hexdigest(),
+            "size": member.stat().st_size,
+        }
+    manifest_path.write_text(json.dumps(manifest))
 
 
 def corrupt_new_checkpoints(
@@ -473,29 +479,18 @@ def corrupt_new_checkpoints(
 
     By default the copy is damaged after its manifest was written, so its
     file hash no longer matches. `written_bad` damages a table only
-    `quick_check` reads and rewrites the manifest's hash and size to match,
+    typed COPY decoding reads and rewrites the manifest's hash and size to match,
     as a copy that was already bad when it was hashed would be. Returns the
     paths it damaged.
     """
     import swingset.backup.checkpoint as checkpoint_module
-    from swingset.build.files import sha256_file
 
     real = checkpoint_module.create_checkpoint
     damaged: list[Path] = []
 
     def damaging(*args: Any, **kwargs: Any) -> Any:
         written = real(*args, **kwargs)
-        database = written.path / "state.sqlite"
-        damage_database(database, table="host_budget" if written_bad else None)
-        if written_bad:
-            manifest_path = written.path / "checkpoint.json"
-            manifest = json.loads(manifest_path.read_text())
-            manifest["files"]["state.sqlite"] = {
-                **manifest["files"]["state.sqlite"],
-                "sha256": sha256_file(database),
-                "size": database.stat().st_size,
-            }
-            manifest_path.write_text(json.dumps(manifest))
+        damage_database(written.path, table="host_budget" if written_bad else None)
         damaged.append(written.path)
         return written
 
@@ -535,15 +530,12 @@ def test_a_local_checkpoint_that_fails_verification_is_renamed_and_prunes_nothin
     record = json.loads((state / "runs" / f"{run_id}.json").read_text())
     assert record["failed"] is True and record["command"] == "backup"
     assert "failed verification" in record["error"] and "held_units" in record
-    import sqlite3
+    from swingset.state.db import open_database
 
-    connection = sqlite3.connect(state / "state.sqlite")
-    try:
-        (summary,) = connection.execute(
-            "SELECT summary_json FROM runs WHERE run_id=?", (run_id,)
+    with open_database(state, lock=False) as database:
+        (summary,) = database.connection.execute(
+            "SELECT summary_json FROM runs WHERE run_id=%s", (run_id,)
         ).fetchone()
-    finally:
-        connection.close()
     assert json.loads(summary)["failed"] is True
     # Policy never removes it; the operator does, by name.
     assert main(["backup", "--remove-checkpoint", failed.name, "--state", str(state), *config]) == 0
@@ -553,7 +545,7 @@ def test_a_local_checkpoint_that_fails_verification_is_renamed_and_prunes_nothin
 def test_a_local_checkpoint_written_bad_fails_the_database_check(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A copy whose hash matches its manifest is caught by `quick_check` alone."""
+    """Matching enclosing file hashes cannot hide a malformed typed COPY stream."""
     config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
     state = tmp_path / "state"
     good = checkpoint(state / "checkpoints", "run_20260101T040000Z", age_days=1)
@@ -610,9 +602,12 @@ def test_a_failed_removal_of_an_older_copy_still_renames_the_bad_one(
     good = checkpoint(checkpoints, "run_20260101T040000Z", age_days=3)
     earlier = checkpoint(checkpoints, "failed-run_20260102T040000Z", age_days=2)
     damaged = corrupt_new_checkpoints(monkeypatch)
+    real_remove = shutil.rmtree
 
     def refusing(path: Any, *args: Any, **kwargs: Any) -> None:
-        raise PermissionError(f"cannot remove {path}")
+        if Path(path) == earlier:
+            raise PermissionError(f"cannot remove {path}")
+        real_remove(path, *args, **kwargs)
 
     monkeypatch.setattr(shutil, "rmtree", refusing)
     assert main(["backup", "--local", "--state", str(state), *config]) == 1
@@ -682,7 +677,7 @@ def test_a_malformed_manifest_fails_verification_instead_of_crashing(
 def test_a_local_checkpoint_with_an_extra_file_fails_verification(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The read-back covers the files beside the database, not only state.sqlite."""
+    """The read-back covers the complete database and captured file closure."""
     import swingset.backup.checkpoint as checkpoint_module
 
     config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
@@ -718,7 +713,7 @@ def test_a_local_checkpoint_missing_a_closure_file_fails_verification(
     def losing(*args: Any, **kwargs: Any) -> Any:
         written = real(*args, **kwargs)
         # A file the manifest names goes missing after the copy.
-        name = next(name for name in written.files if name != "state.sqlite")
+        name = next(iter(written.files))
         (written.path / name).unlink()
         lost.append(name)
         return written
@@ -753,8 +748,6 @@ def test_a_local_verification_runs_without_the_writer_lock(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Cycles need not wait for the read-back; the prune takes the lock again."""
-    import fcntl
-
     import swingset.backup.checkpoint as checkpoint_module
 
     state = tmp_path / "state"
@@ -763,13 +756,15 @@ def test_a_local_verification_runs_without_the_writer_lock(
     real_prune = cli._prune_checkpoints
 
     def free() -> bool:
-        with (state / "state.lock").open("a+b") as handle:
-            try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return False
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-            return True
+        from swingset.state.engine import connect, resolve_dsn
+        from swingset.state.engine.locks import release, try_lock
+        from swingset.state.rwlock import STATE_LOCK
+
+        with connect(resolve_dsn(state)) as connection:
+            acquired = try_lock(connection, STATE_LOCK)
+            if acquired:
+                release(connection, STATE_LOCK)
+            return acquired
 
     def verify(*args: Any, **kwargs: Any) -> Any:
         seen.append(f"verify quick={kwargs.get('quick')} free={free()}")
@@ -785,26 +780,31 @@ def test_a_local_verification_runs_without_the_writer_lock(
     assert seen == ["verify quick=True free=True", "prune free=False"]
 
 
-def test_an_uploaded_backup_skips_the_local_verification(
+def test_an_uploaded_backup_refuses_corruption_before_upload_or_prune(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The upload is the check in that mode; its wiring is unchanged."""
+    """A remote destination cannot bypass the independent restore check."""
     import swingset.backup.archive as archive_module
     import swingset.backup.huggingface as huggingface_module
 
-    class FakeArchive:
+    class FakeArchive(FixtureIO):
         def __init__(self, repo: str, token: str) -> None:
             self.repo = repo
 
     monkeypatch.setenv("HF_TOKEN", "token")
     monkeypatch.setattr(huggingface_module, "HuggingFaceArchive", FakeArchive)
-    monkeypatch.setattr(archive_module, "upload_checkpoint", lambda written, archive: "a" * 40)
+    uploaded = []
+    monkeypatch.setattr(
+        archive_module,
+        "upload_checkpoint",
+        lambda written, archive, **kwargs: uploaded.append(written) or "a" * 40,
+    )
     corrupt_new_checkpoints(monkeypatch)
     state = tmp_path / "state"
-    assert main(["backup", "--state", str(state), *defaults(tmp_path)]) == 0
+    assert main(["backup", "--state", str(state), *defaults(tmp_path)]) == 1
     err = capsys.readouterr().err
-    assert 'event="checkpoint-verify"' not in err
-    assert 'event="checkpoints-pruned"' in err
+    assert uploaded == []
+    assert 'event="checkpoints-pruned"' not in err
 
 
 def test_the_watchdog_copies_the_failed_checkpoint_prefix() -> None:

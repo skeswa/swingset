@@ -8,9 +8,10 @@ the loop runtime decides when.
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import astuple, dataclass, fields
 from typing import Literal
+
+from swingset.state import engine
 
 LoopName = Literal["acquire", "plan", "derive", "release", "maintain", "cycle"]
 LOOPS: tuple[LoopName, ...] = ("acquire", "plan", "derive", "release", "maintain", "cycle")
@@ -32,27 +33,26 @@ class LoopStateRow:
 _COLUMNS = tuple(field.name for field in fields(LoopStateRow))
 
 
-def get(conn: sqlite3.Connection, loop: str) -> LoopStateRow | None:
+def get(conn: engine.Connection, loop: str) -> LoopStateRow | None:
     row = conn.execute(
-        f"SELECT {','.join(_COLUMNS)} FROM loop_state WHERE loop=?", (loop,)
+        f"SELECT {','.join(_COLUMNS)} FROM loop_state WHERE loop=%s", (loop,)
     ).fetchone()
     return None if row is None else LoopStateRow(*row)
 
 
-def upsert(conn: sqlite3.Connection, row: LoopStateRow) -> None:
+def upsert(conn: engine.Connection, row: LoopStateRow) -> None:
     updates = ",".join(f"{name}=excluded.{name}" for name in _COLUMNS if name != "loop")
     conn.execute(
-        f"INSERT INTO loop_state({','.join(_COLUMNS)}) VALUES ({','.join('?' * len(_COLUMNS))}) "
-        f"ON CONFLICT(loop) DO UPDATE SET {updates}",
+        f"INSERT INTO loop_state({','.join(_COLUMNS)}) VALUES ({','.join(['%s'] * len(_COLUMNS))}) ON CONFLICT(loop) DO UPDATE SET {updates}",
         astuple(row),
     )
 
 
-def delete(conn: sqlite3.Connection, loop: str) -> bool:
-    return conn.execute("DELETE FROM loop_state WHERE loop=?", (loop,)).rowcount > 0
+def delete(conn: engine.Connection, loop: str) -> bool:
+    return conn.execute("DELETE FROM loop_state WHERE loop = %s", (loop,)).rowcount > 0
 
 
-def all_rows(conn: sqlite3.Connection) -> list[LoopStateRow]:
+def all_rows(conn: engine.Connection) -> list[LoopStateRow]:
     return [
         LoopStateRow(*row)
         for row in conn.execute(f"SELECT {','.join(_COLUMNS)} FROM loop_state ORDER BY loop")

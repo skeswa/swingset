@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -11,6 +10,7 @@ from swingset.admission.page_evidence import Session
 from swingset.admission.unavailable_evidence import metadata_valid
 from swingset.admission.unsupported_evidence import metadata_valid as unsupported_valid
 from swingset.fetch.archive import canonical, digest
+from swingset.state import engine
 
 FORMAT = "event-page-gaps-v2"
 
@@ -29,9 +29,11 @@ def accounted(
     return False if interpreted is False and unavailable is False and unsupported is False else None
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='event_gap_observations'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'event_gap_observations' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
 
@@ -43,7 +45,7 @@ def revision(session: Session, source: str, cache: dict[str, int | None]) -> int
             cache[source] = None
         else:
             rows = session.read(
-                "SELECT revision FROM event_gap_revisions WHERE source=?",
+                "SELECT revision FROM event_gap_revisions WHERE source = %s",
                 (source,),
                 ("revision",),
                 cap=1,
@@ -52,11 +54,11 @@ def revision(session: Session, source: str, cache: dict[str, int | None]) -> int
     return cache[source]
 
 
-def unchanged(conn: sqlite3.Connection, batch: dict[str, Any]) -> bool:
+def unchanged(conn: engine.Connection, batch: dict[str, Any]) -> bool:
     if not available(conn) or batch.get("gap_revision") is None:
         return False
     row = conn.execute(
-        "SELECT revision FROM event_gap_revisions WHERE source=?", (batch["source"],)
+        "SELECT revision FROM event_gap_revisions WHERE source = %s", (batch["source"],)
     ).fetchone()
     return bool(batch["gap_revision"] == (row[0] if row else 0))
 
@@ -100,8 +102,9 @@ def load(session: Session, batch: dict[str, Any]) -> dict[str, dict[str, Any]]:
         "evidence_digest",
     )
     rows = session.read(
-        "SELECT " + ",".join(columns) + " FROM event_gap_observations "
-        "WHERE source=? AND source_ref=? AND enumeration_id=?",
+        "SELECT "
+        + ",".join(columns)
+        + " FROM event_gap_observations WHERE source=%s AND source_ref=%s AND enumeration_id=%s",
         (batch["source"], batch["source_ref"], batch["enumeration_id"]),
         columns,
         cap=128,
@@ -156,13 +159,16 @@ def value(
 
 
 def persist(
-    conn: sqlite3.Connection, batch: dict[str, Any], *, now: datetime, max_age: float
+    conn: engine.Connection, batch: dict[str, Any], *, now: datetime, max_age: float
 ) -> None:
     """Use the observer transaction after both ordinary and gap fences were checked."""
     if not unchanged(conn, batch):
         return
     conn.execute(
-        "DELETE FROM event_gap_observations WHERE source=? AND source_ref=? AND enumeration_id IS NOT ?",
+        (
+            "DELETE FROM event_gap_observations WHERE source = %s AND source_ref = %s AND enumeration_id "
+            "IS DISTINCT FROM %s"
+        ),
         (batch["source"], batch["source_ref"], batch["enumeration_id"]),
     )
     for page in batch["pages"]:
@@ -170,11 +176,9 @@ def persist(
         if gap is None:
             continue
         conn.execute(
-            "INSERT INTO event_gap_observations VALUES(?,?,?,?,?,?,?,?,?,?,?) "
-            "ON CONFLICT(source,source_ref,request_id) DO UPDATE SET "
-            "enumeration_id=excluded.enumeration_id,observed_at=excluded.observed_at,"
-            "valid_until=excluded.valid_until,availability=excluded.availability,token_json=excluded.token_json,"
-            "source_revision=excluded.source_revision,evidence_json=excluded.evidence_json,evidence_digest=excluded.evidence_digest",
+            (
+                "INSERT INTO event_gap_observations (source, source_ref, request_id, enumeration_id, observed_at, valid_until, availability, token_json, source_revision, evidence_json, evidence_digest) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref, request_id) DO UPDATE SET enumeration_id = excluded.enumeration_id, observed_at = excluded.observed_at, valid_until = excluded.valid_until, availability = excluded.availability, token_json = excluded.token_json, source_revision = excluded.source_revision, evidence_json = excluded.evidence_json, evidence_digest = excluded.evidence_digest"
+            ),
             (
                 batch["source"],
                 batch["source_ref"],
@@ -182,7 +186,7 @@ def persist(
                 batch["enumeration_id"],
                 now.isoformat(),
                 (now + timedelta(seconds=max_age)).isoformat(),
-                gap["availability"],
+                (None if gap["availability"] is None else int(gap["availability"])),
                 canonical(batch["token"]).decode(),
                 batch["gap_revision"],
                 gap["evidence_json"],

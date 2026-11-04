@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
@@ -19,6 +18,7 @@ from swingset.history.platform import PlannedPage, PlatformPlan, retained_plan
 from swingset.schedule.watches import due_watches, refresh_policy
 from swingset.sources import get_page_kind
 from swingset.sources.base import PageKind, WatchSpec
+from swingset.state import engine
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import matching_pauses
 from swingset.state.db import Database
@@ -62,7 +62,7 @@ def _busy(database: Database, config: Config, clock: Clock, deadline: datetime) 
         return "pipeline_work_pending"
     for watch_id in due_watches(conn, config, clock.now()):
         watch = conn.execute(
-            "SELECT state,priority,source,url,archive_url FROM watches WHERE watch_id=?",
+            "SELECT state, priority, source, url, archive_url FROM watches WHERE watch_id = %s",
             (watch_id,),
         ).fetchone()
         if matching_pauses(
@@ -101,7 +101,11 @@ def _parent_ready(
         # A partial parent may still supply independently admitted round links after
         # its three capture alternatives are exhausted. Do not invent those links.
         retained = database.connection.execute(
-            "SELECT g.result_json FROM source_units u JOIN source_generations g ON g.generation_id=u.accepted_generation_id JOIN watches w ON w.watch_id=u.watch_id WHERE w.source=? AND w.url=? AND g.state='accepted'",
+            (
+                "SELECT g.result_json FROM source_units AS u JOIN source_generations AS g ON g.generation_id "
+                "= u.accepted_generation_id JOIN watches AS w ON w.watch_id = u.watch_id WHERE w.source = %s "
+                "AND w.url = %s AND g.state = 'accepted'"
+            ),
             (parent.page.source, parent.page.url),
         ).fetchone()
         if retained:
@@ -155,7 +159,10 @@ def _candidate(
     ):
         return None, None, reason
     actual = conn.execute(
-        "SELECT e.event_id,e.year,e.event_month,e.end_date FROM source_event_map m JOIN events e USING(event_id) WHERE m.source=? AND m.source_ref=?",
+        (
+            "SELECT e.event_id, e.year, e.event_month, e.end_date FROM source_event_map AS m JOIN events "
+            "AS e USING (event_id) WHERE m.source = %s AND m.source_ref = %s"
+        ),
         (page.source, page.source_ref),
     ).fetchone()
     if actual is None or tuple(actual) != (
@@ -172,7 +179,7 @@ def _candidate(
         return None, None, "parent_document_pending"
     spec = replace(spec, archive_url=capture.archive_url)
     existing = conn.execute(
-        "SELECT state,next_check_at,paused_until,archive_url FROM watches WHERE watch_id=?",
+        "SELECT state, next_check_at, paused_until, archive_url FROM watches WHERE watch_id = %s",
         (spec.watch_id,),
     ).fetchone()
     advancing = bool(
@@ -330,7 +337,7 @@ def offer(
     return next(iter(offers(database, config, clock, plan=plan, run_id=run_id)), None)
 
 
-def _year_gate(conn: sqlite3.Connection) -> Callable[[int], bool]:
+def _year_gate(conn: engine.Connection) -> Callable[[int], bool]:
     """Answer the phase-two year gate once per year and the projection question once.
 
     The projection question walks every pending derivation and costs seconds on
@@ -456,10 +463,12 @@ def dispatch_one(
                     target_watch_id is not None and spec.watch_id != target_watch_id
                 ):
                     continue
-                # The gate and this mutation share BEGIN IMMEDIATE; changed policies or
+                # The gate and this mutation share the writer lock; changed policies or
                 # year acceptance can never leave a newly admitted control behind.
                 if schedule_capture(conn, spec, now=clock.now()):
-                    conn.execute("UPDATE watches SET priority=6 WHERE watch_id=?", (spec.watch_id,))
+                    conn.execute(
+                        "UPDATE watches SET priority = 6 WHERE watch_id = %s", (spec.watch_id,)
+                    )
                     replace_findings(
                         conn,
                         owner_kind="acquisition_gate",

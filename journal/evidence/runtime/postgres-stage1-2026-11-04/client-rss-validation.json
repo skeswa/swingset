@@ -1,0 +1,35 @@
+{
+  "format": "swingset-large-client-rss-validation-v1",
+  "timestamp": "2026-11-05T03:22:29.380782+00:00",
+  "platform": "native Linux ARM64",
+  "parent_pressure_bytes": 209715200,
+  "client_rss_limit_bytes": 134217728,
+  "client_read_limit_seconds": 15,
+  "cases_passed": 3,
+  "pytest_seconds": 2.43,
+  "source_sha256": "450aa731394be786c392190e755a42547a13c690870c4091e75061820404827e",
+  "log_sha256": "51270f92e7d1bea15160ef2a1bc505cfe8443bcbad8cee0ccbd02784fe77ac01",
+  "results": [
+    {
+      "bytes": 268435456,
+      "complete": true,
+      "expected_bytes": 268435456,
+      "peak_rss_bytes": 39600128,
+      "rss_metric": "proc-self-status-VmHWM",
+      "rusage_peak_rss_bytes": 394366976,
+      "seconds": 0.6495298199588433,
+      "sha256": "46cb77dd3f41b57fd3dcaef737766c333175e7979ad7b736ed80dc1a5209e974"
+    },
+    {
+      "bytes": 67108864,
+      "complete": true,
+      "expected_bytes": 67108864,
+      "peak_rss_bytes": 39571456,
+      "rss_metric": "proc-self-status-VmHWM",
+      "rusage_peak_rss_bytes": 394366976,
+      "seconds": 0.1543129909550771,
+      "sha256": "42ef3a50fe506ced865473b082c8b28f6ce254e6e2b01266b6a563531a6267bc"
+    }
+  ],
+  "exit_code": 0
+}

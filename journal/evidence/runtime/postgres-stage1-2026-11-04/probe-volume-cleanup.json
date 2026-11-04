@@ -1,0 +1,146 @@
+{
+  "finished_at": "2026-11-05T04:08:30.864602+00:00",
+  "host_free_after_asynchronous_docker_reclaim": 130337955840,
+  "host_free_before_delete": 69802012672,
+  "host_free_immediately_after_delete": 69312671744,
+  "independent_review": {
+    "inventory_sha256": "855b6258311e34371a24491521d3d842690277281a9767e650dd5bf5411cc31d",
+    "reviewer": "/root",
+    "verdict": "ACCEPT exact ten names after inspecting task labels, inactive owners, zero references including stopped containers, exported raw diagnostics and retained receipts",
+    "written_review_sha256": "6669fab1f205f351f8cb184688f2b30199dd0724062854e7d640bd135a10e8bd"
+  },
+  "minimum_host_free_bytes": 85899345920,
+  "notes": [
+    "Only docker volume rm with exact names and no force was used. Every label/creation time/mountpoint and zero-container-reference check was repeated immediately before each deletion.",
+    "Both latest116cbabc28cb OOM volumes and all checker/checkpoint/project/DEV/buildkit volumes were excluded.",
+    "Docker Desktop returned space to the Mac asynchronously after removal. No prune, trim, privileged helper, container change or database command was used.",
+    "Heavy jobs remain subject to the 80 GiB floor; this cleanup does not itself authorize the full regression to start."
+  ],
+  "original_container_count": 27,
+  "original_container_identity_state_unchanged": true,
+  "preserved_inventoried_volumes": [
+    "swingset-checker-probe-93282c6fea7e-run",
+    "swingset-checker-probe-93282c6fea7e-state",
+    "swingset-checker-probe-449027831950-run",
+    "swingset-checker-probe-449027831950-state",
+    "swingset-checkpoint-4564e5111835-tmpfs",
+    "swingset-checkpoint-4564e5111835-volume",
+    "swingset-linux-two-116cbabc28cb-0-tmp",
+    "swingset-linux-two-116cbabc28cb-1-tmp"
+  ],
+  "removed_count": 10,
+  "removed_payload_bytes": 24640139264,
+  "scope": "Only the ten independently accepted inactive io.swingset.core-probe volumes; no force/prune, containers, databases or other volumes modified.",
+  "script_sha256": {
+    "swingset-probe-volume-delete.py": "63a609a6c31706649418f8458371c5c3659e9a86e34210f5c0fee0f4defe5581",
+    "swingset-probe-volume-inventory.py": "4d1507c323547f9749b616f975dc5a04da7153998a278ab9e0f327c6989fd354"
+  },
+  "volumes": [
+    {
+      "bytes_du_before": 53248,
+      "exit_code": 0,
+      "job": "5364e02bacd0",
+      "labels": {
+        "io.swingset.core-probe": "5364e02bacd0"
+      },
+      "name": "swingset-linux-core-5364e02bacd0-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 730390528,
+      "exit_code": 0,
+      "job": "c469b3aacb17",
+      "labels": {
+        "io.swingset.core-probe": "c469b3aacb17"
+      },
+      "name": "swingset-linux-core-c469b3aacb17-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 6519046144,
+      "exit_code": 0,
+      "job": "0f8960654d3e",
+      "labels": {
+        "io.swingset.core-probe": "0f8960654d3e",
+        "io.swingset.core-probe.shard": "0"
+      },
+      "name": "swingset-linux-two-0f8960654d3e-0-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 6128775168,
+      "exit_code": 0,
+      "job": "0f8960654d3e",
+      "labels": {
+        "io.swingset.core-probe": "0f8960654d3e",
+        "io.swingset.core-probe.shard": "1"
+      },
+      "name": "swingset-linux-two-0f8960654d3e-1-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 4171419648,
+      "exit_code": 0,
+      "job": "94b7dcf672e0",
+      "labels": {
+        "io.swingset.core-probe": "94b7dcf672e0",
+        "io.swingset.core-probe.shard": "0"
+      },
+      "name": "swingset-linux-two-94b7dcf672e0-0-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 3533545472,
+      "exit_code": 0,
+      "job": "94b7dcf672e0",
+      "labels": {
+        "io.swingset.core-probe": "94b7dcf672e0",
+        "io.swingset.core-probe.shard": "1"
+      },
+      "name": "swingset-linux-two-94b7dcf672e0-1-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 414298112,
+      "exit_code": 0,
+      "job": "b84ed9350643",
+      "labels": {
+        "io.swingset.core-probe": "b84ed9350643",
+        "io.swingset.core-probe.shard": "0"
+      },
+      "name": "swingset-linux-two-b84ed9350643-0-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 552939520,
+      "exit_code": 0,
+      "job": "b84ed9350643",
+      "labels": {
+        "io.swingset.core-probe": "b84ed9350643",
+        "io.swingset.core-probe.shard": "1"
+      },
+      "name": "swingset-linux-two-b84ed9350643-1-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 1405857792,
+      "exit_code": 0,
+      "job": "1a218a468583",
+      "labels": {
+        "io.swingset.core-probe": "1a218a468583"
+      },
+      "name": "swingset-memory-1a218a468583-tmp",
+      "removed": true
+    },
+    {
+      "bytes_du_before": 1183813632,
+      "exit_code": 0,
+      "job": "a20da06206c8",
+      "labels": {
+        "io.swingset.core-probe": "a20da06206c8"
+      },
+      "name": "swingset-memory-a20da06206c8-tmp",
+      "removed": true
+    }
+  ]
+}

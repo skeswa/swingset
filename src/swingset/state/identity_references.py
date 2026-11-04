@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from swingset.normalize.names import normalize_name, paired_names
 from swingset.sources.records import Cell
+from swingset.state import engine
 
 
 def fingerprint(value: object) -> str:
@@ -44,7 +44,7 @@ class ReferenceBinding:
 
 
 def references_for_subject(
-    conn: sqlite3.Connection, kind: str, identifier: str
+    conn: engine.Connection, kind: str, identifier: str
 ) -> tuple[ReferenceBinding, ...]:
     return ReferenceReader(conn).for_subject(kind, identifier)
 
@@ -54,7 +54,7 @@ class ReferenceReader:
 
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: engine.Connection,
         *,
         observation_payloads: Mapping[str, Sequence[str]]
         | Callable[[str], Iterable[str]]
@@ -75,7 +75,7 @@ class ReferenceReader:
                 else (
                     record[0]
                     for record in self.conn.execute(
-                        "SELECT payload_json FROM observations WHERE snapshot_id=? AND kind='round_sheet'",
+                        "SELECT payload_json FROM observations WHERE snapshot_id = %s AND kind = 'round_sheet'",
                         (snapshot,),
                     )
                 )
@@ -115,7 +115,7 @@ class ReferenceReader:
                     )
                     bib_columns = [index for index, header in enumerate(headers) if "bib" in header]
                     source_row = self.conn.execute(
-                        "SELECT source FROM watches WHERE watch_id=(SELECT watch_id FROM snapshots WHERE snapshot_id=?)",
+                        "SELECT source FROM watches WHERE watch_id = (SELECT watch_id FROM snapshots WHERE snapshot_id = %s)",
                         (snapshot,),
                     ).fetchone()
                     source = str(source_row[0]) if source_row else ""
@@ -179,15 +179,16 @@ class ReferenceReader:
         if kind not in {"entry", "judge"}:
             raise ValueError("identity subject must be entry or judge")
         table = "entries" if kind == "entry" else "judges"
-        cursor = self.conn.execute(f"SELECT * FROM {table} WHERE {kind}_id=?", (identifier,))
+        cursor = self.conn.execute(f"SELECT * FROM {table} WHERE {kind}_id=%s", (identifier,))
         row = cursor.fetchone()
         if row is None:
             return ()
+        assert cursor.description is not None
         subject = dict(zip((field[0] for field in cursor.description), row, strict=True))
         contest_name = None
         if kind == "entry":
             contest = self.conn.execute(
-                "SELECT name_raw FROM contests WHERE contest_id=?", (subject["contest_id"],)
+                "SELECT name_raw FROM contests WHERE contest_id = %s", (subject["contest_id"],)
             ).fetchone()
             contest_name = str(contest[0]) if contest else None
         return self.for_record(kind, subject, contest_name=contest_name)
@@ -199,7 +200,7 @@ class ReferenceReader:
         from swingset.project.contests import _contest_slug
 
         metadata = self.conn.execute(
-            "SELECT w.source_ref,s.url FROM snapshots s JOIN watches w USING(watch_id) WHERE snapshot_id=?",
+            "SELECT w.source_ref, s.url FROM snapshots AS s JOIN watches AS w USING (watch_id) WHERE snapshot_id = %s",
             (subject["snapshot_id"],),
         ).fetchone()
         if metadata is None or not metadata[0]:
@@ -258,10 +259,14 @@ class ReferenceReader:
         return tuple(output[key] for key in sorted(output))
 
 
-def retain_binding(conn: sqlite3.Connection, binding: ReferenceBinding, *, now: str) -> None:
+def retain_binding(conn: engine.Connection, binding: ReferenceBinding, *, now: str) -> None:
     ref = binding.reference
     conn.execute(
-        "INSERT OR IGNORE INTO identity_source_refs VALUES (?,?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO identity_source_refs (ref_id, source, source_event, contest, round, "
+            "participant, subject_kind, locator_json, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, "
+            "%s, %s) ON CONFLICT DO NOTHING"
+        ),
         (
             ref.ref_id,
             ref.source,
@@ -283,13 +288,17 @@ def retain_binding(conn: sqlite3.Connection, binding: ReferenceBinding, *, now: 
         binding.semantic_hash,
     )
     conn.execute(
-        "INSERT OR IGNORE INTO identity_reference_bindings VALUES (?,?,?,?,?,?,?,?)",
+        (
+            "INSERT INTO identity_reference_bindings (binding_id, ref_id, subject_kind, subject_id, "
+            "event_id, snapshot_id, semantic_hash, bound_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON "
+            "CONFLICT DO NOTHING"
+        ),
         (fingerprint(values), *values, now),
     )
 
 
 def record_migration(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     migration_id: str,
     from_ref_id: str,
@@ -318,7 +327,9 @@ def record_migration(
         raise ValueError("approved continuity requires exactly one target reference")
     for ref in (from_ref_id, *to_ref_ids):
         if (
-            conn.execute("SELECT 1 FROM identity_source_refs WHERE ref_id=?", (ref,)).fetchone()
+            conn.execute(
+                "SELECT 1 AS _value_0 FROM identity_source_refs WHERE ref_id = %s", (ref,)
+            ).fetchone()
             is None
         ):
             raise ValueError(f"unknown source reference: {ref}")
@@ -338,7 +349,7 @@ def record_migration(
             raise ValueError("same-locator continuity requires reviewed semantic evidence")
     if supersedes:
         previous = conn.execute(
-            "SELECT from_ref_id FROM identity_reference_migrations WHERE migration_id=?",
+            "SELECT from_ref_id FROM identity_reference_migrations WHERE migration_id = %s",
             (supersedes,),
         ).fetchone()
         if previous is None or previous[0] != from_ref_id:
@@ -355,7 +366,10 @@ def record_migration(
         supersedes,
     )
     existing = conn.execute(
-        "SELECT migration_id,from_ref_id,to_ref_ids_json,status,evidence,reason,author,date,supersedes FROM identity_reference_migrations WHERE migration_id=?",
+        (
+            "SELECT migration_id, from_ref_id, to_ref_ids_json, status, evidence, reason, author, date, "
+            "supersedes FROM identity_reference_migrations WHERE migration_id = %s"
+        ),
         (migration_id,),
     ).fetchone()
     if existing:
@@ -365,7 +379,9 @@ def record_migration(
     edges = {
         str(row[0]): json.loads(row[1])
         for row in conn.execute(
-            "SELECT from_ref_id,to_ref_ids_json FROM identity_reference_migrations WHERE status='approved' AND migration_id NOT IN (SELECT supersedes FROM identity_reference_migrations WHERE supersedes IS NOT NULL)"
+            "SELECT from_ref_id, to_ref_ids_json FROM identity_reference_migrations WHERE status = "
+            "'approved' AND NOT migration_id IN (SELECT supersedes FROM identity_reference_migrations "
+            "WHERE NOT supersedes IS NULL)"
         )
     }
     pending = [] if self_continuity else list(to_ref_ids)
@@ -379,7 +395,12 @@ def record_migration(
         visited.add(ref)
         pending.extend(edges.get(ref, []))
     conn.execute(
-        "INSERT INTO identity_reference_migrations VALUES (?,?,?,?,?,?,?,?,?,?)", (*values, now)
+        (
+            "INSERT INTO identity_reference_migrations (migration_id, from_ref_id, to_ref_ids_json, "
+            "status, evidence, reason, author, date, supersedes, recorded_at) VALUES (%s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s)"
+        ),
+        (*values, now),
     )
     bump_revision(conn, "identity_decisions")
     events = {
@@ -392,7 +413,7 @@ def record_migration(
     return True
 
 
-def approved_reference_path(conn: sqlite3.Connection, origin: str, target: str) -> bool:
+def approved_reference_path(conn: engine.Connection, origin: str, target: str) -> bool:
     """Only one active approved successor at each step can carry supersession."""
     visited = set()
     while origin != target:
@@ -400,7 +421,11 @@ def approved_reference_path(conn: sqlite3.Connection, origin: str, target: str) 
             return False
         visited.add(origin)
         rows = conn.execute(
-            "SELECT status,to_ref_ids_json FROM identity_reference_migrations WHERE from_ref_id=? AND migration_id NOT IN (SELECT supersedes FROM identity_reference_migrations WHERE supersedes IS NOT NULL)",
+            (
+                "SELECT status, to_ref_ids_json FROM identity_reference_migrations WHERE from_ref_id = %s "
+                "AND NOT migration_id IN (SELECT supersedes FROM identity_reference_migrations WHERE NOT "
+                "supersedes IS NULL)"
+            ),
             (origin,),
         ).fetchall()
         if len(rows) != 1 or rows[0][0] != "approved":

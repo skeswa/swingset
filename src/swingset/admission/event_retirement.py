@@ -31,7 +31,7 @@ WATCH = (
 
 def _header(session: Session, identifier: str) -> dict[str, Any]:
     rows = session.read(
-        "SELECT generation_id,decision_id,predecessor_id FROM source_event_enumerations WHERE enumeration_id=?",
+        "SELECT generation_id,decision_id,predecessor_id FROM source_event_enumerations WHERE enumeration_id=%s",
         (identifier,),
         ("generation_id", "decision_id", "predecessor_id"),
         cap=1,
@@ -46,13 +46,13 @@ def _accepted_order(
 ) -> dict[str, Any]:
     """Historical ordering needs an accepted decision, not unrelated artifacts."""
     raw = session.read(
-        "SELECT * FROM source_generations WHERE generation_id=?", (identifier,), GENERATION, cap=1
+        "SELECT * FROM source_generations WHERE generation_id=%s", (identifier,), GENERATION, cap=1
     )
     if not raw:
         raise ValueError("retirement_predecessor_generation_missing")
     value = decode_generation(raw[0], identifier)
     rows = session.read(
-        "SELECT decision_id,decided_at FROM admission_decisions WHERE decision_id=? AND generation_id=? AND state='accepted'",
+        "SELECT decision_id,decided_at FROM admission_decisions WHERE decision_id=%s AND generation_id=%s AND state='accepted'",
         (decision, identifier),
         ("decision_id", "decided_at"),
         cap=1,
@@ -87,7 +87,7 @@ class _Parents:
         session = self.session
         if decision is None:
             rows = session.read(
-                "SELECT decision_id FROM admission_decisions WHERE generation_id=? AND state='accepted' ORDER BY decision_id LIMIT 1",
+                "SELECT decision_id FROM admission_decisions WHERE generation_id=%s AND state='accepted' ORDER BY decision_id LIMIT 1",
                 (identifier,),
                 ("decision_id",),
                 cap=1,
@@ -103,7 +103,7 @@ class _Parents:
         if len(self.cache) >= session.limits.candidates:
             raise BudgetExceeded("retirement_parent_candidate_budget")
         raw = session.read(
-            "SELECT * FROM source_generations WHERE generation_id=?",
+            "SELECT * FROM source_generations WHERE generation_id=%s",
             (identifier,),
             GENERATION,
             cap=1,
@@ -115,7 +115,7 @@ class _Parents:
         if context["source"] != self.source:
             raise ValueError("retirement_source_mismatch")
         snapshot = session.read(
-            "SELECT method,url,form FROM snapshots WHERE snapshot_id=?",
+            "SELECT method,url,form FROM snapshots WHERE snapshot_id=%s",
             (context["snapshot_id"],),
             ("method", "url", "form"),
             cap=1,
@@ -131,7 +131,7 @@ class _Parents:
         watch = None
         if purpose(context["kind"]) == "result":
             watches = session.read(
-                "SELECT * FROM watches WHERE watch_id=?", (context["watch_id"],), WATCH, cap=1
+                "SELECT * FROM watches WHERE watch_id=%s", (context["watch_id"],), WATCH, cap=1
             )
             watch = watches[0] if watches else None
         projected = declarations(value, anchor_watch=watch, anchor_snapshot=snapshot[0])
@@ -282,16 +282,16 @@ def verify_event(
             return {**result, "retired": False, "reason": "replacement_still_declares_event"}
         cap = min(MEMBERS, session.limits.candidates)
         source_expression = (
-            "CASE WHEN json_valid(g.recipe_json) THEN "
-            "CASE WHEN json_type(g.recipe_json,'$.context.source')='text' "
-            "THEN json_extract(g.recipe_json,'$.context.source') END END"
+            "CASE WHEN g.recipe_json IS JSON THEN "
+            "CASE WHEN jsonb_typeof(g.recipe_json::jsonb #> '{context,source}')='string' "
+            "THEN g.recipe_json::jsonb #>> '{context,source}' END END"
         )
         rows = session.read(
             "SELECT g.generation_id,min(d.decision_id) AS decision_id FROM source_generations g "
             "JOIN admission_decisions d USING(generation_id) "
-            f"WHERE ({source_expression}=? OR {source_expression} IS NULL) AND d.state='accepted' "
-            "AND (julianday(d.decided_at)<=julianday(?) OR julianday(d.decided_at) IS NULL) "
-            "GROUP BY g.generation_id ORDER BY decision_id LIMIT ?",
+            f"WHERE ({source_expression}=%s OR {source_expression} IS NULL) AND d.state='accepted' "
+            "AND (ops.try_timestamp(d.decided_at)<=ops.try_timestamp(%s) OR ops.try_timestamp(d.decided_at) IS NULL) "
+            "GROUP BY g.generation_id ORDER BY decision_id LIMIT %s",
             (source, session.cutoff.isoformat(), cap),
             ("generation_id", "decision_id"),
             cap=cap,
@@ -305,7 +305,7 @@ def verify_event(
         for row in rows:
             item = parents.get(row["generation_id"], row["decision_id"])
             inputs = session.read(
-                "SELECT outcome FROM event_enumeration_inputs WHERE generation_id=?",
+                "SELECT outcome FROM event_enumeration_inputs WHERE generation_id=%s",
                 (row["generation_id"],),
                 ("outcome",),
                 cap=1,
@@ -333,7 +333,7 @@ def verify_event(
         if claims:
             return {**result, "retired": False, "reason": "independent_event_declaration_survives"}
         revisions = session.read(
-            "SELECT revision FROM event_gap_revisions WHERE source=?",
+            "SELECT revision FROM event_gap_revisions WHERE source=%s",
             (source,),
             ("revision",),
             cap=1,

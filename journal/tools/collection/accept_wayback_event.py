@@ -61,7 +61,7 @@ def main() -> None:
             raise ValueError("WP11 event-index read did not return a snapshot")
         snapshot = dict(
             conn.execute(
-                "SELECT * FROM snapshots WHERE snapshot_id=?", (fetched.snapshot_id,)
+                "SELECT * FROM snapshots WHERE snapshot_id=%s", (fetched.snapshot_id,)
             ).fetchone()
         )
         body = archive.read_body(snapshot["body_sha256"])
@@ -84,11 +84,11 @@ def main() -> None:
         # snapshot must not later run the ordinary child-watch insertion path.
         with database.transaction():
             conn.execute(
-                "DELETE FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=?",
+                "DELETE FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=%s",
                 (snapshot["snapshot_id"],),
             )
             conn.execute(
-                "UPDATE watches SET state='sealed',next_check_at=NULL,notes='WP11 transport acceptance; children retained in review receipt only' WHERE watch_id=?",
+                "UPDATE watches SET state='sealed',next_check_at=NULL,notes='WP11 transport acceptance; children retained in review receipt only' WHERE watch_id=%s",
                 (spec.watch_id,),
             )
         args.output.mkdir(parents=True, exist_ok=True)

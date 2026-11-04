@@ -1,31 +1,33 @@
 """The weekly restore drill (architecture phase 4, WP7; D-0232).
 
 A backup nobody has restored is a hope. Once every `[storage]
-drill_every_days`, the maintain loop installs the newest backup set into
-`<drill_dir>/swingset-drill-<set>` with `restore_set.install`, from the
+drill_every_days`, the maintain loop reads the newest backup set through
+`restore_set.drill_set`, from the
 transport the set was written to: the local sets, a directory, or the
 archive in upload mode. It never activates anything and never asks the
 public hub. The checks:
 
 - every database part, the index and every segment match their digests,
   and every indexed file matches its own (`install`);
-- the restored database's schema, `PRAGMA quick_check` and
-  `foreign_key_check` (`install`, integrity "quick");
+- the restored Postgres schema, typed row audit and foreign keys (`install`);
 - one release from the restored state: a partitioned pending or baseline
-  candidate's manifest read from the restored objects with every artifact
-  intact (`manifest.verify`), else a closure-mode baseline's private proof
+  candidate's retained generation outputs reconstructed to exact Parquet hashes
+  before its manifest is verified, else a closure-mode baseline's private proof
   streamed through sha256 against its public commitment (not decoded: a
   proof is hundreds of MB).
 
+A separate owner job restores the database and hydrates the retained release.
+The loop receives only its compact receipt; owner credentials never enter it.
+The owner removes its database and expanded files after success or failure.
 A pass writes `backup_sets.drilled_at` and `drill_json`, removes the
-scratch, then prunes the local sets (`segments.prune_sets` keeps the
+loop's scratch, then prunes the local sets (`segments.prune_sets` keeps the
 newest and the newest drilled). A failure writes `drill_json` with
 `passed` false, appends `[restore-drill-failed]` to `ALERTS.log`, and keeps
-the scratch until the next drill or the scratch timer removes it. Without
+a small failure receipt until the next drill or the scratch timer removes it. Without
 room for the database, the files and 20 GB (the backup's own headroom), the
 drill does not start and keeps the guard `loop:maintain drill_no_room`,
 which expires after 24 hours so the watchdog's `[guard-expired]` names a
-lack of room that lasts. It holds the backup's lock (`loop-backup.lock`) the
+lack of room that lasts. It holds the backup's lock (`backup/export` advisory lock) the
 whole time; while a backup runs it does not start and keeps
 `loop:maintain drill_backup_running` the same way. Before the install it
 records `passed: null`, so a drill killed part way is not silent.
@@ -38,7 +40,6 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
 import tarfile
 import time
 from collections.abc import Callable
@@ -46,10 +47,12 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from swingset.state import disk, guards, rwlock
+from swingset.state import disk, engine, guards
 from swingset.state.db import Database
+from swingset.state.environment import EnvironmentRefused
+from swingset.state.large_values import column_reader
 
-from .restore_set import SetError, install
+from .restore_set import SetError, drill_set
 from .segments import LOCAL_TRANSPORT, prune_sets
 from .transport import (
     MANIFEST,
@@ -89,20 +92,22 @@ class DrillError(RuntimeError):
     """The drill could not check the set."""
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='backup_sets'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'backup_sets') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
 
 
-def due(conn: sqlite3.Connection, *, now: datetime, every_days: int) -> bool:
+def due(conn: engine.Connection, *, now: datetime, every_days: int) -> bool:
     """Whether a set exists and none passed a drill within `every_days` (less `SLACK`)."""
     if not available(conn):
         return False
-    count, passed = conn.execute("SELECT count(*),max(drilled_at) FROM backup_sets").fetchone()
+    count, passed = conn.execute(
+        "SELECT COUNT(*) AS _value_0, MAX(drilled_at) AS _value_1 FROM backup_sets"
+    ).fetchone()
     if not count:
         return False
     if passed is None:
@@ -110,13 +115,13 @@ def due(conn: sqlite3.Connection, *, now: datetime, every_days: int) -> bool:
     return datetime.fromisoformat(str(passed)) < now - (timedelta(days=every_days) - SLACK)
 
 
-def overdue(conn: sqlite3.Connection, *, now: datetime, every_days: int) -> bool:
+def overdue(conn: engine.Connection, *, now: datetime, every_days: int) -> bool:
     """Whether no set passed a drill for over `every_days` plus a day (since
     the first set, when none ever passed): maintain then drills before verify."""
     if not available(conn):
         return False
     first, passed = conn.execute(
-        "SELECT min(created_at),max(drilled_at) FROM backup_sets"
+        "SELECT MIN(created_at) AS _value_0, MAX(drilled_at) AS _value_1 FROM backup_sets"
     ).fetchone()
     since = passed if passed is not None else first
     if since is None:
@@ -124,7 +129,9 @@ def overdue(conn: sqlite3.Connection, *, now: datetime, every_days: int) -> bool
     return datetime.fromisoformat(str(since)) < now - timedelta(days=every_days + 1)
 
 
-def transport_for(state_dir: Path, name: str) -> Transport:
+def transport_for(
+    state_dir: Path, name: str, *, connection: engine.Connection | None = None
+) -> Transport:
     """The transport a set was recorded with (`backup_sets.transport`)."""
     if name == LOCAL_TRANSPORT:
         return LocalDirectoryTransport(state_dir / "checkpoints", name=LOCAL_TRANSPORT)
@@ -134,7 +141,14 @@ def transport_for(state_dir: Path, name: str) -> Transport:
         token = os.environ.get("HF_TOKEN")
         if not token:
             raise DrillError(f"HF_TOKEN is required to drill a set kept in {name}")
-        return HuggingFaceSegments(name.removeprefix("hf:"), token=token)
+        return HuggingFaceSegments(name.removeprefix("hf:"), token=token, connection=connection)
+    if name.startswith("r2:"):
+        from .r2 import configured
+
+        source = configured(connection, read_only=True)
+        if source.name != name:
+            raise DrillError("Configured backup bucket differs from the recorded transport")
+        return source
     raise DrillError(f"unknown backup transport {name!r}")
 
 
@@ -156,20 +170,22 @@ def run(
 
     The caller decided it is due. Returns `{"skipped": ...}` when there is no
     set, no room, or a backup is running, else the drill record with
-    `passed`. It holds the backup's own lock (`loop-backup.lock`) throughout,
+    `passed`. It holds the backup's own lock (`backup/export` advisory lock) throughout,
     so no set is written or pruned beside it and the two never share the
     disk. Before it installs anything it records `passed: null`, so a drill
     killed part way reads as failed once it is old (`[restore-drill-failed]`).
     """
     conn = database.connection
     row = conn.execute(
-        "SELECT set_id,transport FROM backup_sets ORDER BY set_id DESC LIMIT 1"
+        "SELECT set_id, transport FROM backup_sets ORDER BY set_id DESC NULLS LAST LIMIT 1"
     ).fetchone()
     if row is None:
         return {"skipped": "no_set"}
     set_id, recorded = str(row[0]), str(row[1])
-    held = rwlock.try_loop(database.state_dir, BACKUP_LOOP)
-    if held is None:
+    from swingset.state.engine.locks import release, try_lock
+
+    locked = try_lock(database.connection, "backup/export")
+    if not locked:
         with database.transaction() as write:
             guards.clocked(
                 write, SUBJECT, BACKUP_RUNNING, loop="maintain", now=now, clock=NO_ROOM_CLOCK
@@ -178,11 +194,25 @@ def run(
     try:
         with database.transaction() as write:
             guards.delete(write, SUBJECT, BACKUP_RUNNING)
-        return _drill(
-            database, set_id, recorded, now=now, drill_dir=drill_dir, transport=transport, free=free
+        from .r2 import R2Transport
+
+        binding = (
+            transport.bound(conn)
+            if isinstance(transport, (HuggingFaceSegments, R2Transport))
+            else contextlib.nullcontext()
         )
+        with binding:
+            return _drill(
+                database,
+                set_id,
+                recorded,
+                now=now,
+                drill_dir=drill_dir,
+                transport=transport,
+                free=free,
+            )
     finally:
-        held.release()
+        release(database.connection, "backup/export")
 
 
 def _drill(
@@ -209,7 +239,11 @@ def _drill(
         "scratch": str(scratch),
     }
     try:
-        source = transport if transport is not None else transport_for(database.state_dir, recorded)
+        source = (
+            transport
+            if transport is not None
+            else transport_for(database.state_dir, recorded, connection=database.connection)
+        )
         scratch.mkdir()
         manifest = json.loads(source.fetch(f"{SETS}/{set_id}/{MANIFEST}", scratch).read_bytes())
         need = _need(manifest, local=isinstance(source, LocalDirectoryTransport))
@@ -223,9 +257,8 @@ def _drill(
         with database.transaction() as write:
             guards.delete(write, SUBJECT, NO_ROOM)
         _started(database, set_id, record, now=now)
-        restored = scratch / "state"
-        record["install"] = install(source, restored, set_id=set_id, integrity="quick")
-        record["release"] = _release(restored, record["install"])
+        record["install"] = drill_set(source, set_id=set_id)
+        record["release"] = record["install"]["release"]
     except (
         DrillError,
         SetError,
@@ -235,15 +268,19 @@ def _drill(
         KeyError,
         TypeError,
         tarfile.TarError,
-        sqlite3.DatabaseError,
+        engine.DatabaseError,
+        EnvironmentRefused,
     ) as error:
-        if _pruned(transport, database.state_dir, recorded, set_id):
+        if _pruned(transport, database.state_dir, recorded, set_id, connection=database.connection):
             # A set removed by hand meanwhile; the next tick drills the newer one.
             shutil.rmtree(scratch, ignore_errors=True)
             with database.transaction() as write:
                 write.execute(
-                    "UPDATE backup_sets SET drill_json=NULL WHERE set_id=? "
-                    "AND json_valid(drill_json) AND json_extract(drill_json,'$.passed') IS NULL",
+                    (
+                        "UPDATE backup_sets SET drill_json = NULL WHERE set_id = %s AND "
+                        "PG_INPUT_IS_VALID(drill_json, 'json') AND JSON_EXTRACT_PATH_TEXT(CAST(drill_json AS JSON), "
+                        "'passed') IS NULL"
+                    ),
                     (set_id,),
                 )
             return {"skipped": "set_pruned", "set_id": set_id}
@@ -254,6 +291,7 @@ def _drill(
         )
         _write(database, set_id, record, passed=False, now=now)
         if scratch.exists():
+            (scratch / "failure.json").write_text(json.dumps(record, sort_keys=True, default=str))
             _shrink(scratch)
             os.utime(scratch)
         record["alerted"] = _alert(database.state_dir, record, now=now)
@@ -274,14 +312,21 @@ def _started(database: Database, set_id: str, record: dict[str, Any], *, now: da
         default=str,
     )
     with database.transaction() as write:
-        write.execute("UPDATE backup_sets SET drill_json=? WHERE set_id=?", (body, set_id))
+        write.execute("UPDATE backup_sets SET drill_json = %s WHERE set_id = %s", (body, set_id))
 
 
-def _pruned(transport: Transport | None, state_dir: Path, recorded: str, set_id: str) -> bool:
+def _pruned(
+    transport: Transport | None,
+    state_dir: Path,
+    recorded: str,
+    set_id: str,
+    *,
+    connection: engine.Connection | None = None,
+) -> bool:
     """Whether a local set was removed by a newer set's prune during the drill."""
     if transport is None and recorded != LOCAL_TRANSPORT:
         return False
-    source = transport or transport_for(state_dir, recorded)
+    source = transport or transport_for(state_dir, recorded, connection=connection)
     if not isinstance(source, LocalDirectoryTransport):
         return False
     newer = [name for name in source.sets() if name > set_id]
@@ -316,25 +361,29 @@ def _clear(drill_dir: Path, scratch: Path, now: datetime) -> None:
 
 
 def _shrink(scratch: Path) -> None:
-    """A failed drill keeps its small files, not the restored database: that
-    is the size of the database's bytes in use, and left on the same disk it
-    would refuse the next backup set's room check. `KEEP` keeps it all."""
+    """Retain the loop's compact diagnostic; the owner cleans expanded history.
+
+    `KEEP` preserves the loop's fetched diagnostics, never the owner's database.
+    """
     if (scratch / "KEEP").exists():
         return
-    restored = scratch / "state"
-    for name in ("state.sqlite", "state.sqlite-wal", "state.sqlite-shm"):
-        with contextlib.suppress(FileNotFoundError):
-            (restored / name).unlink()
-    if restored.is_dir():
-        for path in restored.glob(".install-*"):
-            shutil.rmtree(path, ignore_errors=True)
+    # Only the fetched outer manifest and a compact diagnostic survive failure.
+    for path in scratch.iterdir():
+        if path.name in {MANIFEST, "failure.json", "KEEP"}:
+            continue
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
 
 
-def _no_room(conn: sqlite3.Connection, now: datetime) -> None:
+def _no_room(conn: engine.Connection, now: datetime) -> None:
     guards.clocked(conn, SUBJECT, NO_ROOM, loop="maintain", now=now, clock=NO_ROOM_CLOCK)
 
 
-def _release(state: Path, installed: dict[str, Any]) -> dict[str, Any]:
+def _release(
+    state: Path, installed: dict[str, Any], *, connection: engine.Connection | None = None
+) -> dict[str, Any]:
     """Hydrate one release from the restored state; raises when it cannot."""
     from swingset.build import manifest
 
@@ -352,8 +401,11 @@ def _release(state: Path, installed: dict[str, Any]) -> dict[str, Any]:
         if policy.get("mode") == "partitioned":
             digest = str(policy["manifest_digest"])
             try:
+                from .artifacts import ArtifactUnavailable, hydrate
+
+                hydrate(state, digest, connection=connection)
                 value = manifest.verify(state, digest)
-            except manifest.ManifestError as error:
+            except (manifest.ManifestError, ArtifactUnavailable) as error:
                 raise DrillError(f"candidate {name}: {error}") from error
             return {
                 "candidate": name,
@@ -371,7 +423,7 @@ def _release(state: Path, installed: dict[str, Any]) -> dict[str, Any]:
         public = policy.get("closure")
         if not isinstance(public, dict):
             raise DrillError(f"candidate {name} names no closure")
-        private = _proof_bytes(state / "state.sqlite", public)
+        private = _proof_bytes(state, public, connection=connection)
         return {
             "candidate": name,
             "mode": "closure",
@@ -381,7 +433,9 @@ def _release(state: Path, installed: dict[str, Any]) -> dict[str, Any]:
     return {"candidate": None, "modes": sorted(str(p.get("mode")) for _, p in policies)}
 
 
-def _proof_bytes(database: Path, public: dict[str, Any]) -> int:
+def _proof_bytes(
+    database: Path, public: dict[str, Any], *, connection: engine.Connection | None = None
+) -> int:
     """Check a closure proof's stored bytes against its public commitment."""
     from swingset.build.closure_manifest import digest
 
@@ -392,24 +446,26 @@ def _proof_bytes(database: Path, public: dict[str, Any]) -> int:
     ):
         raise DrillError("public_closure_digest_mismatch")
     private = str(public.get("private_digest") or "")
-    uri = f"{database.resolve().as_uri()}?mode=ro&immutable=1"
-    conn = sqlite3.connect(uri, uri=True)
+    from swingset.state import engine
+
+    conn = connection or engine.connect(engine.resolve_dsn(database), read_only=True)
     try:
         row = conn.execute(
-            "SELECT rowid FROM derivation_dependency_sets WHERE dependency_set_id=?", (private,)
+            "SELECT rowid FROM derivation_dependency_sets WHERE dependency_set_id = %s", (private,)
         ).fetchone()
         if row is None:
             raise DrillError("private_closure_proof_unavailable")
         hasher = hashlib.sha256()
         size = 0
-        with conn.blobopen(
-            "derivation_dependency_sets", "manifest_json", row[0], readonly=True
+        with column_reader(
+            conn, "derivation_dependency_sets", "manifest_json", row[0], readonly=True
         ) as blob:
             while block := blob.read(1 << 20):
                 hasher.update(block)
                 size += len(block)
     finally:
-        conn.close()
+        if connection is None:
+            conn.close()
     if hasher.hexdigest() != private:
         raise DrillError("private_closure_proof_corrupt")
     return size
@@ -422,7 +478,7 @@ def _write(
     body = json.dumps({**record, "at": stamp}, sort_keys=True, default=str)
     with database.transaction() as write:
         write.execute(
-            "UPDATE backup_sets SET drilled_at=?,drill_json=? WHERE set_id=?",
+            "UPDATE backup_sets SET drilled_at = %s, drill_json = %s WHERE set_id = %s",
             (stamp if passed else None, body, set_id),
         )
 

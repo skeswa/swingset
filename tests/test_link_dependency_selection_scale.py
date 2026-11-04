@@ -33,14 +33,24 @@ def test_link_subsets_match_full_catalog_for_every_stored_scope(tmp_path, storag
         conn = db.connection
         if storage == "registered":
             conn.execute(
-                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project',?,'event',?)",
+                (
+                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                    "%s, 'event', %s)"
+                ),
                 (kind, NOW),
             )
         elif storage == "queued":
-            conn.execute("INSERT INTO pending_work VALUES ('project',?,'event',?)", (kind, NOW))
+            conn.execute(
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES ('project', %s, 'event', %s)",
+                (kind, NOW),
+            )
         else:
             conn.execute(
-                "INSERT INTO canonical_scope_rows VALUES (?,'event','events','[]')", (kind,)
+                (
+                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES (%s, "
+                    "'event', 'events', '[]')"
+                ),
+                (kind,),
             )
         assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == expected(
             conn
@@ -53,19 +63,24 @@ def test_link_subsets_match_full_catalog_for_every_stored_scope(tmp_path, storag
 @pytest.mark.parametrize("kind", [*sorted(dependencies.PROJECT), "unknown"])
 def test_link_subsets_include_physical_observations(source_fixture, kind):
     conn = source_fixture.conn
-    conn.execute("UPDATE observations SET scope_kind=?,scope_id='event'", (kind,))
+    conn.execute("UPDATE observations SET scope_kind = %s, scope_id = 'event'", (kind,))
     assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == expected(conn)
 
 
 def test_link_subsets_do_not_promote_source_index_ownership_to_global_scope(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO source_event_scope_rows VALUES ('event','eepro','source')")
+        conn.execute(
+            "INSERT INTO source_event_scope_rows (scope_id, source, source_ref) VALUES ('event', 'eepro', 'source')"
+        )
         assert tuple(dependencies.scopes(conn, "project")) == (
             WorkUnit("project", "source_index", "event"),
         )
         assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == ()
-        conn.execute("INSERT INTO source_event_map VALUES ('eepro','source','event','explicit',1)")
+        conn.execute(
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES ('eepro', 'source', 'event', 'explicit', 1)"
+        )
         assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == expected(
             conn
         )
@@ -80,13 +95,13 @@ def test_link_names_only_the_dancers_it_read_and_never_scans_the_catalog(tmp_pat
         conn = db.connection
         units = [("dancer", str(number)) for number in range(1000)] + [("event", "event")]
         conn.executemany(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project',?,?,?)",
+            "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', %s, %s, %s)",
             [(kind, identifier, NOW) for kind, identifier in units],
         )
         link = WorkUnit("link", "event", "event")
         assert dependencies.prerequisites(conn, link) == expected(conn)
         conn.executemany(
-            "INSERT INTO derivation_reads VALUES ('link','event','event',?)",
+            "INSERT INTO derivation_reads (stage, unit_kind, unit_id, read_key) VALUES ('link', 'event', 'event', %s)",
             [
                 ("project/dancer/12",),
                 ("project/dancer/5",),
@@ -111,7 +126,8 @@ def test_link_names_only_the_dancers_it_read_and_never_scans_the_catalog(tmp_pat
             with db.transaction():
                 conn.execute("SAVEPOINT another_read")
                 conn.execute(
-                    "INSERT INTO derivation_reads VALUES ('link','event','event','project/dancer/7')"
+                    "INSERT INTO derivation_reads (stage, unit_kind, unit_id, read_key) VALUES ('link', 'event', "
+                    "'event', 'project/dancer/7')"
                 )
                 assert WorkUnit("project", "dancer", "7") in dependencies.prerequisites(conn, link)
                 conn.execute("ROLLBACK TO another_read")
@@ -125,7 +141,10 @@ def test_other_stage_queues_do_not_create_project_dependencies(tmp_path, stage):
     with open_database(tmp_path) as db:
         conn = db.connection
         for kind in ("event", "dancer", "history"):
-            conn.execute("INSERT INTO pending_work VALUES (?,?,?,?)", (stage, kind, "event", NOW))
+            conn.execute(
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES (%s, %s, %s, %s)",
+                (stage, kind, "event", NOW),
+            )
         assert (
             dependencies.prerequisites(conn, WorkUnit("link", "event", "event"))
             == expected(conn)
@@ -170,16 +189,35 @@ def test_shared_inference_from_standalone_fact_tables(tmp_path, origin):
             conn.execute("DELETE FROM canonical_scope_rows")
         elif origin == "source_events":
             conn.execute(
-                "INSERT INTO source_events(source,source_ref,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('test','source','https://example.test','test','1',?,?,'test')",
+                (
+                    "INSERT INTO source_events (source, source_ref, url, snapshot_id, parser_version, "
+                    "first_seen_at, last_seen_at, run_id) VALUES ('test', 'source', 'https://example.test', "
+                    "'test', '1', %s, %s, 'test')"
+                ),
                 (NOW, NOW),
             )
         else:
             conn.execute(
-                "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (1,'Test','Dancer','test dancer',0,'leader','novice','novice','novice','novice','novice',0,'novice',0,2026,1,?,'test','test','1',?,?,'test')",
+                (
+                    "INSERT INTO dancers (wsdc_id, first_name, last_name, name_norm, is_pro, primary_role, "
+                    "leader_required_level, leader_allowed_level, follower_required_level, "
+                    "follower_allowed_level, leader_highest_level, leader_highest_points, "
+                    "follower_highest_level, follower_highest_points, recent_year, registry_internal_id, "
+                    "registry_fetched_at, source, snapshot_id, parser_version, first_seen_at, last_seen_at, "
+                    "run_id) VALUES (1, 'Test', 'Dancer', 'test dancer', 0, 'leader', 'novice', 'novice', "
+                    "'novice', 'novice', 'novice', 0, 'novice', 0, 2026, 1, %s, 'test', 'test', '1', %s, %s, "
+                    "'test')"
+                ),
                 (NOW, NOW, NOW),
             )
             conn.execute(
-                "INSERT INTO registry_placements VALUES (1,'leader','west_coast_swing','novice','series','Synthetic Series','2026-01',NULL,'F',0,'test','test','1',?,?,'test')",
+                (
+                    "INSERT INTO registry_placements (wsdc_id, role, dance_style, division, series_id, "
+                    "series_name_raw, event_month, event_id, result, points, source, snapshot_id, "
+                    "parser_version, first_seen_at, last_seen_at, run_id) VALUES (1, 'leader', "
+                    "'west_coast_swing', 'novice', 'series', 'Synthetic Series', '2026-01', NULL, 'F', 0, "
+                    "'test', 'test', '1', %s, %s, 'test')"
+                ),
                 (NOW, NOW),
             )
         actual = dependencies.prerequisites(conn, WorkUnit("link", "event", "event"))

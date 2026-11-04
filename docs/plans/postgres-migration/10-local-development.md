@@ -39,15 +39,21 @@ flowchart LR
 
 ## The everyday loop
 
-**Speed is an acceptance condition.** The last core run took 545.25
-seconds for 2,147 cases ([measurement](../../../journal/investigations/2026/dokploy-plan-review-2026-11-04.md#validation-and-limits)).
-That exceeds the repo's 180-second core budget and triggers this work.
-Even the five normalization tests took 18.27 seconds in a focused run
-on 2026-11-04. Neither measurement identifies the bottleneck: stage 1 measures collection,
-database setup, test bodies and teardown before choosing further tuning.
+**Speed is an acceptance condition.** Stage 1's default core passed all 2,583
+cases in 179.50 seconds, including setup, reports and cleanup. Cached readiness
+took 0.61 seconds. The slowest of three warm samples was 0.53 seconds for
+startup, 0.82 for admission, 0.45 for projection and 2.34 for replay
+([current receipt](../../../journal/evidence/runtime/postgres-stage1-2026-11-04/developer-current.json)).
+An earlier check created the absent physical service in 3.75 seconds with
+TEST, DEV, seed and dependencies cached
+([original receipt](../../../journal/evidence/runtime/postgres-stage1-2026-11-04/developer-final.json));
+the current cached-readiness result does not replace that cold-creation check.
 
-These are proposed commands and warm-run targets, not implemented tools
-or measured Postgres timings. First-time downloads are measured separately.
+The [pre-port measurement](../../../journal/investigations/2026/dokploy-plan-review-2026-11-04.md#validation-and-limits)
+was 545.25 seconds for 2,147 cases. Stage 1 measured collection, setup, bodies
+and teardown before each change. The targets below remain the acceptance
+conditions; the [local outcome](../../../journal/investigations/2026/stage-1-implementation-2026-11-04.md)
+records the implementation and limits. First-time downloads are separate.
 
 | Task                                       | Entry point                                                     | Feedback target                                             |
 | ------------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -56,6 +62,15 @@ or measured Postgres timings. First-time downloads are measured separately.
 | keep that test running on edits            | `mise run test-watch -- <file-or-nodeid>`                       | same target; one run at a time, changes coalesced           |
 | inspect one unit or a small event scenario | `swingset dev-replay <database> --unit <key>` or `--event <id>` | under 30 s for the bounded seed scenario                    |
 | ready a change                             | `mise run check`, then `mise run fmt`                           | core under 180 s; lint and type timings reported separately |
+
+The bounded core executor is maintained in
+[`dev/core_runner.py`](../../../src/swingset/dev/core_runner.py), with a
+separate container supervisor and receipt plugin. Bare `mise run test` and
+`mise run check` use it by default. Explicit selectors, full runs, watch mode
+and CI keep their native pytest route; `SWINGSET_FAST_CORE=0` also selects
+the native route.
+CI's host launcher owns a separate durable Postgres service for physical-space
+cases; the test container receives connections, without Docker control access.
 
 `dev` checks the pinned tools and dependencies, starts or reuses the local
 services, and creates the default seed only if absent. Python imports the
@@ -87,8 +102,15 @@ not silent deselection. Extra parallel workers are not the initial remedy.
   (OrbStack on the Mac) runs Postgres and the image. After stage 0 the
   server's runtime identity is the image digest, so Nix's stricter pinning
   of the Mac's environment buys nothing the verify run needs.
-- **Run native locally.** Python runs on the Mac, with uv's cache;
-  Postgres runs as ARM64 on an ARM64 Mac. Match production's Postgres
+- **Run native locally.** Focused tests and replay use the Mac's Python
+  and uv cache. The core first runs the unchanged 30 ms deadline recovery
+  case in one isolated native ARM64 Linux client, then runs the rest in
+  four file partitions with four workers per client. Each client stays
+  under its 2 GiB limit. Every phase reports the complete reviewed core;
+  their assignments and executions must form its exact disjoint union.
+  Both phases and their cleanup count toward 180 seconds. Source, tests and fixtures
+  are mounted from the checkout; only dependency or tool changes rebuild
+  that cached environment. Match production's Postgres
   patch release, extensions, locale and relevant settings, and pin both
   architecture image digests (or their shared multi-platform index).
   Local tests do not claim the exact AMD64 build. CI and the server's
@@ -103,6 +125,17 @@ not silent deselection. Extra parallel workers are not the initial remedy.
   templates also include fixture hashes. Never reuse a mismatched cache.
   Templates are immutable after creation and have no open connections
   during cloning ([Postgres template rules](https://www.postgresql.org/docs/17/manage-ag-templatedbs.html)).
+- **Keep physical tests on durable storage.** The ordinary core has a separate
+  warm `physical` service on localhost port 15434, limited to 2 GiB and two
+  CPUs, with fsync and full-page writes enabled. `dev` prepares it explicitly;
+  core timing still includes its validation and any missing-service startup.
+  Check the exact container, volume, instance identity, settings, roles and
+  known-fresh database inventory on every use. Unexpected state blocks reuse
+  and remains for checked owner cleanup; never adopt or reset it. Each case
+  takes the existing session lease without holding a waiting transaction.
+  PID1 reaps only its own copies on both test endpoints; a whole-client kill
+  retains its ledger and volume, and inventory drift blocks the next run.
+  Lifecycle fault, full-suite and CI factories stay fresh.
 - **Validate the warm server too.** Roles and server settings are shared
   across databases. Key and check the server's image, role definitions
   and relevant settings before reuse. An incompatible server is replaced

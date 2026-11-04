@@ -6,7 +6,6 @@ import csv
 import io
 import json
 import re
-import sqlite3
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
@@ -19,8 +18,11 @@ from swingset.model.history import HISTORY_START
 from swingset.model.ids import series_slug
 from swingset.model.observations import decode_payload
 from swingset.sources.records import CalendarRow
+from swingset.state import engine
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import WorkUnit, bump_revision, enqueue
+
+VERSION = 1
 
 #: Whether a calendar listing that prints a cancel or hiatus note keeps its
 #: own row instead of joining its edition's (D-0260). Turn off when the
@@ -46,7 +48,7 @@ def _next_month(month: str) -> str:
 
 
 def prepare_inventory(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: str,
     run_id: str,
@@ -60,7 +62,9 @@ def prepare_inventory(
     dismissed = dismissed_findings(reviews)
     occurrences = list(
         conn.execute(
-            "SELECT series_id,event_month,series_name_raw,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id FROM registry_placements ORDER BY last_seen_at,snapshot_id"
+            "SELECT series_id, event_month, series_name_raw, snapshot_id, parser_version, first_seen_at, "
+            "last_seen_at, run_id FROM registry_placements ORDER BY last_seen_at NULLS FIRST, "
+            "snapshot_id NULLS FIRST"
         )
     )
     by_occurrence = {
@@ -73,12 +77,16 @@ def prepare_inventory(
         name = str(row[2])
         names.setdefault(series_slug(name), set()).add(series)
         conn.execute(
-            "INSERT INTO series(series_id,name) VALUES (?,?) ON CONFLICT(series_id) DO UPDATE SET name=excluded.name",
+            (
+                "INSERT INTO series (series_id, name) VALUES (%s, %s) ON CONFLICT(series_id) DO UPDATE SET name = excluded.name"
+            ),
             (series, name),
         )
         existing = conn.execute(
-            "SELECT event_id,held,sources FROM events WHERE series_id=? AND event_month=? "
-            "ORDER BY event_id",
+            (
+                "SELECT event_id, held, sources FROM events WHERE series_id = %s AND event_month = %s ORDER "
+                "BY event_id NULLS FIRST"
+            ),
             (series, month),
         ).fetchall()
         if not any(row[1] == "held" for row in existing):
@@ -87,7 +95,7 @@ def prepare_inventory(
             legacy = [
                 event
                 for event in conn.execute(
-                    "SELECT event_id,name,event_month,series_id FROM events WHERE series_id NOT LIKE 'wsdc-%'"
+                    "SELECT event_id, name, event_month, series_id FROM events WHERE series_id NOT ILIKE 'wsdc-%'"
                 )
                 if (
                     series_slug(str(event[1])) == series_slug(name)
@@ -99,7 +107,7 @@ def prepare_inventory(
             ]
             if len(legacy) == 1:
                 conn.execute(
-                    "UPDATE events SET series_id=?,event_month=?,held='held' WHERE event_id=?",
+                    "UPDATE events SET series_id = %s, event_month = %s, held = 'held' WHERE event_id = %s",
                     (series, month, legacy[0][0]),
                 )
             elif existing:
@@ -111,12 +119,12 @@ def prepare_inventory(
                 calendar = [row for row in listed if "wsdc_calendar" in json.loads(row[2] or "[]")]
                 adopted = (calendar or listed)[:1]
                 for event in adopted:
-                    conn.execute("UPDATE events SET held='held' WHERE event_id=?", (event[0],))
+                    conn.execute("UPDATE events SET held = 'held' WHERE event_id = %s", (event[0],))
             else:
                 # Reuse the v1 identifier where its exact edition name and month agree.
                 event_id = f"{month}-{series_slug(name)}"
                 collision = conn.execute(
-                    "SELECT series_id FROM events WHERE event_id=?", (event_id,)
+                    "SELECT series_id FROM events WHERE event_id = %s", (event_id,)
                 ).fetchone()
                 if (
                     collision is not None
@@ -125,9 +133,9 @@ def prepare_inventory(
                 ):
                     event_id += "-" + series
                 conn.execute(
-                    """INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source)
-                    VALUES (?,?,?,?,NULL,NULL,'registry','["wsdc_registry"]','wsdc_registry',?,?,?,?,?,?,'month','held','registry_only','["registry"]')
-                    ON CONFLICT(event_id) DO UPDATE SET series_id=excluded.series_id,held='held',event_month=excluded.event_month""",
+                    (
+                        "INSERT INTO events (event_id, series_id, name, year, start_date, end_date, wsdc_status, sources, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, event_month, date_precision, held, coverage_tier, history_source) VALUES (%s, %s, %s, %s, NULL, NULL, 'registry', '[\"wsdc_registry\"]', 'wsdc_registry', %s, %s, %s, %s, %s, %s, 'month', 'held', 'registry_only', '[\"registry\"]') ON CONFLICT(event_id) DO UPDATE SET series_id = excluded.series_id, held = 'held', event_month = excluded.event_month"
+                    ),
                     (
                         event_id,
                         series,
@@ -145,29 +153,37 @@ def prepare_inventory(
         # earlier, kept the `unknown` of the placeholder or listing it began
         # as; a trial label stays (D-0253).
         conn.execute(
-            "UPDATE events SET wsdc_status='registry' WHERE series_id=? AND event_month=? "
-            "AND held='held' AND wsdc_status='unknown'",
+            (
+                "UPDATE events SET wsdc_status = 'registry' WHERE series_id = %s AND event_month = %s AND "
+                "held = 'held' AND wsdc_status = 'unknown'"
+            ),
             (series, month),
         )
     # History membership outlives the rolling calendar window. Its scope keeps
     # registry-backed editions from being deleted when a newer index omits them.
     for event in conn.execute(
-        "SELECT event_id FROM events WHERE held='held' AND series_id LIKE 'wsdc-%'"
+        "SELECT event_id FROM events WHERE held = 'held' AND series_id ILIKE 'wsdc-%'"
     ):
         conn.execute(
-            "INSERT OR IGNORE INTO canonical_scope_rows(scope_kind,scope_id,table_name,record_key) VALUES ('history','all','events',?)",
+            (
+                "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+                "('history', 'all', 'events', %s) ON CONFLICT DO NOTHING"
+            ),
             (json.dumps([str(event[0])], separators=(",", ":")),),
         )
     findings: dict[int, list[Finding]] = {}
-    listings: dict[tuple[str, str, str, str], tuple[CalendarRow, sqlite3.Row]] = {}
+    listings: dict[tuple[str, str, str, str], tuple[CalendarRow, engine.Row]] = {}
     observation_times = {
         str(row[0]): str(row[1])
         for row in conn.execute(
-            "SELECT snapshot_id,COALESCE(observed_at,fetched_at) FROM snapshots"
+            "SELECT snapshot_id, COALESCE(observed_at, fetched_at) AS _value_1 FROM snapshots"
         )
     }
     for row in conn.execute(
-        "SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at) AS observed FROM observations o JOIN snapshots s USING(snapshot_id) JOIN watches w USING(watch_id) WHERE o.scope_kind='calendar' ORDER BY observed,s.snapshot_id,o.seq"
+        "SELECT o.kind, o.payload_json, o.snapshot_id, o.parser_version, w.source, "
+        "COALESCE(s.observed_at, s.fetched_at) AS observed FROM observations AS o JOIN snapshots AS "
+        "s USING (snapshot_id) JOIN watches AS w ON w.watch_id = o.watch_id WHERE o.scope_kind = 'calendar' "
+        "ORDER BY observed NULLS FIRST, s.snapshot_id NULLS FIRST, o.seq NULLS FIRST"
     ):
         payload = decode_payload(str(row[0]), str(row[1]))
         if not isinstance(payload, CalendarRow):
@@ -184,7 +200,10 @@ def prepare_inventory(
             )
         ] = (payload, row)
     for row in conn.execute(
-        "SELECT se.name_raw,se.start_date,se.snapshot_id,se.parser_version,se.source,se.end_date,se.location_raw,se.url FROM source_events se JOIN snapshots s USING(snapshot_id) WHERE se.start_date IS NOT NULL AND se.end_date IS NOT NULL ORDER BY COALESCE(s.observed_at,s.fetched_at),se.snapshot_id"
+        "SELECT se.name_raw, se.start_date, se.snapshot_id, se.parser_version, se.source, "
+        "se.end_date, se.location_raw, se.url FROM source_events AS se JOIN snapshots AS s USING "
+        "(snapshot_id) WHERE NOT se.start_date IS NULL AND NOT se.end_date IS NULL ORDER BY "
+        "COALESCE(s.observed_at, s.fetched_at) NULLS FIRST, se.snapshot_id NULLS FIRST"
     ):
         if not row[0] or str(row[5])[:7] < history_start.strftime("%Y-%m"):
             continue
@@ -209,8 +228,8 @@ def prepare_inventory(
                 str(row[4]),
             )
         ] = (payload, row)
-    resolved: dict[str, list[tuple[CalendarRow, sqlite3.Row]]] = {}
-    editions: dict[tuple[str, str], dict[str, list[tuple[CalendarRow, sqlite3.Row]]]] = {}
+    resolved: dict[str, list[tuple[CalendarRow, engine.Row]]] = {}
+    editions: dict[tuple[str, str], dict[str, list[tuple[CalendarRow, engine.Row]]]] = {}
     for payload, row in _current_listings(listings, observation_times):
         month = payload.end_date_raw[:7]
         year = int(month[:4])
@@ -239,7 +258,8 @@ def prepare_inventory(
             continue
         series = next(iter(candidates))
         conn.execute(
-            "INSERT OR IGNORE INTO series(series_id,name) VALUES (?,?)", (series, payload.name_raw)
+            "INSERT INTO series (series_id, name) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (series, payload.name_raw),
         )
         matches = match.events
         if len(matches) > 1:
@@ -360,7 +380,17 @@ def prepare_inventory(
             or next(iter(names[normalized]))
         )
         source = str(row[4])
-        previous = conn.execute("SELECT * FROM events WHERE event_id=?", (event_id,)).fetchone()
+        previous = conn.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (event_id,),
+        ).fetchone()
         # Every listing of the edition contributed, the one the widest span
         # left out too, and a held row is the registry's (D-0260).
         sources = {str(evidence[4]) for _, evidence in edition}
@@ -390,8 +420,7 @@ def prepare_inventory(
             start, end = widest
             year = int(end[:4])
         conn.execute(
-            f"""INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source,city,region,country)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET city=COALESCE(excluded.city,events.city),region=COALESCE(excluded.region,events.region),country=COALESCE(excluded.country,events.country), wsdc_status=CASE WHEN events.held='held' THEN events.wsdc_status ELSE excluded.wsdc_status END,source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,sources=excluded.sources,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,start_date=excluded.start_date,end_date=excluded.end_date,year=excluded.year,website=COALESCE(excluded.website,events.website),date_precision=excluded.date_precision,coverage_tier=CASE WHEN events.coverage_tier='registry_only' THEN 'index_only' ELSE events.coverage_tier END,history_source=excluded.history_source,held=CASE WHEN events.held='held' THEN 'held' ELSE excluded.held END WHERE events.start_date IS NOT excluded.start_date OR events.end_date IS NOT excluded.end_date OR events.source IS NOT excluded.source OR events.snapshot_id IS NOT excluded.snapshot_id OR {_list_differs("history_source")} OR {_list_differs("sources")} OR events.date_precision IS NOT excluded.date_precision OR (events.held!='held' AND (events.wsdc_status IS NOT excluded.wsdc_status OR events.held IS NOT excluded.held)) OR (excluded.city IS NOT NULL AND events.city IS NOT excluded.city) OR (excluded.region IS NOT NULL AND events.region IS NOT excluded.region) OR (excluded.country IS NOT NULL AND events.country IS NOT excluded.country)""",
+            f"INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source,city,region,country)\n            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(event_id) DO UPDATE SET city=COALESCE(excluded.city,events.city),region=COALESCE(excluded.region,events.region),country=COALESCE(excluded.country,events.country), wsdc_status=CASE WHEN events.held='held' THEN events.wsdc_status ELSE excluded.wsdc_status END,source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,sources=excluded.sources,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,start_date=excluded.start_date,end_date=excluded.end_date,year=excluded.year,website=COALESCE(excluded.website,events.website),date_precision=excluded.date_precision,coverage_tier=CASE WHEN events.coverage_tier='registry_only' THEN 'index_only' ELSE events.coverage_tier END,history_source=excluded.history_source,held=CASE WHEN events.held='held' THEN 'held' ELSE excluded.held END WHERE events.start_date IS DISTINCT FROM excluded.start_date OR events.end_date IS DISTINCT FROM excluded.end_date OR events.source IS DISTINCT FROM excluded.source OR events.snapshot_id IS DISTINCT FROM excluded.snapshot_id OR {_list_differs('history_source')} OR {_list_differs('sources')} OR events.date_precision IS DISTINCT FROM excluded.date_precision OR (events.held!='held' AND (events.wsdc_status IS DISTINCT FROM excluded.wsdc_status OR events.held IS DISTINCT FROM excluded.held)) OR (excluded.city IS NOT NULL AND events.city IS DISTINCT FROM excluded.city) OR (excluded.region IS NOT NULL AND events.region IS DISTINCT FROM excluded.region) OR (excluded.country IS NOT NULL AND events.country IS DISTINCT FROM excluded.country)",
             (
                 event_id,
                 series,
@@ -418,12 +447,12 @@ def prepare_inventory(
         )
     held_months = {
         (str(row[0]), str(row[1]))
-        for row in conn.execute("SELECT series_id,event_month FROM events WHERE held='held'")
+        for row in conn.execute("SELECT series_id, event_month FROM events WHERE held = 'held'")
     }
     stale = {
         str(row[0])
         for row in conn.execute(
-            "SELECT event_id,series_id,event_month,history_source FROM events WHERE held!='held'"
+            "SELECT event_id, series_id, event_month, history_source FROM events WHERE held <> 'held'"
         )
         if (str(row[1]), str(row[2])) in held_months and json.loads(str(row[3] or "[]"))
     }
@@ -432,27 +461,30 @@ def prepare_inventory(
         # beside its held occurrence that no listing writes any more, unless
         # something else holds it: a scope, results, judges, a listing's map
         # row or proposal, an origin intent, or registry placements (D-0260).
-        twin = conn.execute("SELECT held FROM events WHERE event_id=?", (event_id,)).fetchone()
+        twin = conn.execute("SELECT held FROM events WHERE event_id = %s", (event_id,)).fetchone()
         if twin is None:
             continue
         if not conn.execute(
-            "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' "
-            "AND record_key=json_array(?1) UNION ALL "
-            + " UNION ALL ".join(
-                f"SELECT 1 FROM {table} WHERE event_id=?1"
-                for table in (
-                    "contests",
-                    "judges",
-                    "registry_placements",
-                    "source_event_map",
-                    "source_event_proposals",
-                    "history_origin_intents",
-                )
+            " UNION ALL ".join(
+                [
+                    "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' AND record_key=ops.compact_json(json_build_array(%(event_id)s::text))",
+                    *(
+                        f"SELECT 1 FROM {table} WHERE event_id=%(event_id)s"
+                        for table in (
+                            "contests",
+                            "judges",
+                            "registry_placements",
+                            "source_event_map",
+                            "source_event_proposals",
+                            "history_origin_intents",
+                        )
+                    ),
+                ]
             )
             + " LIMIT 1",
-            (event_id,),
+            {"event_id": event_id},
         ).fetchone():
-            conn.execute("DELETE FROM events WHERE event_id=?", (event_id,))
+            conn.execute("DELETE FROM events WHERE event_id = %s", (event_id,))
     for year in range(history_start.year, int(now[:4]) + 1):
         replace_findings(
             conn,
@@ -478,7 +510,7 @@ def prepare_inventory(
 
 
 def finalize_history(
-    conn: sqlite3.Connection, *, now: str, history_start: date = HISTORY_START
+    conn: engine.Connection, *, now: str, history_start: date = HISTORY_START
 ) -> None:
     """Associate occurrences and count coverage after map and event output settle."""
     # Placements join the held occurrence of their series and month, else the
@@ -491,15 +523,14 @@ def finalize_history(
         "ORDER BY e.held!='held',e.event_id LIMIT 1)"
     )
     conn.execute(
-        f"UPDATE registry_placements SET event_id={association} "
-        f"WHERE event_month>=? AND event_id IS NOT {association}",
+        f"UPDATE registry_placements SET event_id={association} WHERE event_month>=%s AND event_id IS DISTINCT FROM {association}",
         (history_start.strftime("%Y-%m"),),
     )
     rebuild_coverage(conn, now=now)
 
 
 def finalize_year(
-    conn: sqlite3.Connection, year: int, *, now: str, history_start: date = HISTORY_START
+    conn: engine.Connection, year: int, *, now: str, history_start: date = HISTORY_START
 ) -> bool:
     """Associate one year's occurrences and count that year's coverage (F17).
 
@@ -519,8 +550,7 @@ def finalize_year(
         "ORDER BY e.held!='held',e.event_id LIMIT 1)"
     )
     moved = conn.execute(
-        f"UPDATE registry_placements SET event_id={association} "
-        f"WHERE event_month>=? AND substr(event_month,1,4)=? AND event_id IS NOT {association}",
+        f"UPDATE registry_placements SET event_id={association} WHERE event_month>=%s AND substr(event_month,1,4)=%s AND event_id IS DISTINCT FROM {association}",
         (history_start.strftime("%Y-%m"), f"{year:04d}"),
     ).rowcount
     if moved:
@@ -529,7 +559,7 @@ def finalize_year(
 
 
 def reconcile_history(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     now: str,
     run_id: str,
@@ -565,7 +595,7 @@ class ListingMatch:
 
 
 def match_listing(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     aliases: AliasMap,
     names: Mapping[str, Iterable[str]],
     name: str,
@@ -588,14 +618,14 @@ def match_listing(
     events = tuple(
         str(row[0])
         for row in conn.execute(
-            "SELECT event_id FROM events WHERE series_id=? AND event_month IN (?,?) AND held='held'",
+            "SELECT event_id FROM events WHERE series_id = %s AND event_month IN (%s, %s) AND held = 'held'",
             (next(iter(series)), month, _next_month(month)),
         )
     )
     return ListingMatch(slug, series, events)
 
 
-def registry_names(conn: sqlite3.Connection) -> dict[str, set[str]]:
+def registry_names(conn: engine.Connection) -> dict[str, set[str]]:
     """Registry series by printed-name slug, read from the inventory's output.
 
     The map's stand-in for the names the inventory reads from
@@ -604,8 +634,8 @@ def registry_names(conn: sqlite3.Connection) -> dict[str, set[str]]:
     """
     names: dict[str, set[str]] = {}
     for series, name in conn.execute(
-        "SELECT series_id,name FROM series WHERE series_id LIKE 'wsdc-%' "
-        "UNION SELECT series_id,name FROM events WHERE held='held' AND series_id LIKE 'wsdc-%'"
+        "SELECT series_id, name FROM series WHERE series_id ILIKE 'wsdc-%' UNION SELECT series_id, "
+        "name FROM events WHERE held = 'held' AND series_id ILIKE 'wsdc-%'"
     ):
         names.setdefault(series_slug(str(name)), set()).add(str(series))
     return names
@@ -617,11 +647,11 @@ def alias_map(aliases: bytes) -> AliasMap:
 
 
 def _edition_id(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     series: str,
     month: str,
-    group: list[tuple[CalendarRow, sqlite3.Row]],
-    platforms: list[tuple[CalendarRow, sqlite3.Row]],
+    group: list[tuple[CalendarRow, engine.Row]],
+    platforms: list[tuple[CalendarRow, engine.Row]],
 ) -> tuple[str, list[str]]:
     """The one event id of an unreported edition, and the twin rows it replaces.
 
@@ -634,16 +664,14 @@ def _edition_id(
     calendar-family listings wrote, other than it, are its twins (D-0260).
     """
 
-    def natural(items: list[tuple[CalendarRow, sqlite3.Row]]) -> set[str]:
+    def natural(items: list[tuple[CalendarRow, engine.Row]]) -> set[str]:
         return {f"{month}-{series_slug(payload.name_raw)}" for payload, _ in items}
 
     named, results = natural(group), natural(platforms)
     rows = {
         str(row[0]): (str(row[2] or ""), len(str(row[0])), str(row[0]), str(row[1] or "[]"), row[3])
         for row in conn.execute(
-            "SELECT event_id,history_source,first_seen_at,series_id FROM events "
-            f"WHERE held!='held' AND ((series_id=? AND event_month=?) OR event_id IN "
-            f"({','.join('?' * len(named | results))}))",
+            f"SELECT event_id,history_source,first_seen_at,series_id FROM events WHERE held!='held' AND ((series_id=%s AND event_month=%s) OR event_id IN ({','.join(['%s'] * len(named | results))}))",
             (series, month, *sorted(named | results)),
         )
     }
@@ -688,7 +716,7 @@ def _marked(payload: CalendarRow) -> bool:
     )
 
 
-def _two_editions(group: list[tuple[CalendarRow, sqlite3.Row]]) -> bool:
+def _two_editions(group: list[tuple[CalendarRow, engine.Row]]) -> bool:
     """Whether one capture in ``group`` dates spans that are not one edition."""
     spans: dict[str, set[tuple[str, str]]] = {}
     for payload, row in group:
@@ -697,7 +725,7 @@ def _two_editions(group: list[tuple[CalendarRow, sqlite3.Row]]) -> bool:
 
 
 def _calendar_place(
-    candidates: list[tuple[CalendarRow, sqlite3.Row]], observation_times: dict[str, str]
+    candidates: list[tuple[CalendarRow, engine.Row]], observation_times: dict[str, str]
 ) -> tuple[str | None, str | None, str | None]:
     """City, region and country from the newest WSDC calendar listing of an edition.
 
@@ -731,8 +759,8 @@ def _calendar_status(payload: CalendarRow) -> str:
 
 
 def _status_listings(
-    candidates: list[tuple[CalendarRow, sqlite3.Row]],
-) -> list[tuple[CalendarRow, sqlite3.Row]]:
+    candidates: list[tuple[CalendarRow, engine.Row]],
+) -> list[tuple[CalendarRow, engine.Row]]:
     """The listings that speak for an edition's status: the WSDC calendar's,
     else every calendar-family listing. A newsletter is read years after its
     issue, so its observation time says nothing about which listing is newer,
@@ -748,7 +776,7 @@ def _trial(payload: CalendarRow) -> bool:
 
 
 def _cancelled(
-    candidates: list[tuple[CalendarRow, sqlite3.Row]], observation_times: dict[str, str]
+    candidates: list[tuple[CalendarRow, engine.Row]], observation_times: dict[str, str]
 ) -> bool:
     """Whether an edition was cancelled (D-0260).
 
@@ -763,7 +791,7 @@ def _cancelled(
     def marks(payload: CalendarRow, word: str) -> bool:
         return any(word in value.casefold() for value in (payload.name_raw, *payload.row_classes))
 
-    def before_start(payload: CalendarRow, row: sqlite3.Row) -> bool:
+    def before_start(payload: CalendarRow, row: engine.Row) -> bool:
         seen = observation_times.get(str(row[2]), "")
         return bool(seen) and seen[:10] < payload.start_date_raw[:10]
 
@@ -778,7 +806,7 @@ def _listing_status(
     payload: CalendarRow,
     source: str,
     series: str,
-    candidates: list[tuple[CalendarRow, sqlite3.Row]],
+    candidates: list[tuple[CalendarRow, engine.Row]],
     observation_times: dict[str, str],
 ) -> str:
     """The WSDC status a listing gives its event.
@@ -804,9 +832,9 @@ def _listing_status(
 
 
 def _current_listings(
-    listings: dict[tuple[str, str, str, str], tuple[CalendarRow, sqlite3.Row]],
+    listings: dict[tuple[str, str, str, str], tuple[CalendarRow, engine.Row]],
     observation_times: dict[str, str],
-) -> list[tuple[CalendarRow, sqlite3.Row]]:
+) -> list[tuple[CalendarRow, engine.Row]]:
     newest: dict[tuple[str, str, str], tuple[str, str]] = {}
     for payload, row in listings.values():
         key = str(row[4]), series_slug(payload.name_raw), payload.end_date_raw[:7]
@@ -830,8 +858,8 @@ def _list_differs(column: str) -> str:
     """
     stored, new = f"events.{column}", f"excluded.{column}"
     return (
-        f"(CASE WHEN json_valid({stored}) THEN json({stored}) ELSE {stored} END) IS NOT "
-        f"(CASE WHEN json_valid({new}) THEN json({new}) ELSE {new} END)"
+        f"(CASE WHEN ops.valid_json({stored}) THEN ops.compact_json({stored}) ELSE {stored} END) IS DISTINCT FROM "
+        f"(CASE WHEN ops.valid_json({new}) THEN ops.compact_json({new}) ELSE {new} END)"
     )
 
 
@@ -846,21 +874,21 @@ def _json_list(values: Iterable[str]) -> str:
     return json.dumps(sorted(values), separators=(",", ":"), ensure_ascii=False)
 
 
-def _inventory_state(conn: sqlite3.Connection) -> tuple[tuple[object, ...], ...]:
+def _inventory_state(conn: engine.Connection) -> tuple[tuple[object, ...], ...]:
     return tuple(
         tuple(row)
         for row in conn.execute(
-            "SELECT event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,event_month,date_precision,held,coverage_tier,history_source FROM events ORDER BY event_id"
+            "SELECT event_id, series_id, name, year, start_date, end_date, website, wsdc_status, "
+            "sources, source, snapshot_id, parser_version, event_month, date_precision, held, "
+            "coverage_tier, history_source FROM events ORDER BY event_id NULLS FIRST"
         )
     )
 
 
-def _inventory_digest(conn: sqlite3.Connection, year: int | None = None) -> str:
-    query = (
-        "SELECT event_id,series_id,start_date,end_date,event_month,held,date_precision FROM events"
-    )
+def _inventory_digest(conn: engine.Connection, year: int | None = None) -> str:
+    query = "SELECT event_id, series_id, start_date, end_date, event_month, held, date_precision FROM events"
     rows = conn.execute(
-        query + (" WHERE year=?" if year is not None else "") + " ORDER BY event_id",
+        query + (" WHERE year=%s" if year is not None else "") + " ORDER BY event_id",
         (year,) if year is not None else (),
     ).fetchall()
     return sha256(json.dumps([tuple(row) for row in rows]).encode()).hexdigest()
@@ -994,14 +1022,14 @@ def facts_only() -> bool:
     return _FACTS_ONLY.get()
 
 
-def pending_inventory_projection(conn: sqlite3.Connection) -> bool:
+def pending_inventory_projection(conn: engine.Connection) -> bool:
     """Whether a pending unit may change the event list; False on facts alone."""
     if facts_only():
         return False
     return projection_pending(conn)
 
 
-def projection_pending(conn: sqlite3.Connection) -> bool:
+def projection_pending(conn: engine.Connection) -> bool:
     """The pending-projection answer whatever the gate's mode.
 
     `accept-year` refuses on it, and the plan loop records it as
@@ -1016,7 +1044,7 @@ def projection_pending(conn: sqlite3.Connection) -> bool:
     return _pending_inventory_projection(conn)
 
 
-def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
+def _pending_inventory_projection(conn: engine.Connection) -> bool:
     """Only known result-only dispatches are proven neutral for every year's inventory.
 
     process._replace_event projects no Event records, hence writes none of the
@@ -1053,7 +1081,7 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
     units = (
         ((unit.unit_kind, unit.unit_id) for unit in pending_units(conn, "project"))
         if derived
-        else conn.execute("SELECT unit_kind,unit_id FROM pending_work WHERE stage='project'")
+        else conn.execute("SELECT unit_kind, unit_id FROM pending_work WHERE stage = 'project'")
     )
     for kind, identifier in units:
         if kind in {"history", "year"} and derived:
@@ -1063,14 +1091,16 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
         event_id = identifier
         if kind == "source_event":
             sources = conn.execute(
-                "SELECT DISTINCT w.source FROM observations o JOIN watches w USING(watch_id) "
-                "WHERE o.scope_kind='source_event' AND o.scope_id=?",
+                (
+                    "SELECT DISTINCT w.source FROM observations AS o JOIN watches AS w USING (watch_id) WHERE "
+                    "o.scope_kind = 'source_event' AND o.scope_id = %s"
+                ),
                 (identifier,),
             ).fetchall()
             if len(sources) != 1:
                 return True
             mapped = conn.execute(
-                "SELECT event_id FROM source_event_map WHERE source=? AND source_ref=?",
+                "SELECT event_id FROM source_event_map WHERE source = %s AND source_ref = %s",
                 (sources[0][0], identifier),
             ).fetchone()
             if mapped is None:
@@ -1078,10 +1108,14 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
             event_id = mapped[0]
         elif kind != "event":
             return True
-        if not conn.execute("SELECT 1 FROM events WHERE event_id=?", (event_id,)).fetchone():
+        if not conn.execute(
+            "SELECT 1 AS _value_0 FROM events WHERE event_id = %s", (event_id,)
+        ).fetchone():
             return True
         if conn.execute(
-            "SELECT 1 FROM canonical_scope_rows WHERE scope_kind='event' AND scope_id=? AND table_name='events' LIMIT 1",
+            (
+                "SELECT 1 AS _value_0 FROM canonical_scope_rows WHERE scope_kind = 'event' AND scope_id = %s AND table_name = 'events' LIMIT 1"
+            ),
             (event_id,),
         ).fetchone():
             return True
@@ -1089,7 +1123,7 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
 
 
 def accept_year(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     year: int,
     *,
     accepted_by: str,
@@ -1104,6 +1138,20 @@ def accept_year(
     generation of that year alone; a caller that set up `chunking` for that
     unit stages its output.
     """
+    if not conn.in_transaction:
+        from pathlib import Path
+
+        from swingset.state.db import Database
+
+        with Database(conn.state_dir or Path("."), conn, None).transaction():
+            return accept_year(
+                conn,
+                year,
+                accepted_by=accepted_by,
+                accepted_at=accepted_at,
+                run_id=run_id,
+                history_start=history_start,
+            )
     from swingset.state.derivations import available
     from swingset.state.read_sets import recording
     from swingset.state.write_deadline import bounded_write
@@ -1124,21 +1172,27 @@ def accept_year(
             if projection_pending(conn):
                 raise ValueError("event-list projection is pending")
             if conn.execute(
-                "SELECT 1 FROM findings WHERE owner_kind IN ('history_year','phase1_year') AND owner_id=? AND closed_at IS NULL",
+                (
+                    "SELECT 1 AS _value_0 FROM findings WHERE owner_kind IN ('history_year', 'phase1_year') AND owner_id = %s AND closed_at IS NULL"
+                ),
                 (str(year),),
             ).fetchone():
                 raise ValueError("year has unresolved event-list findings")
-            if not conn.execute("SELECT 1 FROM events WHERE year=?", (year,)).fetchone():
+            if not conn.execute(
+                "SELECT 1 AS _value_0 FROM events WHERE year = %s", (year,)
+            ).fetchone():
                 raise ValueError("cannot accept a year without event evidence")
             conn.execute(
-                "INSERT OR REPLACE INTO history_acceptance VALUES (?,?,?,?)",
+                (
+                    "INSERT INTO history_acceptance (year, accepted_at, accepted_by, inventory_digest) VALUES (%s, %s, %s, %s) ON CONFLICT(year) DO UPDATE SET accepted_at=EXCLUDED.accepted_at, accepted_by=EXCLUDED.accepted_by, inventory_digest=EXCLUDED.inventory_digest"
+                ),
                 (year, accepted_at, accepted_by, _inventory_digest(conn, year)),
             )
             if available(conn):
                 if run_id is None:
                     run_id = "history_acceptance_" + uuid4().hex
                     conn.execute(
-                        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES (?,?,?,0,?)",
+                        "INSERT INTO runs (run_id, started_at, finished_at, dry_run, summary_json) VALUES (%s, %s, %s, 0, %s)",
                         (
                             run_id,
                             accepted_at,
@@ -1169,7 +1223,7 @@ def accept_year(
         conn.execute(f"RELEASE {savepoint}")
 
 
-def phase_two_allowed(conn: sqlite3.Connection, year: int, *, pending: bool | None = None) -> bool:
+def phase_two_allowed(conn: engine.Connection, year: int, *, pending: bool | None = None) -> bool:
     """Whether phase-two acquisition may start for ``year``.
 
     ``pending`` lets a caller that asks about many years answer the
@@ -1194,7 +1248,7 @@ YEAR_GATE_REASONS = (
 )
 
 
-def year_gate_reason(conn: sqlite3.Connection, year: int) -> str | None:
+def year_gate_reason(conn: engine.Connection, year: int) -> str | None:
     """The first fact that closes phase two for ``year``, or None when it is open.
 
     Facts only: acceptance, the accepted digest against the committed event
@@ -1202,21 +1256,23 @@ def year_gate_reason(conn: sqlite3.Connection, year: int) -> str | None:
     projection is the caller's question (`phase_two_allowed`).
     """
     accepted = conn.execute(
-        "SELECT inventory_digest FROM history_acceptance WHERE year=?", (year,)
+        "SELECT inventory_digest FROM history_acceptance WHERE year = %s", (year,)
     ).fetchone()
     if not accepted:
         return "year_unaccepted"
     if accepted[0] != _inventory_digest(conn, year):
         return "acceptance_digest_changed"
     if conn.execute(
-        "SELECT 1 FROM findings WHERE owner_kind IN ('history_year','phase1_year') AND owner_id=? AND closed_at IS NULL",
+        (
+            "SELECT 1 AS _value_0 FROM findings WHERE owner_kind IN ('history_year', 'phase1_year') AND owner_id = %s AND closed_at IS NULL"
+        ),
         (str(year),),
     ).fetchone():
         return "year_findings_open"
     deployed = {
         r[0]: r[1]
         for r in conn.execute(
-            "SELECT key,value FROM meta WHERE key IN ('h7_deployed','h10_deployed')"
+            "SELECT key, value FROM meta WHERE key IN ('h7_deployed', 'h10_deployed')"
         )
     }
     if deployed.get("h7_deployed") != "true" or deployed.get("h10_deployed") != "true":
@@ -1224,7 +1280,7 @@ def year_gate_reason(conn: sqlite3.Connection, year: int) -> str | None:
     return None
 
 
-def rebuild_coverage(conn: sqlite3.Connection, *, now: str) -> None:
+def rebuild_coverage(conn: engine.Connection, *, now: str) -> None:
     from .coverage import rebuild_coverage as rebuild
 
     rebuild(conn, now=now)

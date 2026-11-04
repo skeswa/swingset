@@ -65,9 +65,9 @@ class SourceConfig:
 class RetentionConfig:
     """How big the live database may get, and how much recent history stays local.
 
-    `max_database_bytes` is measured against `state.sqlite` on disk, which is
-    what backups and the disk actually carry; deleting rows frees pages to
-    SQLite's free list without shrinking that file. `recent_window` is how many
+    `max_database_bytes` is measured against Postgres's allocated database
+    bytes; deleting rows makes space reusable without shrinking the database.
+    `recent_window` is how many
     of the newest generations of each scope are retention roots. Both are
     reported by doctor. `collect_older_than` is the age a disposable candidate
     or artifact must reach before the collector may remove it, and it must be at

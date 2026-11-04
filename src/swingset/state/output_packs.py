@@ -28,10 +28,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from itertools import islice
+
+from swingset.state import engine
 
 from . import objects
 from .objects import ObjectUnavailable, Store
@@ -52,23 +53,24 @@ def _line(table: str, key: str, payload: str) -> bytes:
     return _canonical((table, key, payload)).encode() + b"\n"
 
 
-def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+def _has_table(conn: engine.Connection, name: str) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = %s) AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))",
+            (name,),
         ).fetchone()
         is not None
     )
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     """Whether this schema can evict (36 and later)."""
     return _has_table(conn, "derivation_evicted")
 
 
-def label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int]:
+def label(conn: engine.Connection, generation_id: str) -> tuple[str, int]:
     row = conn.execute(
-        "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
+        "SELECT output_digest, row_count FROM derivation_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     if row is None:
@@ -76,33 +78,34 @@ def label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int]:
     return str(row[0]), int(row[1])
 
 
-def evicted(conn: sqlite3.Connection, generation_id: str) -> bool:
+def evicted(conn: engine.Connection, generation_id: str) -> bool:
     """Whether the generation's references left the file for its pack."""
     if not available(conn):
         return False
     return (
         conn.execute(
-            "SELECT 1 FROM derivation_evicted WHERE generation_id=?", (generation_id,)
+            "SELECT 1 AS _value_0 FROM derivation_evicted WHERE generation_id = %s",
+            (generation_id,),
         ).fetchone()
         is not None
     )
 
 
-def _interned(conn: sqlite3.Connection) -> bool:
+def _interned(conn: engine.Connection) -> bool:
     return _has_table(conn, "derivation_row_refs")
 
 
-def _stored(conn: sqlite3.Connection, generation_id: str) -> tuple[int, int]:
+def _stored(conn: engine.Connection, generation_id: str) -> tuple[int, int]:
     """References in the file: (count, max ordinal + 1)."""
     table = "derivation_row_refs" if _interned(conn) else "derivation_rows"
     count, top = conn.execute(
-        f"SELECT count(*),coalesce(max(ordinal)+1,0) FROM {table} WHERE generation_id=?",
+        f"SELECT count(*),coalesce(max(ordinal)+1,0) FROM {table} WHERE generation_id=%s",
         (generation_id,),
     ).fetchone()
     return int(count), int(top)
 
 
-def resident(conn: sqlite3.Connection, generation_id: str) -> bool:
+def resident(conn: engine.Connection, generation_id: str) -> bool:
     """Every reference in the file, in ordinal order, and every payload they name."""
     _, rows = label(conn, generation_id)
     count, top = _stored(conn, generation_id)
@@ -111,22 +114,24 @@ def resident(conn: sqlite3.Connection, generation_id: str) -> bool:
     if not _interned(conn):
         return True
     return not conn.execute(
-        "SELECT EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=? "
-        "AND NOT EXISTS(SELECT 1 FROM derivation_payloads p "
-        "WHERE p.payload_sha256=r.payload_sha256))",
+        (
+            "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM derivation_row_refs AS r WHERE r.generation_id = %s AND NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_payloads AS p WHERE p.payload_sha256 = r.payload_sha256)) AS INT) AS _value_0"
+        ),
         (generation_id,),
     ).fetchone()[0]
 
 
-def complete(conn: sqlite3.Connection, generation_id: str) -> bool:
+def complete(conn: engine.Connection, generation_id: str) -> bool:
     """Resident or evicted: a generation whose output exists whole (F33)."""
     return evicted(conn, generation_id) or resident(conn, generation_id)
 
 
-def _view(conn: sqlite3.Connection, generation_id: str) -> Iterator[tuple[str, str, str]]:
+def _view(conn: engine.Connection, generation_id: str) -> Iterator[tuple[str, str, str]]:
     for table, key, payload in conn.execute(
-        "SELECT table_name,record_key,payload_json FROM derivation_rows "
-        "WHERE generation_id=? ORDER BY ordinal",
+        (
+            "SELECT table_name, record_key, payload_json FROM derivation_rows WHERE generation_id = %s "
+            "ORDER BY ordinal NULLS FIRST"
+        ),
         (generation_id,),
     ):
         yield str(table), str(key), str(payload)
@@ -147,7 +152,7 @@ def _decode(line: bytes, generation_id: str) -> tuple[str, str, str]:
 
 
 def _pack(
-    conn: sqlite3.Connection, generation_id: str, output_digest: str
+    conn: engine.Connection, generation_id: str, output_digest: str
 ) -> Iterator[tuple[str, str, str]]:
     """The pack's rows; the object store checks the digest when they run out."""
     try:
@@ -159,7 +164,7 @@ def _pack(
 
 
 def rows(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     *,
     expected: tuple[str, int] | None = None,
@@ -188,7 +193,7 @@ def rows(
 
 
 def row(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     table: str,
     key: str,
@@ -206,8 +211,10 @@ def row(
         is_evicted = evicted(conn, generation_id)
     if not is_evicted:
         found = conn.execute(
-            "SELECT payload_json FROM derivation_rows WHERE generation_id=? "
-            "AND table_name=? AND record_key=?",
+            (
+                "SELECT payload_json FROM derivation_rows WHERE generation_id = %s AND table_name = %s AND "
+                "record_key = %s"
+            ),
             (generation_id, table, key),
         ).fetchone()
         return None if found is None else str(found[0])
@@ -219,7 +226,7 @@ def row(
 
 
 def table_rows(
-    conn: sqlite3.Connection, generation_id: str, table: str
+    conn: engine.Connection, generation_id: str, table: str
 ) -> Iterator[tuple[str, str]]:
     """One table's rows `(key, payload_json)` of a generation, in ordinal order.
 
@@ -229,8 +236,10 @@ def table_rows(
     """
     if not evicted(conn, generation_id):
         for key, payload in conn.execute(
-            "SELECT record_key,payload_json FROM derivation_rows WHERE generation_id=? "
-            "AND table_name=? ORDER BY ordinal",
+            (
+                "SELECT record_key, payload_json FROM derivation_rows WHERE generation_id = %s AND "
+                "table_name = %s ORDER BY ordinal NULLS FIRST"
+            ),
             (generation_id, table),
         ):
             yield str(key), str(payload)
@@ -239,7 +248,7 @@ def table_rows(
     yield from found
 
 
-def packed(conn: sqlite3.Connection, generation_id: str) -> bool:
+def packed(conn: engine.Connection, generation_id: str) -> bool:
     """Whether the generation's pack file is on disk (not verified)."""
     try:
         store = objects.store_for(conn)
@@ -249,7 +258,7 @@ def packed(conn: sqlite3.Connection, generation_id: str) -> bool:
 
 
 def pack(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     store: Store,
     generation_id: str,
     *,
@@ -267,7 +276,8 @@ def pack(
     output_digest, row_count = label(conn, generation_id)
     indexed = (
         conn.execute(
-            "SELECT 1 FROM objects WHERE class=? AND digest=?", (CLASS, output_digest)
+            "SELECT 1 AS _value_0 FROM objects WHERE class = %s AND digest = %s",
+            (CLASS, output_digest),
         ).fetchone()
         is not None
     )
@@ -302,7 +312,7 @@ def pack(
 
 
 def page_in(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     *,
     limit: int | None = None,
@@ -332,10 +342,14 @@ def page_in(
             continue
         payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (payload_sha256, payload)
+            "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (payload_sha256, payload),
         )
         conn.execute(
-            "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+            ),
             (generation_id, ordinal, table, key, payload_sha256),
         )
     # Read the rest so the pack is checked against its label before commit.
@@ -352,17 +366,17 @@ def page_in(
     if (output.hexdigest(), lines) != (output_digest, row_count):
         raise GenerationUnavailable(f"paged-in generation {generation_id} does not match its label")
     conn.execute(
-        "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) VALUES (1,?,?)",
+        "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, %s, %s)",
         ("page-in " + generation_id, objects.stamp(now or datetime.now(UTC))),
     )
     try:
-        conn.execute("DELETE FROM derivation_evicted WHERE generation_id=?", (generation_id,))
+        conn.execute("DELETE FROM derivation_evicted WHERE generation_id = %s", (generation_id,))
     finally:
         conn.execute("DELETE FROM storage_eviction_authority")
     return True
 
 
-def pack_intact(conn: sqlite3.Connection, generation_id: str) -> bool:
+def pack_intact(conn: engine.Connection, generation_id: str) -> bool:
     """Whether the generation's pack file is there and hashes to its label."""
     try:
         objects.store_for(conn).verify(CLASS, label(conn, generation_id)[0])
@@ -372,7 +386,7 @@ def pack_intact(conn: sqlite3.Connection, generation_id: str) -> bool:
 
 
 def rebuild(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     generation_id: str,
     rows: Iterable[tuple[str, str, str]],
     *,
@@ -408,10 +422,14 @@ def rebuild(
         if start <= ordinal < stop:
             payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (payload_sha256, payload)
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (payload_sha256, payload),
             )
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (generation_id, ordinal, table, key, payload_sha256),
             )
     if (output.hexdigest(), lines) != (output_digest, row_count):
@@ -428,11 +446,11 @@ def rebuild(
         raise GenerationUnavailable(f"rebuilt generation {generation_id} does not match its label")
     objects.record(conn, CLASS, written, raw_bytes, stored_bytes, now or datetime.now(UTC))
     conn.execute(
-        "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) VALUES (1,?,?)",
+        "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, %s, %s)",
         ("rebuild " + generation_id, objects.stamp(now or datetime.now(UTC))),
     )
     try:
-        conn.execute("DELETE FROM derivation_evicted WHERE generation_id=?", (generation_id,))
+        conn.execute("DELETE FROM derivation_evicted WHERE generation_id = %s", (generation_id,))
     finally:
         conn.execute("DELETE FROM storage_eviction_authority")
     return True

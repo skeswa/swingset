@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from uuid import uuid4
 
 from swingset.clock import Clock
@@ -10,6 +9,7 @@ from swingset.fetch.classify import Classification
 from swingset.fetch.limits import RequestContext
 from swingset.fetch.politeness import Gate, Grant, Paused, Wait
 from swingset.schedule.fairness import record_request, request_denial
+from swingset.state import engine
 from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ControlPaused, admission, settle
@@ -113,7 +113,9 @@ def issue(
     except _NotIssued as deferred:
         # Retain a host's diagnostic row without claiming a robots check or an
         # issued request when its budget/cooldown deferred the operation.
-        database.connection.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (host,))
+        database.connection.execute(
+            "INSERT INTO hosts (host) VALUES (%s) ON CONFLICT DO NOTHING", (host,)
+        )
         resume()
         return deferred.grant, None
     except ControlPaused:
@@ -130,10 +132,14 @@ def issue(
         # failed; an uncommitted debit disappears with the rollback.
         if acquired:
             gate.discard(host)
+        if isinstance(exc, engine.CommitUncertain) or database.connection.closed:
+            # Losing the owning session also loses state/B locks. Preserve the
+            # ledger for a new owner's explicit recovery; never reconnect here.
+            raise
         if database.connection.in_transaction:
             database.connection.rollback()
         if database.connection.execute(
-            "SELECT 1 FROM execution_admissions WHERE action_id=?", (action_id,)
+            "SELECT 1 FROM execution_admissions WHERE action_id = %s", (action_id,)
         ).fetchone():
             if context:
                 context.admitted_attempts += 1
@@ -148,8 +154,7 @@ def issue(
 
 
 def _locked(exc: BaseException) -> bool:
-    message = str(exc).lower()
-    return isinstance(exc, sqlite3.OperationalError) and ("locked" in message or "busy" in message)
+    return isinstance(exc, engine.LockTimeout)
 
 
 def release(
@@ -169,7 +174,7 @@ def release(
     with database.transaction() as conn:
         gate.release(host, outcome, body_bytes=body_bytes, request_day=request_day)
         conn.execute(
-            "UPDATE scheduler_requests SET body_bytes=body_bytes+? WHERE action_id=?",
+            "UPDATE scheduler_requests SET body_bytes = body_bytes + %s WHERE action_id = %s",
             (body_bytes, action_id),
         )
         settle(conn, action_id, now=clock.now(), outcome=outcome.outcome.value)

@@ -57,7 +57,10 @@ def origin(fixture):
 
 def queries(f):
     f.conn.executemany(
-        "INSERT INTO archive_queries VALUES (?,?,?,?,0,0,?,?)",
+        (
+            "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, total_pages, "
+            "completed_at, started_at) VALUES (%s, %s, %s, %s, 0, 0, %s, %s)"
+        ),
         [
             (
                 f"q-{year}",
@@ -141,16 +144,23 @@ def test_origin_dispatch_uses_actual_host_budget_and_retains_proof(origin):
     assert {row[0] for row in origin.conn.execute("SELECT host FROM host_budget")} == {"eepro.com"}
     assert origin.conn.execute("SELECT requests FROM host_budget").fetchone()[0] == 2
     assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_requests").fetchone()[0] == 2
-    intent = origin.conn.execute("SELECT * FROM history_origin_intents").fetchone()
+    intent = origin.conn.execute(
+        "SELECT history_origin_intents.watch_id, history_origin_intents.source, "
+        "history_origin_intents.source_ref, history_origin_intents.event_id, "
+        "history_origin_intents.page_kind, history_origin_intents.url, "
+        "history_origin_intents.parent_url, history_origin_intents.evidence_json, "
+        "history_origin_intents.created_at, history_origin_intents.dispatch_run_id FROM "
+        "history_origin_intents"
+    ).fetchone()
     assert json.loads(intent["evidence_json"])["reason"] == "archive_absence_proven"
-    snapshot = origin.conn.execute("SELECT via,url,archive_url FROM snapshots").fetchone()
+    snapshot = origin.conn.execute("SELECT via, url, archive_url FROM snapshots").fetchone()
     assert tuple(snapshot) == ("origin", URL, None)
     # The normal due-watch queue cannot repeat a managed history operation.
     assert next_watch(origin.conn, origin.config, now=origin.clock.now()) is None
 
 
 def test_unaccepted_year_or_incomplete_search_never_creates_origin_control(origin):
-    origin.conn.execute("DELETE FROM archive_queries WHERE year=2014")
+    origin.conn.execute("DELETE FROM archive_queries WHERE year = 2014")
     result = run(origin, lambda _: pytest.fail("no HTTP without query closure"))
     assert result.reason == "archive_search_incomplete"
     assert origin.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == 0
@@ -186,7 +196,7 @@ def test_pause_spends_neither_requests_nor_event_cadence(origin, selector):
 
 def test_depleted_actual_host_budget_does_not_consume_origin_event(origin):
     origin.conn.execute(
-        "INSERT INTO host_budget VALUES ('eepro.com',?,5,0)",
+        "INSERT INTO host_budget (host, day, requests, bytes) VALUES ('eepro.com', %s, 5, 0)",
         (origin.clock.now().date().isoformat(),),
     )
     result = run(origin, lambda _: pytest.fail("origin cap must prevent HTTP"))
@@ -200,7 +210,7 @@ def test_robots_then_changed_policy_blocks_page_before_second_debit(origin):
 
     def response(request):
         calls.append(str(request.url))
-        origin.conn.execute("UPDATE admission_policies SET mode='shadow'")
+        origin.conn.execute("UPDATE admission_policies SET mode = 'shadow'")
         return httpx.Response(404)
 
     result = run(origin, response)
@@ -234,7 +244,7 @@ def test_direct_fetch_cannot_reuse_managed_origin_dispatch_reservation(origin):
     assert reason == "eligible_origin"
     with origin.db.transaction():
         schedule(origin.conn, spec, proof, run_id=origin.run, now=origin.clock.now())
-        origin.conn.execute("UPDATE history_origin_intents SET dispatch_run_id=NULL")
+        origin.conn.execute("UPDATE history_origin_intents SET dispatch_run_id = NULL")
     client = FetchClient(
         origin.conn,
         origin.config,
@@ -270,7 +280,17 @@ def test_managed_request_gate_rejects_malformed_redirect_without_debit(origin, r
     watch = SimpleNamespace(
         **dict(
             origin.conn.execute(
-                "SELECT * FROM watches WHERE watch_id=?", (spec.watch_id,)
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (spec.watch_id,),
             ).fetchone()
         ),
         _origin_run_id=origin.run,
@@ -325,11 +345,26 @@ def test_origin_parent_retains_file_rows_and_existing_paused_child(origin):
     child = declared.watches[0]
     upsert_watch(origin.conn, child, origin.clock.now())
     origin.conn.execute(
-        "UPDATE watches SET state='paused',next_check_at=NULL,notes='operator child',paused_until=? WHERE watch_id=?",
+        (
+            "UPDATE watches SET state = 'paused', next_check_at = NULL, notes = 'operator child', "
+            "paused_until = %s WHERE watch_id = %s"
+        ),
         ((origin.clock.now() + timedelta(days=30)).isoformat(), child.watch_id),
     )
     preserved = dict(
-        origin.conn.execute("SELECT * FROM watches WHERE watch_id=?", (child.watch_id,)).fetchone()
+        origin.conn.execute(
+            (
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches WHERE watch_id = %s"
+            ),
+            (child.watch_id,),
+        ).fetchone()
     )
     materialize_seeded_outputs(origin.db, now=origin.clock.now(), run_id=origin.run)
     fetched = run(
@@ -351,32 +386,44 @@ def test_origin_parent_retains_file_rows_and_existing_paused_child(origin):
     assert not attempt.failed
     assert len(declared.watches) == 7
     assert (
-        origin.conn.execute("SELECT COUNT(*) FROM observations WHERE kind='file_row'").fetchone()[0]
+        origin.conn.execute("SELECT COUNT(*) FROM observations WHERE kind = 'file_row'").fetchone()[
+            0
+        ]
         == 7
     )
     assert origin.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == 2
     assert (
         dict(
             origin.conn.execute(
-                "SELECT * FROM watches WHERE watch_id=?", (child.watch_id,)
+                (
+                    "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                    "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                    "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                    "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                    "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                    "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                    "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                    "FROM watches WHERE watch_id = %s"
+                ),
+                (child.watch_id,),
             ).fetchone()
         )
         == preserved
     )
     retained = origin.conn.execute(
-        "SELECT result_json FROM source_generations WHERE state='accepted'"
+        "SELECT result_json FROM source_generations WHERE state = 'accepted'"
     ).fetchone()[0]
     assert child.url in retained
     assert (
         origin.conn.execute(
-            "SELECT COUNT(*) FROM findings WHERE kind='acquisition_gate' AND closed_at IS NULL"
+            "SELECT COUNT(*) FROM findings WHERE kind = 'acquisition_gate' AND closed_at IS NULL"
         ).fetchone()[0]
         == 6
     )
 
 
 def test_actual_request_cadence_survives_restart_and_has_no_skipped_credit(origin):
-    import sqlite3
+    from swingset.state import engine
 
     result = run(
         origin,
@@ -387,7 +434,7 @@ def test_actual_request_cadence_survives_restart_and_has_no_skipped_credit(origi
         ),
     )
     assert result.result.snapshot_id
-    conn = sqlite3.connect(origin.db.state_dir / "state.sqlite")
+    conn = engine.connect(engine.resolve_dsn(origin.db.state_dir))
     try:
         assert (
             cadence_reason(
@@ -434,7 +481,7 @@ def test_dcn_daily_cadence_does_not_reset_with_new_run(origin):
     )
     with origin.db.transaction():
         schedule(origin.conn, spec, proof, run_id=origin.run, now=origin.clock.now())
-        origin.conn.execute("UPDATE history_origin_intents SET source='dcn'")
+        origin.conn.execute("UPDATE history_origin_intents SET source = 'dcn'")
     watch = SimpleNamespace(watch_id=spec.watch_id, _origin_run_id=origin.run)
     with admission(
         origin.db,
@@ -487,13 +534,38 @@ def test_unrelated_origin_control_is_preserved_instead_of_bypassing_its_cadence(
     )
     upsert_watch(origin.conn, spec, origin.clock.now())
     origin.conn.execute(
-        "UPDATE watches SET notes='existing live control',state='live' WHERE watch_id=?",
+        "UPDATE watches SET notes = 'existing live control', state = 'live' WHERE watch_id = %s",
         (spec.watch_id,),
     )
-    before = tuple(origin.conn.execute("SELECT * FROM watches").fetchone())
+    before = tuple(
+        origin.conn.execute(
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches"
+        ).fetchone()
+    )
     result = run(origin, lambda _: pytest.fail("must not hijack independent polling"))
     assert result.reason == "independent_origin_control"
-    assert tuple(origin.conn.execute("SELECT * FROM watches").fetchone()) == before
+    assert (
+        tuple(
+            origin.conn.execute(
+                "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+                "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+                "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+                "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+                "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+                "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+                "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+                "FROM watches"
+            ).fetchone()
+        )
+        == before
+    )
     assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_intents").fetchone()[0] == 0
 
 
@@ -508,22 +580,39 @@ def test_same_source_archive_offer_precedes_origin_gap(origin):
     # A newer origin gap must not consume service while this source still has
     # an eligible retained capture. Both are independently mapped known events.
     older = replace(EVENT, event_id="2019-01-older", source_ref="eepro:older2019")
-    columns = [r[1] for r in origin.conn.execute("PRAGMA table_info(events)")]
-    row = dict(origin.conn.execute("SELECT * FROM events").fetchone())
+    from swingset.state.schema_catalog import columns as column_names
+
+    columns = list(column_names(origin.conn, "events"))
+    row = dict(
+        origin.conn.execute(
+            "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+            "events.end_date, events.city, events.region, events.country, events.website, "
+            "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+            "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+            "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+            "events.coverage_tier, events.history_source FROM events"
+        ).fetchone()
+    )
     row["event_id"] = older.event_id
     origin.conn.execute(
-        f"INSERT INTO events VALUES ({','.join('?' for _ in columns)})",
+        f"INSERT INTO events (event_id, series_id, name, year, start_date, end_date, city, region, country, website, wsdc_status, sources, live_window_start, live_window_end, source, snapshot_id, parser_version, first_seen_at, last_seen_at, run_id, event_month, date_precision, held, coverage_tier, history_source) VALUES ({','.join('%s' for _ in columns)})",
         tuple(row[c] for c in columns),
     )
     origin.conn.execute(
-        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (
+            "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+            "VALUES (%s, %s, %s, 'explicit', 1)"
+        ),
         ("eepro", older.source_ref, older.event_id),
     )
     accept(origin)
     old_url = "https://eepro.com/results/older2019/"
     capture = replace(CAPTURES[0], url=old_url)
     origin.conn.execute(
-        "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained')"
+        ),
         (
             "eepro",
             capture.url,
@@ -610,7 +699,7 @@ def test_exhausted_page_offers_no_origin_spec_writes_no_intent_and_sends_no_orig
         assert fixture.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
     assert (
         fixture.conn.execute(
-            "SELECT COUNT(*) FROM snapshots WHERE via='origin' AND url=?", (URL,)
+            "SELECT COUNT(*) FROM snapshots WHERE via = 'origin' AND url = %s", (URL,)
         ).fetchone()[0]
         == 0
     )
@@ -636,11 +725,13 @@ def test_archive_host_pause_does_not_pause_proven_origin_gap(origin):
     )
     assert result.result.snapshot_id
     assert (
-        origin.conn.execute("SELECT requests FROM host_budget WHERE host='eepro.com'").fetchone()[0]
+        origin.conn.execute("SELECT requests FROM host_budget WHERE host = 'eepro.com'").fetchone()[
+            0
+        ]
         == 2
     )
     assert (
-        origin.conn.execute("SELECT 1 FROM host_budget WHERE host='web.archive.org'").fetchone()
+        origin.conn.execute("SELECT 1 FROM host_budget WHERE host = 'web.archive.org'").fetchone()
         is None
     )
 
@@ -654,7 +745,10 @@ def test_capture_arriving_during_robots_prevents_origin_page_request(origin):
         requests.append(str(request.url))
         capture = CAPTURES[0]
         origin.conn.execute(
-            "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+            (
+                "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+                "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained')"
+            ),
             (
                 "eepro",
                 capture.url,
@@ -673,76 +767,11 @@ def test_capture_arriving_during_robots_prevents_origin_page_request(origin):
     assert origin.conn.execute("SELECT requests FROM host_budget").fetchone()[0] == 1
 
 
-def test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence(tmp_path, monkeypatch):
-    from swingset.clock import FakeClock
-    from swingset.schedule.watches import upsert_watch
-    from swingset.sources.base import WatchSpec
-    from swingset.state import db as db_module
-
-    clock = FakeClock()
-    with monkeypatch.context() as old:
-        old.setattr(db_module, "SCHEMA_VERSION", 14)
-        with db_module.open_database(tmp_path) as database:
-            database.start_run(clock.now())
-            upsert_watch(
-                database.connection,
-                WatchSpec(
-                    "",
-                    "eepro",
-                    "autoindex",
-                    "GET",
-                    URL,
-                    "eepro.autoindex",
-                    source_ref=EVENT.source_ref,
-                ),
-                clock.now(),
-            )
-            database.connection.execute(
-                "UPDATE watches SET notes='existing operator evidence',state='paused',next_check_at=NULL"
-            )
-            names = [
-                row[0]
-                for row in database.connection.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-                )
-            ]
-            before = {
-                name: sorted(
-                    tuple(row) for row in database.connection.execute(f'SELECT * FROM "{name}"')
-                )
-                for name in names
-                if name != "meta"
-            }
-            meta = dict(
-                database.connection.execute(
-                    "SELECT key,value FROM meta WHERE key!='schema_version'"
-                )
-            )
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 15)
-    with db_module.open_database(tmp_path) as database:
-        assert database.connection.execute("PRAGMA user_version").fetchone()[0] == 15
-        assert {
-            name: sorted(
-                tuple(row) for row in database.connection.execute(f'SELECT * FROM "{name}"')
-            )
-            for name in names
-            if name != "meta"
-        } == before
-        assert (
-            dict(
-                database.connection.execute(
-                    "SELECT key,value FROM meta WHERE key!='schema_version'"
-                )
-            )
-            == meta
-        )
-        for table in (
-            "history_origin_intents",
-            "history_origin_requests",
-            "history_origin_operator_refs",
-        ):
-            assert database.connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0] == 0
-        assert database.connection.execute("PRAGMA foreign_key_check").fetchall() == []
+def test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_history_origin_dispatch.py",
+        "test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence",
+    )
 
 
 def test_operator_receipt_is_separate_from_acquisition_and_year_acceptance(origin):
@@ -771,7 +800,10 @@ def test_three_failed_distinct_archive_captures_allow_proved_origin_fallback(ori
 
     captures = CAPTURES
     origin.conn.executemany(
-        "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+        (
+            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+            "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained')"
+        ),
         [
             (
                 "eepro",
@@ -816,7 +848,7 @@ def test_three_failed_distinct_archive_captures_allow_proved_origin_fallback(ori
     assert [
         row[0]
         for row in origin.conn.execute(
-            "SELECT summary FROM findings WHERE owner_kind='platform_backfill' AND closed_at IS NULL"
+            "SELECT summary FROM findings WHERE owner_kind = 'platform_backfill' AND closed_at IS NULL"
         )
     ] == ["Platform capture alternatives are exhausted or incomplete"]
     calls = []
@@ -851,7 +883,10 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
         from test_platform_backfill import CAPTURES, accepted_parent
 
         origin.conn.executemany(
-            "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+            (
+                "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, "
+                "queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, 200, %s, %s, %s, 'retained')"
+            ),
             [
                 (
                     "eepro",
@@ -884,8 +919,10 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
         )
         assert not parsed.failed
     parent = origin.conn.execute(
-        "SELECT g.generation_id,g.result_json FROM source_units u JOIN source_generations g "
-        "ON g.generation_id=u.accepted_generation_id WHERE u.watch_id=?",
+        (
+            "SELECT g.generation_id, g.result_json FROM source_units AS u JOIN source_generations AS g "
+            "ON g.generation_id = u.accepted_generation_id WHERE u.watch_id = %s"
+        ),
         (fetched.watch_id,),
     ).fetchone()
     from swingset.admission.generations import deserialize_result
@@ -908,7 +945,7 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
     )
     # A fresh robots check creates a real request boundary after planning. The
     # already admitted partial parent still supplies this exact child locator.
-    origin.conn.execute("UPDATE hosts SET robots_fetched_at=NULL")
+    origin.conn.execute("UPDATE hosts SET robots_fetched_at = NULL")
     item = origin.plan.pages[1]
     spec, _, reason = candidate(
         origin.db, origin.config, origin.clock, item, origin.plan, run_id=origin.run
@@ -935,7 +972,7 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
             )
         else:
             origin.conn.execute(
-                "UPDATE admission_policies SET mode='shadow' WHERE page_kind='eepro.autoindex'"
+                "UPDATE admission_policies SET mode = 'shadow' WHERE page_kind = 'eepro.autoindex'"
             )
         return httpx.Response(404)
 
@@ -949,12 +986,12 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
     )
     assert (
         origin.conn.execute(
-            "SELECT count(*) FROM history_origin_requests WHERE watch_id=?", (child.watch_id,)
+            "SELECT COUNT(*) FROM history_origin_requests WHERE watch_id = %s", (child.watch_id,)
         ).fetchone()[0]
         == 1
     )
     assert not origin.conn.execute(
-        "SELECT 1 FROM snapshots WHERE watch_id=?", (child.watch_id,)
+        "SELECT 1 FROM snapshots WHERE watch_id = %s", (child.watch_id,)
     ).fetchone()
 
 
@@ -1003,7 +1040,7 @@ def test_exhausted_round_awaiting_its_parent_gets_no_parent_finding(origin):
     assert result.reason == "capture_gap_exhausted" and result.watch_id is None
     assert (
         origin.conn.execute(
-            "SELECT COUNT(*) FROM findings WHERE owner_kind='platform_backfill' AND closed_at IS NULL"
+            "SELECT COUNT(*) FROM findings WHERE owner_kind = 'platform_backfill' AND closed_at IS NULL"
         ).fetchone()[0]
         == 0
     )

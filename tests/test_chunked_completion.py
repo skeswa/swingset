@@ -2,7 +2,6 @@
 
 import contextlib
 import shutil
-import sqlite3
 import subprocess
 import sys
 import textwrap
@@ -16,7 +15,7 @@ from test_h15_acceptance import source_fixture
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
 from swingset.schedule.derive import derive_one
-from swingset.state import derivations
+from swingset.state import derivations, engine
 from swingset.state.db import Database, open_database
 from swingset.state.inputs import capture
 from swingset.state.work import WorkUnit, next_work
@@ -26,7 +25,7 @@ YEAR = WorkUnit("project", "year", "2026")
 
 
 @pytest.fixture
-def arranged(tmp_path):
+def arranged(tmp_path, request):
     """The source fixture with every project unit but its year materialized.
 
     Returns a closed state directory, so each test copies it and opens its own.
@@ -42,9 +41,17 @@ def arranged(tmp_path):
         process_unit(f.db, unit, f.bundle, f.corpus.clock, f.corpus.run)
     assert YEAR in set(derivations.pending_units(f.conn, "project"))
     assert derivations.selected_generation(f.conn, YEAR) is None
-    f.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    from swingset.state.postgres_copy import Copies
+
+    copies = Copies(f.db.state_dir)
+    copies.__enter__()
+    request.addfinalizer(lambda: copies.__exit__(None, None, None))
+    frozen = tmp_path / "frozen"
+    shutil.copytree(f.db.state_dir, frozen, ignore=shutil.ignore_patterns("database.json"))
+    copies.freeze(f.conn, frozen)
     arranged = SimpleNamespace(
-        state=f.db.state_dir,
+        state=frozen,
+        copies=copies,
         now=f.corpus.clock.now(),
         run=f.corpus.run,
         bundle=f.bundle,
@@ -57,7 +64,8 @@ def arranged(tmp_path):
 
 
 def twin(arranged, target: Path) -> Path:
-    shutil.copytree(arranged.state, target)
+    shutil.copytree(arranged.state, target, ignore=shutil.ignore_patterns("database.json"))
+    arranged.copies.clone(arranged.state, target)
     return target
 
 
@@ -76,9 +84,9 @@ def single(monkeypatch) -> None:
     monkeypatch.setattr(derivations, "stageable", lambda conn, unit: False)
 
 
-def stored(conn: sqlite3.Connection, generation_id: str) -> dict[str, object]:
+def stored(conn: engine.Connection, generation_id: str) -> dict[str, object]:
     label = conn.execute(
-        "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
+        "SELECT output_digest, row_count FROM derivation_generations WHERE generation_id = %s",
         (generation_id,),
     ).fetchone()
     return {
@@ -87,20 +95,22 @@ def stored(conn: sqlite3.Connection, generation_id: str) -> dict[str, object]:
         "refs": [
             tuple(row)
             for row in conn.execute(
-                "SELECT ordinal,table_name,record_key,payload_sha256 FROM derivation_row_refs "
-                "WHERE generation_id=? ORDER BY ordinal",
+                (
+                    "SELECT ordinal, table_name, record_key, payload_sha256 FROM derivation_row_refs WHERE "
+                    "generation_id = %s ORDER BY ordinal NULLS FIRST"
+                ),
                 (generation_id,),
             )
         ],
     }
 
 
-def building(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
+def building(conn: engine.Connection) -> list[tuple[object, ...]]:
     return [
         tuple(row)
         for row in conn.execute(
-            "SELECT generation_id,label_rows,rows_stored FROM derivation_building "
-            "ORDER BY generation_id"
+            "SELECT generation_id, label_rows, rows_stored FROM derivation_building ORDER BY "
+            "generation_id NULLS FIRST"
         )
     ]
 
@@ -136,11 +146,11 @@ def test_a_staged_year_stores_what_the_single_path_stores_one_chunk_per_write(
     @contextlib.contextmanager
     def measured(self, **kwargs):
         top = not self.connection.in_transaction
-        before = self.connection.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+        before = self.connection.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
         with original(self, **kwargs) as conn:
             yield conn
             if top:
-                after = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+                after = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
                 writes.append(after - before)
 
     monkeypatch.setattr(Database, "transaction", measured)
@@ -154,13 +164,13 @@ def test_a_staged_year_stores_what_the_single_path_stores_one_chunk_per_write(
         assert building(conn) == []
         assert derivations.current(conn, YEAR)
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE unit_kind = 'year'").fetchone()[0]
             == 0
         )
         assert (
             conn.execute(
-                "SELECT outcome FROM work_attempts WHERE stage='project' AND unit_kind='year' "
-                "ORDER BY attempt_id DESC LIMIT 1"
+                "SELECT outcome FROM work_attempts WHERE stage = 'project' AND unit_kind = 'year' ORDER BY "
+                "attempt_id DESC NULLS LAST LIMIT 1"
             ).fetchone()[0]
             == "succeeded"
         )
@@ -263,7 +273,7 @@ def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monk
         )
         assert not derivations.current(conn, YEAR)
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE unit_kind = 'year'").fetchone()[0]
             == 1
         )
         bundle = capture(arranged.config, arranged.overrides, db.state_dir, versions())
@@ -282,7 +292,12 @@ def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monk
         assert not resumed.failed and resumed.reason is None, resumed
         assert stored(conn, str(derivations.selected_generation(conn, YEAR))) == expected
         assert building(conn) == []
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM pg_constraint WHERE connamespace IN ('derive'::regnamespace,'evidence'::regnamespace) AND NOT convalidated"
+            ).fetchone()[0]
+            == 0
+        )
         assert derivations.current(conn, YEAR)
 
 
@@ -371,8 +386,8 @@ def test_identical_output_records_an_equivalence_and_stores_no_rows(
         conn = db.connection
         assert not run_year(db, arranged, tmp_path).failed
         kept = derivations.selected_generation(conn, YEAR)
-        references = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
-        generations = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
+        references = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
+        generations = conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0]
         with db.transaction():
             # A new input to the year that changes none of its output.
             derivations.bump_replay(conn, "project", "event", now=arranged.now)
@@ -381,13 +396,13 @@ def test_identical_output_records_an_equivalence_and_stores_no_rows(
         clock.sleep(60)
         assert not run_year(db, arranged, tmp_path, clock).failed
         assert derivations.selected_generation(conn, YEAR) == kept
-        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == references
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == references
         assert (
-            conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == generations
+            conn.execute("SELECT COUNT(*) FROM derivation_generations").fetchone()[0] == generations
         )
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_equivalences WHERE unit_kind='year'"
+                "SELECT COUNT(*) FROM derivation_equivalences WHERE unit_kind = 'year'"
             ).fetchone()[0]
             == 1
         )
@@ -418,14 +433,14 @@ def test_nondeterministic_output_fails_transient_and_keeps_the_building_row(
         outcome = run_year(db, arranged, tmp_path)
         assert outcome.failed and outcome.reason == "nondeterministic_output"
         attempt = conn.execute(
-            "SELECT outcome,reason_code FROM work_attempts WHERE unit_kind='year' "
-            "ORDER BY attempt_id DESC LIMIT 1"
+            "SELECT outcome, reason_code FROM work_attempts WHERE unit_kind = 'year' ORDER BY attempt_id "
+            "DESC NULLS LAST LIMIT 1"
         ).fetchone()
         assert tuple(attempt) == ("transient", "nondeterministic_output")
         assert len(building(conn)) == 1
         assert derivations.selected_generation(conn, YEAR) is None
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE unit_kind = 'year'").fetchone()[0]
             == 1
         )
 
@@ -488,8 +503,8 @@ def test_a_grouped_source_event_completes_on_the_single_path(arranged, tmp_path,
         units = [
             WorkUnit(*row)
             for row in conn.execute(
-                "SELECT stage,unit_kind,unit_id FROM derivation_scopes "
-                "WHERE stage='project' AND unit_kind='source_event'"
+                "SELECT stage, unit_kind, unit_id FROM derivation_scopes WHERE stage = 'project' AND "
+                "unit_kind = 'source_event'"
             )
         ]
         assert units
@@ -518,7 +533,7 @@ def test_accept_year_completes_its_year_on_the_single_path(arranged, tmp_path, m
     monkeypatch.setattr(derivations, "finish_building", lambda *a, **k: finished.append(1))
     with open_database(twin(arranged, tmp_path / "state")) as db:
         conn = db.connection
-        year = conn.execute("SELECT min(year) FROM events").fetchone()[0]
+        year = conn.execute("SELECT MIN(year) FROM events").fetchone()[0]
         accept_year(
             conn,
             int(year),
@@ -545,25 +560,25 @@ def test_the_accept_year_command_stores_its_year_in_chunks(arranged, tmp_path, m
     )
     state = twin(arranged, tmp_path / "state")
     with open_database(state) as db:
-        year = db.connection.execute("SELECT min(year) FROM events").fetchone()[0]
+        year = db.connection.execute("SELECT MIN(year) FROM events").fetchone()[0]
     command = ["accept-year", "--state", str(state), "--config", str(arranged.config)]
     assert main([*command, "--year", str(year), "--by", "offline-owner"]) == 0
     assert finished == [1]
     with open_database(state) as db:
         conn = db.connection
-        assert conn.execute("SELECT count(*) FROM history_acceptance").fetchone()[0] >= 1
+        assert conn.execute("SELECT COUNT(*) FROM history_acceptance").fetchone()[0] >= 1
         assert building(conn) == []
         generation = derivations.selected_generation(conn, YEAR)
         assert generation is not None
         label = conn.execute(
-            "SELECT row_count FROM derivation_generations WHERE generation_id=?", (generation,)
+            "SELECT row_count FROM derivation_generations WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
         references = conn.execute(
-            "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?", (generation,)
+            "SELECT COUNT(*) FROM derivation_row_refs WHERE generation_id = %s", (generation,)
         ).fetchone()[0]
         assert references == label > 3
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE unit_kind = 'year'").fetchone()[0]
             == 0
         )
 
@@ -593,12 +608,14 @@ def test_a_resume_after_its_generation_was_removed_starts_over(arranged, tmp_pat
     generation_id = str(expected["generation_id"])
     with open_database(state) as db:
         conn = db.connection
-        with db.transaction():
-            conn.execute("DROP TRIGGER derivation_row_ref_no_delete")
-            conn.execute("DROP TRIGGER derivation_generation_no_delete")
-            conn.execute("DELETE FROM derivation_row_refs WHERE generation_id=?", (generation_id,))
-            conn.execute(
-                "DELETE FROM derivation_generations WHERE generation_id=?", (generation_id,)
+        from helpers.corruption import corruption_connection
+
+        with corruption_connection(conn) as owner:
+            owner.execute(
+                "DELETE FROM derivation_row_refs WHERE generation_id = %s", (generation_id,)
+            )
+            owner.execute(
+                "DELETE FROM derivation_generations WHERE generation_id = %s", (generation_id,)
             )
         bundle = capture(arranged.config, arranged.overrides, db.state_dir, versions())
         clock = FakeClock(arranged.now)
@@ -632,14 +649,21 @@ def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, mo
         with db.transaction():
             # A later generation whose B stored one of its 5 rows, then stopped.
             conn.execute(
-                "INSERT INTO derivation_generations SELECT 'dg_partial',stage,unit_kind,unit_id,"
-                "'fp-partial',recipe_json,dependency_set_id,generation_id,output_digest,5,?,run_id "
-                "FROM derivation_generations WHERE generation_id=?",
+                (
+                    "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                    "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                    "row_count, created_at, run_id) SELECT 'dg_partial', stage, unit_kind, unit_id, "
+                    "'fp-partial', recipe_json, dependency_set_id, generation_id, output_digest, 5, %s, run_id "
+                    "FROM derivation_generations WHERE generation_id = %s"
+                ),
                 (later, whole),
             )
             conn.execute(
-                "INSERT INTO derivation_row_refs SELECT 'dg_partial',0,table_name,record_key,"
-                "payload_sha256 FROM derivation_row_refs WHERE generation_id=? AND ordinal=0",
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) SELECT 'dg_partial', 0, table_name, record_key, payload_sha256 FROM "
+                    "derivation_row_refs WHERE generation_id = %s AND ordinal = 0"
+                ),
                 (whole,),
             )
         cutoff = arranged.now + timedelta(hours=1)
@@ -673,9 +697,11 @@ def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, mo
         # Still building: the same, by its building row.
         with db.transaction():
             conn.execute(
-                "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
-                "input_fingerprint,run_id,started_at,updated_at) "
-                "VALUES ('dg_partial','project','year','2026','fp-partial',?,?,?)",
+                (
+                    "INSERT INTO derivation_building (generation_id, stage, unit_kind, unit_id, "
+                    "input_fingerprint, run_id, started_at, updated_at) VALUES ('dg_partial', 'project', 'year', "
+                    "'2026', 'fp-partial', %s, %s, %s)"
+                ),
                 (arranged.run, later, later),
             )
         windows, lists, _ = listed()
@@ -720,11 +746,11 @@ def test_a_reused_evicted_year_pages_in_chunk_by_chunk_before_its_pointer_flips(
         @contextlib.contextmanager
         def measured(self, **kwargs):
             top = not self.connection.in_transaction
-            before = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+            before = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
             with original(self, **kwargs) as inner:
                 yield inner
             if top:
-                after = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+                after = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
                 counts.append(after - before)
 
         monkeypatch.setattr(Database, "transaction", measured)

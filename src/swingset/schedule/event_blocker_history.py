@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -11,6 +10,7 @@ from hashlib import sha256
 from typing import Any
 
 from swingset.config import Config
+from swingset.state import engine
 from swingset.state.db import Database
 
 from .event_pressure import request_denial as expansion_denial
@@ -25,9 +25,11 @@ def _json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
-def _available(conn: sqlite3.Connection) -> bool:
+def _available(conn: engine.Connection) -> bool:
     return (
-        conn.execute("SELECT 1 FROM sqlite_master WHERE name='event_blocker_cursor'").fetchone()
+        conn.execute(
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'event_blocker_cursor' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
+        ).fetchone()
         is not None
     )
 
@@ -47,12 +49,12 @@ def _policy(config: Config) -> tuple[str, str]:
     return sha256(raw.encode()).hexdigest(), raw
 
 
-def _watches(conn: sqlite3.Connection, event: sqlite3.Row) -> tuple[list[str], list[str]]:
+def _watches(conn: engine.Connection, event: engine.Row) -> tuple[list[str], list[str]]:
     enumeration = event["enumeration_id"]
     if enumeration:
         members = list(
             conn.execute(
-                "SELECT request_id FROM source_event_enumeration_members WHERE enumeration_id=? LIMIT ?",
+                "SELECT request_id FROM source_event_enumeration_members WHERE enumeration_id = %s LIMIT %s",
                 (enumeration, MEMBER_LIMIT + 1),
             )
         )
@@ -60,7 +62,7 @@ def _watches(conn: sqlite3.Connection, event: sqlite3.Row) -> tuple[list[str], l
             return [], ["member_limit"]
         associated = list(
             conn.execute(
-                "SELECT watch_id FROM source_event_member_watches WHERE enumeration_id=? LIMIT ?",
+                "SELECT watch_id FROM source_event_member_watches WHERE enumeration_id = %s LIMIT %s",
                 (enumeration, WATCH_LIMIT + 1),
             )
         )
@@ -70,7 +72,10 @@ def _watches(conn: sqlite3.Connection, event: sqlite3.Row) -> tuple[list[str], l
         associated = []
     own = list(
         conn.execute(
-            "SELECT watch_id FROM watches WHERE source=? AND source_ref=? ORDER BY watch_id LIMIT ?",
+            (
+                "SELECT watch_id FROM watches WHERE source = %s AND source_ref = %s ORDER BY watch_id NULLS "
+                "FIRST LIMIT %s"
+            ),
             (event["source"], event["source_ref"], WATCH_LIMIT + 1),
         )
     )
@@ -169,9 +174,9 @@ def _normalize(facts: dict[str, Any]) -> dict[str, Any]:
 
 
 def _sample(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     config: Config,
-    event: sqlite3.Row,
+    event: engine.Row,
     *,
     now: datetime,
     operator_hold: bool,
@@ -200,8 +205,8 @@ def _sample(
         )
     if any(watch["expansion_denial"] for watch in normalized["watches"]):
         normalized["reasons"] = sorted({*normalized["reasons"], "event_expansion_deferred"})
-    bundle = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
-    revision = conn.execute("SELECT revision FROM control_state WHERE singleton=1").fetchone()
+    bundle = conn.execute("SELECT value FROM meta WHERE key = 'input_bundle_hash'").fetchone()
+    revision = conn.execute("SELECT revision FROM control_state WHERE singleton = 1").fetchone()
     if event["enumeration_id"] is None:
         unassessed.append("legacy_enumeration_unknown")
     if normalized["missing_watch_ids"]:
@@ -241,22 +246,32 @@ def refresh(
         return {"supported": False, "reason": "blocker_history_schema_unavailable"}
     digest, raw_policy = _policy(config)
     with database.transaction() as conn:
-        cursor = conn.execute("SELECT * FROM event_blocker_cursor").fetchone()
+        cursor = conn.execute(
+            "SELECT event_blocker_cursor.singleton, event_blocker_cursor.last_rowid, "
+            "event_blocker_cursor.high_water, event_blocker_cursor.pass FROM event_blocker_cursor"
+        ).fetchone()
         last, high, pass_id = cursor["last_rowid"], cursor["high_water"], cursor["pass"]
         if high == 0:
             high = conn.execute(
-                "SELECT coalesce(max(rowid),0) FROM source_event_inventory"
+                "SELECT COALESCE(MAX(rowid), 0) AS _value_0 FROM source_event_inventory"
             ).fetchone()[0]
             last, pass_id = 0, pass_id + 1
         rows = list(
             conn.execute(
-                "SELECT rowid,* FROM source_event_inventory WHERE rowid>? AND rowid<=? ORDER BY rowid LIMIT ?",
+                (
+                    "SELECT rowid, source_event_inventory.source, source_event_inventory.source_ref, "
+                    "source_event_inventory.enumeration_id, source_event_inventory.first_known_at, "
+                    "source_event_inventory.bootstrap_basis FROM source_event_inventory WHERE rowid > %s AND "
+                    "rowid <= %s ORDER BY rowid NULLS FIRST LIMIT %s"
+                ),
                 (last, high, max_events + 1),
             )
         )
         ended = len(rows) <= max_events
         rows = rows[:max_events]
-        total = conn.execute("SELECT count(*) FROM source_event_inventory").fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) AS _value_0 FROM source_event_inventory").fetchone()[
+            0
+        ]
         changes = []
         host_decisions: dict[str, dict[str, Any]] = {}
         reason_counts: Counter[str] = Counter()
@@ -274,7 +289,10 @@ def refresh(
             raw = _json(facts)
             signature = sha256(raw.encode()).hexdigest()
             previous = conn.execute(
-                "SELECT o.signature FROM event_blocker_latest l JOIN event_blocker_observations o USING(observation_id) WHERE l.source=? AND l.source_ref=?",
+                (
+                    "SELECT o.signature FROM event_blocker_latest AS l JOIN event_blocker_observations AS o "
+                    "USING (observation_id) WHERE l.source = %s AND l.source_ref = %s"
+                ),
                 (event["source"], event["source_ref"]),
             ).fetchone()
             if previous is None or previous[0] != signature:
@@ -298,31 +316,38 @@ def refresh(
             "basis": "this bounded sample only; gaps between samples remain unknown",
         }
         conn.execute(
-            "INSERT INTO event_blocker_policies VALUES (?,?) ON CONFLICT(digest) DO NOTHING",
+            (
+                "INSERT INTO event_blocker_policies (digest, policy_json) VALUES (%s, %s) ON CONFLICT(digest) DO NOTHING"
+            ),
             (digest, raw_policy),
         )
         receipt = conn.execute(
-            "INSERT INTO event_blocker_refreshes(run_id,observed_at,summary_json) VALUES (?,?,?)",
+            "INSERT INTO event_blocker_refreshes (run_id, observed_at, summary_json) VALUES (%s, %s, %s) RETURNING refresh_id",
             (run_id, now.isoformat(), _json(summary)),
-        ).lastrowid
+        ).fetchone()[0]
         for source, source_ref, signature, raw in changes:
             observation = conn.execute(
-                "INSERT INTO event_blocker_observations(source,source_ref,refresh_id,observed_at,signature,policy_digest,facts_json) VALUES (?,?,?,?,?,?,?)",
+                (
+                    "INSERT INTO event_blocker_observations (source, source_ref, refresh_id, observed_at, "
+                    "signature, policy_digest, facts_json) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING observation_id"
+                ),
                 (source, source_ref, receipt, now.isoformat(), signature, digest, raw),
-            ).lastrowid
+            ).fetchone()[0]
             conn.execute(
-                "INSERT INTO event_blocker_latest VALUES (?,?,?) ON CONFLICT(source,source_ref) DO UPDATE SET observation_id=excluded.observation_id",
+                (
+                    "INSERT INTO event_blocker_latest (source, source_ref, observation_id) VALUES (%s, %s, %s) ON CONFLICT(source, source_ref) DO UPDATE SET observation_id = excluded.observation_id"
+                ),
                 (source, source_ref, observation),
             )
         conn.execute(
-            "UPDATE event_blocker_cursor SET last_rowid=?,high_water=?,pass=? WHERE singleton=1",
+            "UPDATE event_blocker_cursor SET last_rowid = %s, high_water = %s, pass = %s WHERE singleton = 1",
             (0 if ended else rows[-1]["rowid"], 0 if ended else high, pass_id),
         )
     return {**summary, "refresh_id": receipt}
 
 
 def report(
-    conn: sqlite3.Connection, *, source: str, source_ref: str, limit: int = 20
+    conn: engine.Connection, *, source: str, source_ref: str, limit: int = 20
 ) -> dict[str, Any]:
     """Read retained samples without filling gaps or reconstructing legacy ages."""
     if type(limit) is not int or not 1 <= limit <= 100:
@@ -332,7 +357,12 @@ def report(
     recent = [
         {**dict(row), "facts": json.loads(row["facts_json"])}
         for row in conn.execute(
-            "SELECT o.*,r.run_id FROM event_blocker_observations o JOIN event_blocker_refreshes r USING(refresh_id) WHERE o.source=? AND o.source_ref=? ORDER BY observation_id DESC LIMIT ?",
+            (
+                "SELECT o.observation_id, o.source, o.source_ref, o.refresh_id, o.observed_at, o.signature, "
+                "o.policy_digest, o.facts_json, r.run_id FROM event_blocker_observations AS o JOIN "
+                "event_blocker_refreshes AS r USING (refresh_id) WHERE o.source = %s AND o.source_ref = %s "
+                "ORDER BY observation_id DESC NULLS LAST LIMIT %s"
+            ),
             (source, source_ref, limit + 1),
         )
     ]

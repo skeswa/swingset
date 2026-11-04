@@ -3,7 +3,6 @@
 import argparse
 import hashlib
 import json
-import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,8 +11,7 @@ from test_h15_acceptance import source_fixture as source_fixture
 
 from swingset import cli
 from swingset.state import db as db_module
-from swingset.state import derivation_payload_migration as interning
-from swingset.state import derivations
+from swingset.state import derivations, engine
 from swingset.state.attempts import SupersededWorkError
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit
@@ -23,8 +21,8 @@ NOW = datetime(2026, 9, 18, tzinfo=UTC)
 # (closure_rows.reconstruct, derivations.current and the build receipt checks)
 # run against a migrated database further down this file.
 READER = (
-    "SELECT ordinal,table_name,record_key,payload_json FROM derivation_rows "
-    "WHERE generation_id=? ORDER BY ordinal"
+    "SELECT ordinal, table_name, record_key, payload_json FROM derivation_rows WHERE "
+    "generation_id = %s ORDER BY ordinal NULLS FIRST"
 )
 SHARED = {"name_raw": "Shared Row", "event_id": "event-a"}
 
@@ -116,19 +114,26 @@ def populate(database: db_module.Database, generations: list[dict[str, object]])
     run = database.start_run(NOW)
     with database.transaction():
         conn.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('fixture-set','[]')"
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES ('fixture-set', '[]')"
         )
         for generation in generations:
             stage, kind, unit = generation["scope"]
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-                "VALUES (?,?,?,?)",
+                (
+                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+                    "%s, %s) ON CONFLICT DO NOTHING"
+                ),
                 (stage, kind, unit, NOW.isoformat()),
             )
             rows = generation["rows"]
             output_digest, row_count = label(rows)
             conn.execute(
-                "INSERT INTO derivation_generations VALUES (?,?,?,?,?,'{}','fixture-set',NULL,?,?,?,?)",
+                (
+                    "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                    "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                    "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, '{}', 'fixture-set', NULL, %s, "
+                    "%s, %s, %s)"
+                ),
                 (
                     generation["generation_id"],
                     stage,
@@ -142,174 +147,52 @@ def populate(database: db_module.Database, generations: list[dict[str, object]])
                 ),
             )
             for ordinal, (table, key, payload) in enumerate(rows):
+                body = derivations.canonical(payload)
+                digest = hashlib.sha256(body.encode()).hexdigest()
                 conn.execute(
-                    "INSERT INTO derivation_rows VALUES (?,?,?,?,?)",
-                    (
-                        generation["generation_id"],
-                        ordinal,
-                        table,
-                        key,
-                        derivations.canonical(payload),
-                    ),
+                    "INSERT INTO derivation_payloads(payload_sha256,payload_json) VALUES(%s,%s) ON CONFLICT DO NOTHING",
+                    (digest, body),
+                )
+                conn.execute(
+                    "INSERT INTO derivation_row_refs(generation_id,ordinal,table_name,record_key,payload_sha256) VALUES(%s,%s,%s,%s,%s)",
+                    (generation["generation_id"], ordinal, table, key, digest),
                 )
             conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=? "
-                "WHERE stage=? AND unit_kind=? AND unit_id=?",
+                (
+                    "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = %s AND unit_kind "
+                    "= %s AND unit_id = %s"
+                ),
                 (generation["generation_id"], stage, kind, unit),
             )
 
 
-def held_schema29(
-    path: Path, monkeypatch: pytest.MonkeyPatch, generations: list[dict[str, object]]
-) -> dict[str, list[tuple[object, ...]]]:
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 29)
-        with open_database(path, lock=False) as database:
-            populate(database, generations)
-            assert database.schema_version == 29
-            return {
-                str(generation["generation_id"]): [
-                    tuple(row)
-                    for row in database.connection.execute(READER, (generation["generation_id"],))
-                ]
-                for generation in generations
-            }
+def retained_state(path: Path, generations: list[dict[str, object]]) -> None:
+    """Seed native schema37 rows independently of the retention implementation."""
+    with open_database(path, lock=False) as database:
+        populate(database, generations)
 
 
-def labels(conn: sqlite3.Connection) -> dict[str, tuple[str, int]]:
+def labels(conn: engine.Connection) -> dict[str, tuple[str, int]]:
     return {
         str(row[0]): (str(row[1]), int(row[2]))
         for row in conn.execute(
-            "SELECT generation_id,output_digest,row_count FROM derivation_generations"
+            "SELECT generation_id, output_digest, row_count FROM derivation_generations"
         )
     }
 
 
-def test_migration_stores_shared_rows_once_and_keeps_every_label(tmp_path, monkeypatch):
-    path, manifest_hash = candidate(tmp_path / "candidate")
-    generations = fixture_generations(path, manifest_hash)
-    before = held_schema29(tmp_path / "state", monkeypatch, generations)
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 29)
-        with open_database(tmp_path / "state", lock=False) as database:
-            before_labels = labels(database.connection)
-
-    # D-0013: this test owns migration 32, so it opens at exactly schema 32.
-    # A later migration is a later test's subject, not a change to this one.
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 32)
-    with open_database(tmp_path / "state", lock=False) as database:
-        conn = database.connection
-        assert database.schema_version == 32
-        assert labels(conn) == before_labels
-        # The old table is gone and derivation_rows is now a view over the two
-        # new tables.
-        assert (
-            conn.execute("SELECT type FROM sqlite_master WHERE name='derivation_rows'").fetchone()[
-                0
-            ]
-            == "view"
-        )
-        assert (
-            conn.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='derivation_rows_legacy'"
-            ).fetchone()
-            is None
-        )
-        # Every reader of the view sees byte-identical rows.
-        after = {
-            identifier: [tuple(row) for row in conn.execute(READER, (identifier,))]
-            for identifier in before
-        }
-        assert after == before
-        total = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
-        distinct = {
-            derivations.canonical(payload)
-            for generation in generations
-            for _, _, payload in generation["rows"]
-        }
-        assert total == sum(len(generation["rows"]) for generation in generations)
-        assert conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0] == len(
-            distinct
-        )
-        assert total > len(distinct)
-        # The shared row is stored once and referenced from six places in four
-        # generations, across two stages.
-        shared = hashlib.sha256(derivations.canonical(SHARED).encode()).hexdigest()
-        assert (
-            conn.execute(
-                "SELECT count(*) FROM derivation_row_refs WHERE payload_sha256=?", (shared,)
-            ).fetchone()[0]
-            == 6
-        )
-        # Named readers still work through the view.
-        from swingset.build import closure_manifest
-        from swingset.build import generations as build_generations
-
-        assert build_generations.completed(conn, "candidate-1", manifest_hash)
-        assert (
-            closure_manifest.generation(conn, "dg_build_1")["output_digest"]
-            == (before_labels["dg_build_1"][0])
-        )
-        assert derivations._artifact_valid(conn, "dg_build_1")
-        assert not derivations._artifact_valid(conn, "dg_event_a1")
-        assert not derivations.current(conn, WorkUnit("project", "event", "event-a"))
-        # retain_output accepts every migrated generation as already retained.
-        for identifier in before:
-            with database.transaction():
-                derivations.retain_output(conn, identifier, ())
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+def test_migration_stores_shared_rows_once_and_keeps_every_label(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_payloads.py",
+        "test_migration_stores_shared_rows_once_and_keeps_every_label",
+    )
 
 
-def test_migration_failure_after_the_fill_keeps_the_old_rows_and_schema(tmp_path, monkeypatch):
-    path, manifest_hash = candidate(tmp_path / "candidate")
-    generations = fixture_generations(path, manifest_hash)
-    before = held_schema29(tmp_path / "state", monkeypatch, generations)
-    filled = []
-
-    def interrupted(conn):
-        interning.fill(conn)
-        filled.append(conn.execute("SELECT count(*) FROM derivation_rows_legacy").fetchone()[0])
-        raise RuntimeError("interrupted interning")
-
-    with monkeypatch.context() as patch:
-        patch.setattr(interning, "intern_derivation_payloads", interrupted)
-        with pytest.raises(RuntimeError, match="interrupted interning"):
-            open_database(tmp_path / "state", lock=False)
-    assert filled == [sum(len(generation["rows"]) for generation in generations)]
-
-    with sqlite3.connect(tmp_path / "state/state.sqlite") as conn:
-        # Interning is the last migration, so the two before it committed and
-        # only interning rolled back. That is the point of the order: schema 31
-        # is a database an operator can run.
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 31
-        assert (
-            conn.execute("SELECT type FROM sqlite_master WHERE name='derivation_rows'").fetchone()[
-                0
-            ]
-            == "table"
-        )
-        for name in ("derivation_payloads", "derivation_row_refs", "derivation_rows_legacy"):
-            assert (
-                conn.execute("SELECT 1 FROM sqlite_master WHERE name=?", (name,)).fetchone() is None
-            )
-        assert {
-            identifier: [tuple(row) for row in conn.execute(READER, (identifier,))]
-            for identifier in before
-        } == before
-        # Every fingerprint still checks against the untouched rows.
-        for generation in generations:
-            stored = conn.execute(
-                "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
-                (generation["generation_id"],),
-            ).fetchone()
-            assert tuple(stored) == label(generation["rows"])
-
-    # The interrupted migration left a database that still migrates.
-    # D-0013: this test owns migration 32, so it opens at exactly schema 32.
-    # A later migration is a later test's subject, not a change to this one.
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 32)
-    with open_database(tmp_path / "state", lock=False) as database:
-        assert database.schema_version == 32
+def test_migration_failure_after_the_fill_keeps_the_old_rows_and_schema(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_payloads.py",
+        "test_migration_failure_after_the_fill_keeps_the_old_rows_and_schema",
+    )
 
 
 def completed_generation(database, unit, rows, recipe):
@@ -330,7 +213,7 @@ def test_completion_of_ten_changed_rows_of_a_thousand_stores_ten_more_payloads(t
             for index in range(1000)
         ]
         completed_generation(database, unit, first, {"recipe/test": "one"})
-        assert conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0] == 1000
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 1000
         changed = [
             derivations.OutputRow(
                 "entries",
@@ -340,14 +223,14 @@ def test_completion_of_ten_changed_rows_of_a_thousand_stores_ten_more_payloads(t
             for index in range(1000)
         ]
         completed_generation(database, unit, changed, {"recipe/test": "two"})
-        assert conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0] == 1010
-        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == 2000
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 1010
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 2000
 
 
 def test_retain_output_checks_the_label_and_repeats_without_writing(tmp_path, monkeypatch):
     path, manifest_hash = candidate(tmp_path / "candidate")
     generations = fixture_generations(path, manifest_hash)
-    held_schema29(tmp_path / "state", monkeypatch, generations)
+    retained_state(tmp_path / "state", generations)
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         rows = [
@@ -362,10 +245,10 @@ def test_retain_output_checks_the_label_and_repeats_without_writing(tmp_path, mo
             with database.transaction():
                 derivations.retain_output(conn, "dg_missing", rows)
         # A generation that already reads back whole is accepted, not rewritten.
-        before = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+        before = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
         with database.transaction():
             derivations.retain_output(conn, "dg_event_a1", [])
-        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == before
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == before
 
         # A label with the right row count but a different digest is rejected, and
         # so is one with the right digest but a different row count.
@@ -376,8 +259,12 @@ def test_retain_output_checks_the_label_and_repeats_without_writing(tmp_path, mo
         ):
             with database.transaction():
                 conn.execute(
-                    "INSERT INTO derivation_generations VALUES "
-                    "(?,'project','event','event-a',?,'{}','fixture-set',NULL,?,?,?,?)",
+                    (
+                        "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                        "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                        "row_count, created_at, run_id) VALUES (%s, 'project', 'event', 'event-a', %s, '{}', "
+                        "'fixture-set', NULL, %s, %s, %s, %s)"
+                    ),
                     (
                         identifier,
                         "fingerprint-" + identifier,
@@ -392,7 +279,8 @@ def test_retain_output_checks_the_label_and_repeats_without_writing(tmp_path, mo
                     derivations.retain_output(conn, identifier, rows)
             assert (
                 conn.execute(
-                    "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?", (identifier,)
+                    "SELECT COUNT(*) FROM derivation_row_refs WHERE generation_id = %s",
+                    (identifier,),
                 ).fetchone()[0]
                 == 0
             )
@@ -401,41 +289,45 @@ def test_retain_output_checks_the_label_and_repeats_without_writing(tmp_path, mo
 def test_payload_removal_needs_a_permission_row_in_the_same_transaction(tmp_path, monkeypatch):
     path, manifest_hash = candidate(tmp_path / "candidate")
     generations = fixture_generations(path, manifest_hash)
-    held_schema29(tmp_path / "state", monkeypatch, generations)
+    retained_state(tmp_path / "state", generations)
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         orphan = hashlib.sha256(b'{"unreferenced":true}').hexdigest()
         with database.transaction():
             conn.execute(
-                "INSERT INTO derivation_payloads VALUES (?,?)", (orphan, '{"unreferenced":true}')
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s)",
+                (orphan, '{"unreferenced":true}'),
             )
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
-            conn.execute("DELETE FROM derivation_payloads WHERE payload_sha256=?", (orphan,))
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
+            conn.execute("DELETE FROM derivation_payloads WHERE payload_sha256 = %s", (orphan,))
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_payloads WHERE payload_sha256=?", (orphan,)
+                "SELECT COUNT(*) FROM derivation_payloads WHERE payload_sha256 = %s", (orphan,)
             ).fetchone()[0]
             == 1
         )
         with database.transaction():
             conn.execute(
-                "INSERT INTO derivation_payload_removal_authority VALUES (1,'test plan',?)",
+                (
+                    "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, "
+                    "'test plan', %s)"
+                ),
                 (NOW.isoformat(),),
             )
-            conn.execute("DELETE FROM derivation_payloads WHERE payload_sha256=?", (orphan,))
+            conn.execute("DELETE FROM derivation_payloads WHERE payload_sha256 = %s", (orphan,))
             conn.execute("DELETE FROM derivation_payload_removal_authority")
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_payloads WHERE payload_sha256=?", (orphan,)
+                "SELECT COUNT(*) FROM derivation_payloads WHERE payload_sha256 = %s", (orphan,)
             ).fetchone()[0]
             == 0
         )
         assert (
-            conn.execute("SELECT count(*) FROM derivation_payload_removal_authority").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM derivation_payload_removal_authority").fetchone()[0]
             == 0
         )
         # Without the permission row the gate is closed again.
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
             conn.execute("DELETE FROM derivation_payloads")
 
 
@@ -446,56 +338,59 @@ def test_a_removal_grant_cannot_outlive_its_transaction(tmp_path):
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         completed_generation(database, unit, rows, {"recipe/test": "one"})
-        with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+        with pytest.raises(engine.IntegrityError, match="23503"):
             with database.transaction():
                 conn.execute(
-                    "INSERT INTO derivation_payload_removal_authority VALUES (1,'left behind',?)",
+                    (
+                        "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, "
+                        "'left behind', %s)"
+                    ),
                     (NOW.isoformat(),),
                 )
         # The failed commit is rolled back, not left open for the next caller.
         assert not conn.in_transaction
         assert (
-            conn.execute("SELECT count(*) FROM derivation_payload_removal_authority").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM derivation_payload_removal_authority").fetchone()[0]
             == 0
         )
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
             conn.execute("DELETE FROM derivation_payloads")
-        assert conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0] == 5
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 5
 
 
-def test_a_grant_written_with_foreign_keys_off_is_reported_and_cleared(tmp_path, capsys):
-    """The one way to leave a grant behind is caught, not carried into a restore."""
-    unit = WorkUnit("project", "event", "leak")
-    rows = [derivations.OutputRow("entries", f'["l{index}"]', {"i": index}) for index in range(5)]
+def test_a_grant_written_with_foreign_keys_off_is_reported_and_cleared(tmp_path, legacy_sqlite):
+    """Keep the old recovery case and prove current workers cannot bypass FKs."""
+    legacy_sqlite.assert_case(
+        "test_derivation_payloads.py",
+        "test_a_grant_written_with_foreign_keys_off_is_reported_and_cleared",
+    )
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
-        completed_generation(database, unit, rows, {"recipe/test": "one"})
-        conn.execute("PRAGMA foreign_keys=OFF")
-        with database.transaction():
-            conn.execute(
-                "INSERT INTO derivation_payload_removal_authority VALUES (1,'leak',?)",
-                (NOW.isoformat(),),
-            )
-        conn.execute("PRAGMA foreign_keys=ON")
-        # Checkpoint verification and recovery both fail on this.
-        assert conn.execute("PRAGMA foreign_key_check").fetchall()
-        # Doctor reads the database read-only, so it reports the open gate.
-        report = cli.doctor(argparse.Namespace(state=tmp_path / "state", config=Path("config")))
-        assert [grant["reason"] for grant in report["derivation_payload_removal_grants"]] == [
-            "leak"
-        ]
-    with open_database(tmp_path / "state", lock=False) as database:
-        conn = database.connection
+        completed_generation(
+            database,
+            WorkUnit("project", "event", "guard"),
+            [derivations.OutputRow("entries", '["guard"]', {"entry_id": "guard"})],
+            {"recipe/test": "one"},
+        )
+        with pytest.raises(engine.DatabaseError, match="42501"):
+            conn.execute("SET session_replication_role=replica")
         assert (
-            conn.execute("SELECT count(*) FROM derivation_payload_removal_authority").fetchone()[0]
+            conn.execute("SELECT COUNT(*) FROM derivation_payload_removal_authority").fetchone()[0]
             == 0
         )
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
-            conn.execute("DELETE FROM derivation_payloads")
-    assert "derivation-payload-removal-grant-revoked" in capsys.readouterr().err
+    report = cli.doctor(argparse.Namespace(state=tmp_path / "state", config=Path("config")))
+    assert report["derivation_payload_removal_grants"] == []
+    with open_database(tmp_path / "state", lock=False) as database:
+        assert (
+            database.connection.execute(
+                "SELECT COUNT(*) FROM derivation_payload_removal_authority"
+            ).fetchone()[0]
+            == 0
+        )
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
+            database.connection.execute("DELETE FROM derivation_payloads")
 
 
 def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
@@ -514,119 +409,40 @@ def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
         run = database.start_run(NOW)
         with database.transaction():
             selection = derivations.capture(conn, unit, now=NOW, recipe={"recipe/test": "one"})
-            conn.set_trace_callback(
-                lambda sql: (
+            from postgres_statements import observing
+
+            def store_statement(sql, parameters):
+                if sql.startswith(
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, payload_sha256)"
+                ):
                     stored_after.append(len(produced))
-                    if sql.startswith("INSERT INTO derivation_row_refs")
-                    else None
-                )
-            )
-            try:
+
+            with observing(conn, store_statement):
                 generation = derivations.complete(
                     conn, selection, rows=streamed(), now=NOW, run_id=run
                 )
-            finally:
-                conn.set_trace_callback(None)
         # The first reference is written after the first row is produced, not
         # after the last one.
         assert stored_after[0] == 1
-        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == 200
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 200
         # The label is written from what was stored, so it cannot be written twice.
         with pytest.raises(SupersededWorkError, match="cannot relabel"):
             with database.transaction():
                 derivations.retain_output(conn, generation, (), record_label=lambda _d, _c: None)
 
 
-def measure(database) -> tuple[int, int]:
-    conn = database.connection
-    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    used = int(conn.execute("SELECT coalesce(sum(pgsize),0) FROM dbstat").fetchone()[0])
-    return used, (database.state_dir / "state.sqlite").stat().st_size
+def test_dropping_the_old_table_frees_pages_without_shrinking_the_file(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_payloads.py",
+        "test_dropping_the_old_table_frees_pages_without_shrinking_the_file",
+    )
 
 
-def test_dropping_the_old_table_frees_pages_without_shrinking_the_file(tmp_path, monkeypatch):
-    """Bytes in use and file size are two numbers; only VACUUM moves the second."""
-    repeated = {"name_raw": "Repeated " * 40, "event_id": "event-a"}
-    generations = [
-        {
-            "generation_id": f"dg_bulk_{index}",
-            "scope": ("project", "event", f"event-{index}"),
-            "rows": [("entries", f'["{index}-{row}"]', dict(repeated)) for row in range(200)],
-        }
-        for index in range(12)
-    ]
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 29)
-        with open_database(tmp_path / "state", lock=False) as database:
-            populate(database, generations)
-            before_used, before_size = measure(database)
-
-    # D-0013: this test owns migration 32, so it opens at exactly schema 32.
-    # A later migration is a later test's subject, not a change to this one.
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 32)
-    with open_database(tmp_path / "state", lock=False) as database:
-        assert database.schema_version == 32
-        after_used, after_size = measure(database)
-        # One stored copy replaces 2,400 inline ones, so the pages holding data
-        # shrink; the dropped pages stay in the file on the free list.
-        assert after_used < before_used
-        assert after_size >= before_size
-        database.connection.execute("VACUUM")
-        reclaimed_used, reclaimed_size = measure(database)
-        assert reclaimed_size < after_size
-        assert reclaimed_used <= after_used
-
-
-def test_migration_refuses_to_drop_the_old_rows_when_a_label_does_not_match(tmp_path, monkeypatch):
-    """The comparison, not only the fill, is what stands between a bad database
-    and the last copy of every output row."""
-    path, manifest_hash = candidate(tmp_path / "candidate")
-    generations = fixture_generations(path, manifest_hash)
-    before = held_schema29(tmp_path / "state", monkeypatch, generations)
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 29)
-        with open_database(tmp_path / "state", lock=False) as database:
-            # Labels are immutable, so the disagreement is made on the row side:
-            # one stored row that the generation's fingerprint never counted.
-            with database.transaction():
-                database.connection.execute(
-                    "INSERT INTO derivation_rows VALUES ('dg_event_a1',9,'entries','[\"a-9\"]',?)",
-                    (derivations.canonical({"name_raw": "Unaccounted Row"}),),
-                )
-
-    with pytest.raises(RuntimeError, match="does not match the label of generation dg_event_a1"):
-        open_database(tmp_path / "state", lock=False)
-
-    with sqlite3.connect(tmp_path / "state/state.sqlite") as conn:
-        # The migrations before interning committed; interning itself rolled back.
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 31
-        assert (
-            conn.execute("SELECT type FROM sqlite_master WHERE name='derivation_rows'").fetchone()[
-                0
-            ]
-            == "table"
-        )
-        for name in ("derivation_payloads", "derivation_row_refs", "derivation_rows_legacy"):
-            assert (
-                conn.execute("SELECT 1 FROM sqlite_master WHERE name=?", (name,)).fetchone() is None
-            )
-        # Every untouched generation still reads exactly as it did.
-        assert {
-            identifier: [tuple(row) for row in conn.execute(READER, (identifier,))]
-            for identifier in before
-            if identifier != "dg_event_a1"
-        } == {
-            identifier: rows for identifier, rows in before.items() if identifier != "dg_event_a1"
-        }
-        assert (
-            conn.execute(
-                "SELECT count(*) FROM derivation_rows WHERE generation_id='dg_event_a1'"
-            ).fetchone()[0]
-            == 4
-        )
-    # The refusal repeats rather than passing on a second attempt.
-    with pytest.raises(RuntimeError, match="does not match the label of generation dg_event_a1"):
-        open_database(tmp_path / "state", lock=False)
+def test_migration_refuses_to_drop_the_old_rows_when_a_label_does_not_match(legacy_sqlite):
+    legacy_sqlite.assert_case(
+        "test_derivation_payloads.py",
+        "test_migration_refuses_to_drop_the_old_rows_when_a_label_does_not_match",
+    )
 
 
 def evict(database, generation_id: str) -> None:
@@ -634,12 +450,17 @@ def evict(database, generation_id: str) -> None:
     conn = database.connection
     with database.transaction():
         conn.execute(
-            "INSERT INTO derivation_payload_removal_authority VALUES (1,'test plan',?)",
+            (
+                "INSERT INTO derivation_payload_removal_authority (singleton, reason, granted_at) VALUES (1, "
+                "'test plan', %s)"
+            ),
             (NOW.isoformat(),),
         )
         conn.execute(
-            "DELETE FROM derivation_payloads WHERE payload_sha256 IN "
-            "(SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id=?)",
+            (
+                "DELETE FROM derivation_payloads WHERE payload_sha256 IN (SELECT payload_sha256 FROM "
+                "derivation_row_refs WHERE generation_id = %s)"
+            ),
             (generation_id,),
         )
         conn.execute("DELETE FROM derivation_payload_removal_authority")
@@ -656,25 +477,30 @@ def test_referenced_payload_bytes_can_be_removed_and_brought_back(tmp_path):
         ]
         generation = completed_generation(database, unit, rows, {"recipe/test": "one"})
         pointer = conn.execute(
-            "SELECT materialized_generation_id FROM derivation_scopes WHERE unit_id='restore'"
+            "SELECT materialized_generation_id FROM derivation_scopes WHERE unit_id = 'restore'"
         ).fetchone()[0]
         # Without the permission row these bytes cannot go, referenced or not.
-        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
+        with pytest.raises(engine.IntegrityError, match="requires authority"):
             conn.execute("DELETE FROM derivation_payloads")
         evict(database, generation)
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?", (generation,)
+                "SELECT COUNT(*) FROM derivation_row_refs WHERE generation_id = %s", (generation,)
             ).fetchone()[0]
             == 5
         )
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_rows WHERE generation_id=?", (generation,)
+                "SELECT COUNT(*) FROM derivation_rows WHERE generation_id = %s", (generation,)
             ).fetchone()[0]
             == 0
         )
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert (
+            conn.execute(
+                "SELECT bool_and(convalidated) FROM pg_constraint WHERE contype='f'"
+            ).fetchone()[0]
+            is True
+        )
         # Wrong bytes are refused against the label, not written.
         wrong = [
             derivations.OutputRow(
@@ -685,7 +511,7 @@ def test_referenced_payload_bytes_can_be_removed_and_brought_back(tmp_path):
         with pytest.raises(SupersededWorkError, match="does not match its label"):
             with database.transaction():
                 derivations.retain_output(conn, generation, wrong)
-        assert conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 0
         # The right bytes come back. A row the references do not name is ignored
         # rather than stored, so restoring leaves nothing ownerless behind.
         extra = derivations.OutputRow("entries", '["not-mine"]', {"entry_id": "not-mine"})
@@ -695,11 +521,11 @@ def test_referenced_payload_bytes_can_be_removed_and_brought_back(tmp_path):
             (index, "entries", f'["r{index}"]', derivations.canonical({"entry_id": f"r{index}"}))
             for index in range(5)
         ]
-        assert conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0] == 5
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 5
         # Restoring moved no pointer and no scheduling state.
         assert (
             conn.execute(
-                "SELECT materialized_generation_id FROM derivation_scopes WHERE unit_id='restore'"
+                "SELECT materialized_generation_id FROM derivation_scopes WHERE unit_id = 'restore'"
             ).fetchone()[0]
             == pointer
         )
@@ -708,9 +534,9 @@ def test_referenced_payload_bytes_can_be_removed_and_brought_back(tmp_path):
 def test_readers_of_an_evicted_generation_see_nothing_rather_than_short_rows(tmp_path, monkeypatch):
     """The view's join drops a row whose bytes are gone, so every reader that
     counts rows against a label refuses instead of using a partial answer."""
-    path, manifest_hash = candidate(tmp_path / "candidate")
+    path, manifest_hash = candidate(tmp_path / "state" / "candidates" / "candidate-1")
     generations = fixture_generations(path, manifest_hash)
-    held_schema29(tmp_path / "state", monkeypatch, generations)
+    retained_state(tmp_path / "state", generations)
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
         from swingset.build import generations as build_generations
@@ -764,101 +590,36 @@ def test_repeat_of_identical_inputs_does_not_read_the_whole_generation_again(tmp
             for index in range(50)
         ]
         first = completed_generation(database, unit, rows, {"recipe/test": "one"})
-        statements: list[str] = []
-        conn.set_trace_callback(statements.append)
-        try:
+        from postgres_statements import observing
+
+        statements = []
+        with observing(conn, lambda sql, parameters: statements.append((sql, parameters))):
             repeat = completed_generation(database, unit, rows, {"recipe/test": "one"})
-        finally:
-            conn.set_trace_callback(None)
         assert repeat == first
-        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == 50
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 50
         # Not one stored row is read or written again: no view join, no count
         # over the references, nothing. One index probe of the last ordinal
         # says the generation is whole, not a partial staged one (D-0217).
-        probe = f"SELECT 1 FROM derivation_row_refs WHERE generation_id='{first}' AND ordinal=49"
+        probe = "SELECT 1 AS _value_0 FROM derivation_row_refs WHERE generation_id = %s AND ordinal = %s"
         touched = [
-            statement
-            for statement in statements
-            if not statement.startswith("SELECT 1 FROM sqlite_master")
+            (statement, parameters)
+            for statement, parameters in statements
+            if "pg_catalog" not in statement
             and (
                 "derivation_rows" in statement
                 or "derivation_row_refs" in statement
                 or "derivation_payloads" in statement
             )
         ]
-        assert touched == [probe]
-
-
-# The pre-interning shape of retained output, copied from migration 0014 and the
-# derivation_rows part of migration 0029. Interning is the last migration, so
-# schema 31 is exactly this shape with everything else in place. Putting a real
-# pipeline database back into it is the only way to run migration 32 on rows the
-# pipeline itself wrote.
-SCHEMA_31_ROWS = """
-DROP VIEW derivation_rows;
-DROP TABLE derivation_row_refs;
-DROP TABLE derivation_payloads;
-DROP TABLE derivation_payload_removal_authority;
-DROP TABLE derivation_payload_removal_grant;
-CREATE TABLE derivation_rows (
-    generation_id TEXT NOT NULL REFERENCES derivation_generations(generation_id) DEFERRABLE INITIALLY DEFERRED,
-    ordinal INTEGER NOT NULL, table_name TEXT NOT NULL, record_key TEXT NOT NULL,
-    payload_json TEXT NOT NULL, PRIMARY KEY(generation_id,ordinal),
-    UNIQUE(generation_id,table_name,record_key)
-);
-CREATE TRIGGER derivation_row_no_update BEFORE UPDATE ON derivation_rows
-BEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END;
-CREATE TRIGGER derivation_row_no_delete BEFORE DELETE ON derivation_rows
-BEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END;
-CREATE TRIGGER history_timing_derivation_rows_insert AFTER INSERT ON derivation_rows BEGIN
-    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;
-END;
-CREATE TRIGGER history_timing_derivation_rows_update AFTER UPDATE ON derivation_rows BEGIN
-    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;
-END;
-CREATE TRIGGER history_timing_derivation_rows_delete AFTER DELETE ON derivation_rows BEGIN
-    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;
-END;
-"""
-
-
-def derivation_row_schema(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
-    return [
-        tuple(row)
-        for row in conn.execute(
-            "SELECT name,type,sql FROM sqlite_master WHERE tbl_name='derivation_rows' "
-            "OR name='derivation_rows' ORDER BY name"
-        )
-    ]
-
-
-def put_back_to_schema_31(database: db_module.Database) -> None:
-    """Rewrite an interned database into exactly the shape migration 32 expects."""
-    from swingset.state.publication_fence import install_publication_fences
-
-    conn = database.connection
-    conn.execute("PRAGMA foreign_keys=OFF")
-    try:
-        with database.transaction():
-            interned = [tuple(row) for row in conn.execute("SELECT * FROM derivation_rows")]
-            conn.executescript(SCHEMA_31_ROWS)
-            conn.executemany("INSERT INTO derivation_rows VALUES (?,?,?,?,?)", interned)
-            # Every migration refreshes these, so schema 31 had them on the table.
-            install_publication_fences(conn)
-            conn.execute("UPDATE meta SET value='31' WHERE key='schema_version'")
-            conn.execute("PRAGMA user_version=31")
-    finally:
-        conn.execute("PRAGMA foreign_keys=ON")
+        assert touched == [(probe, (first, 49))]
 
 
 def test_a_real_release_rebuilds_the_same_way_after_the_migration(
-    source_fixture, tmp_path, monkeypatch
+    source_fixture, tmp_path, monkeypatch, legacy_sqlite
 ):
     """Plan step 6's gate, on rows the pipeline wrote: a database that came
     through the migration selects the same closure and reconstructs the same
     rows as it did before."""
-    import shutil
-
     from test_h15_acceptance import drain_project
     from test_release_closure_rows import baseline_events
 
@@ -866,6 +627,10 @@ def test_a_real_release_rebuilds_the_same_way_after_the_migration(
     from swingset.build.closure_manifest import ClosureError, digest
     from swingset.build.closure_rows import reconstruct
 
+    legacy_sqlite.assert_case(
+        "test_derivation_payloads.py",
+        "test_a_real_release_rebuilds_the_same_way_after_the_migration",
+    )
     fixture = source_fixture
     units = drain_project(fixture)
     assert units
@@ -882,42 +647,37 @@ def test_a_real_release_rebuilds_the_same_way_after_the_migration(
     }
     assert any(before_current.values())
 
-    fixture.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    held = tmp_path / "held"
-    shutil.copytree(fixture.db.state_dir, held)
-    with open_database(held, lock=False) as database:
-        put_back_to_schema_31(database)
-        assert database.schema_version == 31
-        rewritten = derivation_row_schema(database.connection)
-    # The rewrite is the real schema 31, not an approximation of it.
-    with monkeypatch.context() as patch:
-        patch.setattr(db_module, "SCHEMA_VERSION", 31)
-        with open_database(tmp_path / "empty31", lock=False) as reference:
-            assert rewritten == derivation_row_schema(reference.connection)
+    from swingset.state.postgres_copy import Copies
 
-    # D-0013: this test owns migration 32, so it opens at exactly schema 32.
-    # A later migration is a later test's subject, not a change to this one.
-    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 32)
-    with open_database(held, lock=False) as migrated:
-        conn = migrated.connection
-        assert migrated.schema_version == 32
-        assert (
-            digest(select(conn, cutoff=fixture.corpus.clock.now(), baseline=baseline).manifest())
-            == before_manifest
-        )
-        with reconstruct(conn, closure, directory=tmp_path / "after", baseline=baseline) as rows:
-            after = {name: list(rows.iter_table(name)) for name in rows.table_names()}
-        assert after == before
-        assert {unit: derivations.current(conn, unit) for unit in before_current} == before_current
-        references = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
-        payloads = conn.execute("SELECT count(*) FROM derivation_payloads").fetchone()[0]
-        assert 0 < payloads <= references
-        # A generation whose bytes were evicted is refused by the rebuild rather
-        # than silently rebuilt short.
-        evict(migrated, closure.selected[0]["generation_id"])
-        with pytest.raises(ClosureError, match="selected_output_digest_mismatch"):
-            with reconstruct(conn, closure, directory=tmp_path / "evicted", baseline=baseline):
-                pass
+    held = tmp_path / "held"
+    with Copies(fixture.db.state_dir) as copies:
+        copies.freeze(fixture.conn, held)
+        with open_database(held, lock=False) as migrated:
+            conn = migrated.connection
+            assert migrated.schema_version == 37
+            assert (
+                digest(
+                    select(conn, cutoff=fixture.corpus.clock.now(), baseline=baseline).manifest()
+                )
+                == before_manifest
+            )
+            with reconstruct(
+                conn, closure, directory=tmp_path / "after", baseline=baseline
+            ) as rows:
+                after = {name: list(rows.iter_table(name)) for name in rows.table_names()}
+            assert after == before
+            assert {
+                unit: derivations.current(conn, unit) for unit in before_current
+            } == before_current
+            references = conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0]
+            payloads = conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0]
+            assert 0 < payloads <= references
+            # A generation whose bytes were evicted is refused by the rebuild rather
+            # than silently rebuilt short.
+            evict(migrated, closure.selected[0]["generation_id"])
+            with pytest.raises(ClosureError, match="selected_output_digest_mismatch"):
+                with reconstruct(conn, closure, directory=tmp_path / "evicted", baseline=baseline):
+                    pass
 
 
 def stage_then_stop(database, unit, rows, recipe, *, stop_at: int):
@@ -961,7 +721,7 @@ def test_a_single_path_completion_finishes_a_generation_a_staged_run_left(tmp_pa
         generation = stage_then_stop(database, unit, rows, {"recipe/test": "one"}, stop_at=2)
         assert tuple(
             conn.execute(
-                "SELECT label_rows,rows_stored FROM derivation_building WHERE generation_id=?",
+                "SELECT label_rows, rows_stored FROM derivation_building WHERE generation_id = %s",
                 (generation,),
             ).fetchone()
         ) == (5, 2)
@@ -972,12 +732,14 @@ def test_a_single_path_completion_finishes_a_generation_a_staged_run_left(tmp_pa
         assert [
             tuple(row)
             for row in conn.execute(
-                "SELECT ordinal,record_key FROM derivation_row_refs WHERE generation_id=? "
-                "ORDER BY ordinal",
+                (
+                    "SELECT ordinal, record_key FROM derivation_row_refs WHERE generation_id = %s ORDER BY "
+                    "ordinal NULLS FIRST"
+                ),
                 (generation,),
             )
         ] == [(index, f'["e{index}"]') for index in range(5)]
-        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_building").fetchone()[0] == 0
 
 
 def test_a_stored_row_that_differs_on_resume_is_nondeterministic(tmp_path, monkeypatch):
@@ -998,7 +760,8 @@ def test_a_stored_row_that_differs_on_resume_is_nondeterministic(tmp_path, monke
         assert derivations.selected_generation(conn, unit) is None
         assert (
             conn.execute(
-                "SELECT rows_stored FROM derivation_building WHERE generation_id=?", (generation,)
+                "SELECT rows_stored FROM derivation_building WHERE generation_id = %s",
+                (generation,),
             ).fetchone()[0]
             == 2
         )

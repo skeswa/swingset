@@ -1,0 +1,177 @@
+{
+  "assigned_counts": [
+    1329,
+    1093
+  ],
+  "clients": [
+    {
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "counts": {
+        "error": 0,
+        "failed": 0,
+        "passed": 1329,
+        "skipped": 0
+      },
+      "index": 0,
+      "oom_kills": 0,
+      "peak_cgroup_bytes": 1685381120,
+      "peak_tmpfs_bytes": 183398400,
+      "peak_working_bytes": 1430999040,
+      "phases": {
+        "call": 700.4745,
+        "collection": 3.1091,
+        "parallel_phase_totals": true,
+        "setup": 107.5563,
+        "teardown": 16.5983,
+        "wall": 216.8551,
+        "workers": 4
+      },
+      "swap_bytes": 0
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "counts": {
+        "error": 0,
+        "failed": 0,
+        "passed": 1093,
+        "skipped": 0
+      },
+      "index": 1,
+      "oom_kills": 0,
+      "peak_cgroup_bytes": 1893744640,
+      "peak_tmpfs_bytes": 296296448,
+      "peak_working_bytes": 1692397568,
+      "phases": {
+        "call": 745.6357,
+        "collection": 3.1027,
+        "parallel_phase_totals": true,
+        "setup": 210.2836,
+        "teardown": 11.8388,
+        "wall": 269.0236,
+        "workers": 4
+      },
+      "swap_bytes": 0
+    }
+  ],
+  "complete": true,
+  "conclusion": "All selected tests passed with complete exact cleanup and zero OOM/swap. The180second gate failed; measured total work cannot fit eight workers by scheduling alone. Parent authorized measured three-client/four-worker trial under the same per-client limits and aggregate7GiB guard.",
+  "format": 1,
+  "ideal_eight_worker_lower_bound_seconds": 224.04840000000002,
+  "image": "sha256:7011c88ac68253ad37b2e525ba68ed65b32a3bc0bf73d19cd959d492c8b99efa",
+  "limits": {
+    "cpus_per_client": 4,
+    "memory_per_client": 2147483648,
+    "memory_plus_swap_per_client": 2147483648,
+    "ownership_ledgers": "persistent /tmp",
+    "physical_postgres_cpus": 2,
+    "physical_postgres_memory": 2147483648,
+    "postgres_cpus": 4,
+    "postgres_memory": 2147483648,
+    "retention": "failed",
+    "test_tmpfs_per_client": 805306368,
+    "workers_per_client": 4
+  },
+  "measured_at": "2026-11-05T04:57:33.676504+00:00",
+  "membership_sha256": "75f097888c50ba8a4ece23b32d1e12b9877faf0b24fba57fee43c49a02c1cbfc",
+  "raw_sha256": "56e822fda42a870dc98934c0329cb1f35aa6c8cc1425fc1a8d6b561b1606e574",
+  "selected_count": 2422,
+  "source_binding": "e08c5de3db23a200888d1109529f66f7d7dd1fe25a2a277fbb80da41f9fe0432",
+  "source_revision": "source-sha256:6057b76c0e7c33478124b3fdf8651f2359a8447ea745cbde0a7017753f837f89",
+  "source_stable": true,
+  "top_file_worker_seconds": [
+    [
+      "tests/test_crash_recovery.py",
+      126.05529112671502
+    ],
+    [
+      "tests/test_read_sets.py",
+      87.72717408952303
+    ],
+    [
+      "tests/test_loop_isolation.py",
+      87.68974911922123
+    ],
+    [
+      "tests/test_loops.py",
+      73.70415166625753
+    ],
+    [
+      "tests/backup/test_segments.py",
+      72.90480500482954
+    ],
+    [
+      "tests/backup/test_transport.py",
+      71.21856844145805
+    ],
+    [
+      "tests/publish/test_publication_controls.py",
+      68.8735176094342
+    ],
+    [
+      "tests/publish/test_safety.py",
+      68.09605899301823
+    ],
+    [
+      "tests/backup/test_backup_prune_wiring.py",
+      60.09169890987687
+    ],
+    [
+      "tests/build/test_partitions.py",
+      41.327119314693846
+    ],
+    [
+      "tests/backup/test_checkpoint.py",
+      40.564293993404135
+    ],
+    [
+      "tests/build/test_completion_validation.py",
+      38.92119560285937
+    ]
+  ],
+  "top_node_seconds": [
+    [
+      83.02706518094055,
+      "tests/test_read_sets.py::test_pipeline_fixtures_run_armed_with_zero_undeclared_reads"
+    ],
+    [
+      36.09842841711361,
+      "tests/test_event_completion_cohort.py::test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh"
+    ],
+    [
+      14.54378237389028,
+      "tests/backup/test_transport.py::test_the_collector_removes_a_segment_no_kept_set_names_and_squashes"
+    ],
+    [
+      14.133796139038168,
+      "tests/test_h16_schedule.py::test_retained_release_gets_opportunity_before_more_acquisition"
+    ],
+    [
+      13.663382511935197,
+      "tests/backup/test_transport.py::test_the_collector_never_squashes_a_repository_that_holds_checkpoints"
+    ],
+    [
+      11.55380002700258,
+      "tests/backup/test_transport.py::test_a_directory_transport_collects_a_segment_no_kept_set_names"
+    ],
+    [
+      11.246612818096764,
+      "tests/build/test_release_paths.py::test_a_partitioned_candidate_publishes_through_the_hub"
+    ],
+    [
+      10.858566252863966,
+      "tests/backup/test_transport.py::test_a_directory_transport_copies_a_set_and_keeps_three"
+    ]
+  ],
+  "wall_seconds": 274.1426,
+  "worker_seconds": 1792.3872000000001
+}

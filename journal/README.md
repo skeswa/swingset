@@ -20,10 +20,13 @@ short conclusion. Link it from the relevant topic index. Put its evidence in a
 named run under `evidence/<topic>/`; link that run to the investigation.
 
 Reusable scripts belong in `tools/<topic>/`. Link them to their inputs and the
-investigations they support. Frozen copies of scripts that produced a retained
-receipt stay with that evidence. A runnable script is not permission to change
+investigations they support. One-off runtime scripts, logs and rehearsal output stay
+in scratch; production operations retain compact command, hash, count and
+timing receipts. Existing sealed bundles remain unchanged. A runnable script is not permission to change
 a worker or contact a source site.
 
-Record every decision using the [decision process](decisions/README.md), including routine implementation choices.
+Record choices a future reader may want to reverse using the
+[decision process](decisions/README.md). Routine implementation choices belong
+in the revision description ([D-0175](decisions/0175-fewer-records-receipts-not-bundles-and-tiered-review.md)).
 This is the project journal. The application's identity decision journal in
 `overrides/identity_overrides.csv` is a separate data source.

@@ -1,7 +1,5 @@
 """Completion-local reuse preserves closure checks across adversarial mutations."""
 
-import sqlite3
-from contextlib import closing
 from copy import deepcopy
 
 import pytest
@@ -10,6 +8,7 @@ from test_h16_acceptance import release_state as release_state
 from swingset.build import closure, closure_support
 from swingset.build.closure_manifest import ClosureError, digest
 from swingset.build.closure_validation import validation_scope
+from tests.helpers.corruption import corruption_connection
 
 
 def pinned(f):
@@ -61,22 +60,22 @@ def test_mutable_evidence_rejects_after_initial_success(release_state, mutation,
             closure.validate(f.conn, manifest)
         if mutation == "revocation":
             f.conn.execute(
-                "UPDATE source_generations SET state='revoked' WHERE generation_id=?",
+                "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
                 (source["generation_id"],),
             )
         elif mutation == "policy":
             f.conn.execute(
-                "UPDATE admission_policies SET policy_revision=policy_revision||'-new' WHERE page_kind=?",
+                "UPDATE admission_policies SET policy_revision = policy_revision || '-new' WHERE page_kind = %s",
                 (source["page_kind"],),
             )
         elif mutation == "snapshot":
             f.conn.execute(
-                "UPDATE snapshots SET body_sha256='replaced' WHERE snapshot_id=?",
+                "UPDATE snapshots SET body_sha256 = 'replaced' WHERE snapshot_id = %s",
                 (item["snapshot_id"],),
             )
         else:
             f.conn.execute(
-                "DELETE FROM admission_decisions WHERE generation_id=?",
+                "DELETE FROM admission_decisions WHERE generation_id = %s",
                 (source["generation_id"],),
             )
         with pytest.raises(ClosureError):
@@ -89,13 +88,18 @@ def test_late_acceptance_of_selected_but_unaccepted_source_changes_witness(relea
     item, source = accepted_witness(initial)
     decision = dict(
         f.conn.execute(
-            "SELECT * FROM admission_decisions WHERE generation_id=? AND state='accepted' LIMIT 1",
+            (
+                "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                "admission_decisions.policy_revision FROM admission_decisions WHERE generation_id = %s AND "
+                "state = 'accepted' LIMIT 1"
+            ),
             (source["generation_id"],),
         ).fetchone()
     )
     with f.db.transaction():
         f.conn.execute(
-            "DELETE FROM admission_decisions WHERE generation_id=?", (source["generation_id"],)
+            "DELETE FROM admission_decisions WHERE generation_id = %s", (source["generation_id"],)
         )
     manifest = pinned(f)
     assert manifest["selected"] == initial["selected"]
@@ -106,7 +110,10 @@ def test_late_acceptance_of_selected_but_unaccepted_source_changes_witness(relea
     with f.db.transaction(), validation_scope(f.conn):
         closure.validate(f.conn, manifest)
         f.conn.execute(
-            "INSERT INTO admission_decisions(generation_id,state,reason,decided_at,policy_revision) VALUES (?,?,?,?,?)",
+            (
+                "INSERT INTO admission_decisions (generation_id, state, reason, decided_at, policy_revision) "
+                "VALUES (%s, %s, %s, %s, %s)"
+            ),
             tuple(
                 decision[key]
                 for key in ("generation_id", "state", "reason", "decided_at", "policy_revision")
@@ -126,13 +133,13 @@ def test_savepoint_rollback_cannot_reuse_a_proof_for_different_later_mutation(re
         # Superseded evidence remains an admissible historical witness. This
         # successful validation must not hide a different mutation after rollback.
         f.conn.execute(
-            "UPDATE source_generations SET state='superseded' WHERE generation_id=?",
+            "UPDATE source_generations SET state = 'superseded' WHERE generation_id = %s",
             (source["generation_id"],),
         )
         closure.validate(f.conn, manifest)
         f.conn.execute("ROLLBACK TO changed_support")
         f.conn.execute(
-            "UPDATE snapshots SET body_sha256='other-bytes' WHERE snapshot_id=?",
+            "UPDATE snapshots SET body_sha256 = 'other-bytes' WHERE snapshot_id = %s",
             (item["snapshot_id"],),
         )
         with pytest.raises(ClosureError, match="artifact_changed"):
@@ -146,18 +153,23 @@ def test_same_manifest_on_another_connection_requires_its_own_evidence(release_s
     f = release_state
     manifest = pinned(f)
     item, _ = accepted_witness(manifest)
-    with closing(sqlite3.connect(":memory:")) as other:
-        other.row_factory = sqlite3.Row
-        f.conn.backup(other)
-        other.execute(
-            "UPDATE snapshots SET body_sha256='other-database' WHERE snapshot_id=?",
-            (item["snapshot_id"],),
-        )
-        with f.db.transaction(), validation_scope(f.conn):
-            closure.validate(f.conn, manifest)
-            with pytest.raises(ClosureError, match="artifact_changed"):
-                closure.validate(other, manifest)
-            closure.validate(f.conn, manifest)
+    from swingset.state.db import open_database
+    from swingset.state.postgres_copy import Copies
+
+    with Copies(f.db.state_dir) as copies:
+        scratch = f.db.state_dir.parent / "other-copy"
+        copies.freeze(f.conn, scratch)
+        with open_database(scratch, lock=False) as other_database:
+            other = other_database.connection
+            other.execute(
+                "UPDATE snapshots SET body_sha256='other-database' WHERE snapshot_id=%s",
+                (item["snapshot_id"],),
+            )
+            with f.db.transaction(), validation_scope(f.conn):
+                closure.validate(f.conn, manifest)
+                with pytest.raises(ClosureError, match="artifact_changed"):
+                    closure.validate(other, manifest)
+                closure.validate(f.conn, manifest)
 
 
 def test_manifest_mutation_is_not_hidden_by_same_declared_digest(release_state):
@@ -186,15 +198,13 @@ def test_dependency_blob_mutation_bypassing_sql_triggers_is_detected(release_sta
     f = release_state
     manifest = pinned(f)
     dependency = manifest["dependency_sets"][0]
-    rowid = f.conn.execute(
-        "SELECT rowid FROM derivation_dependency_sets WHERE dependency_set_id=?", (dependency,)
-    ).fetchone()[0]
     with f.db.transaction(), validation_scope(f.conn):
         closure.validate(f.conn, manifest)
-        with f.conn.blobopen(
-            "derivation_dependency_sets", "manifest_json", rowid, readonly=False
-        ) as blob:
-            blob.write(b"!")
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE derivation_dependency_sets SET manifest_json=overlay(manifest_json placing '!' from 1 for 1) WHERE dependency_set_id=%s",
+                (dependency,),
+            )
         with pytest.raises(ClosureError, match="manifest_hash_mismatch"):
             closure.validate(f.conn, manifest)
 
@@ -203,19 +213,13 @@ def test_selected_generation_blob_change_is_not_treated_as_immutable(release_sta
     f = release_state
     manifest = pinned(f)
     identifier = manifest["selected"][0]["generation_id"]
-    rowid = f.conn.execute(
-        "SELECT rowid FROM derivation_generations WHERE generation_id=?", (identifier,)
-    ).fetchone()[0]
     with f.db.transaction(), validation_scope(f.conn):
         closure.validate(f.conn, manifest)
-        # A blob handle cannot write an indexed column (schema 36 indexes it).
-        f.conn.execute("DROP INDEX derivation_generations_output")
-        with f.conn.blobopen(
-            "derivation_generations", "output_digest", rowid, readonly=False
-        ) as blob:
-            first = blob.read(1)
-            blob.seek(0)
-            blob.write(b"1" if first == b"0" else b"0")
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE derivation_generations SET output_digest=overlay(output_digest placing CASE WHEN left(output_digest,1)='0' THEN '1' ELSE '0' END from 1 for 1) WHERE generation_id=%s",
+                (identifier,),
+            )
         with pytest.raises(ClosureError, match="generation_receipt_mismatch"):
             closure.validate(f.conn, manifest)
 
@@ -224,20 +228,13 @@ def test_source_result_blob_change_forces_actual_witness_reconstruction(release_
     f = release_state
     manifest = pinned(f)
     _, source = accepted_witness(manifest)
-    rowid = f.conn.execute(
-        "SELECT rowid FROM source_generations WHERE generation_id=?", (source["generation_id"],)
-    ).fetchone()[0]
-    # SQLite refuses incremental writes to any column in a table with an
-    # expression index. Remove the unrelated retirement lookup index before
-    # caching the witness so this corruption still bypasses UPDATE triggers.
-    f.conn.execute("DROP INDEX source_generations_retained_source")
     with f.db.transaction(), validation_scope(f.conn):
         closure.validate(f.conn, manifest)
-        with f.conn.blobopen("source_generations", "result_json", rowid, readonly=False) as blob:
-            content = blob.read()
-            offset = content.index(b"Alice")
-            blob.seek(offset)
-            blob.write(b"Elise")
+        with corruption_connection(f.conn) as owner:
+            owner.execute(
+                "UPDATE source_generations SET result_json=replace(result_json,'Alice','Elise') WHERE generation_id=%s",
+                (source["generation_id"],),
+            )
         with pytest.raises(ClosureError, match="admission_witness_mismatch"):
             closure.validate(f.conn, manifest)
 
@@ -261,7 +258,7 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
     def retain(conn, manifest):
         original_retain(conn, manifest)
         conn.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?, '[]')",
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, '[]')",
             (witness,),
         )
 
@@ -272,26 +269,31 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
         item, source = accepted_witness(manifest)
         generations_before = tuple(
             f.conn.execute(
-                "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+                "SELECT generation_id FROM derivation_generations ORDER BY generation_id NULLS FIRST"
             )
         )
         retained_before = f.conn.execute(
-            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
             (manifest["digest"],),
         ).fetchone()
         body_before = f.conn.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (item["snapshot_id"],)
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s", (item["snapshot_id"],)
         ).fetchone()[0]
         decisions_before = tuple(
             f.conn.execute(
-                "SELECT * FROM admission_decisions WHERE generation_id=? ORDER BY decision_id",
+                (
+                    "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                    "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                    "admission_decisions.policy_revision FROM admission_decisions WHERE generation_id = %s ORDER "
+                    "BY decision_id NULLS FIRST"
+                ),
                 (source["generation_id"],),
             )
         )
 
         def validate(conn, pinned_manifest):
             assert conn.in_transaction
-            if conn.execute("PRAGMA query_only").fetchone()[0]:
+            if conn.read_only_snapshot:
                 # The proof pass in the read snapshot is not a write boundary.
                 return original_validate(conn, pinned_manifest)
             calls.append(len(calls) + 1)
@@ -300,22 +302,22 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
                 # third, the generation and selected pointer also exist, but
                 # none may survive rejection by this actual completion call.
                 assert conn.execute(
-                    "SELECT 1 FROM derivation_rows WHERE table_name='artifact' AND record_key=?",
+                    "SELECT 1 FROM derivation_rows WHERE table_name = 'artifact' AND record_key = %s",
                     (result.candidate_id,),
                 ).fetchone()
                 if at_boundary == 3:
                     assert conn.execute(
-                        "SELECT 1 FROM derivation_generations WHERE generation_id=?",
+                        "SELECT 1 FROM derivation_generations WHERE generation_id = %s",
                         (selection.generation_id,),
                     ).fetchone()
                 if mutation == "snapshot":
                     conn.execute(
-                        "UPDATE snapshots SET body_sha256='late-other-body' WHERE snapshot_id=?",
+                        "UPDATE snapshots SET body_sha256 = 'late-other-body' WHERE snapshot_id = %s",
                         (item["snapshot_id"],),
                     )
                 else:
                     conn.execute(
-                        "DELETE FROM admission_decisions WHERE generation_id=?",
+                        "DELETE FROM admission_decisions WHERE generation_id = %s",
                         (source["generation_id"],),
                     )
             return original_validate(conn, pinned_manifest)
@@ -328,35 +330,35 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
                 assert (
                     tuple(
                         f.conn.execute(
-                            "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+                            "SELECT generation_id FROM derivation_generations ORDER BY generation_id NULLS FIRST"
                         )
                     )
                     == generations_before
                 )
                 assert (
                     f.conn.execute(
-                        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                        "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                         (manifest["digest"],),
                     ).fetchone()
                     == retained_before
                 )
                 assert (
                     f.conn.execute(
-                        "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id=?",
+                        "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id = %s",
                         (witness,),
                     ).fetchone()
                     is None
                 )
                 assert (
                     f.conn.execute(
-                        "SELECT 1 FROM derivation_rows WHERE table_name='artifact' AND record_key=?",
+                        "SELECT 1 FROM derivation_rows WHERE table_name = 'artifact' AND record_key = %s",
                         (result.candidate_id,),
                     ).fetchone()
                     is None
                 )
                 assert (
                     f.conn.execute(
-                        "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?",
+                        "SELECT body_sha256 FROM snapshots WHERE snapshot_id = %s",
                         (item["snapshot_id"],),
                     ).fetchone()[0]
                     == body_before
@@ -364,7 +366,12 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
                 assert (
                     tuple(
                         f.conn.execute(
-                            "SELECT * FROM admission_decisions WHERE generation_id=? ORDER BY decision_id",
+                            (
+                                "SELECT admission_decisions.decision_id, admission_decisions.generation_id, "
+                                "admission_decisions.state, admission_decisions.reason, admission_decisions.decided_at, "
+                                "admission_decisions.policy_revision FROM admission_decisions WHERE generation_id = %s ORDER "
+                                "BY decision_id NULLS FIRST"
+                            ),
                             (source["generation_id"],),
                         )
                     )
@@ -450,7 +457,7 @@ def test_proof_from_read_snapshot_still_rejects_evidence_changed_before_the_writ
             closure.validate(f.conn, manifest)
         with f.db.transaction():
             f.conn.execute(
-                "UPDATE source_generations SET state='revoked' WHERE generation_id=?",
+                "UPDATE source_generations SET state = 'revoked' WHERE generation_id = %s",
                 (source["generation_id"],),
             )
             with pytest.raises(ClosureError):

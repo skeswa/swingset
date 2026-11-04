@@ -1,17 +1,20 @@
 """Durable per-host request accounting and independently classified pauses."""
 
+import contextlib
 import math
-import sqlite3
 import threading
 import weakref
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import NamedTuple
 from uuid import uuid4
 
 from swingset.clock import Clock, SystemClock
 from swingset.config import REQUEST_FLOOR_SECONDS, Config
 from swingset.fetch.classify import Classification, Outcome
+from swingset.state import engine
 
 
 @dataclass(frozen=True)
@@ -46,7 +49,7 @@ class _Spacing(NamedTuple):
 
 
 class Gate:
-    def __init__(self, connection: sqlite3.Connection, config: Config, clock: Clock) -> None:
+    def __init__(self, connection: engine.Connection, config: Config, clock: Clock) -> None:
         self.connection = connection
         self.config = config
         self.clock = clock
@@ -56,7 +59,7 @@ class Gate:
 
     def _spacing(self, host: str) -> _Spacing | None:
         row = self.connection.execute(
-            "SELECT reservation_id,gap_seconds,released_at,reserved_at FROM host_request_spacing WHERE host=?",
+            "SELECT reservation_id, gap_seconds, released_at, reserved_at FROM host_request_spacing WHERE host = %s",
             (host,),
         ).fetchone()
         return (
@@ -73,7 +76,7 @@ class Gate:
     def _spacing_schema(self) -> bool:
         return (
             self.connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='host_request_spacing'"
+                "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relkind='r' AND relname = 'host_request_spacing' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
             ).fetchone()
             is not None
         )
@@ -81,7 +84,8 @@ class Gate:
     def _legacy_paid(self, host: str) -> bool:
         return (
             self.connection.execute(
-                "SELECT 1 FROM host_budget WHERE host=? AND requests>0 LIMIT 1", (host,)
+                "SELECT 1 AS _value_0 FROM host_budget WHERE host = %s AND requests > 0 LIMIT 1",
+                (host,),
             ).fetchone()
             is not None
         )
@@ -116,14 +120,19 @@ class Gate:
             ):
                 raise ValueError("spacing baseline applies only to unknown legacy paid hosts")
             if conn.execute(
-                "SELECT 1 FROM execution_admissions WHERE host=? AND action_kind='request' AND state<>'settled' LIMIT 1",
+                (
+                    "SELECT 1 AS _value_0 FROM execution_admissions WHERE host = %s AND action_kind = 'request' AND state <> 'settled' LIMIT 1"
+                ),
                 (host,),
             ).fetchone():
                 raise ValueError("spacing baseline cannot replace an unsettled request")
             reservation = "baseline_" + uuid4().hex
-            conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (host,))
+            conn.execute("INSERT INTO hosts (host) VALUES (%s) ON CONFLICT DO NOTHING", (host,))
             conn.execute(
-                "INSERT INTO host_request_spacing_baselines(reservation_id,host,gap_seconds,stopped_at,recorded_at,evidence_ref,prior_reservation_id) VALUES(?,?,?,?,?,?,?)",
+                (
+                    "INSERT INTO host_request_spacing_baselines (reservation_id, host, gap_seconds, stopped_at, "
+                    "recorded_at, evidence_ref, prior_reservation_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                ),
                 (
                     reservation,
                     host,
@@ -135,8 +144,9 @@ class Gate:
                 ),
             )
             conn.execute(
-                "INSERT INTO host_request_spacing VALUES(?,?,?,?,NULL) ON CONFLICT(host) DO UPDATE SET "
-                "reservation_id=excluded.reservation_id,gap_seconds=excluded.gap_seconds,reserved_at=excluded.reserved_at,released_at=NULL",
+                (
+                    "INSERT INTO host_request_spacing (host, reservation_id, gap_seconds, reserved_at, released_at) VALUES (%s, %s, %s, %s, NULL) ON CONFLICT(host) DO UPDATE SET reservation_id = excluded.reservation_id, gap_seconds = excluded.gap_seconds, reserved_at = excluded.reserved_at, released_at = NULL"
+                ),
                 (host, reservation, gap_seconds, now.isoformat()),
             )
             # Admission will start the full monotonic wait after the caller's
@@ -176,7 +186,7 @@ class Gate:
         now = now if now is not None else self.clock.now().astimezone(UTC)
         boundary = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         conn = self.connection
-        for pause in conn.execute("SELECT scope_kind,scope_id,until_at FROM operator_pauses"):
+        for pause in conn.execute("SELECT scope_kind, scope_id, until_at FROM operator_pauses"):
             if pause[2] is not None and datetime.fromisoformat(pause[2]) <= now:
                 continue
             if pause[0] == "all" or (pause[0], pause[1]) in (
@@ -187,7 +197,7 @@ class Gate:
                     boundary = min(boundary, datetime.fromisoformat(pause[2]))
                 return Paused("operator"), boundary
         row = conn.execute(
-            "SELECT next_allowed_at,paused_until,pause_reason FROM hosts WHERE host=?", (host,)
+            "SELECT next_allowed_at, paused_until, pause_reason FROM hosts WHERE host = %s", (host,)
         ).fetchone()
         if row and row[1] and datetime.fromisoformat(row[1]) > now:
             return Paused(str(row[2])), min(boundary, datetime.fromisoformat(row[1]))
@@ -215,7 +225,7 @@ class Gate:
             return Wait((due - now).total_seconds()), min(boundary, due)
         policy = self.config.host(host)
         budget = conn.execute(
-            "SELECT requests,bytes FROM host_budget WHERE host=? AND day=?",
+            "SELECT requests, bytes FROM host_budget WHERE host = %s AND day = %s",
             (host, now.date().isoformat()),
         ).fetchone()
         requests, size = tuple(budget) if budget else (0, 0)
@@ -232,62 +242,76 @@ class Gate:
             return Paused("legacy request spacing unknown"), boundary
         return Grant(host), boundary
 
+    @contextlib.contextmanager
+    def _writer(self) -> Iterator[engine.Connection]:
+        from swingset.state.db import Database
+
+        if self.connection.in_transaction:
+            yield self.connection
+        else:
+            with Database(
+                self.connection.state_dir or Path("."), self.connection, None
+            ).transaction() as conn:
+                yield conn
+
     def acquire(
         self, host: str, *, source: str = "", crawl_delay: float = 0, sweep: bool = False
     ) -> Grant | Wait | Paused:
         with self._mutex:
-            now = self.clock.now().astimezone(UTC)
-            conn = self.connection
-            previous = self._spacing(host) if self._spacing_schema() else None
-            if previous and previous[1] is not None and not self._live(previous[0], host):
-                # Exclusive database writer ownership excludes another process.
-                # A fresh full wait is conservative even if the old process died
-                # long after its grant. A further crash starts this wait anew.
-                if self._remaining(previous[0]) is None:
-                    _WAIT_UNTIL[previous[0]] = (self.clock, self.clock.monotonic() + previous[1])
-            grant, _ = self._assess(host, source=source, sweep=sweep, now=now)
-            # Keep acquisition's diagnostic rows even when no request is issued.
-            conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (host,))
-            if not isinstance(grant, Grant):
-                return grant
-            policy = self.config.host(host)
-            day = now.date().isoformat()
-            conn.execute(
-                "INSERT OR IGNORE INTO host_budget(host,day,requests,bytes) VALUES (?,?,0,0)",
-                (host, day),
-            )
-            gap = max(policy.min_gap_seconds, crawl_delay, REQUEST_FLOOR_SECONDS)
-            reservation = uuid4().hex
-            outer_transaction = conn.in_transaction
-            if not outer_transaction:
-                conn.execute("BEGIN IMMEDIATE")
+            previous_claim = self._reservations.get(host)
             try:
-                conn.execute(
-                    "UPDATE hosts SET next_allowed_at=? WHERE host=?",
-                    ((now + timedelta(seconds=gap)).isoformat(), host),
-                )
-                conn.execute(
-                    "UPDATE host_budget SET requests=requests+1 WHERE host=? AND day=?", (host, day)
-                )
-                conn.execute(
-                    "INSERT INTO host_request_spacing(host,reservation_id,gap_seconds,reserved_at,released_at) "
-                    "VALUES(?,?,?,?,NULL) ON CONFLICT(host) DO UPDATE SET "
-                    "reservation_id=excluded.reservation_id,gap_seconds=excluded.gap_seconds,"
-                    "reserved_at=excluded.reserved_at,released_at=NULL",
-                    (host, reservation, gap, now.isoformat()),
-                )
-                if not outer_transaction:
-                    conn.commit()  # Issued requests are never refunded after a crash.
+                with self._writer():
+                    now = self.clock.now().astimezone(UTC)
+                    conn = self.connection
+                    previous = self._spacing(host) if self._spacing_schema() else None
+                    if previous and previous[1] is not None and not self._live(previous[0], host):
+                        # Exclusive database writer ownership excludes another process.
+                        # A fresh full wait is conservative even if the old process died
+                        # long after its grant. A further crash starts this wait anew.
+                        if self._remaining(previous[0]) is None:
+                            _WAIT_UNTIL[previous[0]] = (
+                                self.clock,
+                                self.clock.monotonic() + previous[1],
+                            )
+                    grant, _ = self._assess(host, source=source, sweep=sweep, now=now)
+                    # Keep acquisition's diagnostic rows even when no request is issued.
+                    conn.execute(
+                        "INSERT INTO hosts (host) VALUES (%s) ON CONFLICT DO NOTHING", (host,)
+                    )
+                    if not isinstance(grant, Grant):
+                        return grant
+                    policy = self.config.host(host)
+                    day = now.date().isoformat()
+                    conn.execute(
+                        "INSERT INTO host_budget (host, day, requests, bytes) VALUES (%s, %s, 0, 0) ON CONFLICT DO NOTHING",
+                        (host, day),
+                    )
+                    gap = max(policy.min_gap_seconds, crawl_delay, REQUEST_FLOOR_SECONDS)
+                    reservation = uuid4().hex
+                    conn.execute(
+                        "UPDATE hosts SET next_allowed_at = %s WHERE host = %s",
+                        ((now + timedelta(seconds=gap)).isoformat(), host),
+                    )
+                    conn.execute(
+                        "UPDATE host_budget SET requests = requests + 1 WHERE host = %s AND day = %s",
+                        (host, day),
+                    )
+                    conn.execute(
+                        (
+                            "INSERT INTO host_request_spacing (host, reservation_id, gap_seconds, reserved_at, released_at) VALUES (%s, %s, %s, %s, NULL) ON CONFLICT(host) DO UPDATE SET reservation_id = excluded.reservation_id, gap_seconds = excluded.gap_seconds, reserved_at = excluded.reserved_at, released_at = NULL"
+                        ),
+                        (host, reservation, gap, now.isoformat()),
+                    )
+                    self.inflight.add(host)
+                    self._reservations[host] = reservation
+                    _OWNERS[reservation] = self
+                    if previous:
+                        _WAIT_UNTIL.pop(previous[0], None)
+                    return Grant(host, debited_at=now)
             except BaseException:
-                if not outer_transaction:
-                    conn.rollback()
+                if self._reservations.get(host) != previous_claim:
+                    self.discard(host)
                 raise
-            self.inflight.add(host)
-            self._reservations[host] = reservation
-            _OWNERS[reservation] = self
-            if previous:
-                _WAIT_UNTIL.pop(previous[0], None)
-            return Grant(host, debited_at=now)
 
     def discard(self, host: str) -> None:
         """Release a process-local claim without refunding durable accounting."""
@@ -305,10 +329,9 @@ class Gate:
         body_bytes: int = 0,
         request_day: str | None = None,
     ) -> None:
-        with self._mutex:
+        with self._mutex, self._writer():
             try:
                 conn = self.connection
-                outer_transaction = conn.in_transaction
                 now = self.clock.now().astimezone(UTC)
                 spacing = self._spacing(host)
                 if not spacing or spacing[1] is None or self._reservations.get(host) != spacing[0]:
@@ -321,23 +344,21 @@ class Gate:
                 )
                 next_allowed = now + timedelta(seconds=gap)
                 prior = conn.execute(
-                    "SELECT next_allowed_at FROM hosts WHERE host=?", (host,)
+                    "SELECT next_allowed_at FROM hosts WHERE host = %s", (host,)
                 ).fetchone()
                 if prior and prior[0]:
                     next_allowed = max(next_allowed, datetime.fromisoformat(prior[0]))
                 _WAIT_UNTIL[spacing[0]] = (self.clock, self.clock.monotonic() + gap)
-                if not outer_transaction:
-                    conn.execute("BEGIN IMMEDIATE")
                 conn.execute(
-                    "UPDATE hosts SET next_allowed_at=? WHERE host=?",
+                    "UPDATE hosts SET next_allowed_at = %s WHERE host = %s",
                     (next_allowed.isoformat(), host),
                 )
                 conn.execute(
-                    "UPDATE host_request_spacing SET released_at=? WHERE host=? AND reservation_id=?",
+                    "UPDATE host_request_spacing SET released_at = %s WHERE host = %s AND reservation_id = %s",
                     (now.isoformat(), host, spacing[0]),
                 )
                 conn.execute(
-                    "UPDATE host_budget SET bytes=bytes+? WHERE host=? AND day=?",
+                    "UPDATE host_budget SET bytes = bytes + %s WHERE host = %s AND day = %s",
                     (body_bytes, host, debit_day),
                 )
                 if classification.outcome in (
@@ -346,7 +367,7 @@ class Gate:
                     Outcome.SERVER_ERROR,
                 ):
                     row = conn.execute(
-                        "SELECT pause_streak FROM hosts WHERE host=?", (host,)
+                        "SELECT pause_streak FROM hosts WHERE host = %s", (host,)
                     ).fetchone()
                     streak = int(row[0] or 0) + 1
                     seconds = (
@@ -355,7 +376,7 @@ class Gate:
                         else classification.retry_after or min(86400, 900 * 2 ** min(streak - 1, 7))
                     )
                     conn.execute(
-                        "UPDATE hosts SET paused_until=?,pause_reason=?,pause_streak=? WHERE host=?",
+                        "UPDATE hosts SET paused_until = %s, pause_reason = %s, pause_streak = %s WHERE host = %s",
                         (
                             (now + timedelta(seconds=seconds)).isoformat(),
                             classification.outcome.value,
@@ -365,14 +386,8 @@ class Gate:
                     )
                 elif classification.outcome in (Outcome.OK, Outcome.NOT_MODIFIED):
                     conn.execute(
-                        "UPDATE hosts SET paused_until=NULL,pause_reason=NULL,pause_streak=0 WHERE host=?",
+                        "UPDATE hosts SET paused_until = NULL, pause_reason = NULL, pause_streak = 0 WHERE host = %s",
                         (host,),
                     )
-                if not outer_transaction:
-                    conn.commit()
-            except BaseException:
-                if not outer_transaction:
-                    conn.rollback()
-                raise
             finally:
                 self.discard(host)

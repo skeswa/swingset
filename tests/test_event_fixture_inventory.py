@@ -80,7 +80,7 @@ def test_retained_event_listing_does_not_turn_unfetched_rounds_into_results(tmp_
         # Losing the parent artifact must also invalidate its support, even
         # though every database row and the enumeration pointer still exist.
         digest = conn.execute(
-            "SELECT body_sha256 FROM snapshots WHERE snapshot_id='retained-event'"
+            "SELECT body_sha256 FROM snapshots WHERE snapshot_id = 'retained-event'"
         ).fetchone()[0]
         corpus.archive.blob_path(digest).unlink()
         with database.transaction(immediate=False) as conn:

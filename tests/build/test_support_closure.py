@@ -1,8 +1,8 @@
 import copy
-import sqlite3
 from collections import Counter
 
 import pytest
+from postgres_statements import empty_connections as empty_connections
 
 from swingset.build.support_closure import close_revoked_support
 
@@ -106,13 +106,13 @@ def support(monkeypatch, revoked):
     ],
 )
 def test_revoked_scoring_support_omits_entire_event_and_preserves_registry_mirror(
-    monkeypatch, table
+    monkeypatch, table, empty_connections
 ):
     original = graph()
     original[table][0]["snapshot_id"] = "revoked"
     before = copy.deepcopy(original)
     calls = support(monkeypatch, {"revoked"})
-    result = close_revoked_support(sqlite3.connect(":memory:"), original)
+    result = close_revoked_support(empty_connections(), original)
     assert original == before
     assert [r["event_id"] for r in result.tables["events"]] == ["other"]
     for name in (
@@ -137,10 +137,12 @@ def test_revoked_scoring_support_omits_entire_event_and_preserves_registry_mirro
     assert "private" not in str(result.reasons)
 
 
-def test_dancer_revocation_withdraws_ids_points_and_merge_claims_but_keeps_marks(monkeypatch):
+def test_dancer_revocation_withdraws_ids_points_and_merge_claims_but_keeps_marks(
+    monkeypatch, empty_connections
+):
     original = graph()
     support(monkeypatch, {"registry"})
-    result = close_revoked_support(sqlite3.connect(":memory:"), original)
+    result = close_revoked_support(empty_connections(), original)
     assert [r["wsdc_id"] for r in result.tables["dancers"]] == [8]
     assert result.tables["dancers"][0]["merged_into_wsdc_id"] is None
     assert [r["wsdc_id"] for r in result.tables["registry_placements"]] == [8]
@@ -157,12 +159,14 @@ def test_dancer_revocation_withdraws_ids_points_and_merge_claims_but_keeps_marks
         assert result.tables[name] == original[name]
 
 
-def test_registry_fact_revocation_does_not_destroy_independent_dancer_or_structure(monkeypatch):
+def test_registry_fact_revocation_does_not_destroy_independent_dancer_or_structure(
+    monkeypatch, empty_connections
+):
     original = graph()
     original["registry_placements"][0]["snapshot_id"] = "revoked-placement"
     original["link_candidates"][0]["registry_confirms"] = True
     support(monkeypatch, {"revoked-placement"})
-    result = close_revoked_support(sqlite3.connect(":memory:"), original)
+    result = close_revoked_support(empty_connections(), original)
     assert result.tables["dancers"] == original["dancers"]
     assert result.tables["final_marks"] == original["final_marks"]
     assert result.tables["entries"][0]["wsdc_id"] is None
@@ -170,10 +174,12 @@ def test_registry_fact_revocation_does_not_destroy_independent_dancer_or_structu
     assert result.tables["link_candidates"] == []
 
 
-def test_no_revocation_preserves_baseline_and_never_reads_new_public_generations(monkeypatch):
+def test_no_revocation_preserves_baseline_and_never_reads_new_public_generations(
+    monkeypatch, empty_connections
+):
     original = graph()
-    conn = sqlite3.connect(":memory:")
-    conn.execute("CREATE TABLE events(event_id)")
+    conn = empty_connections()
+    conn.execute("CREATE TABLE events (event_id TEXT)")
     conn.execute("INSERT INTO events VALUES ('new-accepted-event')")
     support(monkeypatch, set())
     result = close_revoked_support(conn, original)
@@ -183,13 +189,15 @@ def test_no_revocation_preserves_baseline_and_never_reads_new_public_generations
 
 
 @pytest.mark.parametrize("revoked", [set(), {"registry"}, {"other-registry"}])
-def test_closure_shares_unchanged_marks_without_mutating_nested_input(monkeypatch, revoked):
+def test_closure_shares_unchanged_marks_without_mutating_nested_input(
+    monkeypatch, revoked, empty_connections
+):
     original = graph()
     original["identity_links"][0]["source_ref_ids"] = ["retained-reference"]
     original["link_candidates"][0]["evidence"] = {"cells": ["printed-name"]}
     before = copy.deepcopy(original)
     support(monkeypatch, revoked)
-    result = close_revoked_support(sqlite3.connect(":memory:"), original)
+    result = close_revoked_support(empty_connections(), original)
     assert original == before
     assert result.tables["final_marks"] is not original["final_marks"]
     assert result.tables["final_marks"][0] is original["final_marks"][0]

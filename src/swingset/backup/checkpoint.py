@@ -1,23 +1,19 @@
 from __future__ import annotations
 
-import contextlib
 import json
 import os
 import shutil
-import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
-from swingset.clock import Clock
-from swingset.publish.service import Hub, RemoteCommit, pending_candidates
+from swingset.clock import Clock, SystemClock
+from swingset.publish.journal import Hub, RemoteCommit, pending_candidates
+from swingset.state import engine
 from swingset.state.retention import RetentionError
-from swingset.state.retention import artifact_closure as _artifact_closure
-from swingset.state.retention import referenced_candidates as _referenced_candidates
-from swingset.state.rwlock import is_lock_file
+from swingset.state.rwlock import Held, is_lock_file
 
 
 @dataclass(frozen=True)
@@ -61,7 +57,7 @@ def _candidate_allowed(path: Path, included: set[Path]) -> bool:
 
 def create_checkpoint(
     state_dir: Path,
-    connection: sqlite3.Connection,
+    connection: engine.Connection,
     destination: Path,
     *,
     schema_version: int,
@@ -69,99 +65,48 @@ def create_checkpoint(
     input_bundle_hash: str | None,
     control_timeout: float = 60,
 ) -> Checkpoint:
-    """Copy the database and every file its closure declares.
-
-    The file closure and the copy run under the control lock, unless the caller
-    already holds it for a wider operation. A hold is one file written under that
-    lock after its contents are checked, so without it a hold could be committed
-    between this closure and this copy, and the checkpoint would carry the hold
-    but not the file it holds. Files a hold names are filtered by `is_file()`, so
-    nothing would report the gap. The documented order is state.lock (which the
-    backup command already owns), then control.lock, then SQLite, and never while
-    a SQLite write transaction is open; the database copy below happens before
-    the lock for that reason.
-    """
-    from swingset.state.control_lock import control_lock, holds_control_lock
+    """Export filtered Postgres history and its matching captured file closure."""
+    from .snapshot import backup_lock, capture
 
     _check_database_schema(connection, schema_version)
     if destination.exists():
         raise CheckpointError(f"checkpoint destination exists: {destination}")
-    # An operator tool that already fenced a whole operation with the control
-    # lock keeps its own fence; the mutex is not re-entrant.
-    fence: contextlib.AbstractContextManager[None] = (
-        contextlib.nullcontext()
-        if holds_control_lock(state_dir)
-        else control_lock(state_dir, timeout=control_timeout)
-    )
     temporary = destination.with_name(f".{destination.name}.tmp-{uuid.uuid4().hex}")
     temporary.mkdir(parents=True)
     try:
-        database = temporary / "state.sqlite"
-        copied = sqlite3.connect(database)
-        try:
-            connection.backup(copied)
-            copied.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        finally:
-            copied.close()
-        with fence:
-            included_candidates = _referenced_candidates(state_dir)
-            # Controls may append while the one data writer is checkpointing.
-            # Resolve every database reference from the copied point-in-time
-            # database.
-            snapshot = sqlite3.connect(
-                f"{database.resolve().as_uri()}?mode=ro&immutable=1", uri=True
+        with backup_lock(connection):
+            history = capture(
+                state_dir, connection, temporary / "database", timeout=control_timeout
             )
-            try:
-                included_artifacts = _artifact_closure(state_dir, snapshot, included_candidates)
-            finally:
-                snapshot.close()
-            for source in state_dir.rglob("*"):
-                if (
-                    not source.is_file()
-                    or source.name in EXCLUDED_NAMES
-                    or (source.parent == state_dir and is_lock_file(source.name))
-                ):
-                    continue
-                relative = source.relative_to(state_dir)
-                if relative == Path("state.sqlite") or relative.parts[0] in EXCLUDED_TOP_LEVEL:
-                    continue
-                if relative.parts[0] == "candidates" and not _candidate_allowed(
-                    source, included_candidates
-                ):
-                    continue
-                if (
-                    relative.parts[0] in {"blobs", "extracts", "inputs"}
-                    and source.resolve() not in included_artifacts
-                ):
-                    continue
-                if any(part.startswith(".") and ".tmp-" in part for part in relative.parts):
-                    continue
-                _copy_file(source, temporary / relative)
-        files: dict[str, dict[str, int | str]] = {}
-        for path in sorted(item for item in temporary.rglob("*") if item.is_file()):
-            relative_name = path.relative_to(temporary).as_posix()
-            files[relative_name] = {"size": path.stat().st_size, "sha256": sha256_file(path)}
-        baseline = state_dir / "baseline"
-        baseline_target = baseline.resolve().name if baseline.is_symlink() else None
-        pending = [
-            path.name
-            for path in included_candidates
-            if (path / "PUBLISHING").exists() and path.name != baseline_target
-        ]
-        manifest: dict[str, Any] = {
-            "format": 1,
-            "files": files,
-            "baseline_candidate": baseline_target,
-            "pending_candidate": pending[0] if pending else None,
-            "schema_version": schema_version,
-            "versions": versions,
-            "input_bundle_hash": input_bundle_hash,
-        }
-        durable_write(temporary / "checkpoint.json", canonical_json(manifest))
-        manifest_hash = sha256_file(temporary / "checkpoint.json")
-        fsync_dir(temporary)
-        os.replace(temporary, destination)
-        fsync_dir(destination.parent)
+            from .check import check
+
+            check(temporary / "database", manifest_sha256=history["manifest_sha256"])
+            files: dict[str, dict[str, int | str]] = {
+                path.relative_to(temporary).as_posix(): {
+                    "size": path.stat().st_size,
+                    "sha256": sha256_file(path),
+                }
+                for path in sorted(temporary.rglob("*"))
+                if path.is_file()
+            }
+            metadata = history["metadata"]
+            pending = metadata["pending_candidates"]
+            manifest = {
+                "format": "swingset-postgres-checkpoint-v1",
+                "files": files,
+                "baseline_candidate": metadata["baseline_candidate"],
+                "pending_candidate": pending[0] if pending else None,
+                "schema_version": schema_version,
+                "versions": versions,
+                "input_bundle_hash": input_bundle_hash,
+                "history_manifest_sha256": history["manifest_sha256"],
+                "runtime_identity": history["runtime_identity"],
+            }
+            durable_write(temporary / "checkpoint.json", canonical_json(manifest))
+            manifest_hash = sha256_file(temporary / "checkpoint.json")
+            fsync_dir(temporary)
+            os.replace(temporary, destination)
+            fsync_dir(destination.parent)
         return Checkpoint(destination, manifest_hash, files)
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
@@ -171,12 +116,10 @@ def create_checkpoint(
 def verify_checkpoint(
     checkpoint: Path, *, maximum_schema_version: int, quick: bool = False
 ) -> dict[str, Any]:
-    """Check a checkpoint's closure, file hashes, database and candidates.
+    """Check the exact file closure, typed COPY rows and retained schema.
 
-    `quick` runs `PRAGMA quick_check` in place of `integrity_check`: it skips
-    the index-content cross checks, which on a full state copy cost more than
-    the rest together. A local backup verifies its new copy this way before
-    older ones may go (D-0203); restore always runs the full check.
+    ``quick`` remains a caller compatibility flag. Both modes perform every
+    native integrity check; a separate owner job proves fresh restoration.
     """
     manifest_path = checkpoint / "checkpoint.json"
     if not manifest_path.is_file():
@@ -200,76 +143,96 @@ def verify_checkpoint(
         path = checkpoint / relative
         if path.stat().st_size != int(record["size"]) or sha256_file(path) != record["sha256"]:
             raise CheckpointError(f"checkpoint file failed verification: {relative}")
-    connection = sqlite3.connect(
-        (checkpoint / "state.sqlite").resolve().as_uri() + "?mode=ro&immutable=1", uri=True
+    from swingset.state import postgres_backup
+
+    if manifest.get("format") != "swingset-postgres-checkpoint-v1":
+        raise CheckpointError("legacy SQLite checkpoints must use the explicit importer")
+    history = postgres_backup.verify(
+        checkpoint / "database",
+        runtime_identity=manifest["runtime_identity"],
+        expected_manifest_sha256=manifest["history_manifest_sha256"],
     )
-    try:
-        _check_database_schema(connection, int(manifest["schema_version"]))
-        integrity = connection.execute(
-            "PRAGMA quick_check" if quick else "PRAGMA integrity_check"
-        ).fetchone()
-        foreign_keys = connection.execute("PRAGMA foreign_key_check").fetchall()
-        if integrity is None or integrity[0] != "ok" or foreign_keys:
-            raise CheckpointError("checkpoint database failed integrity checks")
-        candidates = {
-            checkpoint / "candidates" / str(name)
-            for name in (manifest.get("baseline_candidate"), manifest.get("pending_candidate"))
-            if name is not None
-        }
-        _artifact_closure(checkpoint, connection, candidates)
-    finally:
-        connection.close()
+    if history["schema_version"] != manifest["schema_version"]:
+        raise CheckpointError("checkpoint schema differs from its history manifest")
     for field in ("baseline_candidate", "pending_candidate"):
         candidate = manifest.get(field)
         if (
             candidate is not None
-            and not (checkpoint / "candidates" / candidate / "BUILT").is_file()
+            and not (checkpoint / "database/files/candidates" / candidate / "BUILT").is_file()
         ):
             raise CheckpointError(f"{field} directory is missing or incomplete")
     return manifest
 
 
-def _check_database_schema(connection: sqlite3.Connection, declared: int) -> None:
+def _check_database_schema(connection: engine.Connection, declared: int) -> None:
     """A manifest cannot disguise a newer state database as an older schema."""
-    actual = int(connection.execute("PRAGMA user_version").fetchone()[0])
-    has_meta = connection.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'"
-    ).fetchone()
-    metadata = (
-        connection.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-        if has_meta
-        else None
+    actual = int(
+        connection.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
     )
-    if actual and actual != declared:
+    if actual != declared:
         raise CheckpointError(
             f"declared checkpoint schema {declared} differs from database schema {actual}"
         )
-    if metadata is not None and int(metadata[0]) != declared:
-        raise CheckpointError("checkpoint schema differs from database metadata")
 
 
-def restore_checkpoint(checkpoint: Path, state_dir: Path, *, maximum_schema_version: int) -> None:
+def restore_checkpoint(
+    checkpoint: Path,
+    state_dir: Path,
+    *,
+    maximum_schema_version: int,
+    owner_dsn: str | None = None,
+    environment: str = "dev",
+) -> None:
     from swingset.state.control_lock import control_lock
+    from swingset.state.rwlock import exclusive
 
-    if state_dir.exists() and any(state_dir.iterdir()):
+    from .destination import owner
+
+    if state_dir.exists() and any(path.name != "database.json" for path in state_dir.iterdir()):
         raise CheckpointError("restore target must be empty")
     state_dir.mkdir(parents=True, exist_ok=True)
-    with control_lock(state_dir):
-        durable_write(state_dir / "RESTORE_PENDING", b"verification pending\n")
-        _install_checkpoint(checkpoint, state_dir, maximum_schema_version=maximum_schema_version)
+    verify_checkpoint(checkpoint, maximum_schema_version=maximum_schema_version)
+    with owner(state_dir, owner_dsn) as conn:
+        held = exclusive(state_dir, connection=conn)
+        try:
+            with control_lock(state_dir, connection=conn):
+                durable_write(state_dir / "RESTORE_PENDING", b"verification pending\n")
+                _install_checkpoint(
+                    checkpoint,
+                    state_dir,
+                    maximum_schema_version=maximum_schema_version,
+                    connection=conn,
+                    environment=environment,
+                )
+        finally:
+            held.release()
 
 
-def _install_checkpoint(checkpoint: Path, state_dir: Path, *, maximum_schema_version: int) -> None:
+def _install_checkpoint(
+    checkpoint: Path,
+    state_dir: Path,
+    *,
+    maximum_schema_version: int,
+    connection: engine.Connection,
+    environment: str = "dev",
+) -> None:
+    from swingset.state import postgres_backup
+
+    from .snapshot import current_runtime_identity
+
     manifest = verify_checkpoint(checkpoint, maximum_schema_version=maximum_schema_version)
-    for source in checkpoint.rglob("*"):
-        if source.is_file() and source != checkpoint / "checkpoint.json":
-            _copy_file(source, state_dir / source.relative_to(checkpoint))
-    baseline = manifest.get("baseline_candidate")
-    if baseline is not None:
-        os.symlink(Path("candidates") / str(baseline), state_dir / "baseline")
-    # Public-head reconciliation must complete before activation. Keeping the marker
-    # makes an interrupted or locally verified restore safe by default.
-    fsync_dir(state_dir)
+    # A retained image is the authority for decoding this backup. Native development
+    # captures its complete code/runtime identity in the same field.
+    image = current_runtime_identity()
+    postgres_backup.restore(
+        checkpoint / "database",
+        connection,
+        environment=environment,
+        runtime_identity=image,
+        files_target=state_dir,
+        expected_manifest_sha256=manifest["history_manifest_sha256"],
+    )
+    retain_restore_history(state_dir, checkpoint / "database")
 
 
 def restore_from_checkpoint(
@@ -280,84 +243,126 @@ def restore_from_checkpoint(
     *,
     lock_timeout: float,
     maximum_schema_version: int | None = None,
+    owner_dsn: str | None = None,
+    environment: str = "dev",
 ) -> None:
-    """Install, remotely verify, and activate a checkpoint under the writer lock."""
     from swingset.state.control_lock import control_lock
-    from swingset.state.rwlock import LockBusy, exclusive
+    from swingset.state.rwlock import exclusive
+
+    from .destination import owner
 
     if maximum_schema_version is None:
         from swingset.state.db import SCHEMA_VERSION
 
         maximum_schema_version = SCHEMA_VERSION
+    verify_checkpoint(checkpoint, maximum_schema_version=maximum_schema_version)
     state_dir.mkdir(parents=True, exist_ok=True)
-    # The exclusive pair, as every writer takes it: a waiting restore holds the
-    # intent, so no loop starts a tick in front of it (D-0215).
-    try:
-        locks = exclusive(state_dir, timeout=lock_timeout, clock=clock)
-    except LockBusy as error:
+    existing = [
+        path
+        for path in state_dir.iterdir()
+        if path.name != "database.json" and not is_lock_file(path.name)
+    ]
+    if existing:
         raise CheckpointError(
-            f"state writer lock timed out after {lock_timeout:g} seconds"
-        ) from error
-    try:
-        with control_lock(state_dir, timeout=lock_timeout):
-            marker = state_dir / "RESTORE_PENDING"
-            existing = [path for path in state_dir.iterdir() if not is_lock_file(path.name)]
-            if existing and not marker.is_file():
-                raise CheckpointError("restore target contains an active or unmarked state")
-            if marker.is_file():
-                for path in existing:
-                    if path == marker:
-                        continue
-                    if path.is_dir() and not path.is_symlink():
-                        shutil.rmtree(path)
-                    else:
-                        path.unlink()
-            else:
-                durable_write(marker, b"verification pending\n")
-            _install_checkpoint(
-                checkpoint, state_dir, maximum_schema_version=maximum_schema_version
-            )
-            verify_restored_public(state_dir, hub)
-            activate_restored_state(state_dir)
-    finally:
-        locks.release()
+            "restore target contains active or interrupted state; use a fresh database and volume"
+        )
+    with owner(state_dir, owner_dsn) as conn:
+        held = exclusive(state_dir, connection=conn, timeout=lock_timeout, clock=clock)
+        try:
+            with control_lock(state_dir, connection=conn, timeout=lock_timeout):
+                durable_write(state_dir / "RESTORE_PENDING", b"verification pending\n")
+                _install_checkpoint(
+                    checkpoint,
+                    state_dir,
+                    maximum_schema_version=maximum_schema_version,
+                    connection=conn,
+                    environment=environment,
+                )
+            verify_restored_public(state_dir, hub, connection=conn)
+            activate_restored_state(state_dir, connection=conn, locks=held, clock=clock)
+        finally:
+            held.release()
 
 
-def activate_restored_state(state_dir: Path) -> None:
+def activate_restored_state(
+    state_dir: Path,
+    *,
+    connection: engine.Connection | None = None,
+    locks: Held | None = None,
+    clock: Clock | None = None,
+) -> None:
     """Activate verified state while the caller owns the exclusive restore locks."""
+    clock = clock or SystemClock()
     marker = state_dir / "RESTORE_PENDING"
     if not marker.is_file():
         raise CheckpointError("restore marker is missing")
     # Restoring bytes is not a new check of their scheduling observations.
     # Fence these disposable hints before removing the restore barrier. A crash
     # between commit and unlink may increment twice on retry; both are safe.
-    connection = sqlite3.connect(
-        (state_dir / "state.sqlite").resolve().as_uri() + "?mode=rw", uri=True
-    )
-    connection.row_factory = sqlite3.Row
+    from swingset.state.control_lock import control_lock
+    from swingset.state.db import Database, open_database
+
+    if connection is None:
+        with open_database(state_dir, allow_restore_pending=True) as database:
+            return activate_restored_state(
+                state_dir, connection=database.connection, locks=database._locks, clock=clock
+            )
+    from swingset.state.postgres_rebuild import bootstrap, rebuild
+    from swingset.state.rwlock import exclusive
+
+    if locks is not None and (locks.connection is not connection or locks.mode != "exclusive"):
+        raise CheckpointError("restore activation requires the matching exclusive state lock")
+    held = locks if locks is not None else exclusive(state_dir, connection=connection)
     try:
-        with connection:
-            tables = {
-                row[0]
-                for row in connection.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' "
-                    "AND name IN ('execution_admissions','event_pressure_state')"
-                )
-            }
-            if tables:
-                connection.execute("BEGIN IMMEDIATE")
-            if "execution_admissions" in tables:
+        database = Database(state_dir, connection, held)
+        with control_lock(state_dir, connection=connection):
+            with database.transaction() as conn:
                 from swingset.state.controls import recover_admissions
 
-                # Restored workers cannot still own these admissions. Preserve
-                # publication uncertainty while releasing the stale write fence.
-                recover_admissions(connection, now=datetime.now(UTC))
-            if "event_pressure_state" in tables:
-                connection.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+                recover_admissions(conn, now=clock.now())
+                conn.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+        witness = state_dir / "tmp/restore-history"
+        inventory = []
+        if witness.exists():
+            from swingset.state import postgres_backup
+
+            inventory = postgres_backup.verify(witness)["rebuild_units"]
+        recovered = bootstrap(database, enqueued_at=clock.now().isoformat(), inventory=inventory)
+        # Existing project/link anchors certify caches that the history backup
+        # deliberately omitted. They must be rebuilt before activation, even
+        # when the retained software and input fingerprints are unchanged.
+        if recovered["materializations"]["queued_units"]:
+            from swingset.state import verify
+            from swingset.state.inputs import load
+
+            selected = connection.execute(
+                "SELECT value FROM ops.meta WHERE key='input_bundle_hash'"
+            ).fetchone()
+            if selected is None:
+                raise CheckpointError("restored materializations have no retained input bundle")
+            bundle = load(state_dir, str(selected[0]))
+            rebuilt = rebuild(database, bundle, clock, bootstrap_cache=False, inventory=inventory)
+            if not rebuilt["complete"]:
+                raise CheckpointError(
+                    f"restore rebuild is incomplete: {rebuilt['reason']}; use a fresh database and volume"
+                )
+            checked = verify.run(database, bundle, clock, str(rebuilt["run_id"]), alert=False)
+            if not checked["complete"] or checked["mismatches"] or checked["failures"]:
+                raise CheckpointError(
+                    "restored derivations failed verification; use a fresh database and volume"
+                )
+        witness = state_dir / "tmp/restore-history"
+        if witness.exists():
+            from swingset.state import postgres_backup
+
+            postgres_backup.audit(connection, witness, after_rebuild=True)
+        marker.unlink()
+        fsync_dir(state_dir)
+        connection.restore_pending = False
+        shutil.rmtree(witness, ignore_errors=True)
     finally:
-        connection.close()
-    marker.unlink()
-    fsync_dir(state_dir)
+        if locks is None:
+            held.release()
 
 
 def _verify_candidate_remote(candidate: Path, remote: RemoteCommit) -> None:
@@ -374,8 +379,19 @@ def _verify_candidate_remote(candidate: Path, remote: RemoteCommit) -> None:
             raise CheckpointError(f"public commit file differs from restored candidate: {name}")
 
 
-def verify_restored_public(state_dir: Path, hub: Hub) -> None:
+def verify_restored_public(
+    state_dir: Path, hub: Hub, *, connection: engine.Connection | None = None
+) -> None:
     """Reconcile saved publication state and activate only against a stable public head."""
+    if connection is None:
+        from swingset.state.db import open_database
+
+        with open_database(state_dir, allow_restore_pending=True) as database:
+            return verify_restored_public(state_dir, hub, connection=database.connection)
+    from swingset.state.environment import ensure_external_allowed
+
+    ensure_external_allowed(connection, "restore public verification", hub)
+    connection.check_alive()
     marker = state_dir / "RESTORE_PENDING"
     if not marker.is_file():
         raise CheckpointError("restore marker is missing")
@@ -391,6 +407,7 @@ def verify_restored_public(state_dir: Path, hub: Hub) -> None:
         else None
     )
     first_head = hub.head()
+    unlanded = None
     if pending:
         candidate = pending[0]
         built = json.loads((candidate / "BUILT").read_text())
@@ -402,14 +419,14 @@ def verify_restored_public(state_dir: Path, hub: Hub) -> None:
                     f"public head differs from pending receipt: expected {commit!r}, actual {first_head!r}"
                 )
             _verify_candidate_remote(candidate, hub.inspect(commit))
-            _restore_promote(state_dir, candidate)
+            _restore_promote(state_dir, candidate, connection=connection)
         elif first_head == built.get("expected_parent"):
-            pass  # Intent did not land; the next real cycle may retry it.
+            unlanded = candidate
         elif first_head is not None:
             remote = hub.inspect(first_head)
             _verify_candidate_remote(candidate, remote)
             durable_write(receipt, canonical_json({"commit": first_head}))
-            _restore_promote(state_dir, candidate)
+            _restore_promote(state_dir, candidate, connection=connection)
         else:
             raise CheckpointError("public head is absent but restored intent expected a commit")
     elif first_head != baseline_commit:
@@ -418,17 +435,103 @@ def verify_restored_public(state_dir: Path, hub: Hub) -> None:
         )
     if hub.head() != first_head:
         raise CheckpointError("public head changed during restore verification")
+    baseline_link = state_dir / "baseline"
+    if baseline_link.is_symlink():
+        baseline = baseline_link.resolve()
+        commit = str(json.loads((baseline / "PUBLISHED").read_text())["commit"])
+        _fetch_published_files(baseline, commit, hub, connection=connection)
+    if hub.head() != first_head:
+        raise CheckpointError("public head changed while downloading the restored baseline")
+    if unlanded is not None:
+        from swingset.publish.safety import reject_candidate, settle_publication
+        from swingset.state.control_lock import control_lock
+
+        with control_lock(state_dir, connection=connection):
+            settle_publication(
+                state_dir, unlanded, outcome="restore_not_landed", connection=connection
+            )
+            reject_candidate(
+                unlanded, "restored intent did not land; rebuild its candidate from verified state"
+            )
     # The caller removes RESTORE_PENDING only after this succeeds while holding
     # the writer lock. Keeping activation separate also makes interruption safe.
 
 
-def _restore_promote(state_dir: Path, candidate: Path) -> None:
-    temporary = state_dir / f".baseline.restore-{uuid.uuid4().hex}"
-    os.symlink(Path("candidates") / candidate.name, temporary)
-    os.replace(temporary, state_dir / "baseline")
-    fsync_dir(state_dir)
-    try:
-        (candidate / "PUBLISHING").unlink()
-    except FileNotFoundError:
-        pass
-    fsync_dir(candidate)
+def _restore_promote(state_dir: Path, candidate: Path, *, connection: engine.Connection) -> None:
+    from swingset.publish.service import _landed
+
+    _landed(state_dir, candidate, connection, outcome="restore_receipt_promoted")
+
+
+def _fetch_published_files(
+    candidate: Path, commit: str, hub: Hub, *, connection: engine.Connection
+) -> None:
+    """Fill only the reconciled baseline's cache, pinned to its public commit."""
+    from swingset.state.environment import ensure_external_allowed
+
+    from .huggingface import safe_relative
+
+    built = json.loads((candidate / "BUILT").read_bytes())
+    manifest_path = candidate / "_meta/manifest.json"
+    if sha256_file(manifest_path) != built["manifest_hash"]:
+        raise CheckpointError("restored baseline manifest differs from its sealed hash")
+    manifest = json.loads(manifest_path.read_bytes())
+    # Validate the complete list before any network operation or file placement.
+    files = []
+    for name, digest in manifest["files"].items():
+        relative = safe_relative(name)
+        if relative.parts[0] not in {"data", "_meta"} and relative.as_posix() not in {
+            "README.md",
+            "LICENSE",
+        }:
+            raise CheckpointError("published manifest names a reserved restore path")
+        if relative.as_posix() == "_meta/manifest.json":
+            raise CheckpointError("published manifest cannot replace its own authority")
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(c not in "0123456789abcdef" for c in digest)
+        ):
+            raise CheckpointError("published manifest contains an invalid file hash")
+        target = candidate / relative
+        if target.is_symlink() or not target.resolve().is_relative_to(candidate.resolve()):
+            raise CheckpointError("published manifest path escapes the restored candidate")
+        files.append((name, digest, target))
+    for name, digest, target in files:
+        if target.is_file() and sha256_file(target) == digest:
+            continue
+        ensure_external_allowed(connection, "restore baseline download", hub)
+        connection.check_alive()
+        fetch = getattr(hub, "download", None)
+        if fetch is None:
+            raise CheckpointError("the public adapter cannot download the restored baseline")
+        source = fetch(name, commit)
+        if not source.is_file() or sha256_file(source) != digest:
+            raise CheckpointError(f"public baseline file differs from its manifest: {name}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_name("." + target.name + ".restore-" + uuid.uuid4().hex)
+        try:
+            _copy_file(source, temporary)
+            connection.check_alive()
+            os.replace(temporary, target)
+            fsync_dir(target.parent)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def retain_restore_history(state_dir: Path, source: Path) -> None:
+    """Keep the verified witness until activation's post-rebuild history audit."""
+    import errno
+
+    target = state_dir / "tmp/restore-history"
+
+    def link_or_copy(origin: str, destination: str) -> str:
+        try:
+            os.link(origin, destination)
+        except OSError as error:
+            if error.errno != errno.EXDEV:
+                raise
+            shutil.copyfile(origin, destination)
+        return destination
+
+    shutil.copytree(source, target, copy_function=link_or_copy)

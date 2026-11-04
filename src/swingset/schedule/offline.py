@@ -14,7 +14,6 @@ wait for input, back off or are paced, by reason, at most 50 names each).
 
 from __future__ import annotations
 
-import sqlite3
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -28,7 +27,7 @@ from swingset.schedule import pacing
 from swingset.schedule.derive import DerivationOutcome, derive_one
 from swingset.schedule.fairness import next_offline_batch, record_offline_service
 from swingset.schedule.registry import advance_sweep, run_saved_crosscheck_if_due
-from swingset.state import derivations, queue, read_sets
+from swingset.state import derivations, engine, queue, read_sets
 from swingset.state.attempts import latest_attempt
 from swingset.state.control_scopes import for_unit
 from swingset.state.controls import ControlPaused, operation
@@ -109,7 +108,7 @@ class Offline:
         # never fatal to the run.
         try:
             dropped = derivations.drop_current_hints(self.database, found)
-        except (sqlite3.Error, WriteDeadlineExceeded) as exc:
+        except (engine.Error, WriteDeadlineExceeded) as exc:
             self.summary["current_hints_error"] = f"{type(exc).__name__}: {exc}"[:200]
             dropped = 0
         if dropped:
@@ -150,7 +149,7 @@ class Offline:
     def derive(self, unit: WorkUnit) -> DerivationOutcome:
         database, summary = self.database, self.summary
 
-        def served(conn: sqlite3.Connection) -> None:
+        def served(conn: engine.Connection) -> None:
             # Rotated on admission, so a unit that kills its process does not
             # keep its kind group first on the next tick.
             record_offline_service(conn, unit, now=self.clock.now())
@@ -180,7 +179,7 @@ class Offline:
                     summary["queue"]["quarantined"].append(
                         f"{unit.stage}/{unit.unit_kind}/{unit.unit_id}"
                     )
-            except (sqlite3.Error, WriteDeadlineExceeded):
+            except (engine.Error, WriteDeadlineExceeded):
                 pass
             summary["unit_failures"].append(
                 {
@@ -247,7 +246,7 @@ class Offline:
                 try:
                     with database.transaction():
                         advance_sweep(database, now=self.clock.now())
-                except sqlite3.DatabaseError as exc:
+                except engine.DatabaseError as exc:
                     # A publication fence or a busy writer: the sweep advances next time.
                     summary["registry_sweep_error"] = str(exc)[:200]
         return attempt
@@ -278,7 +277,7 @@ def registry_crosscheck(
     if next(iter(unfinished_units(database.connection, ("parse", "project"))), None) is not None:
         return False
     if not database.connection.execute(
-        "SELECT 1 FROM meta WHERE key='registry_crosscheck_due'"
+        "SELECT 1 AS _value_0 FROM meta WHERE key = 'registry_crosscheck_due'"
     ).fetchone():
         return False
     try:

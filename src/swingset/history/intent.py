@@ -1,15 +1,16 @@
 """Retain historical child acquisition intent without creating origin controls."""
 
-import sqlite3
-
 from swingset.sources.base import ParseContext, WatchSpec
+from swingset.state import engine
 from swingset.state.findings import Finding, replace_findings
 
 
 def retain_child_intent(
-    conn: sqlite3.Connection, context: ParseContext, spec: WatchSpec, *, now: str, run_id: str
+    conn: engine.Connection, context: ParseContext, spec: WatchSpec, *, now: str, run_id: str
 ) -> None:
-    if conn.execute("SELECT 1 FROM watches WHERE watch_id=?", (spec.watch_id,)).fetchone():
+    if conn.execute(
+        "SELECT 1 AS _value_0 FROM watches WHERE watch_id = %s", (spec.watch_id,)
+    ).fetchone():
         return  # Existing live/operator controls are independent of historical interpretation.
     replace_findings(
         conn,

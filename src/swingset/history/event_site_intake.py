@@ -10,7 +10,6 @@ import gzip
 import io
 import json
 import re
-import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -28,6 +27,7 @@ from swingset.history.event_sites import (
     validate_query,
 )
 from swingset.project.history import phase_two_allowed
+from swingset.state import engine
 from swingset.state.controls import ActionScope, matching_pauses
 from swingset.state.db import Database
 
@@ -233,9 +233,9 @@ def _read(
     return tuple(queries)
 
 
-def _gate(conn: sqlite3.Connection, site: Site, now: datetime, history_start: date) -> None:
+def _gate(conn: engine.Connection, site: Site, now: datetime, history_start: date) -> None:
     row = conn.execute(
-        "SELECT year,website FROM events WHERE event_id=?", (site.event_id,)
+        "SELECT year, website FROM events WHERE event_id = %s", (site.event_id,)
     ).fetchone()
     if row is None or (int(row[0]), row[1]) != (site.year, site.website):
         raise ValueError("canonical event website/year changed")
@@ -308,7 +308,13 @@ def ingest(
     # Validate all collisions before writing any referenced metadata.
     for query in queries:
         row = conn.execute(
-            "SELECT * FROM archive_queries WHERE query_id=?", (query.identifier,)
+            (
+                "SELECT archive_queries.query_id, archive_queries.source, archive_queries.prefix, "
+                "archive_queries.year, archive_queries.next_page, archive_queries.total_pages, "
+                "archive_queries.completed_at, archive_queries.started_at FROM archive_queries WHERE "
+                "query_id = %s"
+            ),
+            (query.identifier,),
         ).fetchone()
         if row is not None and (
             row["source"] != "event_sites"
@@ -335,7 +341,10 @@ def ingest(
                 if time.monotonic() >= deadline:
                     raise ValueError("intake wall clock exhausted")
                 held = conn.execute(
-                    "SELECT digest,status,mimetype,length FROM archive_captures WHERE source='event_sites' AND url=? AND timestamp=?",
+                    (
+                        "SELECT digest, status, mimetype, length FROM archive_captures WHERE source = 'event_sites' "
+                        "AND url = %s AND timestamp = %s"
+                    ),
                     (capture.url, capture.timestamp),
                 ).fetchone()
                 if held is not None and tuple(held) != (
@@ -378,7 +387,9 @@ def ingest(
             progress = len(query.receipts) - 1
             finished = query.receipts[-1].fetched_at if progress == query.total_pages else None
             conn.execute(
-                "INSERT INTO archive_queries VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(query_id) DO UPDATE SET next_page=MAX(next_page,excluded.next_page),completed_at=COALESCE(completed_at,excluded.completed_at)",
+                (
+                    "INSERT INTO archive_queries (query_id, source, prefix, year, next_page, total_pages, completed_at, started_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(query_id) DO UPDATE SET next_page = CASE WHEN archive_queries.next_page IS NULL OR excluded.next_page IS NULL THEN NULL ELSE GREATEST(archive_queries.next_page, excluded.next_page) END, completed_at = COALESCE(archive_queries.completed_at, excluded.completed_at)"
+                ),
                 (
                     query.identifier,
                     "event_sites",
@@ -395,7 +406,9 @@ def ingest(
                     if time.monotonic() >= deadline:
                         raise ValueError("intake wall clock exhausted")
                     conn.execute(
-                        "INSERT INTO archive_captures VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(source,url,timestamp) DO NOTHING",
+                        (
+                            "INSERT INTO archive_captures (source, url, timestamp, digest, status, mimetype, length, queried_at, cdx_query_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, url, timestamp) DO NOTHING"
+                        ),
                         (
                             "event_sites",
                             capture.url,

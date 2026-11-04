@@ -35,24 +35,38 @@ def test_retained_wdr_named_judges_survive_unsupported_scoring(tmp_path, metadat
     with open_database(tmp_path) as db:
         conn = db.connection
         conn.execute(
-            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,1)",
+            "INSERT INTO runs (run_id, started_at, dry_run) VALUES ('test', %s, 1)",
             (metadata["fetched_at"],),
         )
         conn.execute(
-            "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES ('watch','wdr','event','GET',?,?,?,'paused')",
+            (
+                "INSERT INTO watches (watch_id, source, kind, method, url, parser, source_ref, state) VALUES "
+                "('watch', 'wdr', 'event', 'GET', %s, %s, %s, 'paused')"
+            ),
             (ctx.url, page.kind, ctx.source_ref),
         )
         conn.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) VALUES (?,'watch','GET',?,?,200,?,?,1,'test','Ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_sha256, body_bytes, content_changed, run_id, classification) VALUES (%s, 'watch', "
+                "'GET', %s, %s, 200, %s, %s, 1, 'test', 'Ok')"
+            ),
             (ctx.snapshot_id, ctx.url, ctx.fetched_at, metadata["body_sha256"], len(body)),
         )
         conn.execute(
-            "INSERT INTO source_event_map VALUES ('wdr',?,?,'override',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES ('wdr', %s, %s, 'override', 1)"
+            ),
             (ctx.source_ref, metadata["event_id"]),
         )
         for seq, observation in enumerate(parsed.observations):
             conn.execute(
-                "INSERT INTO observations VALUES (?,'watch',?,?,'source_event',?,?,?, ?,?)",
+                (
+                    "INSERT INTO observations (observation_id, watch_id, snapshot_id, kind, scope_kind, "
+                    "scope_id, seq, extract_version, parser_version, payload_json) VALUES (%s, 'watch', %s, %s, "
+                    "'source_event', %s, %s, %s, %s, %s)"
+                ),
                 (
                     str(seq),
                     ctx.snapshot_id,

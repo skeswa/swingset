@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
+from postgres_statements import empty_connections as empty_connections
 from publish.test_recovery import FakeHub
 from test_admission import BODY, Corpus
 from test_correction_only import _bundle, _published_fixture
@@ -44,6 +45,9 @@ def release_state(tmp_path):
     """Retain real finals/prelim baseline; review only the unrelated test source."""
     with open_database(tmp_path / "state") as db:
         clock = FakeClock(datetime(2026, 9, 13, 5, tzinfo=UTC))
+        from materialized_fixture import bootstrap_runtime
+
+        bootstrap_bundle = bootstrap_runtime(db, clock)
         corpus = Corpus(db)
         corpus.clock = clock
         initial, report = corpus.stage(corpus.snapshot("unrelated-initial"))
@@ -51,7 +55,9 @@ def release_state(tmp_path):
         corpus.review(initial)
         assert corpus.admit(initial) == "accepted"
         clock.sleep(7200)
-        baseline, identifier, binding, positive = _published_fixture(db, clock)
+        baseline, identifier, binding, positive = _published_fixture(
+            db, clock, runtime_bundle=bootstrap_bundle
+        )
         (baseline / "PUBLISHED").write_text(
             json.dumps({"commit": "published-fixture", "verified_at": "2026-09-13T06:00:00+00:00"})
         )
@@ -85,7 +91,10 @@ def release_state(tmp_path):
         # This publication fixture seeds its event directly; give its retained
         # baseline metadata an explicit owner before capturing test-only outputs.
         db.connection.execute(
-            "INSERT OR IGNORE INTO canonical_scope_rows VALUES ('calendar','retained-baseline','events',?)",
+            (
+                "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+                "('calendar', 'retained-baseline', 'events', %s) ON CONFLICT DO NOTHING"
+            ),
             (json.dumps([EVENT], separators=(",", ":")),),
         )
         materialize_seeded_outputs(db, now=clock.now(), run_id="run_a")
@@ -124,27 +133,44 @@ def test_inventory_collision_keeps_baseline_supported_event_and_named_judges(rel
     from swingset.state.work import WorkUnit
 
     f = release_state
-    before = dict(f.conn.execute("SELECT * FROM events WHERE event_id=?", (EVENT,)).fetchone())
+    before = dict(
+        f.conn.execute(
+            (
+                "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                "events.end_date, events.city, events.region, events.country, events.website, "
+                "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+            ),
+            (EVENT,),
+        ).fetchone()
+    )
     named = {
         row[0]
         for row in f.conn.execute(
-            "SELECT judge_id FROM judges WHERE event_id=? AND name_raw IS NOT NULL AND wsdc_id IS NULL",
+            "SELECT judge_id FROM judges WHERE event_id = %s AND NOT name_raw IS NULL AND wsdc_id IS NULL",
             (EVENT,),
         )
     }
     assert named
     with f.db.transaction():
         f.conn.execute(
-            "INSERT INTO canonical_scope_rows VALUES ('history','all','events',json_array(?))",
+            (
+                "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES "
+                "('history', 'all', 'events', JSON_ARRAY(%s))"
+            ),
             (EVENT,),
         )
         # An unsupported listing names the same month/slug, but conflicts with
         # the retained event dates. It cannot replace that event's public support.
         f.conn.execute(
-            "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,url,"
-            "snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES "
-            "('scoringdance','collision','Summer Hummer','2026-08-01','2026-08-02',"
-            "'https://example.test/collision','unassessed-listing','1',?,?,?)",
+            (
+                "INSERT INTO source_events (source, source_ref, name_raw, start_date, end_date, url, "
+                "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES ('scoringdance', "
+                "'collision', 'Summer Hummer', '2026-08-01', '2026-08-02', 'https://example.test/collision', "
+                "'unassessed-listing', '1', %s, %s, %s)"
+            ),
             (f.clock.now().isoformat(), f.clock.now().isoformat(), f.run),
         )
         # This fixture retains precomputed inventory rows; capture the new
@@ -158,7 +184,20 @@ def test_inventory_collision_keeps_baseline_supported_event_and_named_judges(rel
             pass
         project_map(f.conn, f.bundle, f.clock.now().isoformat(), f.run, 19)
     assert (
-        dict(f.conn.execute("SELECT * FROM events WHERE event_id=?", (EVENT,)).fetchone()) == before
+        dict(
+            f.conn.execute(
+                (
+                    "SELECT events.event_id, events.series_id, events.name, events.year, events.start_date, "
+                    "events.end_date, events.city, events.region, events.country, events.website, "
+                    "events.wsdc_status, events.sources, events.live_window_start, events.live_window_end, "
+                    "events.source, events.snapshot_id, events.parser_version, events.first_seen_at, "
+                    "events.last_seen_at, events.run_id, events.event_month, events.date_precision, events.held, "
+                    "events.coverage_tier, events.history_source FROM events WHERE event_id = %s"
+                ),
+                (EVENT,),
+            ).fetchone()
+        )
+        == before
     )
     materialize_seeded_outputs(f.db, now=f.clock.now(), run_id=f.run)
     candidate = service.build_release(f.db, f.bundle, f.clock, f.run)
@@ -199,24 +238,24 @@ def test_coherent_cutoff_survives_repeated_later_admission_and_publishes_once(
     assert not any(
         str(row["snapshot_id"]).startswith("post-cutoff-") for row in public["snapshots"]
     )
-    result = publish(f.db.state_dir, candidate.path, f.hub)
+    result = publish(f.db.state_dir, candidate.path, f.hub, connection=f.conn)
     assert result.state == "published" and f.hub.calls == 1
-    assert reconcile(f.db.state_dir, f.hub, dry_run=False).state == "none"
+    assert reconcile(f.db.state_dir, f.hub, dry_run=False, connection=f.conn).state == "none"
     assert f.hub.calls == 1
     assert {
         path.relative_to(candidate.path).as_posix(): path.read_bytes()
         for path in candidate.path.rglob("*")
         if path.is_file() and path.name not in {"PUBLISHED", "PUBLISHING"}
     } == pinned_files
-    placeholders = ",".join("?" for _ in later)
+    placeholders = ",".join("%s" for _ in later)
     assert (
         f.conn.execute(
-            f"SELECT count(*) FROM source_generations WHERE generation_id IN ({placeholders})",
+            f"SELECT COUNT(*) FROM source_generations WHERE generation_id IN ({placeholders})",
             later,
         ).fetchone()[0]
         == 6
     )
-    assert f.conn.execute("SELECT count(*) FROM entries WHERE event_id=?", (EVENT,)).fetchone()[
+    assert f.conn.execute("SELECT COUNT(*) FROM entries WHERE event_id = %s", (EVENT,)).fetchone()[
         0
     ] == len([row for row in public["entries"] if row["event_id"] == EVENT])
 
@@ -259,7 +298,7 @@ def test_cutoff_never_overrides_current_correction_or_acceptance_safety(release_
     else:
         pause_contract(f.conn, f.corpus.page.kind)
     with pytest.raises(PublishError):
-        publish(f.db.state_dir, candidate.path, f.hub)
+        publish(f.db.state_dir, candidate.path, f.hub, connection=f.conn)
     assert f.hub.calls == 0
     assert not (candidate.path / "PUBLISHED").exists()
     assert (f.db.state_dir / "baseline").resolve() == f.baseline.resolve()
@@ -278,7 +317,15 @@ def test_unrelated_stuck_parse_allows_coherent_release_and_remains_unfinished(re
     )
     before = tuple(
         f.conn.execute(
-            "SELECT * FROM work_attempts WHERE attempt_id=?", (attempt.attempt_id,)
+            (
+                "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                "work_attempts.requirement_id FROM work_attempts WHERE attempt_id = %s"
+            ),
+            (attempt.attempt_id,),
         ).fetchone()
     )
     candidate = service.build_release(f.db, f.bundle, f.clock, f.run, f.hub)
@@ -301,7 +348,7 @@ def test_unrelated_stuck_parse_allows_coherent_release_and_remains_unfinished(re
     assert stuck.unit_id not in json.dumps(public["review_queue"], default=str)
     assert (
         f.conn.execute(
-            "SELECT reason_code FROM work_attempts WHERE attempt_id=?", (attempt.attempt_id,)
+            "SELECT reason_code FROM work_attempts WHERE attempt_id = %s", (attempt.attempt_id,)
         ).fetchone()[0]
         == "snapshot_body_missing"
     )
@@ -309,14 +356,22 @@ def test_unrelated_stuck_parse_allows_coherent_release_and_remains_unfinished(re
     assert (
         tuple(
             f.conn.execute(
-                "SELECT * FROM work_attempts WHERE attempt_id=?", (attempt.attempt_id,)
+                (
+                    "SELECT work_attempts.attempt_id, work_attempts.stage, work_attempts.unit_kind, "
+                    "work_attempts.unit_id, work_attempts.queue_generation, work_attempts.retry_generation, "
+                    "work_attempts.work_token, work_attempts.input_fingerprint, work_attempts.run_id, "
+                    "work_attempts.started_at, work_attempts.finished_at, work_attempts.outcome, "
+                    "work_attempts.reason_code, work_attempts.evidence_json, work_attempts.retry_at, "
+                    "work_attempts.requirement_id FROM work_attempts WHERE attempt_id = %s"
+                ),
+                (attempt.attempt_id,),
             ).fetchone()
         )
         == before
     )
     manifest = json.loads((candidate.path / "_meta/manifest.json").read_bytes())
     assert manifest
-    assert publish(f.db.state_dir, candidate.path, f.hub).state == "published"
+    assert publish(f.db.state_dir, candidate.path, f.hub, connection=f.conn).state == "published"
     assert stuck in set(unfinished_units(f.conn))
 
 
@@ -379,7 +434,8 @@ def test_incompatible_link_generation_cannot_join_new_structural_closure(
         body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
         context = f.corpus.snapshot("changed-registry", body, spec=spec)
         f.conn.execute(
-            "UPDATE snapshots SET method=? WHERE snapshot_id=?", (spec.method, context.snapshot_id)
+            "UPDATE snapshots SET method = %s WHERE snapshot_id = %s",
+            (spec.method, context.snapshot_id),
         )
         generation, report = f.corpus.stage(context, body=body)
         assert not report.failures
@@ -492,7 +548,7 @@ def test_local_correction_waits_for_verified_publication_receipt(release_state, 
         return real_commit(**kwargs)
 
     f.hub.create_commit = in_flight
-    assert publish(f.db.state_dir, candidate.path, f.hub).state == "published"
+    assert publish(f.db.state_dir, candidate.path, f.hub, connection=f.conn).state == "published"
     receipt = json.loads((candidate.path / "PUBLISHED").read_bytes())
     published = cli.doctor(argparse.Namespace(state=f.db.state_dir, config=f.config))["publication"]
     assert published["published"]["commit"] == receipt["commit"]
@@ -594,7 +650,7 @@ def test_repeated_corrections_keep_oldest_clock_until_confirmed_receipt(release_
     assert report["correction"]["detected_at"] == first
     assert report["correction"]["age_seconds"] == 60
     candidate = service.build_release(f.db, f.bundle, f.clock, f.run, f.hub, correction_only=True)
-    assert publish(f.db.state_dir, candidate.path, f.hub).state == "published"
+    assert publish(f.db.state_dir, candidate.path, f.hub, connection=f.conn).state == "published"
     f.clock.sleep(60)
     (f.overrides / "suppressions.csv").write_text(
         "wsdc_id,name_norm,reason,date\n999998,,Second private note,2026-09-13\n"
@@ -607,14 +663,15 @@ def test_repeated_corrections_keep_oldest_clock_until_confirmed_receipt(release_
     assert "private note" not in json.dumps(report).lower()
 
 
-def test_correction_clock_uses_exact_generations_and_receipts_without_inventing_old_history():
-    import sqlite3
+def test_correction_clock_uses_exact_generations_and_receipts_without_inventing_old_history(
+    empty_connections,
+):
 
     from swingset.state.correction_age import correction_age
 
-    conn = sqlite3.connect(":memory:")
+    conn = empty_connections()
     try:
-        conn.executescript(
+        conn.execute(
             "CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT); CREATE TABLE identity_journal_acceptances(accepted_at TEXT,generation INTEGER); CREATE TABLE identity_reference_migrations(recorded_at TEXT); CREATE TABLE admission_decisions(decided_at TEXT,state TEXT);"
         )
         conn.execute(
@@ -637,7 +694,7 @@ def test_correction_clock_uses_exact_generations_and_receipts_without_inventing_
             "INSERT INTO admission_decisions VALUES ('2026-09-13T07:04:00+00:00','revoked')"
         )
         conn.executemany(
-            "INSERT INTO meta VALUES (?,?)",
+            "INSERT INTO meta VALUES (%s,%s)",
             (
                 ("correction_pending_since", "2026-09-13T07:02:00+00:00"),
                 ("correction_pending_baseline_commit", "old"),

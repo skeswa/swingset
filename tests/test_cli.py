@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 import pytest
+from test_postgres_schema import fresh_database as fresh_database
 
 import swingset.cli as cli
 from swingset.backup.checkpoint import create_checkpoint
@@ -14,9 +15,11 @@ from swingset.fetch.classify import Classification, Outcome
 from swingset.fetch.client import FetchResult
 from swingset.publish.service import RemoteCommit
 from swingset.state.db import SCHEMA_VERSION, open_database
+from swingset.state.engine.locks import acquire_writer
+from swingset.state.environment import FixtureIO
 
 
-class EmptyHub:
+class EmptyHub(FixtureIO):
     def head(self) -> None:
         return None
 
@@ -46,7 +49,8 @@ def checkpoint(tmp_path: Path) -> Path:
 
 def test_pause_timeout_applies_no_change(tmp_path):
     with open_database(tmp_path) as db:
-        db.connection.execute("BEGIN IMMEDIATE")
+        db.connection.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+        acquire_writer(db.connection)
         result = subprocess.run(
             [
                 sys.executable,
@@ -69,7 +73,8 @@ def test_pause_timeout_applies_no_change(tmp_path):
 
 def test_pause_waits_and_commits_before_success(tmp_path):
     db = open_database(tmp_path)
-    db.connection.execute("BEGIN IMMEDIATE")
+    db.connection.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+    acquire_writer(db.connection)
     child = subprocess.Popen(
         [
             sys.executable,
@@ -158,10 +163,36 @@ def test_accept_year_refuses_without_event_evidence_and_records_when_it_can(tmp_
 
 
 def test_restore_pending_blocks_mutations_but_allows_diagnosis(tmp_path):
+    from postgres_statements import contents
+
     with open_database(tmp_path):
         pass
     (tmp_path / "RESTORE_PENDING").write_text("verify first")
-    assert main(["pause", "--all", "--state", str(tmp_path)]) == 1
+    with open_database(tmp_path, allow_restore_pending=True) as db:
+        before = contents(db.connection)
+    assert main(["parse", "--state", str(tmp_path)]) == 1
+    with open_database(tmp_path, allow_restore_pending=True) as db:
+        assert contents(db.connection) == before
+    assert (
+        main(
+            [
+                "pause",
+                "--all",
+                "--actor",
+                "restore-test",
+                "--reason",
+                "verify first",
+                "--state",
+                str(tmp_path),
+            ]
+        )
+        == 0
+    )
+    with open_database(tmp_path, allow_restore_pending=True) as db:
+        assert tuple(
+            db.connection.execute("SELECT action,actor,reason FROM control_events").fetchone()
+        ) == ("pause", "restore-test", "verify first")
+    assert (tmp_path / "RESTORE_PENDING").is_file()
     assert main(["doctor", "--state", str(tmp_path)]) == 0
 
 
@@ -175,7 +206,9 @@ def test_restore_checkpoint_uses_remote_verification_and_activates(
         main(["restore", "--checkpoint", str(saved), "--writer-stopped", "--state", str(target)])
         == 0
     )
-    assert (target / "state.sqlite").is_file()
+    assert (target / "database.json").is_file()
+    with open_database(target, read_only=True) as restored:
+        assert restored.schema_version == SCHEMA_VERSION
     assert not (target / "RESTORE_PENDING").exists()
 
 
@@ -207,7 +240,9 @@ def test_restore_archive_commit_downloads_selected_commit_without_network(
         == 0
     )
     assert selected == ["archive-sha"]
-    assert (target / "state.sqlite").is_file()
+    assert (target / "database.json").is_file()
+    with open_database(target, read_only=True) as restored:
+        assert restored.schema_version == SCHEMA_VERSION
 
 
 def test_registry_crosscheck_blob_replay_finishes_run_metadata(
@@ -240,7 +275,7 @@ def test_registry_crosscheck_blob_replay_finishes_run_metadata(
     assert capsys.readouterr().out.strip() == "3"
     with open_database(tmp_path) as database:
         row = database.connection.execute(
-            "SELECT finished_at,summary_json FROM runs ORDER BY started_at DESC LIMIT 1"
+            "SELECT finished_at, summary_json FROM runs ORDER BY started_at DESC NULLS LAST LIMIT 1"
         ).fetchone()
         assert row[0] is not None
         summary = json.loads(row[1])
@@ -322,7 +357,7 @@ def test_fetch_one_failure_classification_exits_nonzero_and_finishes_run(
     )
     with open_database(tmp_path) as database:
         row = database.connection.execute(
-            "SELECT finished_at,summary_json FROM runs ORDER BY started_at DESC LIMIT 1"
+            "SELECT finished_at, summary_json FROM runs ORDER BY started_at DESC NULLS LAST LIMIT 1"
         ).fetchone()
         assert row[0] is not None
         summary = json.loads(row[1])
@@ -330,12 +365,35 @@ def test_fetch_one_failure_classification_exits_nonzero_and_finishes_run(
         assert outcome.value in summary["error"]
 
 
-def test_migrate_opens_once_and_reports_both_schemas(tmp_path, capsys):
+def test_migrate_opens_once_and_reports_both_schemas(tmp_path, capsys, monkeypatch, fresh_database):
     """The phase 3 switch migrates by hand under the hold (docs/guides/deployment.md)."""
+    service, name, _owner = fresh_database
+    monkeypatch.setenv("SWINGSET_OWNER_DATABASE_URL", service.dsn(name))
     assert main(["migrate", "--state", str(tmp_path)]) == 0
     first = json.loads(capsys.readouterr().out)
-    assert first["schema_before"] is None and first["schema_after"] == SCHEMA_VERSION
+    assert first["schema_before"] == 0 and first["schema_after"] == SCHEMA_VERSION
     assert main(["migrate", "--state", str(tmp_path)]) == 0
     again = json.loads(capsys.readouterr().out)
     assert again["schema_before"] == again["schema_after"] == SCHEMA_VERSION
     assert again["seconds"] >= 0
+
+
+def test_graph_verify_and_rekey_commands_write_receipts(tmp_path, capsys):
+    from swingset.state.db import open_database
+
+    state = tmp_path / "state"
+    proof = tmp_path / "proof.json"
+    with open_database(state):
+        pass
+    shared = ["--state", str(state), "--config", "config", "--overrides", "overrides"]
+    assert (
+        main(["verify-derivations", *shared, "--checkpoint", str(state), "--receipt", str(proof)])
+        == 0
+    )
+    capsys.readouterr()
+    receipt = json.loads(proof.read_text())
+    assert receipt["complete"] and receipt["clean"]
+    assert main(["rekey", *shared, "--receipt", str(proof)]) == 0
+    capsys.readouterr()
+    result = json.loads((state / "rekey" / "receipt.json").read_text())
+    assert result["complete"] and result["equivalences"] == {}

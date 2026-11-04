@@ -2,39 +2,59 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections import Counter
 from typing import Any
 
 from swingset.normalize.names import normalize_name, paired_names
+from swingset.state import engine
 from swingset.state.work import unfinished_units
 
 
-def read_population(conn: sqlite3.Connection) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def read_population(conn: engine.Connection) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Caller holds a read transaction; sampling never changes pipeline state."""
     if next(iter(unfinished_units(conn)), None) is not None:
         raise ValueError("identity sampling requires settled parse, project, and link work")
-    dancers = {int(r["wsdc_id"]): dict(r) for r in conn.execute("SELECT * FROM dancers")}
+    dancers = {
+        int(r["wsdc_id"]): dict(r)
+        for r in conn.execute(
+            "SELECT dancers.wsdc_id, dancers.first_name, dancers.last_name, dancers.name_norm, "
+            "dancers.is_pro, dancers.primary_role, dancers.leader_required_level, "
+            "dancers.leader_allowed_level, dancers.follower_required_level, "
+            "dancers.follower_allowed_level, dancers.leader_highest_level, "
+            "dancers.leader_highest_points, dancers.follower_highest_level, "
+            "dancers.follower_highest_points, dancers.recent_year, dancers.registry_internal_id, "
+            "dancers.registry_fetched_at, dancers.merged_into_wsdc_id, dancers.source, "
+            "dancers.snapshot_id, dancers.parser_version, dancers.first_seen_at, dancers.last_seen_at, "
+            "dancers.run_id FROM dancers"
+        )
+    }
     name_counts = Counter(str(row["name_norm"]).casefold() for row in dancers.values())
     links = {
         (str(r["subject_kind"]), str(r["subject_id"])): dict(r)
-        for r in conn.execute("SELECT * FROM identity_links")
+        for r in conn.execute(
+            "SELECT identity_links.link_id, identity_links.subject_kind, identity_links.subject_id, "
+            "identity_links.wsdc_id, identity_links.method, identity_links.status, "
+            "identity_links.confidence, identity_links.constraints_applied, identity_links.asserted_at, "
+            "identity_links.run_id, identity_links.linker_version FROM identity_links"
+        )
     }
     candidates: dict[tuple[str, str], list[int]] = {}
     for row in conn.execute(
-        "SELECT subject_kind,subject_id,wsdc_id FROM link_candidates ORDER BY rank,wsdc_id"
+        "SELECT subject_kind, subject_id, wsdc_id FROM link_candidates ORDER BY rank NULLS FIRST, "
+        "wsdc_id NULLS FIRST"
     ):
         candidates.setdefault((str(row[0]), str(row[1])), []).append(int(row[2]))
     snapshots = {
         str(r["snapshot_id"]): dict(r)
         for r in conn.execute(
-            "SELECT s.snapshot_id,s.body_sha256,s.extract_sha256,s.extract_version,s.parser_version,s.url,s.fetched_at,s.observed_at,s.via,w.source_ref,w.parser "
-            "FROM snapshots s JOIN watches w USING(watch_id)"
+            "SELECT s.snapshot_id, s.body_sha256, s.extract_sha256, s.extract_version, s.parser_version, "
+            "s.url, s.fetched_at, s.observed_at, s.via, w.source_ref, w.parser FROM snapshots AS s JOIN "
+            "watches AS w USING (watch_id)"
         )
     }
     finalist_ids = {
         identifier
-        for row in conn.execute("SELECT leader_entry_id,follower_entry_id FROM placements")
+        for row in conn.execute("SELECT leader_entry_id, follower_entry_id FROM placements")
         for identifier in row
         if identifier is not None
     }
@@ -42,10 +62,23 @@ def read_population(conn: sqlite3.Connection) -> tuple[list[dict[str, Any]], dic
     for kind, query in (
         (
             "entry",
-            "SELECT e.*,v.year,c.division,c.wsdc_points_eligible,c.source_contest_ref "
-            "FROM entries e JOIN events v USING(event_id) JOIN contests c USING(contest_id)",
+            (
+                "SELECT e.entry_id, e.contest_id, e.event_id, e.role, e.bib, e.name_raw, e.name_norm, "
+                "e.partner_name_raw, e.city_raw, e.country_raw, e.wsdc_id, e.link_status, e.link_confidence, "
+                "e.partner_entry_id, e.rounds_danced, e.best_round, e.source, e.snapshot_id, "
+                "e.parser_version, e.first_seen_at, e.last_seen_at, e.run_id, v.year, c.division, "
+                "c.wsdc_points_eligible, c.source_contest_ref FROM entries AS e JOIN events AS v USING "
+                "(event_id) JOIN contests AS c USING (contest_id)"
+            ),
         ),
-        ("judge", "SELECT j.*,v.year FROM judges j JOIN events v USING(event_id)"),
+        (
+            "judge",
+            (
+                "SELECT j.judge_id, j.event_id, j.name_raw, j.initials, j.anonymous, j.wsdc_id, j.source, "
+                "j.snapshot_id, j.parser_version, j.first_seen_at, j.last_seen_at, j.run_id, v.year FROM "
+                "judges AS j JOIN events AS v USING (event_id)"
+            ),
+        ),
     ):
         for record in conn.execute(query):
             row = dict(record)
@@ -131,11 +164,16 @@ def read_population(conn: sqlite3.Connection) -> tuple[list[dict[str, Any]], dic
     context = {
         "population": "local settled confirmed default joins and unresolved entries; not a published-release precision claim",
         "latest_event_year": latest_year,
-        "schema_version": conn.execute("PRAGMA user_version").fetchone()[0],
-        "revisions": dict(conn.execute("SELECT name,value FROM revisions")),
+        "schema_version": int(
+            conn.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+        ),
+        "revisions": dict(conn.execute("SELECT name, value FROM revisions")),
         "accepted_inputs": [
             dict(row)
-            for row in conn.execute("SELECT * FROM accepted_inputs ORDER BY consumer,input_name")
+            for row in conn.execute(
+                "SELECT accepted_inputs.consumer, accepted_inputs.input_name, accepted_inputs.digest FROM "
+                "accepted_inputs ORDER BY consumer NULLS FIRST, input_name NULLS FIRST"
+            )
         ],
     }
     return rows, context

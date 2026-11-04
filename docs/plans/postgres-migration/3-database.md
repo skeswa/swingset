@@ -58,10 +58,11 @@ Other rules:
   and lost-connection errors map to stable exception types.
 - **Large manifests** (up to 259 MB) keep today's two passes in one
   snapshot: hash every 64 KiB slice, then decode members. Never hold a
-  whole manifest in memory. If stored as `bytea`, use `STORAGE EXTERNAL`
-  so a slice read fetches only the slice. Stage 1 measures `text` against
-  `bytea` and decides. Test: a 256 MiB manifest adds under 128 MiB of
-  memory. Every `blobopen` caller moves (`build/closure_manifest.py`,
+  whole manifest in memory. Keep UTF-8 `text` with `STORAGE EXTERNAL`
+  and read native byte windows through `ops.text_bytes`; this fetches only
+  the requested TOAST slice ([D-0268](../../../journal/decisions/0268-read-large-text-as-bounded-byte-windows.md)).
+  The measured 256 MiB read takes under 15 seconds and adds under 128 MiB
+  of client memory. Every `blobopen` caller moves (`build/closure_manifest.py`,
   `build/closure_validation.py`, `state/collector.py`).
 - **No extra JSON columns** on big tables; use a view or an expression
   index where a query needs a JSON field.
@@ -217,15 +218,17 @@ statement_timeout` and `lock_timeout` to the time left. Savepoints
 
 ## Roles
 
-| Role                     | Can                                                                          | Cannot                                                        |
-| ------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| owner                    | own the schema; run migrations as a separate job                             | log in                                                        |
-| worker                   | read and write pipeline rows, use sequences                                  | change the schema, `TRUNCATE`, disable triggers, switch roles |
-| control                  | write `operator_pauses`, `control_events`, `control_state`                   | touch evidence or anything else                               |
-| one per decider          | write `gov` rows; its name is recorded on each row                           | approve its own proposal (except the owner, with a flag)      |
-| reader (later the API's) | read `catalog` views and a few evidence views (sources, snapshots, findings) | read page bodies, notes or suppressed people                  |
+| Role                     | Can                                                                              | Cannot                                                        |
+| ------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| owner                    | own the schema; run migrations as a separate job                                 | log in                                                        |
+| worker                   | read and write pipeline rows, use sequences, maintain application tables         | change the schema, `TRUNCATE`, disable triggers, switch roles |
+| control                  | read pipeline status; write `operator_pauses`, `control_events`, `control_state` | write evidence or other tables                                |
+| one per decider          | write `gov` rows; its name is recorded on each row                               | approve its own proposal (except the owner, with a flag)      |
+| reader (later the API's) | read `catalog` views and a few evidence views (sources, snapshots, findings)     | read page bodies, notes or suppressed people                  |
 
-- Migration and owner passwords never enter worker containers.
+- Migration and owner passwords never enter worker containers. The worker
+  has table-scoped `MAINTAIN` for reclaim (D-0265); schema changes and
+  trigger bypass remain denied.
 - Trigger functions run with the caller's rights. A function that runs
   with its owner's rights gets a fixed search path and no PUBLIC execute.
 - Grants are test data, and tests prove them.
@@ -241,3 +244,8 @@ A bumped transform's re-run rewrites dependency lists and leaves old copies
 for `VACUUM`. Long read snapshots, such as an hour-long build, delay that
 cleanup. Watch dead rows after each large re-run, and plan a `pg_repack`
 when they grow. The planned size is about 40 GB, as today.
+
+The watchdog reads current cluster WAL bytes through `ops.wal_size()`
+([D-0266](../../../journal/decisions/0266-expose-only-the-total-cluster-wal-size.md)).
+Its owner can list WAL files, but the worker receives only their total size.
+The alert measures the shared cluster, including other databases.

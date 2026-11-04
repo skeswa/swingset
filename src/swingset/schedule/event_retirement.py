@@ -3,21 +3,21 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime, timedelta
 from typing import Any
 
 from swingset.admission.event_retirement import EVENT_FORMAT, FORMAT, verify_edge, verify_event
 from swingset.admission.page_evidence import Session
 from swingset.fetch.archive import canonical, digest
+from swingset.state import engine
 
 from .event_accounting import ERRORS, encoded, fresh
 
 
-def available(conn: sqlite3.Connection) -> bool:
+def available(conn: engine.Connection) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='event_retirement_observations'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'event_retirement_observations' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
         is not None
     )
@@ -43,7 +43,10 @@ def prepare(session: Session, batch: dict[str, Any], now: datetime, max_age: flo
         return False
     try:
         rows = session.read(
-            "SELECT enumeration_id,observed_at,valid_until,token_json,retry_fresh FROM event_retirement_observations WHERE source=? AND source_ref=?",
+            (
+                "SELECT enumeration_id, observed_at, valid_until, token_json, retry_fresh FROM "
+                "event_retirement_observations WHERE source = %s AND source_ref = %s"
+            ),
             (batch["source"], batch["source_ref"]),
             ("enumeration_id", "observed_at", "valid_until", "token_json", "retry_fresh"),
             cap=1,
@@ -79,7 +82,7 @@ def observe(
         successor_members=members,
     )
     if session.conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE name='source_event_retirement_receipts'"
+        "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE relname = 'source_event_retirement_receipts' AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
     ).fetchone():
         value["whole_event"] = verify_event(
             session, source=batch["source"], source_ref=batch["source_ref"], page_edge=value
@@ -98,13 +101,15 @@ def observe(
         batch["retry_subject"] = True
 
 
-def persist(conn: sqlite3.Connection, batch: dict[str, Any]) -> int:
+def persist(conn: engine.Connection, batch: dict[str, Any]) -> int:
     saved = batch.get("retirement")
     if saved is None:
         return 0
     value = saved["value"]
     conn.execute(
-        "INSERT INTO event_retirement_observations VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source,source_ref) DO UPDATE SET enumeration_id=excluded.enumeration_id,predecessor_id=excluded.predecessor_id,assessment=excluded.assessment,observed_at=excluded.observed_at,valid_until=excluded.valid_until,token_json=excluded.token_json,result_json=excluded.result_json,retry_fresh=excluded.retry_fresh",
+        (
+            "INSERT INTO event_retirement_observations (source, source_ref, enumeration_id, predecessor_id, assessment, observed_at, valid_until, token_json, result_json, retry_fresh) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref) DO UPDATE SET enumeration_id = excluded.enumeration_id, predecessor_id = excluded.predecessor_id, assessment = excluded.assessment, observed_at = excluded.observed_at, valid_until = excluded.valid_until, token_json = excluded.token_json, result_json = excluded.result_json, retry_fresh = excluded.retry_fresh"
+        ),
         (
             batch["source"],
             batch["source_ref"],
@@ -115,14 +120,16 @@ def persist(conn: sqlite3.Connection, batch: dict[str, Any]) -> int:
             saved["valid_until"],
             encoded(batch["token"]),
             encoded(value),
-            saved["retry_fresh"],
+            int(saved["retry_fresh"]),
         ),
     )
     if value["assessment"] != "verified":
         return 0
     proof = value["proof"]
     written = conn.execute(
-        "INSERT INTO event_retirement_receipts(proof_digest,source,source_ref,enumeration_id,predecessor_id,generation_id,decision_id,observed_at,policy_digest,proof_json) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(proof_digest) DO NOTHING",
+        (
+            "INSERT INTO event_retirement_receipts (proof_digest, source, source_ref, enumeration_id, predecessor_id, generation_id, decision_id, observed_at, policy_digest, proof_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(proof_digest) DO NOTHING"
+        ),
         (
             value["proof_digest"],
             batch["source"],
@@ -141,31 +148,34 @@ def persist(conn: sqlite3.Connection, batch: dict[str, Any]) -> int:
 
 
 def _persist_event(
-    conn: sqlite3.Connection, batch: dict[str, Any], value: dict[str, Any], observed_at: str
+    conn: engine.Connection, batch: dict[str, Any], value: dict[str, Any], observed_at: str
 ) -> None:
     whole = value.get("whole_event", {})
     if whole.get("retired") is not True:
         return
     current = conn.execute(
-        "SELECT revision FROM event_gap_revisions WHERE source=?", (batch["source"],)
+        "SELECT revision FROM event_gap_revisions WHERE source = %s", (batch["source"],)
     ).fetchone()
     if whole.get("source_revision") != (current[0] if current else 0):
         return
     proof = whole["proof"]
     if (
         proof["admission_high_water"]
-        != conn.execute("SELECT coalesce(max(decision_id),0) FROM admission_decisions").fetchone()[
-            0
-        ]
+        != conn.execute(
+            "SELECT COALESCE(MAX(decision_id), 0) AS _value_0 FROM admission_decisions"
+        ).fetchone()[0]
     ):
         return
     conn.execute(
-        "INSERT INTO source_event_retirement_proofs VALUES(?,?) ON CONFLICT(proof_digest) DO NOTHING",
+        (
+            "INSERT INTO source_event_retirement_proofs (proof_digest, proof_json) VALUES (%s, %s) ON CONFLICT(proof_digest) DO NOTHING"
+        ),
         (whole["proof_digest"], encoded(proof)),
     )
     conn.execute(
-        "INSERT INTO source_event_retirement_receipts(source,source_ref,enumeration_id,predecessor_id,generation_id,decision_id,observed_at,policy_digest,proof_digest,proof_json) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source,source_ref,enumeration_id) DO NOTHING",
+        (
+            "INSERT INTO source_event_retirement_receipts (source, source_ref, enumeration_id, predecessor_id, generation_id, decision_id, observed_at, policy_digest, proof_digest, proof_json) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(source, source_ref, enumeration_id) DO NOTHING"
+        ),
         (
             batch["source"],
             batch["source_ref"],
@@ -189,7 +199,10 @@ def _event_status(
     if not isinstance(whole, dict) or whole.get("format") != EVENT_FORMAT:
         return unknown
     revisions = session.read(
-        "SELECT revision FROM event_gap_revisions WHERE source=?", (source,), ("revision",), cap=1
+        "SELECT revision FROM event_gap_revisions WHERE source = %s",
+        (source,),
+        ("revision",),
+        cap=1,
     )
     if type(whole.get("source_revision")) is not int or whole["source_revision"] != (
         revisions[0]["revision"] if revisions else 0
@@ -203,7 +216,7 @@ def _event_status(
         }
     proof = whole["proof"]
     admissions = session.read(
-        "SELECT coalesce(max(decision_id),0) AS high_water FROM admission_decisions",
+        "SELECT COALESCE(MAX(decision_id), 0) AS high_water FROM admission_decisions",
         (),
         ("high_water",),
         cap=1,
@@ -226,13 +239,16 @@ def _event_status(
     ):
         raise ValueError("whole_event_proof_invalid")
     rows = session.read(
-        "SELECT proof_json FROM source_event_retirement_proofs WHERE proof_digest=?",
+        "SELECT proof_json FROM source_event_retirement_proofs WHERE proof_digest = %s",
         (fingerprint,),
         ("proof_json",),
         cap=1,
     )
     receipts = session.read(
-        "SELECT receipt_id FROM source_event_retirement_receipts WHERE source=? AND source_ref=? AND enumeration_id=?",
+        (
+            "SELECT receipt_id FROM source_event_retirement_receipts WHERE source = %s AND source_ref = "
+            "%s AND enumeration_id = %s"
+        ),
         (source, source_ref, value["successor_id"]),
         ("receipt_id",),
         cap=1,
@@ -261,7 +277,11 @@ def report(
         return unknown("retirement_schema_unavailable")
     try:
         history = session.read(
-            "SELECT receipt_id,proof_digest,enumeration_id,predecessor_id,generation_id,decision_id,observed_at FROM event_retirement_receipts WHERE source=? AND source_ref=? ORDER BY receipt_id DESC LIMIT 1",
+            (
+                "SELECT receipt_id, proof_digest, enumeration_id, predecessor_id, generation_id, "
+                "decision_id, observed_at FROM event_retirement_receipts WHERE source = %s AND source_ref = "
+                "%s ORDER BY receipt_id DESC NULLS LAST LIMIT 1"
+            ),
             (source, source_ref),
             (
                 "receipt_id",
@@ -276,7 +296,10 @@ def report(
         )
         result["latest_historical_receipt"] = history[0] if history else None
         rows = session.read(
-            "SELECT enumeration_id,observed_at,valid_until,token_json,result_json FROM event_retirement_observations WHERE source=? AND source_ref=?",
+            (
+                "SELECT enumeration_id, observed_at, valid_until, token_json, result_json FROM "
+                "event_retirement_observations WHERE source = %s AND source_ref = %s"
+            ),
             (source, source_ref),
             ("enumeration_id", "observed_at", "valid_until", "token_json", "result_json"),
             cap=1,
@@ -317,7 +340,7 @@ def report(
                 raise ValueError("retirement_denominator_invalid")
             fingerprint = digest(canonical(proof))
             receipts = session.read(
-                "SELECT proof_json FROM event_retirement_receipts WHERE proof_digest=?",
+                "SELECT proof_json FROM event_retirement_receipts WHERE proof_digest = %s",
                 (fingerprint,),
                 ("proof_json",),
                 cap=1,

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -19,7 +19,7 @@ from test_release_closure_rows import baseline_events
 
 from swingset.build import partitions
 from swingset.cli import main
-from swingset.state import objects, output_packs, retention, storage
+from swingset.state import engine, objects, output_packs, retention, storage
 from swingset.state.db import SCHEMA_VERSION, Database, open_database
 from swingset.state.retention_apply import receipt_directory
 from swingset.state.storage import StorageError
@@ -33,11 +33,13 @@ def canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def empty_set(conn: sqlite3.Connection) -> str:
+def empty_set(conn: engine.Connection) -> str:
     identifier = hashlib.sha256(b"[]").hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
-        "VALUES (?,'[]')",
+        (
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, '[]') "
+            "ON CONFLICT DO NOTHING"
+        ),
         (identifier,),
     )
     return identifier
@@ -65,18 +67,30 @@ def label(
             if stored is not None and ordinal >= stored:
                 continue
             sha = hashlib.sha256(text.encode()).hexdigest()
-            conn.execute("INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (sha, text))
             conn.execute(
-                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (sha, text),
+            )
+            conn.execute(
+                (
+                    "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                    "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
+                ),
                 (generation_id, ordinal, table, key, sha),
             )
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-            "VALUES (?,?,?,?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
+                "%s, %s) ON CONFLICT DO NOTHING"
+            ),
             (*scope, NOW.isoformat()),
         )
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,'{}',?,NULL,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, '{}', %s, NULL, %s, %s, %s, %s)"
+            ),
             (
                 generation_id,
                 *scope,
@@ -90,10 +104,49 @@ def label(
         )
         if point:
             conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id=? "
-                "WHERE stage=? AND unit_kind=? AND unit_id=?",
+                (
+                    "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = %s AND unit_kind "
+                    "= %s AND unit_id = %s"
+                ),
                 (generation_id, *scope),
             )
+
+
+def retain_generation_history(database: Database) -> None:
+    """Give the fixture a durable build manifest naming its required generations."""
+    conn = database.connection
+    identifiers = [
+        str(row[0])
+        for row in conn.execute(
+            "SELECT generation_id FROM derivation_generations ORDER BY generation_id"
+        )
+    ]
+    run_id = database.start_run(NOW)
+    scope = ("build", "partition", "storage-history-fixture")
+    generation_id = "dg_storage_history_fixture"
+    with database.transaction():
+        conn.execute(
+            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (%s,%s,%s,%s)",
+            (*scope, NOW.isoformat()),
+        )
+        conn.execute(
+            "INSERT INTO derivation_generations(generation_id,stage,unit_kind,unit_id,input_fingerprint,recipe_json,dependency_set_id,output_digest,row_count,created_at,run_id) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s)",
+            (
+                generation_id,
+                *scope,
+                "storage-history",
+                canonical({"generation_ids": identifiers}),
+                empty_set(conn),
+                hashlib.sha256(b"").hexdigest(),
+                NOW.isoformat(),
+                run_id,
+            ),
+        )
+        conn.execute(
+            "UPDATE derivation_scopes SET materialized_generation_id=%s WHERE stage=%s AND unit_kind=%s AND unit_id=%s",
+            (generation_id, *scope),
+        )
 
 
 def rows_of(
@@ -108,8 +161,10 @@ def rows_of(
 def building(database: Database, generation_id: str, unit: str) -> None:
     with database.transaction() as conn:
         conn.execute(
-            "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
-            "input_fingerprint,run_id,started_at,updated_at) VALUES (?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_building (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, run_id, started_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+            ),
             (generation_id, "project", "event", unit, "f", "run", NOW.isoformat(), NOW.isoformat()),
         )
 
@@ -127,11 +182,13 @@ def populate(database: Database) -> None:
     label(database, "dg_empty", "event-e", [])
 
 
-def everything(conn: sqlite3.Connection) -> dict[str, list[tuple[str, str, str]]]:
+def everything(conn: engine.Connection) -> dict[str, list[tuple[str, str, str]]]:
     """Every complete generation's rows, read through the accessor."""
     identifiers = [
         str(row[0])
-        for row in conn.execute("SELECT generation_id FROM derivation_generations ORDER BY 1")
+        for row in conn.execute(
+            "SELECT generation_id FROM derivation_generations ORDER BY 1 NULLS FIRST"
+        )
     ]
     return {
         identifier: list(output_packs.rows(conn, identifier))
@@ -140,31 +197,37 @@ def everything(conn: sqlite3.Connection) -> dict[str, list[tuple[str, str, str]]
     }
 
 
-def refs(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
-    return [tuple(row) for row in conn.execute("SELECT * FROM derivation_row_refs ORDER BY 1,2")]
-
-
-def payloads(conn: sqlite3.Connection) -> list[str]:
-    return [
-        str(row[0])
-        for row in conn.execute("SELECT payload_sha256 FROM derivation_payloads ORDER BY 1")
-    ]
-
-
-def schema(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
+def refs(conn: engine.Connection) -> list[tuple[object, ...]]:
     return [
         tuple(row)
         for row in conn.execute(
-            "SELECT type,name,sql FROM sqlite_master WHERE tbl_name='derivation_row_refs' "
-            "ORDER BY rowid"
+            "SELECT derivation_row_refs.generation_id, derivation_row_refs.ordinal, "
+            "derivation_row_refs.table_name, derivation_row_refs.record_key, "
+            "derivation_row_refs.payload_sha256 FROM derivation_row_refs ORDER BY 1 NULLS FIRST, 2 NULLS "
+            "FIRST"
         )
     ]
 
 
-def marked(conn: sqlite3.Connection) -> list[str]:
+def payloads(conn: engine.Connection) -> list[str]:
     return [
         str(row[0])
-        for row in conn.execute("SELECT generation_id FROM derivation_evicted ORDER BY 1")
+        for row in conn.execute(
+            "SELECT payload_sha256 FROM derivation_payloads ORDER BY 1 NULLS FIRST"
+        )
+    ]
+
+
+def schema(conn: engine.Connection) -> list[tuple[object, ...]]:
+    return list(storage._schema(conn))
+
+
+def marked(conn: engine.Connection) -> list[str]:
+    return [
+        str(row[0])
+        for row in conn.execute(
+            "SELECT generation_id FROM derivation_evicted ORDER BY 1 NULLS FIRST"
+        )
     ]
 
 
@@ -187,7 +250,12 @@ def test_the_plan_is_stable_and_sorts_every_generation(tmp_path):
         assert first.content == second.content and first.digest == second.digest
         # Writing nothing: same rows, no temp tables left, no packs.
         assert refs(conn) == before
-        assert conn.execute("SELECT count(*) FROM sqlite_temp_master").fetchone()[0] == 0
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM pg_class WHERE relnamespace=pg_my_temp_schema() AND relkind='r'"
+            ).fetchone()[0]
+            == 0
+        )
         assert not (database.state_dir / "objects").exists()
         content = first.content
         assert content["stages"] == ["derivation_output", "parse_body", "label_body"]
@@ -232,13 +300,12 @@ def test_a_root_added_between_plan_and_apply_stops_it(tmp_path):
         # The cold generation becomes a current pointer.
         with database.transaction():
             conn.execute(
-                "UPDATE derivation_scopes SET materialized_generation_id='dg_cold' "
-                "WHERE unit_id='event-b'"
+                "UPDATE derivation_scopes SET materialized_generation_id = 'dg_cold' WHERE unit_id = 'event-b'"
             )
         with pytest.raises(StorageError, match="not the plan of this state"):
             storage.apply(database, plan_digest=written.digest, now=NOW)
-        assert conn.execute("SELECT count(*) FROM storage_applies").fetchone()[0] == 0
-        assert conn.execute("SELECT count(*) FROM objects").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM storage_applies").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0] == 0
         assert marked(conn) == []
 
 
@@ -290,17 +357,25 @@ def test_apply_moves_what_the_plan_named_and_is_idempotent(tmp_path):
         assert everything(conn) == before
         for generation_id in ("dg_cur", "dg_build"):
             assert output_packs.resident(conn, generation_id)
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert (
+            conn.execute(
+                "SELECT conname FROM pg_constraint WHERE contype='f' AND NOT convalidated"
+            ).fetchall()
+            == []
+        )
+        assert conn.execute("SELECT 1").fetchone()[0] == 1
         # The rebuilt table still guards its rows.
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+        with pytest.raises(engine.IntegrityError, match="immutable"):
             with database.transaction():
-                conn.execute("DELETE FROM derivation_row_refs WHERE generation_id='dg_cur'")
+                conn.execute("DELETE FROM derivation_row_refs WHERE generation_id = 'dg_cur'")
         # Again: the recorded receipt, nothing moved.
         assert storage.apply(database, plan_digest=written.digest, now=LATER) == receipt
         path = receipt_directory(database.state_dir) / f"storage-{written.digest}.json"
         assert json.loads(path.read_text()) == receipt
-        note = conn.execute("SELECT * FROM storage_applies").fetchall()
+        note = conn.execute(
+            "SELECT storage_applies.plan_digest, storage_applies.kind, storage_applies.started_at, "
+            "storage_applies.finished_at, storage_applies.receipt_json FROM storage_applies"
+        ).fetchall()
         assert len(note) == 1 and note[0]["kind"] == "storage"
         # A fresh plan has nothing left to move.
         after = storage.plan(conn, database.state_dir, now=NOW)
@@ -333,23 +408,18 @@ def test_apply_repairs_a_pack_damaged_after_packing(tmp_path, monkeypatch):
         assert everything(conn) == before
 
 
-def test_the_move_counts_the_zeroed_b_tree_when_secure_delete_is_on(tmp_path):
+def test_the_move_budgets_native_relation_bytes_without_secure_delete(tmp_path):
     with open_database(tmp_path / "state") as database:
         populate(database)
-        conn = database.connection
-        written = storage.plan(conn, database.state_dir, now=NOW)
-        fresh = written.content
-        conn.execute("PRAGMA secure_delete=OFF")
-        off = storage.move_need(conn, fresh, written.document())
-        conn.execute("PRAGMA secure_delete=ON")
-        on = storage.move_need(conn, fresh, written.document())
-        assert off["secure_delete"] == 0 and on["secure_delete"] == 1
-        assert on["reference_bytes"] > 0
-        assert on["needed_bytes"] == off["needed_bytes"] + on["reference_bytes"]
+        written = storage.plan(database.connection, database.state_dir, now=NOW)
+        need = storage.move_need(database.connection, written.content, written.document())
+        assert need["secure_delete"] == 0
+        assert need["reference_bytes"] > 0
+        assert need["needed_bytes"] >= storage.MOVE_MARGIN_BYTES
 
 
 KILL = """
-import os, sys
+import json, os, sys
 from datetime import UTC, datetime
 from swingset.state import storage
 from swingset.state.db import open_database
@@ -360,6 +430,15 @@ def stage(name):
         os._exit(77)
 storage._stage = stage
 with open_database(sys.argv[1]) as database:
+    connection = database.connection
+    started = connection.execute(
+        "SELECT backend_start::text AS started FROM pg_stat_activity WHERE pid=pg_backend_pid()"
+    ).fetchone()[0]
+    print("STORAGE_BACKEND " + json.dumps({
+        "pid": connection.info.backend_pid,
+        "database": connection.info.dbname,
+        "started": started,
+    }), flush=True)
     storage.apply(database, plan_digest=sys.argv[2], now=datetime(2026, 10, 1, tzinfo=UTC))
 """
 
@@ -371,6 +450,24 @@ def killed(tmp_path: Path, state: Path, digest: str, where: str) -> None:
         [sys.executable, str(script), str(state), digest, where], capture_output=True
     )
     assert done.returncode == 77, done.stderr.decode()
+    backend = json.loads(
+        next(
+            line.removeprefix("STORAGE_BACKEND ")
+            for line in done.stdout.decode().splitlines()
+            if line.startswith("STORAGE_BACKEND ")
+        )
+    )
+    # Child exit closes its socket; the server must still process that FIN and
+    # roll back before the existing immediate-open assertions can run. Witness
+    # the exact owned backend's exit without acquiring any state/B/C lock.
+    deadline = time.monotonic() + 10
+    with engine.connect(engine.resolve_dsn(state), read_only=True) as witness:
+        while witness.execute(
+            "SELECT 1 FROM pg_stat_activity WHERE pid=%s AND datname=%s AND backend_start::text=%s",
+            (backend["pid"], backend["database"], backend["started"]),
+        ).fetchone():
+            assert time.monotonic() < deadline, "owned killed backend did not exit"
+            time.sleep(0.01)
 
 
 def test_a_kill_after_packing_leaves_only_extra_packs(tmp_path):
@@ -386,7 +483,7 @@ def test_a_kill_after_packing_leaves_only_extra_packs(tmp_path):
         conn = database.connection
         assert (refs(conn), payloads(conn), everything(conn)) == before
         assert marked(conn) == []
-        packs = conn.execute("SELECT digest FROM objects WHERE class=?", (output_packs.CLASS,))
+        packs = conn.execute("SELECT digest FROM objects WHERE class = %s", (output_packs.CLASS,))
         assert len(packs.fetchall()) == 3
         note = conn.execute("SELECT finished_at FROM storage_applies").fetchone()
         assert note is not None and note[0] is None
@@ -398,7 +495,7 @@ def test_a_kill_after_packing_leaves_only_extra_packs(tmp_path):
         assert everything(conn) == before[2]
 
 
-@pytest.mark.parametrize("where", ["dropped", "marked", "finished"])
+@pytest.mark.parametrize("where", ["deleted", "marked", "finished"])
 def test_a_kill_inside_the_move_rolls_back(tmp_path, where):
     state = tmp_path / "state"
     with open_database(state) as database:
@@ -412,7 +509,7 @@ def test_a_kill_inside_the_move_rolls_back(tmp_path, where):
         conn = database.connection
         assert (refs(conn), payloads(conn), schema(conn), everything(conn)) == before
         assert marked(conn) == []
-        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert conn.execute("SELECT 1").fetchone()[0] == 1
         assert not (receipt_directory(state) / f"storage-{digest}.json").exists()
         receipt = storage.apply(database, plan_digest=digest, now=NOW)
         assert receipt["generations_evicted"] == 3
@@ -444,6 +541,7 @@ def test_after_apply_every_generation_reads_identically(source_fixture, tmp_path
     first = build()
     knobs = {"max_database_bytes": 1 << 40, "recent_window": 1, "collect_older_than": 86400.0}
     hold(state)
+    retain_generation_history(f.db)
     before = everything(conn)
     totals = retention.plan(conn, state, **knobs).content["totals"]
     written = storage.plan(conn, state, now=NOW)
@@ -465,7 +563,7 @@ def test_after_apply_every_generation_reads_identically(source_fixture, tmp_path
     again = build()
     assert again["rebuilt"] == 0 and again.get("withheld", 0) == 0
     assert again["reused"] == first["partitions"]
-    # An old-format checkpoint copies objects/ whole and restores readable.
+    # The native checkpoint retains objects required by the build history.
     checkpoint = tmp_path / "checkpoint"
     create_checkpoint(
         state,
@@ -476,17 +574,20 @@ def test_after_apply_every_generation_reads_identically(source_fixture, tmp_path
         input_bundle_hash=None,
     )
     assert any(
-        name.startswith("objects/")
+        name.startswith("database/files/objects/")
         for name in json.loads((checkpoint / "checkpoint.json").read_text())["files"]
     )
     restored = tmp_path / "restored"
     restore_checkpoint(checkpoint, restored, maximum_schema_version=SCHEMA_VERSION)
-    copy = sqlite3.connect(f"file:{restored / 'state.sqlite'}?mode=ro", uri=True)
+    restored_database = open_database(
+        restored, lock=False, read_only=True, allow_restore_pending=True
+    )
+    copy = restored_database.connection
     try:
         assert everything(copy) == before
         assert marked(copy) == marked(conn)
     finally:
-        copy.close()
+        restored_database.close()
 
 
 def test_the_storage_command_plans_and_applies(tmp_path, capsys):
@@ -561,7 +662,12 @@ def test_incremental_evict_skips_hot_and_young_generations(tmp_path, monkeypatch
             for (payload,) in conn.execute("SELECT payload_json FROM derivation_payloads")
         }
         assert "Shared" in names and not any(name.startswith(("old", "cold")) for name in names)
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert (
+            conn.execute(
+                "SELECT conname FROM pg_constraint WHERE contype='f' AND NOT convalidated"
+            ).fetchall()
+            == []
+        )
         # Nothing old and cold is left.
         assert (
             storage.evict(database, now=LATER + timedelta(hours=1), budget_refs=100)["generations"]
@@ -759,6 +865,7 @@ def test_a_lost_pack_of_an_evicted_generation_comes_back_from_a_local_set(tmp_pa
 
     with open_database(tmp_path / "state") as database:
         populate(database)
+        retain_generation_history(database)
         conn = database.connection
         before = everything(conn)
         later = LATER + timedelta(hours=1)
@@ -780,10 +887,11 @@ def test_a_lost_pack_of_an_evicted_generation_comes_back_from_a_local_set(tmp_pa
             LocalDirectoryTransport(database.state_dir / "checkpoints", name=LOCAL_TRANSPORT),
             now=later,
             versions={"swingset": "test"},
+            headroom=0,
         )
         path.unlink()
         result = storage.evict(database, now=later + timedelta(days=2), budget_refs=100)
-        assert result["restored"] == 1 and result["lost"] == 0
+        assert result["restored"] == 1 and result["lost"] == 0, result.get("lost_objects")
         assert path.read_bytes() == whole
         assert guards.get(conn, storage.GUARD_SUBJECT, storage.EVICT_FAILED) is None
         assert everything(conn) == before
@@ -802,7 +910,7 @@ def test_a_pack_whose_rows_do_not_match_the_label_is_never_indexed(tmp_path, mon
         monkeypatch.setattr(output_packs, "_view", changed)
         with pytest.raises(output_packs.GenerationUnavailable, match="does not match its label"):
             output_packs.pack(conn, objects.store_for(conn), "dg_cold", now=NOW)
-        assert conn.execute("SELECT count(*) FROM objects").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0] == 0
         # Eviction isolates it and leaves its references; the others go.
         result = storage.evict(database, now=LATER + timedelta(hours=1), budget_refs=100)
         assert result["failed"] == 1 and result["generations"] == 2
@@ -822,8 +930,8 @@ def test_apply_removes_exactly_the_payloads_it_counts(tmp_path):
         receipt = storage.apply(database, plan_digest=written.digest, now=NOW)
         assert len(payloads(conn)) == before - receipt["payloads_removed"] == before - 10
         orphans = conn.execute(
-            "SELECT count(*) FROM derivation_payloads p WHERE NOT EXISTS("
-            "SELECT 1 FROM derivation_row_refs r WHERE r.payload_sha256=p.payload_sha256)"
+            "SELECT COUNT(*) FROM derivation_payloads AS p WHERE NOT EXISTS(SELECT 1 FROM "
+            "derivation_row_refs AS r WHERE r.payload_sha256 = p.payload_sha256)"
         ).fetchone()[0]
         assert orphans == 0
         # The move bumps the history fence once itself (no trigger fires on a
@@ -831,7 +939,14 @@ def test_apply_removes_exactly_the_payloads_it_counts(tmp_path):
         start, end = receipt["history_fence_revision"]
         assert start == revision
         fence = int(conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0])
-        assert end == fence == start + 1 + receipt["payloads_removed"]
+        assert (
+            end
+            == fence
+            == start
+            + receipt["references_before"]
+            - receipt["references_kept"]
+            + receipt["payloads_removed"]
+        )
 
 
 @pytest.mark.parametrize("change", ["pointer", "reference"])
@@ -849,18 +964,20 @@ def test_a_change_between_verify_and_the_move_stops_it(tmp_path, monkeypatch, ch
             with database.transaction():
                 if change == "pointer":
                     conn.execute(
-                        "UPDATE derivation_scopes SET materialized_generation_id='dg_cold' "
-                        "WHERE unit_id='event-b'"
+                        "UPDATE derivation_scopes SET materialized_generation_id = 'dg_cold' WHERE unit_id = 'event-b'"
                     )
                 else:
                     text = canonical({"name_raw": "part 1"})
                     sha = hashlib.sha256(text.encode()).hexdigest()
                     conn.execute(
-                        "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (sha, text)
+                        "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                        (sha, text),
                     )
                     conn.execute(
-                        "INSERT INTO derivation_row_refs VALUES "
-                        "('dg_part',1,'entries','[\"part-1\"]',?)",
+                        (
+                            "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+                            "payload_sha256) VALUES ('dg_part', 1, 'entries', '[\"part-1\"]', %s)"
+                        ),
                         (sha,),
                     )
 
@@ -873,31 +990,21 @@ def test_a_change_between_verify_and_the_move_stops_it(tmp_path, monkeypatch, ch
         assert conn.execute("SELECT finished_at FROM storage_applies").fetchone()[0] is None
 
 
-@pytest.mark.parametrize("fast", [True, False])
-def test_a_drop_under_fast_delete_does_not_zero_pages_through_the_wal(tmp_path, fast):
-    """W2: with `secure_delete` on (the worker's SQLite is built so), dropping
-    a table writes a WAL as large as the table; `disk.fast_delete` does not."""
+def test_fast_delete_keeps_worker_delete_authorities_and_schema_guards(tmp_path):
     from swingset.state import disk
 
-    conn = sqlite3.connect(tmp_path / "w2.sqlite", isolation_level=None)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA wal_autocheckpoint=0")
-    conn.execute("PRAGMA secure_delete=ON")
-    conn.execute("CREATE TABLE big(value TEXT)")
-    conn.executemany("INSERT INTO big VALUES (?)", (("x" * 4000,) for _ in range(1000)))
-    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    table_bytes = 1000 * 4000
-    wal = tmp_path / "w2.sqlite-wal"
-    if fast:
+    with open_database(tmp_path / "state") as database:
+        populate(database)
+        conn = database.connection
+        before = schema(conn)
         with disk.fast_delete(conn) as secure:
             assert secure == 0
-            conn.execute("DROP TABLE big")
-        assert int(conn.execute("PRAGMA secure_delete").fetchone()[0]) == 1
-        assert wal.stat().st_size < table_bytes // 10
-    else:
-        conn.execute("DROP TABLE big")
-        assert wal.stat().st_size > table_bytes
-    conn.close()
+            with pytest.raises(engine.IntegrityError):
+                conn.execute("DELETE FROM derivation_row_refs")
+            with pytest.raises(engine.Error):
+                conn.execute("DROP TABLE derivation_row_refs")
+        assert schema(conn) == before
+        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] > 0
 
 
 def test_apply_truncates_the_wal_and_refuses_without_room(tmp_path, monkeypatch):
@@ -918,7 +1025,7 @@ def test_apply_truncates_the_wal_and_refuses_without_room(tmp_path, monkeypatch)
         monkeypatch.setattr(disk, "room", short)
         with pytest.raises(StorageError, match="the move needs about"):
             storage.apply(database, plan_digest=written.digest, now=NOW)
-        assert conn.execute("SELECT count(*) FROM storage_applies").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM storage_applies").fetchone()[0] == 0
         assert marked(conn) == []
         quota = tmp_path / "swingset-disk"
         quota.write_text(f"0 {1 << 50} 2026-01-01T00:00:00Z\n")
@@ -929,7 +1036,7 @@ def test_apply_truncates_the_wal_and_refuses_without_room(tmp_path, monkeypatch)
         monkeypatch.setattr(disk, "QUOTA_FILE", tmp_path / "absent")
         receipt = storage.apply(database, plan_digest=written.digest, now=NOW)
         assert receipt["room"]["reference_bytes"] == written.estimate["reference_bytes"]
-        assert (database.state_dir / "state.sqlite-wal").stat().st_size == 0
+        assert not (database.state_dir / "state.sqlite-wal").exists()
 
 
 def test_a_plan_written_before_midnight_applies_after_it(tmp_path):
@@ -942,3 +1049,44 @@ def test_a_plan_written_before_midnight_applies_after_it(tmp_path):
         storage.write_plan(database.state_dir, written)
         receipt = storage.apply(database, plan_digest=written.digest, now=late + timedelta(hours=1))
         assert receipt["plan_digest"] == written.digest
+
+
+def test_storage_lost_commit_ack_preserves_the_committed_receipt_for_reconciliation(
+    tmp_path, monkeypatch
+):
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        populate(database)
+        hold(state)
+        written = storage.plan(database.connection, state, now=NOW)
+        storage.write_plan(state, written)
+        original = engine.Connection.commit
+        armed = False
+
+        def stage(name):
+            nonlocal armed
+            if name == "finished":
+                armed = True
+
+        def lose_ack(self):
+            original(self)
+            if self is database.connection and armed:
+                self.close()
+                raise engine.CommitUncertain("injected lost commit acknowledgement")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(storage, "_stage", stage)
+            patch.setattr(engine.Connection, "commit", lose_ack)
+            with pytest.raises(engine.CommitUncertain):
+                storage.apply(database, plan_digest=written.digest, now=NOW)
+    with open_database(state) as reopened:
+        conn = reopened.connection
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM storage_applies WHERE receipt_json IS NOT NULL"
+            ).fetchone()[0]
+            == 1
+        )
+        receipt = storage.apply(reopened, plan_digest=written.digest, now=NOW)
+        assert receipt["generations_evicted"] == 3
+        assert conn.execute("SELECT count(*) FROM storage_applies").fetchone()[0] == 1

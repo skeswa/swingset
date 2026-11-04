@@ -54,7 +54,6 @@ import json
 import os
 import re
 import shutil
-import sqlite3
 import time
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
@@ -63,12 +62,14 @@ from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write
+from swingset.state import engine
+from swingset.state.large_values import column_reader
 
 from . import disk, objects
 from .control_lock import control_lock
 from .db import Database
 from .publication_fence import PUBLICATION_KINDS, kinds_sql
-from .retention_apply import receipt_directory, sqlite_temp_directory
+from .retention_apply import receipt_directory, temporary_directory
 
 PLAN_FORMAT = "collect-plan-v1"
 RECEIPT_FORMAT = "collect-receipt-v1"
@@ -92,9 +93,9 @@ _OVERLAP = 300
 _HOLD = "operator-hold"
 _NO_DELETE = "derivation_dependency_no_delete"
 _OBJECT_ROOTS = {
-    "derivation_output": "SELECT 1 FROM derivation_generations g WHERE g.output_digest=o.digest",
-    "parse_body": "SELECT 1 FROM source_generation_packs p WHERE p.pack_digest=o.digest",
-    "label_body": "SELECT 1 FROM label_body_packs p WHERE p.pack_digest=o.digest",
+    "derivation_output": "SELECT 1 AS _value_0 FROM derivation_generations AS g WHERE g.output_digest = o.digest",
+    "parse_body": "SELECT 1 AS _value_0 FROM source_generation_packs AS p WHERE p.pack_digest = o.digest",
+    "label_body": "SELECT 1 AS _value_0 FROM label_body_packs AS p WHERE p.pack_digest = o.digest",
 }
 _OBJECT_TABLES = {
     "derivation_output": "derivation_generations",
@@ -128,31 +129,33 @@ def cutoff(now: datetime) -> datetime:
 # ---------------------------------------------------------------------------
 
 
-def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+def _has_table(conn: engine.Connection, name: str) -> bool:
     return (
         conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = %s) AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))",
+            (name,),
         ).fetchone()
         is not None
     )
 
 
-def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
-    return any(row[1] == column for row in conn.execute(f"PRAGMA table_info({table})"))
+def _has_column(conn: engine.Connection, table: str, column: str) -> bool:
+    from .schema_catalog import columns
+
+    return column in columns(conn, table)
 
 
-def _storage_gate(conn: sqlite3.Connection) -> bool:
+def _storage_gate(conn: engine.Connection) -> bool:
     """Schema 36: deletes pass under `storage_eviction_authority`."""
     return _has_table(conn, "storage_eviction_authority")
 
 
-def publication_active(conn: sqlite3.Connection) -> bool:
+def publication_active(conn: engine.Connection) -> bool:
     if not _has_table(conn, "execution_admissions"):
         return False
     return (
         conn.execute(
-            "SELECT 1 FROM execution_admissions WHERE state='active' "
-            f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
+            f"SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
         ).fetchone()
         is not None
     )
@@ -191,14 +194,16 @@ def _is_digest(value: object) -> bool:
     )
 
 
-def _drop_temporary(conn: sqlite3.Connection) -> None:
+def _drop_temporary(conn: engine.Connection) -> None:
+    if conn.closed:
+        return
     for name in _TEMP:
-        conn.execute(f"DROP TABLE IF EXISTS temp.{name}")
+        conn.execute(f"DROP TABLE IF EXISTS pg_temp.{name}")
 
 
-def _victim(conn: sqlite3.Connection, cls: str, key: str, size: int) -> None:
+def _victim(conn: engine.Connection, cls: str, key: str, size: int) -> None:
     conn.execute(
-        "INSERT OR IGNORE INTO temp.collect_victims(class,key,size) VALUES (?,?,?)",
+        "INSERT INTO pg_temp.collect_victims (class, key, size) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
         (cls, key, size),
     )
 
@@ -262,7 +267,7 @@ def retained_manifests(state_dir: Path) -> set[str]:
     return result
 
 
-def build_manifests(conn: sqlite3.Connection) -> set[str]:
+def build_manifests(conn: engine.Connection) -> set[str]:
     """Manifest digests the current build generations' candidates name.
 
     `derivations._artifact_valid` reads a partitioned candidate's manifest, so
@@ -274,8 +279,8 @@ def build_manifests(conn: sqlite3.Connection) -> set[str]:
 
     result: set[str] = set()
     for (generation_id,) in conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage='build' "
-        "AND materialized_generation_id IS NOT NULL ORDER BY materialized_generation_id"
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage = 'build' AND NOT "
+        "materialized_generation_id IS NULL ORDER BY materialized_generation_id NULLS FIRST"
     ).fetchall():
         try:
             payloads = [
@@ -295,22 +300,21 @@ def build_manifests(conn: sqlite3.Connection) -> set[str]:
     return result
 
 
-def _manifest_roots(conn: sqlite3.Connection, state_dir: Path) -> None:
-    conn.execute("DELETE FROM temp.collect_manifest_roots")
+def _manifest_roots(conn: engine.Connection, state_dir: Path) -> None:
+    conn.execute("DELETE FROM pg_temp.collect_manifest_roots")
     conn.executemany(
-        "INSERT OR IGNORE INTO temp.collect_manifest_roots(digest) VALUES (?)",
+        "INSERT INTO pg_temp.collect_manifest_roots (digest) VALUES (%s) ON CONFLICT DO NOTHING",
         ((digest,) for digest in sorted(retained_manifests(state_dir) | build_manifests(conn))),
     )
 
 
-def _artifact_roots(conn: sqlite3.Connection, state_dir: Path) -> bool:
+def _artifact_roots(conn: engine.Connection, state_dir: Path) -> bool:
     """Fill the artifact roots; False when a retained manifest cannot be read."""
     from .retention import manifest_artifacts
 
-    conn.execute("DELETE FROM temp.collect_artifact_roots")
+    conn.execute("DELETE FROM pg_temp.collect_artifact_roots")
     conn.execute(
-        "INSERT OR IGNORE INTO temp.collect_artifact_roots(digest) SELECT artifact_digest "
-        "FROM release_partitions WHERE artifact_digest IS NOT NULL"
+        "INSERT INTO pg_temp.collect_artifact_roots (digest) SELECT artifact_digest FROM release_partitions WHERE NOT artifact_digest IS NULL ON CONFLICT DO NOTHING"
     )
     for manifest in sorted(retained_manifests(state_dir)):
         try:
@@ -318,7 +322,7 @@ def _artifact_roots(conn: sqlite3.Connection, state_dir: Path) -> bool:
         except (OSError, ValueError, KeyError, TypeError):
             return False
         conn.executemany(
-            "INSERT OR IGNORE INTO temp.collect_artifact_roots(digest) VALUES (?)",
+            "INSERT INTO pg_temp.collect_artifact_roots (digest) VALUES (%s) ON CONFLICT DO NOTHING",
             ((artifact,) for _, artifact in pairs),
         )
     return True
@@ -342,11 +346,12 @@ class _Marks:
     candidates: dict[str, tuple[int, int]] = field(default_factory=dict)
 
 
-def _root_ids(conn: sqlite3.Connection, ids: Iterable[str]) -> None:
+def _root_ids(conn: engine.Connection, ids: Iterable[str]) -> None:
     """Add existing sets to the roots, queued for their own names."""
     conn.executemany(
-        "INSERT OR IGNORE INTO temp.collect_set_roots(id,expanded) SELECT ?,0 "
-        "WHERE EXISTS(SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id=?)",
+        (
+            "INSERT INTO pg_temp.collect_set_roots (id, expanded) SELECT %s, 0 WHERE EXISTS(SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id = %s) ON CONFLICT DO NOTHING"
+        ),
         ((str(value), str(value)) for value in ids if value),
     )
 
@@ -398,8 +403,8 @@ def _scan(chunks: Iterable[bytes], pattern: re.Pattern[bytes]) -> Iterator[str]:
         tail = data[-_OVERLAP:]
 
 
-def _blob(conn: sqlite3.Connection, table: str, column: str, rowid: int) -> Iterator[bytes]:
-    with conn.blobopen(table, column, rowid, readonly=True) as blob:
+def _blob(conn: engine.Connection, table: str, column: str, rowid: int) -> Iterator[bytes]:
+    with column_reader(conn, table, column, rowid, readonly=True) as blob:
         while chunk := blob.read(_CHUNK):
             yield chunk
 
@@ -414,7 +419,7 @@ def _object(state_dir: Path, cls: str, digest: str) -> Iterator[bytes]:
 
 
 def _recipe_names(
-    conn: sqlite3.Connection, state_dir: Path, where: str, args: tuple[Any, ...] = ()
+    conn: engine.Connection, state_dir: Path, where: str, args: tuple[Any, ...] = ()
 ) -> list[str]:
     """Sets the matching generations' recipes name: a project unit's continuity
     support and a build's release closure, public and private.
@@ -426,10 +431,7 @@ def _recipe_names(
     """
     names: list[str] = []
     for continuity in conn.execute(
-        "SELECT json_extract(recipe_json,'$.continuity.dependency_set_id') "
-        "FROM derivation_generations WHERE stage<>'build' "
-        "AND instr(recipe_json,'\"dependency_set_id\"')>0 AND json_valid(recipe_json)"
-        f"{where}",
+        f"""SELECT json_extract_path_text(recipe_json::json,'continuity','dependency_set_id') FROM derivation_generations WHERE stage<>'build' AND strpos(recipe_json,'"dependency_set_id"')>0 AND pg_input_is_valid(recipe_json,'json'){where}""",
         args,
     ):
         if continuity[0]:
@@ -442,8 +444,7 @@ def _recipe_names(
         else "NULL"
     )
     for rowid, pack_digest in conn.execute(
-        f"SELECT g.rowid,{pack} FROM derivation_generations g WHERE g.stage='build'"
-        f"{where.replace('rowid', 'g.rowid')}",
+        f"SELECT g.rowid,{pack} FROM derivation_generations g WHERE g.stage='build'{where.replace('rowid', 'g.rowid')}",
         args,
     ).fetchall():
         chunks: Iterable[bytes]
@@ -455,13 +456,13 @@ def _recipe_names(
     return names
 
 
-def _equivalence_names(conn: sqlite3.Connection, after: int) -> list[str]:
+def _equivalence_names(conn: engine.Connection, after: int) -> list[str]:
     if not _has_table(conn, "derivation_equivalences"):
         return []
     names = [
         str(row[0])
         for row in conn.execute(
-            "SELECT DISTINCT dependency_set_id FROM derivation_equivalences WHERE rowid>?",
+            "SELECT DISTINCT dependency_set_id FROM derivation_equivalences WHERE rowid > %s",
             (after,),
         )
     ]
@@ -469,10 +470,9 @@ def _equivalence_names(conn: sqlite3.Connection, after: int) -> list[str]:
         names.extend(
             str(row[0])
             for row in conn.execute(
-                "SELECT DISTINCT json_extract(r.recipe_json,'$.continuity.dependency_set_id') "
-                "FROM derivation_equivalences e JOIN derivation_recipes r "
-                "ON r.recipe_sha256=e.recipe_sha256 WHERE e.rowid>? "
-                "AND instr(r.recipe_json,'\"dependency_set_id\"')>0 AND json_valid(r.recipe_json)",
+                (
+                    "SELECT DISTINCT JSON_EXTRACT_PATH_TEXT(CAST(r.recipe_json AS JSON), 'continuity', 'dependency_set_id') AS _value_0 FROM derivation_equivalences AS e JOIN derivation_recipes AS r ON r.recipe_sha256 = e.recipe_sha256 WHERE e.rowid > %s AND POSITION('\"dependency_set_id\"' IN r.recipe_json) > 0 AND PG_INPUT_IS_VALID(r.recipe_json, 'json')"
+                ),
                 (after,),
             )
             if row[0]
@@ -480,13 +480,15 @@ def _equivalence_names(conn: sqlite3.Connection, after: int) -> list[str]:
     return names
 
 
-def _named_in(conn: sqlite3.Connection, rowid: int) -> Iterator[str]:
+def _named_in(conn: engine.Connection, rowid: int) -> Iterator[str]:
     """Names a JSON-array set gives other sets, read in bounded chunks.
 
     A proof (a JSON object) names none. A match inside a member's data only
     keeps more, never less.
     """
-    with conn.blobopen("derivation_dependency_sets", "manifest_json", rowid, readonly=True) as blob:
+    with column_reader(
+        conn, "derivation_dependency_sets", "manifest_json", rowid, readonly=True
+    ) as blob:
         if blob.read(1) != b"[":
             return
     yield from _scan(
@@ -494,14 +496,14 @@ def _named_in(conn: sqlite3.Connection, rowid: int) -> Iterator[str]:
     )
 
 
-def _expand(conn: sqlite3.Connection) -> int:
+def _expand(conn: engine.Connection) -> int:
     """Follow every queued root's names until no root is left to read."""
     read = 0
     while True:
         queued = conn.execute(
-            "SELECT r.id,d.rowid FROM temp.collect_set_roots r "
-            "LEFT JOIN derivation_dependency_sets d ON d.dependency_set_id=r.id "
-            "WHERE r.expanded=0 LIMIT ?",
+            (
+                "SELECT r.id, d.rowid FROM pg_temp.collect_set_roots AS r LEFT JOIN derivation_dependency_sets AS d ON d.dependency_set_id = r.id WHERE r.expanded = 0 LIMIT %s"
+            ),
             (BATCH,),
         ).fetchall()
         if not queued:
@@ -516,25 +518,26 @@ def _expand(conn: sqlite3.Connection) -> int:
                         _root_ids(conn, batch)
                         batch.clear()
                 _root_ids(conn, batch)
-            conn.execute("UPDATE temp.collect_set_roots SET expanded=1 WHERE id=?", (set_id,))
+            conn.execute(
+                "UPDATE pg_temp.collect_set_roots SET expanded = 1 WHERE id = %s", (set_id,)
+            )
 
 
-def _max_rowid(conn: sqlite3.Connection, table: str) -> int:
+def _max_rowid(conn: engine.Connection, table: str) -> int:
     if not _has_table(conn, table):
         return 0
     return int(conn.execute(f"SELECT coalesce(max(rowid),0) FROM {table}").fetchone()[0])
 
 
 def _mark_sets(
-    conn: sqlite3.Connection, state_dir: Path, before: str, marks: _Marks
+    conn: engine.Connection, state_dir: Path, before: str, marks: _Marks
 ) -> dict[str, Any]:
     """Fill the set roots and victims; returns the counts by rule."""
     marks.generations = _max_rowid(conn, "derivation_generations")
     marks.equivalences = _max_rowid(conn, "derivation_equivalences")
     marks.sets = marks.first_sets = _max_rowid(conn, "derivation_dependency_sets")
     conn.execute(
-        "INSERT OR IGNORE INTO temp.collect_set_roots(id,expanded) "
-        "SELECT DISTINCT dependency_set_id,0 FROM derivation_generations"
+        "INSERT INTO pg_temp.collect_set_roots (id, expanded) SELECT DISTINCT dependency_set_id, 0 FROM derivation_generations ON CONFLICT DO NOTHING"
     )
     _root_ids(conn, _equivalence_names(conn, 0))
     _root_ids(
@@ -542,45 +545,40 @@ def _mark_sets(
         (
             str(row[0])
             for row in conn.execute(
-                "SELECT DISTINCT materialized_signature FROM derivation_scopes "
-                "WHERE materialized_signature IS NOT NULL"
+                "SELECT DISTINCT materialized_signature FROM derivation_scopes WHERE NOT materialized_signature IS NULL"
             )
         ),
     )
     _root_ids(conn, _recipe_names(conn, state_dir, ""))
     _root_ids(conn, _candidate_names(state_dir, marks.candidates))
-    direct = int(conn.execute("SELECT count(*) FROM temp.collect_set_roots").fetchone()[0])
+    direct = int(
+        conn.execute("SELECT COUNT(*) AS _value_0 FROM pg_temp.collect_set_roots").fetchone()[0]
+    )
     expanded = _expand(conn)
     young = (
-        "(d.created_at IS NOT NULL AND julianday(d.created_at)>=julianday(?))"
+        "(d.created_at IS NOT NULL AND ops.try_timestamp(d.created_at)>=ops.try_timestamp(%s))"
         if _has_column(conn, "derivation_dependency_sets", "created_at")
-        else "(0 AND ? IS NULL)"
+        else "(false AND CAST(%s AS TEXT) IS NULL)"
     )
     # Only unrooted sets are read past their id: created_at follows a value
     # of up to hundreds of megabytes, and reading it walks that value's pages.
     conn.execute(
-        "INSERT INTO temp.collect_set_candidates(id,size,young) "
-        f"SELECT d.dependency_set_id,octet_length(d.manifest_json),{young} "
-        "FROM derivation_dependency_sets d WHERE NOT EXISTS("
-        "SELECT 1 FROM temp.collect_set_roots r WHERE r.id=d.dependency_set_id)",
+        f"INSERT INTO pg_temp.collect_set_candidates(id,size,young) SELECT d.dependency_set_id,octet_length(d.manifest_json),{young} FROM derivation_dependency_sets d WHERE NOT EXISTS(SELECT 1 FROM pg_temp.collect_set_roots r WHERE r.id=d.dependency_set_id)",
         (before,),
     )
     conn.execute(
-        "INSERT OR IGNORE INTO temp.collect_set_roots(id,expanded) "
-        "SELECT id,0 FROM temp.collect_set_candidates WHERE young"
+        "INSERT INTO pg_temp.collect_set_roots (id, expanded) SELECT id, 0 FROM pg_temp.collect_set_candidates WHERE young ON CONFLICT DO NOTHING"
     )
     expanded += _expand(conn)
     # The highest set is never deleted (`_catch_up`), so it is no victim either.
     conn.execute(
-        "INSERT INTO temp.collect_victims(class,key,size) "
-        "SELECT 'dependency_set',c.id,c.size FROM temp.collect_set_candidates c "
-        "WHERE NOT EXISTS(SELECT 1 FROM temp.collect_set_roots r WHERE r.id=c.id) "
-        "AND c.id IS NOT (SELECT dependency_set_id FROM derivation_dependency_sets WHERE rowid=?)",
+        (
+            "INSERT INTO pg_temp.collect_victims (class, key, size) SELECT 'dependency_set', c.id, c.size FROM pg_temp.collect_set_candidates AS c WHERE NOT EXISTS(SELECT 1 FROM pg_temp.collect_set_roots AS r WHERE r.id = c.id) AND c.id IS DISTINCT FROM (SELECT dependency_set_id FROM derivation_dependency_sets WHERE rowid = %s)"
+        ),
         (marks.first_sets,),
     )
     roots, young_count = conn.execute(
-        "SELECT (SELECT count(*) FROM temp.collect_set_roots),"
-        "(SELECT count(*) FROM temp.collect_set_candidates WHERE young)"
+        "SELECT (SELECT COUNT(*) AS _value_0 FROM pg_temp.collect_set_roots) AS _value_0, (SELECT COUNT(*) AS _value_0 FROM pg_temp.collect_set_candidates WHERE young) AS _value_1"
     ).fetchone()
     return {
         "roots": int(roots),
@@ -591,16 +589,17 @@ def _mark_sets(
     }
 
 
-def _catch_up(conn: sqlite3.Connection, state_dir: Path, marks: _Marks) -> None:
+def _catch_up(conn: engine.Connection, state_dir: Path, marks: _Marks) -> None:
     """Add the roots of everything committed since the mark (inside a write)."""
     generations = _max_rowid(conn, "derivation_generations")
     if generations > marks.generations:
         conn.execute(
-            "INSERT OR IGNORE INTO temp.collect_set_roots(id,expanded) "
-            "SELECT DISTINCT dependency_set_id,0 FROM derivation_generations WHERE rowid>?",
+            (
+                "INSERT INTO pg_temp.collect_set_roots (id, expanded) SELECT DISTINCT dependency_set_id, 0 FROM derivation_generations WHERE rowid > %s ON CONFLICT DO NOTHING"
+            ),
             (marks.generations,),
         )
-        _root_ids(conn, _recipe_names(conn, state_dir, " AND rowid>?", (marks.generations,)))
+        _root_ids(conn, _recipe_names(conn, state_dir, " AND rowid>%s", (marks.generations,)))
         marks.generations = generations
     equivalences = _max_rowid(conn, "derivation_equivalences")
     if equivalences > marks.equivalences:
@@ -609,8 +608,9 @@ def _catch_up(conn: sqlite3.Connection, state_dir: Path, marks: _Marks) -> None:
     sets = _max_rowid(conn, "derivation_dependency_sets")
     if sets > marks.sets:
         conn.execute(
-            "INSERT OR IGNORE INTO temp.collect_set_roots(id,expanded) "
-            "SELECT dependency_set_id,0 FROM derivation_dependency_sets WHERE rowid>?",
+            (
+                "INSERT INTO pg_temp.collect_set_roots (id, expanded) SELECT dependency_set_id, 0 FROM derivation_dependency_sets WHERE rowid > %s ON CONFLICT DO NOTHING"
+            ),
             (marks.sets,),
         )
         marks.sets = sets
@@ -633,34 +633,34 @@ class _Mark:
         return str(self.content["digest"])
 
 
-def _mark_objects(conn: sqlite3.Connection, cls: str, before: str) -> str | None:
+def _mark_objects(conn: engine.Connection, cls: str, before: str) -> str | None:
     if not _has_table(conn, "objects") or not _has_table(conn, _OBJECT_TABLES[cls]):
         return "absent"
     conn.execute(
-        "INSERT INTO temp.collect_victims(class,key,size) SELECT o.class,o.digest,o.stored_bytes "
-        "FROM objects o WHERE o.class=? AND julianday(o.stored_at)<julianday(?) "
-        f"AND NOT EXISTS({_OBJECT_ROOTS[cls]})",
+        f"INSERT INTO pg_temp.collect_victims(class,key,size) SELECT o.class,o.digest,o.stored_bytes FROM objects o WHERE o.class=%s AND ops.try_timestamp(o.stored_at)<ops.try_timestamp(%s) AND NOT EXISTS({_OBJECT_ROOTS[cls]})",
         (cls, before),
     )
     return None
 
 
 def _manifest_young(
-    conn: sqlite3.Connection, state_dir: Path, digest: str, before: datetime
+    conn: engine.Connection, state_dir: Path, digest: str, before: datetime
 ) -> bool:
     """Whether any trace of a manifest is younger than the cutoff."""
     from .retention import legacy_manifest_file
 
     stamp = before.isoformat()
     young = conn.execute(
-        "SELECT EXISTS(SELECT 1 FROM release_manifests WHERE manifest_digest=? "
-        "AND NOT julianday(created_at)<julianday(?))",
+        (
+            "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM release_manifests WHERE manifest_digest = %s AND NOT (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(created_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)) AS INTEGER) AS _value_0"
+        ),
         (digest, stamp),
     ).fetchone()[0]
     if not young and _has_table(conn, "objects"):
         young = conn.execute(
-            "SELECT EXISTS(SELECT 1 FROM objects WHERE class='release_manifest' AND digest=? "
-            "AND NOT julianday(stored_at)<julianday(?))",
+            (
+                "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM objects WHERE class = 'release_manifest' AND digest = %s AND NOT (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(stored_at)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5) < (CAST(EXTRACT(EPOCH FROM ops.try_timestamp(%s)) AS DOUBLE PRECISION) / 86400.0 + 2440587.5)) AS INTEGER) AS _value_0"
+            ),
             (digest, stamp),
         ).fetchone()[0]
     if young:
@@ -683,7 +683,7 @@ def _manifest_paths(state_dir: Path, digest: str) -> tuple[Path, Path]:
     )
 
 
-def _manifest_digests(conn: sqlite3.Connection, state_dir: Path) -> list[str]:
+def _manifest_digests(conn: engine.Connection, state_dir: Path) -> list[str]:
     """Every manifest the state knows of: object rows, release rows, phase 3 files."""
     from .retention import partition_root
 
@@ -697,13 +697,13 @@ def _manifest_digests(conn: sqlite3.Connection, state_dir: Path) -> list[str]:
     return sorted(found)
 
 
-def _mark_manifests(conn: sqlite3.Connection, state_dir: Path, before: datetime) -> str | None:
+def _mark_manifests(conn: engine.Connection, state_dir: Path, before: datetime) -> str | None:
     if not _has_table(conn, "release_manifests"):
         return "absent"
     _manifest_roots(conn, state_dir)
     for digest in _manifest_digests(conn, state_dir):
         if conn.execute(
-            "SELECT 1 FROM temp.collect_manifest_roots WHERE digest=?", (digest,)
+            "SELECT 1 AS _value_0 FROM pg_temp.collect_manifest_roots WHERE digest = %s", (digest,)
         ).fetchone() or _manifest_young(conn, state_dir, digest, before):
             continue
         _victim(
@@ -715,7 +715,7 @@ def _mark_manifests(conn: sqlite3.Connection, state_dir: Path, before: datetime)
     return None
 
 
-def _mark_artifacts(conn: sqlite3.Connection, state_dir: Path, before: datetime) -> str | None:
+def _mark_artifacts(conn: engine.Connection, state_dir: Path, before: datetime) -> str | None:
     from .retention import artifact_directory, partition_root
 
     if not _has_table(conn, "release_artifacts"):
@@ -723,9 +723,7 @@ def _mark_artifacts(conn: sqlite3.Connection, state_dir: Path, before: datetime)
     if not _artifact_roots(conn, state_dir):
         return "unreadable"
     for digest, last_named in conn.execute(
-        "SELECT a.artifact_digest,a.last_named_at FROM release_artifacts a "
-        "WHERE NOT EXISTS(SELECT 1 FROM temp.collect_artifact_roots r "
-        "WHERE r.digest=a.artifact_digest) ORDER BY a.artifact_digest"
+        "SELECT a.artifact_digest, a.last_named_at FROM release_artifacts AS a WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM pg_temp.collect_artifact_roots AS r WHERE r.digest = a.artifact_digest) ORDER BY a.artifact_digest NULLS FIRST"
     ).fetchall():
         if datetime.fromisoformat(str(last_named)) < before:
             _victim(
@@ -749,8 +747,9 @@ def _mark_artifacts(conn: sqlite3.Connection, state_dir: Path, before: datetime)
             if not _is_digest(digest) or not _older(directory, before):
                 continue
             if conn.execute(
-                "SELECT EXISTS(SELECT 1 FROM temp.collect_artifact_roots WHERE digest=?) "
-                "OR EXISTS(SELECT 1 FROM release_artifacts WHERE artifact_digest=?)",
+                (
+                    "SELECT CAST(EXISTS(SELECT 1 AS _value_0 FROM pg_temp.collect_artifact_roots WHERE digest = %s) OR EXISTS(SELECT 1 AS _value_0 FROM release_artifacts WHERE artifact_digest = %s) AS INTEGER) AS _value_0"
+                ),
                 (digest, digest),
             ).fetchone()[0]:
                 continue
@@ -759,18 +758,18 @@ def _mark_artifacts(conn: sqlite3.Connection, state_dir: Path, before: datetime)
 
 
 def _mark_dependency_sets(
-    conn: sqlite3.Connection, state_dir: Path, before: str, marks: _Marks
+    conn: engine.Connection, state_dir: Path, before: str, marks: _Marks
 ) -> tuple[str | None, dict[str, Any]]:
     if not _has_table(conn, "derivation_dependency_sets"):
         return "absent", {}
     try:
         return None, _mark_sets(conn, state_dir, before, marks)
     except CollectError as error:
-        conn.execute("DELETE FROM temp.collect_victims WHERE class='dependency_set'")
+        conn.execute("DELETE FROM pg_temp.collect_victims WHERE class = 'dependency_set'")
         return f"refused: {error}", {}
 
 
-def _mark_orphans(conn: sqlite3.Connection, state_dir: Path, before: datetime) -> dict[str, str]:
+def _mark_orphans(conn: engine.Connection, state_dir: Path, before: datetime) -> dict[str, str]:
     store = objects.Store(state_dir)
     if store.root.is_dir():
         for path in sorted(store.root.iterdir()):
@@ -791,7 +790,8 @@ def _mark_orphans(conn: sqlite3.Connection, state_dir: Path, before: datetime) -
                     if not _is_digest(path.name) or not path.is_file():
                         continue
                     if conn.execute(
-                        "SELECT 1 FROM objects WHERE class=? AND digest=?", (cls, path.name)
+                        "SELECT 1 AS _value_0 FROM objects WHERE class = %s AND digest = %s",
+                        (cls, path.name),
                     ).fetchone():
                         continue
                     if _older(path, before):
@@ -800,10 +800,7 @@ def _mark_orphans(conn: sqlite3.Connection, state_dir: Path, before: datetime) -
         absent["unindexed"] = "absent"
     if _storage_gate(conn) and _has_table(conn, "derivation_row_refs"):
         conn.execute(
-            "INSERT INTO temp.collect_victims(class,key,size) "
-            "SELECT 'partial_refs',g.generation_id,"
-            "(SELECT count(*) FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) "
-            f"FROM derivation_generations g WHERE {_PARTIAL}",
+            f"INSERT INTO pg_temp.collect_victims(class,key,size) SELECT 'partial_refs',g.generation_id,(SELECT count(*) FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) FROM derivation_generations g WHERE {_PARTIAL}",
             (before.isoformat(),),
         )
     else:
@@ -813,48 +810,35 @@ def _mark_orphans(conn: sqlite3.Connection, state_dir: Path, before: datetime) -
 
 #: A partial generation (its last reference is missing) that is old, not
 #: evicted, and that no pointer, equivalence or building row names (D-0217).
-_PARTIAL = (
-    "g.row_count>0 AND julianday(g.created_at)<julianday(?) "
-    "AND EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) "
-    "AND NOT EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=g.generation_id "
-    "AND r.ordinal=g.row_count-1) "
-    "AND NOT EXISTS(SELECT 1 FROM derivation_evicted e WHERE e.generation_id=g.generation_id) "
-    "AND NOT EXISTS(SELECT 1 FROM derivation_scopes s "
-    "WHERE s.materialized_generation_id=g.generation_id) "
-    "AND NOT EXISTS(SELECT 1 FROM derivation_equivalences q WHERE q.generation_id=g.generation_id) "
-    "AND NOT EXISTS(SELECT 1 FROM derivation_building b WHERE b.generation_id=g.generation_id)"
-)
+_PARTIAL = "g.row_count>0 AND ops.try_timestamp(g.created_at)<ops.try_timestamp(%s) AND EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) AND NOT EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=g.generation_id AND r.ordinal=g.row_count-1) AND NOT EXISTS(SELECT 1 FROM derivation_evicted e WHERE e.generation_id=g.generation_id) AND NOT EXISTS(SELECT 1 FROM derivation_scopes s WHERE s.materialized_generation_id=g.generation_id) AND NOT EXISTS(SELECT 1 FROM derivation_equivalences q WHERE q.generation_id=g.generation_id) AND NOT EXISTS(SELECT 1 FROM derivation_building b WHERE b.generation_id=g.generation_id)"
 
 
-def _create_temporary(conn: sqlite3.Connection) -> None:
+def _create_temporary(conn: engine.Connection) -> None:
     _drop_temporary(conn)
     conn.execute(
-        "CREATE TEMP TABLE collect_victims(class TEXT NOT NULL, key TEXT NOT NULL, "
-        "size INTEGER NOT NULL, PRIMARY KEY(class,key)) WITHOUT ROWID"
+        "CREATE TEMP TABLE collect_victims(class TEXT NOT NULL, key TEXT NOT NULL, size BIGINT NOT NULL, PRIMARY KEY(class,key))"
     )
     conn.execute(
-        "CREATE TEMP TABLE collect_set_roots(id TEXT PRIMARY KEY, expanded INTEGER NOT NULL) "
-        "WITHOUT ROWID"
+        "CREATE TEMP TABLE collect_set_roots(id TEXT PRIMARY KEY, expanded BIGINT NOT NULL)"
     )
     conn.execute(
-        "CREATE INDEX temp.collect_set_roots_queue ON collect_set_roots(expanded) WHERE expanded=0"
+        "CREATE INDEX collect_set_roots_queue ON collect_set_roots(expanded) WHERE expanded=0"
     )
     conn.execute(
-        "CREATE TEMP TABLE collect_set_candidates(id TEXT PRIMARY KEY, size INTEGER NOT NULL, "
-        "young INTEGER NOT NULL) WITHOUT ROWID"
+        "CREATE TEMP TABLE collect_set_candidates(id TEXT PRIMARY KEY, size BIGINT NOT NULL, young BOOLEAN NOT NULL)"
     )
-    conn.execute("CREATE TEMP TABLE collect_manifest_roots(digest TEXT PRIMARY KEY) WITHOUT ROWID")
-    conn.execute("CREATE TEMP TABLE collect_artifact_roots(digest TEXT PRIMARY KEY) WITHOUT ROWID")
-    conn.execute("CREATE TEMP TABLE collect_batch(key TEXT PRIMARY KEY) WITHOUT ROWID")
+    conn.execute("CREATE TEMP TABLE collect_manifest_roots(digest TEXT PRIMARY KEY)")
+    conn.execute("CREATE TEMP TABLE collect_artifact_roots(digest TEXT PRIMARY KEY)")
+    conn.execute("CREATE TEMP TABLE collect_batch(key TEXT PRIMARY KEY)")
 
 
-def _schema(conn: sqlite3.Connection) -> int:
-    row = conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
+def _schema(conn: engine.Connection) -> int:
+    row = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
     return int(row[0]) if row else 0
 
 
 def _mark(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     now: datetime,
     classes: tuple[str, ...] = CLASSES,
@@ -862,7 +846,7 @@ def _mark(
 ) -> _Mark:
     """Fill the victim lists in one read snapshot; digest them, sorted.
 
-    Call inside `sqlite_temp_directory`: the temporary tables live there.
+    Call inside `temporary_directory`; SQL temporary tables live on the server.
     """
     before = cutoff(now)
     stamp = before.isoformat()
@@ -870,7 +854,7 @@ def _mark(
     marks = _Marks()
     state: dict[str, str] = {}
     details: dict[str, Any] = {}
-    conn.execute("BEGIN")
+    conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
     try:
         for cls in classes:
             if cls not in CLASSES:
@@ -899,23 +883,26 @@ def _mark(
                 if name in orphans:
                     state[name] = reason
             conn.execute(
-                "DELETE FROM temp.collect_victims WHERE class IN ("
-                + ",".join("?" * len(ORPHANS))
+                "DELETE FROM pg_temp.collect_victims WHERE class IN ("
+                + ",".join(["%s"] * len(ORPHANS))
                 + ") AND class NOT IN ("
-                + ",".join("?" * len(orphans))
+                + ",".join(["%s"] * len(orphans))
                 + ")",
                 (*ORPHANS, *orphans),
             )
-        conn.execute("COMMIT")
+        conn.commit()
     except BaseException:
-        conn.execute("ROLLBACK")
+        if not conn.closed:
+            with contextlib.suppress(engine.Error):
+                conn.rollback()
         raise
     summary: dict[str, Any] = {}
     for cls in (*classes, *orphans):
         hasher = hashlib.sha256()
         count = size = 0
         for key, value in conn.execute(
-            "SELECT key,size FROM temp.collect_victims WHERE class=? ORDER BY key", (cls,)
+            "SELECT key, size FROM pg_temp.collect_victims WHERE class = %s ORDER BY key NULLS FIRST",
+            (cls,),
         ):
             hasher.update(f"{key}\t{value}\n".encode())
             count += 1
@@ -951,18 +938,20 @@ def _never() -> bool:
 
 #: What one class's failure is, in the mark or the sweep: anything but a
 #: stop of the process. It is recorded as `error: ...` and the next class runs.
-CLASS_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, sqlite3.Error)
+CLASS_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, engine.Error)
 
 
 def _error(error: BaseException) -> str:
     return f"error: {type(error).__name__}: {error}"[:300]
 
 
-def _batch(conn: sqlite3.Connection, cls: str, after: str) -> list[tuple[str, int]]:
+def _batch(conn: engine.Connection, cls: str, after: str) -> list[tuple[str, int]]:
     return [
         (str(key), int(size))
         for key, size in conn.execute(
-            "SELECT key,size FROM temp.collect_victims WHERE class=? AND key>? ORDER BY key LIMIT ?",
+            (
+                "SELECT key, size FROM pg_temp.collect_victims WHERE class = %s AND key > %s ORDER BY key NULLS FIRST LIMIT %s"
+            ),
             (cls, after, BATCH),
         )
     ]
@@ -1005,9 +994,7 @@ def _sweep_objects(database: Database, cls: str, before: str, stop: Callable[[],
             after = batch[-1][0]
             for digest, size in batch:
                 if conn.execute(
-                    "DELETE FROM objects AS o WHERE o.class=? AND o.digest=? "
-                    "AND julianday(o.stored_at)<julianday(?) "
-                    f"AND NOT EXISTS({_OBJECT_ROOTS[cls]})",
+                    f"DELETE FROM objects AS o WHERE o.class=%s AND o.digest=%s AND ops.try_timestamp(o.stored_at)<ops.try_timestamp(%s) AND NOT EXISTS({_OBJECT_ROOTS[cls]})",
                     (cls, digest, before),
                 ).rowcount:
                     moved.away(cls, digest)
@@ -1079,15 +1066,16 @@ def _sweep_manifests(database: Database, before: datetime, stop: Callable[[], bo
             _manifest_roots(conn, state_dir)
             for digest, _ in batch:
                 if conn.execute(
-                    "SELECT 1 FROM temp.collect_manifest_roots WHERE digest=?", (digest,)
+                    "SELECT 1 AS _value_0 FROM pg_temp.collect_manifest_roots WHERE digest = %s",
+                    (digest,),
                 ).fetchone() or _manifest_young(conn, state_dir, digest, before):
                     continue
                 if _has_table(conn, "objects"):
                     conn.execute(
-                        "DELETE FROM objects WHERE class='release_manifest' AND digest=?",
+                        "DELETE FROM objects WHERE class = 'release_manifest' AND digest = %s",
                         (digest,),
                     )
-                conn.execute("DELETE FROM release_manifests WHERE manifest_digest=?", (digest,))
+                conn.execute("DELETE FROM release_manifests WHERE manifest_digest = %s", (digest,))
                 tally.size += moved.away("release_manifest", digest)
                 paths.append(_manifest_paths(state_dir, digest)[1])
                 tally.removed += 1
@@ -1125,17 +1113,18 @@ def _sweep_artifacts(database: Database, before: datetime, stop: Callable[[], bo
                         tally.extra["temporary"] += 1
                     continue
                 if conn.execute(
-                    "SELECT 1 FROM temp.collect_artifact_roots WHERE digest=?", (key,)
+                    "SELECT 1 AS _value_0 FROM pg_temp.collect_artifact_roots WHERE digest = %s",
+                    (key,),
                 ).fetchone():
                     continue
                 row = conn.execute(
-                    "SELECT last_named_at FROM release_artifacts WHERE artifact_digest=?", (key,)
+                    "SELECT last_named_at FROM release_artifacts WHERE artifact_digest = %s", (key,)
                 ).fetchone()
                 directory = artifact_directory(state_dir, key)
                 if row is not None:
                     if datetime.fromisoformat(str(row[0])) >= before:
                         continue
-                    conn.execute("DELETE FROM release_artifacts WHERE artifact_digest=?", (key,))
+                    conn.execute("DELETE FROM release_artifacts WHERE artifact_digest = %s", (key,))
                     tally.extra["rows"] += 1
                 elif not _older(directory, before):
                     continue
@@ -1161,7 +1150,7 @@ def _beside_backup(
     """
     from . import rwlock
 
-    held = rwlock.try_loop(database.state_dir, BACKUP_LOOP)
+    held = rwlock.try_loop(database.state_dir, BACKUP_LOOP, connection=database.connection)
     if held is None:
         return _Tally(stopped="backup_running")
     try:
@@ -1172,28 +1161,19 @@ def _beside_backup(
         held.release()
 
 
-def _lift(conn: sqlite3.Connection, reason: str, now: datetime) -> str | None:
+def _lift(conn: engine.Connection, reason: str, now: datetime) -> str | None:
     """Open the set no-delete guard for this transaction; returns what restores it."""
-    if _storage_gate(conn):
-        conn.execute(
-            "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) VALUES (1,?,?)",
-            (reason, objects.stamp(now)),
-        )
-        return None
-    trigger = conn.execute(
-        "SELECT sql FROM sqlite_master WHERE type='trigger' AND name=?", (_NO_DELETE,)
-    ).fetchone()
-    if trigger is None:
-        raise CollectError(f"the {_NO_DELETE} trigger is missing")
-    conn.execute(f"DROP TRIGGER {_NO_DELETE}")
-    return str(trigger[0])
+    if not _storage_gate(conn):
+        raise CollectError("dependency-set collection requires the storage eviction authority")
+    conn.execute(
+        "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) VALUES(1,%s,%s)",
+        (reason, objects.stamp(now)),
+    )
+    return None
 
 
-def _restore(conn: sqlite3.Connection, trigger: str | None) -> None:
-    if trigger is None:
-        conn.execute("DELETE FROM storage_eviction_authority")
-    else:
-        conn.execute(trigger)
+def _restore(conn: engine.Connection, trigger: str | None) -> None:
+    conn.execute("DELETE FROM storage_eviction_authority")
 
 
 def _sweep_sets(
@@ -1202,9 +1182,9 @@ def _sweep_sets(
     tally = _Tally()
     conn = database.connection
     young = (
-        " AND (d.created_at IS NULL OR julianday(d.created_at)<julianday(?))"
+        " AND (d.created_at IS NULL OR ops.try_timestamp(d.created_at)<ops.try_timestamp(%s))"
         if _has_column(conn, "derivation_dependency_sets", "created_at")
-        else " AND ? IS NOT NULL"
+        else " AND CAST(%s AS TEXT) IS NOT NULL"
     )
     equivalences = (
         " AND NOT EXISTS(SELECT 1 FROM derivation_equivalences q "
@@ -1213,16 +1193,7 @@ def _sweep_sets(
         else ""
     )
     # Every rule again, in the deleting transaction, after catching up.
-    statement = (
-        "DELETE FROM derivation_dependency_sets AS d WHERE d.dependency_set_id IN "
-        "(SELECT key FROM temp.collect_batch) AND d.rowid<? "
-        "AND NOT EXISTS(SELECT 1 FROM temp.collect_set_roots r WHERE r.id=d.dependency_set_id) "
-        "AND NOT EXISTS(SELECT 1 FROM derivation_generations g "
-        "WHERE g.dependency_set_id=d.dependency_set_id) "
-        "AND d.dependency_set_id NOT IN (SELECT materialized_signature "
-        "FROM derivation_scopes WHERE materialized_signature IS NOT NULL)"
-        f"{equivalences}{young}"
-    )
+    statement = f"DELETE FROM derivation_dependency_sets AS d WHERE d.dependency_set_id IN (SELECT key FROM pg_temp.collect_batch) AND d.rowid<%s AND NOT EXISTS(SELECT 1 FROM pg_temp.collect_set_roots r WHERE r.id=d.dependency_set_id) AND NOT EXISTS(SELECT 1 FROM derivation_generations g WHERE g.dependency_set_id=d.dependency_set_id) AND d.dependency_set_id NOT IN (SELECT materialized_signature FROM derivation_scopes WHERE materialized_signature IS NOT NULL){equivalences}{young}"
     after: str | None = ""
     while after is not None:
         if stop():
@@ -1254,9 +1225,9 @@ def _delete_sets(
         if not batch:
             return None
         _catch_up(conn, database.state_dir, marks)
-        conn.execute("DELETE FROM temp.collect_batch")
+        conn.execute("DELETE FROM pg_temp.collect_batch")
         conn.executemany(
-            "INSERT INTO temp.collect_batch(key) VALUES (?)", ((key,) for key, _ in batch)
+            "INSERT INTO pg_temp.collect_batch (key) VALUES (%s)", ((key,) for key, _ in batch)
         )
         trigger = _lift(conn, "collect dependency sets", now)
         try:
@@ -1264,10 +1235,7 @@ def _delete_sets(
         finally:
             _restore(conn, trigger)
         count, size = conn.execute(
-            "SELECT count(*),coalesce(sum(v.size),0) FROM temp.collect_batch b "
-            "JOIN temp.collect_victims v ON v.class='dependency_set' AND v.key=b.key "
-            "WHERE NOT EXISTS(SELECT 1 FROM derivation_dependency_sets d "
-            "WHERE d.dependency_set_id=b.key)"
+            "SELECT COUNT(*) AS _value_0, COALESCE(CAST(SUM(v.size) AS BIGINT), 0) AS _value_1 FROM pg_temp.collect_batch AS b JOIN pg_temp.collect_victims AS v ON v.class = 'dependency_set' AND v.key = b.key WHERE NOT EXISTS(SELECT 1 AS _value_0 FROM derivation_dependency_sets AS d WHERE d.dependency_set_id = b.key)"
         ).fetchone()
         tally.removed += int(count)
         tally.size += int(size)
@@ -1309,7 +1277,8 @@ def _sweep_unindexed(database: Database, before: datetime, stop: Callable[[], bo
                 if not path.is_file() or not _older(path, before):
                     continue
                 if conn.execute(
-                    "SELECT 1 FROM objects WHERE class=? AND digest=?", (cls, digest)
+                    "SELECT 1 AS _value_0 FROM objects WHERE class = %s AND digest = %s",
+                    (cls, digest),
                 ).fetchone():
                     continue
                 tally.size += _remove(path)
@@ -1346,31 +1315,32 @@ def _sweep_partial(
                         tally.stopped = "publication_active"
                         return tally
                     if not conn.execute(
-                        f"SELECT 1 FROM derivation_generations g WHERE g.generation_id=? "
-                        f"AND {_PARTIAL}",
+                        f"SELECT 1 FROM derivation_generations g WHERE g.generation_id=%s AND {_PARTIAL}",
                         (generation_id, before),
                     ).fetchone():
                         break
                     chunk = conn.execute(
-                        "SELECT ordinal,payload_sha256 FROM derivation_row_refs "
-                        "WHERE generation_id=? ORDER BY ordinal DESC LIMIT ?",
+                        (
+                            "SELECT ordinal, payload_sha256 FROM derivation_row_refs WHERE generation_id = %s ORDER BY "
+                            "ordinal DESC NULLS LAST LIMIT %s"
+                        ),
                         (generation_id, CHUNK_ROWS),
                     ).fetchall()
                     conn.execute(
-                        "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
-                        "VALUES (1,?,?)",
+                        "INSERT INTO storage_eviction_authority (singleton, reason, granted_at) VALUES (1, %s, %s)",
                         ("collect partial " + generation_id, objects.stamp(now)),
                     )
                     try:
                         deleted = conn.execute(
-                            "DELETE FROM derivation_row_refs WHERE generation_id=? AND ordinal>=?",
+                            "DELETE FROM derivation_row_refs WHERE generation_id = %s AND ordinal >= %s",
                             (generation_id, int(chunk[-1][0])),
                         ).rowcount
                         for payload in sorted({str(row[1]) for row in chunk}):
                             tally.extra["payloads"] += conn.execute(
-                                "DELETE FROM derivation_payloads WHERE payload_sha256=? "
-                                "AND NOT EXISTS(SELECT 1 FROM derivation_row_refs "
-                                "WHERE payload_sha256=?)",
+                                (
+                                    "DELETE FROM derivation_payloads WHERE payload_sha256 = %s AND NOT EXISTS(SELECT 1 FROM "
+                                    "derivation_row_refs WHERE payload_sha256 = %s)"
+                                ),
                                 (payload, payload),
                             ).rowcount
                     finally:
@@ -1437,12 +1407,8 @@ def _require_hold(database: Database, classes: tuple[str, ...]) -> None:
         )
 
 
-def _usage(conn: sqlite3.Connection) -> dict[str, int]:
-    return {
-        "page_size": int(conn.execute("PRAGMA page_size").fetchone()[0]),
-        "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
-        "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
-    }
+def _usage(conn: engine.Connection) -> dict[str, Any]:
+    return disk.database_usage(conn)
 
 
 def sweep(
@@ -1463,8 +1429,8 @@ def sweep(
         raise CollectError("the collector cannot run inside a transaction")
     _require_hold(database, classes)
     started = time.monotonic()
-    # Deletes free pages without zeroing them through the WAL (`disk.fast_delete`).
-    with sqlite_temp_directory(conn, database.state_dir), disk.fast_delete(conn):
+    # Deletion remains subject to the storage eviction authority.
+    with temporary_directory(conn, database.state_dir), disk.fast_delete(conn):
         try:
             mark = _mark(conn, database.state_dir, now, classes, orphans)
             swept = _sweep_marked(database, mark, now, stop or _never)
@@ -1522,7 +1488,9 @@ def collect_artifacts(database: Database, *, now: datetime) -> dict[str, int]:
     result["bytes"] += int(artifacts["bytes"]) + int(manifests["bytes"])
     if _has_table(database.connection, "release_artifacts"):
         result["kept"] = int(
-            database.connection.execute("SELECT count(*) FROM release_artifacts").fetchone()[0]
+            database.connection.execute(
+                "SELECT COUNT(*) AS _value_0 FROM release_artifacts"
+            ).fetchone()[0]
         )
     return result
 
@@ -1537,7 +1505,7 @@ def plan(database: Database, *, now: datetime) -> dict[str, Any]:
     conn = database.connection
     if conn.in_transaction:
         raise CollectError("the collector cannot plan inside a transaction")
-    with sqlite_temp_directory(conn, database.state_dir):
+    with temporary_directory(conn, database.state_dir):
         try:
             return dict(_mark(conn, database.state_dir, now).content)
         finally:
@@ -1552,11 +1520,12 @@ def write_plan(state_dir: Path, value: dict[str, Any]) -> Path:
     return path
 
 
-def _note(conn: sqlite3.Connection, plan_digest: str) -> tuple[str, str | None] | None:
+def _note(conn: engine.Connection, plan_digest: str) -> tuple[str, str | None] | None:
     if not _has_table(conn, "storage_applies"):
         return None
     row = conn.execute(
-        "SELECT started_at,receipt_json FROM storage_applies WHERE plan_digest=?", (plan_digest,)
+        "SELECT started_at, receipt_json FROM storage_applies WHERE plan_digest = %s",
+        (plan_digest,),
     ).fetchone()
     return None if row is None else (str(row[0]), None if row[1] is None else str(row[1]))
 
@@ -1585,8 +1554,8 @@ def apply(
     _require_hold(database, CLASSES)
     state_dir = database.state_dir
     with (
-        control_lock(state_dir, timeout=timeout),
-        sqlite_temp_directory(conn, state_dir),
+        control_lock(state_dir, connection=conn, timeout=timeout),
+        temporary_directory(conn, state_dir),
         disk.fast_delete(conn),
     ):
         try:
@@ -1607,8 +1576,7 @@ def apply(
             if _has_table(conn, "storage_applies") and recorded is None:
                 with database.transaction() as txn:
                     txn.execute(
-                        "INSERT INTO storage_applies(plan_digest,kind,started_at) "
-                        "VALUES (?,'collect',?)",
+                        "INSERT INTO storage_applies (plan_digest, kind, started_at) VALUES (%s, 'collect', %s)",
                         (plan_digest, started_at),
                     )
             before = _usage(conn)
@@ -1628,8 +1596,7 @@ def apply(
             if _has_table(conn, "storage_applies"):
                 with database.transaction() as txn:
                     txn.execute(
-                        "UPDATE storage_applies SET finished_at=?,receipt_json=? "
-                        "WHERE plan_digest=?",
+                        "UPDATE storage_applies SET finished_at = %s, receipt_json = %s WHERE plan_digest = %s",
                         (objects.stamp(now), canonical_json(receipt).decode(), plan_digest),
                     )
         finally:

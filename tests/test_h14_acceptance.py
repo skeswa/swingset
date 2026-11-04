@@ -35,7 +35,19 @@ def event_watch(suffix="event"):
 
 
 def watch_row(conn, spec):
-    return conn.execute("SELECT * FROM watches WHERE watch_id=?", (spec.watch_id,)).fetchone()
+    return conn.execute(
+        (
+            "SELECT watches.watch_id, watches.source, watches.kind, watches.method, watches.url, "
+            "watches.form, watches.archive_url, watches.parser, watches.source_ref, watches.state, "
+            "watches.next_check_at, watches.last_checked_at, watches.last_changed_at, "
+            "watches.unchanged_streak, watches.etag, watches.last_modified, watches.body_sha256, "
+            "watches.paused_until, watches.notes, watches.fingerprint, watches.extract_version, "
+            "watches.priority, watches.created_by_snapshot_id, watches.parent_watch_id, watches.ever_ok, "
+            "watches.current_observation_snapshot_id, watches.consecutive_404s, watches.first_404_at "
+            "FROM watches WHERE watch_id = %s"
+        ),
+        (spec.watch_id,),
+    ).fetchone()
 
 
 def test_dateless_success_is_bounded_and_refresh_does_not_postpone_recovery(tmp_path):
@@ -96,7 +108,7 @@ def test_only_new_parent_relationship_reactivates_and_preserves_existing_control
         refresh_policy(conn, config(), child.watch_id, clock.now(), outcome=Outcome.OK, jitter=0)
         pause_until = (clock.now() + timedelta(days=10)).isoformat()
         conn.execute(
-            "UPDATE watches SET paused_until=?,first_404_at=?,consecutive_404s=2 WHERE watch_id=?",
+            "UPDATE watches SET paused_until = %s, first_404_at = %s, consecutive_404s = 2 WHERE watch_id = %s",
             (pause_until, (clock.now() - timedelta(days=2)).isoformat(), child.watch_id),
         )
         refresh_policy(conn, config(), child.watch_id, clock.now(), outcome=Outcome.GONE, jitter=0)
@@ -117,14 +129,14 @@ def test_only_new_parent_relationship_reactivates_and_preserves_existing_control
         ) == ("live", clock.now().isoformat(), pause_until, first.watch_id)
         assert (
             conn.execute(
-                "SELECT COUNT(*) FROM scheduler_parent_links WHERE child_watch_id=?",
+                "SELECT COUNT(*) FROM scheduler_parent_links WHERE child_watch_id = %s",
                 (child.watch_id,),
             ).fetchone()[0]
             == 2
         )
         assert (
             conn.execute(
-                "SELECT metadata_attempts FROM scheduler_watch_state WHERE watch_id=?",
+                "SELECT metadata_attempts FROM scheduler_watch_state WHERE watch_id = %s",
                 (child.watch_id,),
             ).fetchone()[0]
             == 0
@@ -166,7 +178,10 @@ def test_real_dates_restore_current_policy_without_invented_metadata(tmp_path):
             projected_at=clock.now().isoformat(),
         )
         conn.execute(
-            "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES (%s, %s, %s, 'explicit', 1)"
+            ),
             (spec.source, spec.source_ref, event.event_id),
         )
         refresh_policy(conn, config(), spec.watch_id, clock.now(), jitter=0)
@@ -194,9 +209,9 @@ def test_every_host_keeps_its_actual_daily_cap_and_request_floor(tmp_path, host,
     with open_database(tmp_path) as db:
         conn = db.connection
         assert config().host(host).daily_request_budget == limit
-        conn.execute("INSERT INTO hosts(host) VALUES (?)", (host,))
+        conn.execute("INSERT INTO hosts (host) VALUES (%s)", (host,))
         conn.execute(
-            "INSERT INTO host_budget VALUES (?,?,?,0)",
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES (%s, %s, %s, 0)",
             (host, clock.now().date().isoformat(), limit - 1),
         )
         gate = Gate(conn, config(), clock)
@@ -236,7 +251,7 @@ def test_retry_cooldown_and_depleted_quota_resume_without_burst(tmp_path):
         assert isinstance(gate.acquire(host), Grant)
         gate.release(host, Classification(Outcome.OK))
         assert gate.acquire(host) == Wait(2)
-        conn.execute("UPDATE host_budget SET requests=800")
+        conn.execute("UPDATE host_budget SET requests = 800")
         clock.sleep(7200)
         assert gate.acquire(host) == Paused("request budget")
         clock.sleep(86400)
@@ -245,7 +260,7 @@ def test_retry_cooldown_and_depleted_quota_resume_without_burst(tmp_path):
         assert gate.acquire(host) == Wait(2)
         assert (
             conn.execute(
-                "SELECT requests FROM host_budget WHERE day=?", (clock.now().date().isoformat(),)
+                "SELECT requests FROM host_budget WHERE day = %s", (clock.now().date().isoformat(),)
             ).fetchone()[0]
             == 1
         )
@@ -257,9 +272,9 @@ def test_dcn_response_can_overshoot_bytes_once_then_all_work_is_blocked(tmp_path
         conn = db.connection
         host = "danceconvention.net"
         assert config().host(host).daily_byte_budget == 300_000_000
-        conn.execute("INSERT INTO hosts(host) VALUES (?)", (host,))
+        conn.execute("INSERT INTO hosts (host) VALUES (%s)", (host,))
         conn.execute(
-            "INSERT INTO host_budget VALUES (?,?,0,299999999)",
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES (%s, %s, 0, 299999999)",
             (host, clock.now().date().isoformat()),
         )
         gate = Gate(conn, config(), clock)
@@ -267,7 +282,7 @@ def test_dcn_response_can_overshoot_bytes_once_then_all_work_is_blocked(tmp_path
         gate.release(host, Classification(Outcome.OK), body_bytes=101)
         clock.sleep(10)
         assert gate.acquire(host) == Paused("byte budget")
-        assert conn.execute("SELECT requests,bytes FROM host_budget").fetchone()[:] == (
+        assert conn.execute("SELECT requests, bytes FROM host_budget").fetchone()[:] == (
             1,
             300_000_100,
         )
@@ -285,11 +300,15 @@ def seed_snapshots(db, clock, specs):
         upsert_watch(db.connection, spec, clock.now())
         snapshot = "fixture_" + spec.watch_id
         db.connection.execute(
-            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,?,200,?,?,1,?,'Ok')",
+            (
+                "INSERT INTO snapshots (snapshot_id, watch_id, method, url, fetched_at, http_status, "
+                "body_sha256, body_bytes, content_changed, run_id, classification) VALUES (%s, %s, 'GET', "
+                "%s, %s, 200, %s, %s, 1, %s, 'Ok')"
+            ),
             (snapshot, spec.watch_id, spec.url, clock.now().isoformat(), sha, len(body), run),
         )
         db.connection.execute(
-            "UPDATE watches SET body_sha256=?,ever_ok=1,last_checked_at=? WHERE watch_id=?",
+            "UPDATE watches SET body_sha256 = %s, ever_ok = 1, last_checked_at = %s WHERE watch_id = %s",
             (sha, clock.now().isoformat(), spec.watch_id),
         )
     return archive, run, body
@@ -297,9 +316,9 @@ def seed_snapshots(db, clock, specs):
 
 def cached_robots(conn, archive, clock, host):
     sha = archive.store_body(b"")
-    conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (host,))
+    conn.execute("INSERT INTO hosts (host) VALUES (%s) ON CONFLICT DO NOTHING", (host,))
     conn.execute(
-        "UPDATE hosts SET robots_sha256=?,robots_fetched_at=?,robots_status=404 WHERE host=?",
+        "UPDATE hosts SET robots_sha256 = %s, robots_fetched_at = %s, robots_status = 404 WHERE host = %s",
         (sha, clock.now().isoformat(), host),
     )
 
@@ -316,7 +335,7 @@ def test_sustained_current_demand_services_old_work_using_actual_http_debits(tmp
         current, old = event_watch("current"), event_watch("old")
         archive, run, body = seed_snapshots(db, clock, (current, old))
         db.connection.execute(
-            "UPDATE watches SET state='archived' WHERE watch_id=?", (old.watch_id,)
+            "UPDATE watches SET state = 'archived' WHERE watch_id = %s", (old.watch_id,)
         )
         cached_robots(db.connection, archive, clock, "scoring.dance")
         fetcher = FetchClient(
@@ -344,7 +363,7 @@ def test_sustained_current_demand_services_old_work_using_actual_http_debits(tmp
         assert db.connection.execute("SELECT COUNT(*) FROM scheduler_requests").fetchone()[0] == 100
         assert (
             db.connection.execute(
-                "SELECT requests FROM host_budget WHERE host='scoring.dance'"
+                "SELECT requests FROM host_budget WHERE host = 'scoring.dance'"
             ).fetchone()[0]
             == 100
         )
@@ -366,12 +385,12 @@ def test_midday_migration_usage_is_not_new_capacity_or_catchup_credit(tmp_path):
         spec = event_watch("old")
         archive, run, body = seed_snapshots(db, clock, (spec,))
         db.connection.execute(
-            "UPDATE watches SET state='archived',next_check_at=?",
+            "UPDATE watches SET state = 'archived', next_check_at = %s",
             ((clock.now() - timedelta(days=60)).isoformat(),),
         )
         cached_robots(db.connection, archive, clock, "scoring.dance")
         db.connection.executemany(
-            "INSERT INTO host_budget VALUES (?,?,?,0)",
+            "INSERT INTO host_budget (host, day, requests, bytes) VALUES (%s, %s, %s, 0)",
             [
                 ("scoring.dance", clock.now().date().isoformat(), 725),
                 ("web.archive.org", clock.now().date().isoformat(), 200),
@@ -433,7 +452,7 @@ def test_midday_migration_usage_is_not_new_capacity_or_catchup_credit(tmp_path):
             )
             == 5
         )
-        assert dict(db.connection.execute("SELECT host,requests FROM host_budget")) == {
+        assert dict(db.connection.execute("SELECT host, requests FROM host_budget")) == {
             "scoring.dance": 800,
             "web.archive.org": 200,
         }
@@ -507,7 +526,7 @@ def test_backpressure_reserves_two_actual_requests_for_a_declared_unblocker(tmp_
             fetcher.close()
         assert len(calls) == 2  # robots and the source response both consume reserve.
         assert db.connection.execute(
-            "SELECT SUM(pressure_reserved),COUNT(*) FROM scheduler_requests"
+            "SELECT SUM(pressure_reserved), COUNT(*) FROM scheduler_requests"
         ).fetchone()[:] == (2, 2)
         assert db.connection.execute("SELECT SUM(requests) FROM host_budget").fetchone()[0] == 2
 
@@ -562,7 +581,7 @@ def test_paused_and_cooled_work_yields_to_healthy_host_without_claiming_service(
             now=clock.now(),
         )
         db.connection.execute(
-            "UPDATE hosts SET paused_until=?,pause_reason='Throttled' WHERE host='eepro.com'",
+            "UPDATE hosts SET paused_until = %s, pause_reason = 'Throttled' WHERE host = 'eepro.com'",
             ((clock.now() + timedelta(hours=1)).isoformat(),),
         )
         choice = next_watch(db.connection, cfg, now=clock.now())
@@ -589,11 +608,11 @@ def test_paused_and_cooled_work_yields_to_healthy_host_without_claiming_service(
             fetcher.close()
         assert calls == [healthy.url]
         assert [
-            tuple(row) for row in db.connection.execute("SELECT host,requests FROM host_budget")
+            tuple(row) for row in db.connection.execute("SELECT host, requests FROM host_budget")
         ] == [("worldsdc.com", 1)]
         assert [
             tuple(row)
-            for row in db.connection.execute("SELECT host,work_key FROM scheduler_requests")
+            for row in db.connection.execute("SELECT host, work_key FROM scheduler_requests")
         ] == [("worldsdc.com", healthy.watch_id)]
 
 
@@ -634,7 +653,7 @@ def test_real_cycle_services_old_host_amid_current_demand_and_pending_derivation
         for seed in SOURCE.seed_watches(None, None):
             upsert_watch(db.connection, seed, clock.now())
             db.connection.execute(
-                "UPDATE watches SET state='sealed',next_check_at=NULL WHERE watch_id=?",
+                "UPDATE watches SET state = 'sealed', next_check_at = NULL WHERE watch_id = %s",
                 (seed.watch_id,),
             )
         event = Event(
@@ -660,11 +679,14 @@ def test_real_cycle_services_old_host_amid_current_demand_and_pending_derivation
             projected_at=clock.now().isoformat(),
         )
         db.connection.execute(
-            "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+            (
+                "INSERT INTO source_event_map (source, source_ref, event_id, match_method, match_confidence) "
+                "VALUES (%s, %s, %s, 'explicit', 1)"
+            ),
             (old.source, old.source_ref, "old"),
         )
         db.connection.execute(
-            "UPDATE watches SET state='archived' WHERE watch_id=?", (old.watch_id,)
+            "UPDATE watches SET state = 'archived' WHERE watch_id = %s", (old.watch_id,)
         )
         enqueue(
             db.connection,
@@ -695,14 +717,17 @@ def test_real_cycle_services_old_host_amid_current_demand_and_pending_derivation
         assert any(url.startswith("https://worldsdc.com/current-") for url in calls)
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM scheduler_requests WHERE run_id=? AND host='scoring.dance' AND category='old'",
+                (
+                    "SELECT COUNT(*) FROM scheduler_requests WHERE run_id = %s AND host = 'scoring.dance' AND "
+                    "category = 'old'"
+                ),
                 (result["acquire"]["run_id"],),
             ).fetchone()[0]
             == 1
         )
         assert (
             db.connection.execute(
-                "SELECT COUNT(*) FROM pending_work WHERE unit_id='missing-independent-input'"
+                "SELECT COUNT(*) FROM pending_work WHERE unit_id = 'missing-independent-input'"
             ).fetchone()[0]
             == 1
         )

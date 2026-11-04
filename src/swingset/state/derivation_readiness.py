@@ -7,9 +7,10 @@ read set names (plan F20), each through `derivations.current`.
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import defaultdict
 from collections.abc import Callable, Sequence
+
+from swingset.state import engine
 
 from . import derivation_query
 from .derivation_signatures import base_certificate, materialized_proof
@@ -18,10 +19,10 @@ from .work import WorkUnit
 
 
 def dancers_current(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     units: Sequence[WorkUnit],
     *,
-    current: Callable[[sqlite3.Connection, WorkUnit], bool],
+    current: Callable[[engine.Connection, WorkUnit], bool],
 ) -> bool:
     """Bulk fast certificates; missing or mismatched proof uses full current().
 
@@ -50,10 +51,10 @@ def dancers_current(
 
 
 def _dancers_current(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     units: Sequence[WorkUnit],
     *,
-    current: Callable[[sqlite3.Connection, WorkUnit], bool],
+    current: Callable[[engine.Connection, WorkUnit], bool],
 ) -> bool:
     """Verify the full cohort from immutable certificates or ordinary fallback.
 
@@ -63,27 +64,25 @@ def _dancers_current(
     pointers = {
         str(row[0]): tuple(row[1:])
         for row in conn.execute(
-            "SELECT s.unit_id,s.materialized_generation_id,s.materialized_signature,p.manifest_json "
-            "FROM derivation_scopes s LEFT JOIN derivation_dependency_sets p "
-            "ON p.dependency_set_id=s.materialized_signature "
-            "WHERE s.stage='project' AND s.unit_kind='dancer'"
+            "SELECT s.unit_id, s.materialized_generation_id, s.materialized_signature, p.manifest_json "
+            "FROM derivation_scopes AS s LEFT JOIN derivation_dependency_sets AS p ON "
+            "p.dependency_set_id = s.materialized_signature WHERE s.stage = 'project' AND s.unit_kind = "
+            "'dancer'"
         )
     }
     raw_versions = {
         str(row[0]): int(row[1])
         for row in conn.execute(
-            "SELECT input_key,version FROM derivation_input_versions WHERE namespace='raw'"
+            "SELECT input_key, version FROM derivation_input_versions WHERE namespace = 'raw'"
         )
     }
     watches: dict[str, list[tuple[str, int]]] = defaultdict(list)
     for row in conn.execute(
-        "SELECT DISTINCT o.scope_id,o.watch_id,coalesce(v.version,0) FROM observations o "
-        "LEFT JOIN derivation_input_versions v ON v.namespace='watch' AND v.input_key=o.watch_id "
-        "WHERE o.scope_kind='dancer' ORDER BY o.scope_id,o.watch_id"
+        "SELECT DISTINCT o.scope_id, o.watch_id, COALESCE(v.version, 0) AS _value_2 FROM observations AS o LEFT JOIN derivation_input_versions AS v ON v.namespace = 'watch' AND v.input_key = o.watch_id WHERE o.scope_kind = 'dancer' ORDER BY o.scope_id NULLS FIRST, o.watch_id NULLS FIRST"
     ):
         watches[str(row[0])].append((str(row[1]), int(row[2])))
     source = conn.execute(
-        "SELECT version FROM derivation_input_versions WHERE namespace='watch_sources' AND input_key='all'"
+        "SELECT version FROM derivation_input_versions WHERE namespace = 'watch_sources' AND input_key = 'all'"
     ).fetchone()
     source_version = int(source[0]) if source else 0
     recipe = recipe_inputs(conn, "project", "dancer")

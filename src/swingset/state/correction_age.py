@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from swingset.state import engine
 
 
 def _instant(value: Any) -> datetime | None:
@@ -18,7 +19,7 @@ def _instant(value: Any) -> datetime | None:
         return None
 
 
-def record_pending(conn: sqlite3.Connection, state_dir: Path, *, now: str) -> None:
+def record_pending(conn: engine.Connection, state_dir: Path, *, now: str) -> None:
     """Keep the first input correction until a different receipt is confirmed."""
     baseline = state_dir / "baseline"
     commit = ""
@@ -27,7 +28,8 @@ def record_pending(conn: sqlite3.Connection, state_dir: Path, *, now: str) -> No
         commit = str(receipt["commit"])
     previous = dict(
         conn.execute(
-            "SELECT key,value FROM meta WHERE key IN ('correction_pending_since','correction_pending_baseline_commit')"
+            "SELECT key, value FROM meta WHERE key IN ('correction_pending_since', "
+            "'correction_pending_baseline_commit')"
         )
     )
     if previous.get("correction_pending_baseline_commit") == commit and previous.get(
@@ -35,13 +37,15 @@ def record_pending(conn: sqlite3.Connection, state_dir: Path, *, now: str) -> No
     ):
         return
     conn.executemany(
-        "INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (
+            "INSERT INTO meta (key, value) VALUES (%s, %s) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+        ),
         (("correction_pending_since", now), ("correction_pending_baseline_commit", commit)),
     )
 
 
 def correction_age(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     *,
     baseline_receipt: Mapping[str, Any] | None,
     baseline_policy: Mapping[str, Any] | None,
@@ -51,12 +55,17 @@ def correction_age(
     receipt, policy = baseline_receipt or {}, baseline_policy or {}
     verified = _instant(receipt.get("verified_at"))
     generation = policy.get("token", {}).get("journal_generation")
-    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
+        )
+    }
     evidence: list[datetime] = []
     exact = generation is not None and verified is not None
     if "identity_journal_acceptances" in tables:
         for at, identifier in conn.execute(
-            "SELECT accepted_at,generation FROM identity_journal_acceptances"
+            "SELECT accepted_at, generation FROM identity_journal_acceptances"
         ):
             instant = _instant(at)
             if instant is not None and (
@@ -66,7 +75,7 @@ def correction_age(
                 evidence.append(instant)
     if verified is not None:
         for table, column, where in (
-            ("identity_reference_migrations", "recorded_at", "1"),
+            ("identity_reference_migrations", "recorded_at", "TRUE"),
             ("admission_decisions", "decided_at", "state='revoked'"),
         ):
             if table in tables:
@@ -76,7 +85,8 @@ def correction_age(
                         evidence.append(instant)
     clocks = dict(
         conn.execute(
-            "SELECT key,value FROM meta WHERE key IN ('correction_pending_since','correction_pending_baseline_commit')"
+            "SELECT key, value FROM meta WHERE key IN ('correction_pending_since', "
+            "'correction_pending_baseline_commit')"
         )
     )
     pending = _instant(clocks.get("correction_pending_since"))

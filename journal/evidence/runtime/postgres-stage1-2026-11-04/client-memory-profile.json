@@ -1,0 +1,647 @@
+{
+  "allocator_changes": false,
+  "conclusion": "Thread caps reduced collection thread counts from 38 to 10 but left the approximately 147 MiB anonymous collection footprint per worker unchanged. The bounded comparison does not establish enough memory or time benefit to adopt caps or change allocators; use the parent-approved two-client, four-worker isolation option for the next complete run.",
+  "diagnostic_early_abort_bytes": 2093796556,
+  "hard_client_memory_bytes": 2147483648,
+  "limitations": [
+    "Concurrent prefixes finish different numbers of tests; they are not equivalent completed workloads or a speed claim.",
+    "Docker --memory enforces the 2 GiB resident cgroup cap; this probe did not disable swap. Per-process swap was measured, but cgroup swap.current was not sampled.",
+    "The original current-minus-inactive_file working metric includes active file pages and is not a live-heap measurement.",
+    "The kernel/slab counters reported zero in this Docker runtime; they cannot establish absence of those costs.",
+    "Arrow live/peak counters cover its selected memory pool, not CPython, DuckDB, glibc or all C++ heaps."
+  ],
+  "measured_at": "2026-11-05T02:49:18.283292+00:00",
+  "purpose": "Diagnose the eight-worker test client before choosing a resource setting. These are bounded prefixes, not complete-core performance results.",
+  "requested_stop_seconds": 45,
+  "runs": [
+    {
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "completion": "intentional SIGINT after requested 45-second diagnostic bound; incomplete selection",
+      "last_cgroup": {
+        "breakdown": {
+          "active_anon": 126619648,
+          "active_file": 26705920,
+          "anon": 1801416704,
+          "file": 301453312,
+          "inactive_anon": 1715552256,
+          "kernel": 0,
+          "kernel_stack": 0,
+          "pagetables": 0,
+          "shmem": 0,
+          "slab": 0
+        },
+        "current": 2144452608,
+        "events": {
+          "high": "0",
+          "low": "0",
+          "max": "6332",
+          "oom": "0",
+          "oom_group_kill": "0",
+          "oom_kill": "0",
+          "sock_throttled": "0"
+        },
+        "inactive_file": 274747392,
+        "peak_total": 2147483648,
+        "working": 1869705216
+      },
+      "membership_equal_all_workers": true,
+      "membership_sha256": "03eeda42710b93e1580fb68e9b9ecd5c33ec0d767c56f6d0ad1c4c2632117d05",
+      "peak_client_anon_bytes": 1801416704,
+      "peak_client_current_bytes": 2144722944,
+      "peak_client_working_bytes": 1870659584,
+      "processes": [
+        {
+          "collection": null,
+          "last": {
+            "anonymous_bytes": 60620800,
+            "pss_bytes": 69593088,
+            "rss_bytes": 72564736,
+            "swap_bytes": 282624,
+            "threads": 2
+          },
+          "last_arrow_pool": null,
+          "last_glibc": {
+            "arena": 23777280,
+            "fordblks": 14031280,
+            "hblkhd": 1363968,
+            "keepcost": 132480,
+            "uordblks": 9746000
+          },
+          "worker": "controller"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154103808,
+            "pss_bytes": 165682176,
+            "rss_bytes": 248479744,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 172593152,
+            "pss_bytes": 184030208,
+            "rss_bytes": 265863168,
+            "swap_bytes": 589824,
+            "threads": 38
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 65792,
+            "total": 65792
+          },
+          "last_glibc": {
+            "arena": 55050240,
+            "fordblks": 5424976,
+            "hblkhd": 2326528,
+            "keepcost": 2583184,
+            "uordblks": 49625264
+          },
+          "worker": "gw0"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154095616,
+            "pss_bytes": 165681152,
+            "rss_bytes": 248520704,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 251256832,
+            "pss_bytes": 269173760,
+            "rss_bytes": 360488960,
+            "swap_bytes": 585728,
+            "threads": 57
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1179648,
+            "total": 6824059532
+          },
+          "last_glibc": {
+            "arena": 112955392,
+            "fordblks": 32325136,
+            "hblkhd": 401408,
+            "keepcost": 3006784,
+            "uordblks": 80630256
+          },
+          "worker": "gw1"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154025984,
+            "pss_bytes": 165517312,
+            "rss_bytes": 247721984,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 210788352,
+            "pss_bytes": 221017088,
+            "rss_bytes": 304107520,
+            "swap_bytes": 503808,
+            "threads": 38
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1114112,
+            "total": 7318601984
+          },
+          "last_glibc": {
+            "arena": 88203264,
+            "fordblks": 11249856,
+            "hblkhd": 401408,
+            "keepcost": 134944,
+            "uordblks": 76953408
+          },
+          "worker": "gw2"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154071040,
+            "pss_bytes": 165581824,
+            "rss_bytes": 247898112,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 222015488,
+            "pss_bytes": 233126912,
+            "rss_bytes": 319791104,
+            "swap_bytes": 405504,
+            "threads": 38
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1179648,
+            "total": 10518403504
+          },
+          "last_glibc": {
+            "arena": 79634432,
+            "fordblks": 25209744,
+            "hblkhd": 24100864,
+            "keepcost": 4788608,
+            "uordblks": 54424688
+          },
+          "worker": "gw3"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154058752,
+            "pss_bytes": 165569536,
+            "rss_bytes": 247885824,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 196714496,
+            "pss_bytes": 208419840,
+            "rss_bytes": 290885632,
+            "swap_bytes": 339968,
+            "threads": 38
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1245184,
+            "total": 43387977984
+          },
+          "last_glibc": {
+            "arena": 79261696,
+            "fordblks": 25175760,
+            "hblkhd": 401408,
+            "keepcost": 3420224,
+            "uordblks": 54085936
+          },
+          "worker": "gw4"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154091520,
+            "pss_bytes": 165570560,
+            "rss_bytes": 247697408,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 275668992,
+            "pss_bytes": 295317504,
+            "rss_bytes": 387829760,
+            "swap_bytes": 741376,
+            "threads": 55
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1114112,
+            "total": 3602820800
+          },
+          "last_glibc": {
+            "arena": 114130944,
+            "fordblks": 10849120,
+            "hblkhd": 401408,
+            "keepcost": 3252608,
+            "uordblks": 103281824
+          },
+          "worker": "gw5"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154062848,
+            "pss_bytes": 165526528,
+            "rss_bytes": 247562240,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 201981952,
+            "pss_bytes": 213045248,
+            "rss_bytes": 299429888,
+            "swap_bytes": 708608,
+            "threads": 38
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1179648,
+            "total": 11426905120
+          },
+          "last_glibc": {
+            "arena": 83173376,
+            "fordblks": 29115392,
+            "hblkhd": 401408,
+            "keepcost": 846496,
+            "uordblks": 54057984
+          },
+          "worker": "gw6"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 154169344,
+            "pss_bytes": 165679104,
+            "rss_bytes": 247988224,
+            "swap_bytes": 0,
+            "threads": 38
+          },
+          "last": {
+            "anonymous_bytes": 201158656,
+            "pss_bytes": 212269056,
+            "rss_bytes": 298926080,
+            "swap_bytes": 765952,
+            "threads": 38
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 65536,
+            "peak": 2293760,
+            "total": 7650863848
+          },
+          "last_glibc": {
+            "arena": 81973248,
+            "fordblks": 26415440,
+            "hblkhd": 401408,
+            "keepcost": 3288656,
+            "uordblks": 55557808
+          },
+          "worker": "gw7"
+        }
+      ],
+      "pytest_result": "136 passed in 47.18s",
+      "selected_count": 2382,
+      "settings": {},
+      "source_binding_sha256": "f962ea652702e1bb854b5433cca381101b1cf53eae59c240fbd8199bdc8a8307",
+      "source_stable": true,
+      "stop_reason": "bounded45s",
+      "wall_seconds_including_cleanup": 48.1627,
+      "worker_count": 8
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "completion": "intentional SIGINT after requested 45-second diagnostic bound; incomplete selection",
+      "last_cgroup": {
+        "breakdown": {
+          "active_anon": 373067776,
+          "active_file": 356335616,
+          "anon": 1663213568,
+          "file": 450469888,
+          "inactive_anon": 1320681472,
+          "kernel": 0,
+          "kernel_stack": 0,
+          "pagetables": 0,
+          "shmem": 0,
+          "slab": 0
+        },
+        "current": 2144575488,
+        "events": {
+          "high": "0",
+          "low": "0",
+          "max": "7215",
+          "oom": "0",
+          "oom_group_kill": "0",
+          "oom_kill": "0",
+          "sock_throttled": "0"
+        },
+        "inactive_file": 94130176,
+        "peak_total": 2147483648,
+        "working": 2050445312
+      },
+      "membership_equal_all_workers": true,
+      "membership_sha256": "babc9593012a74de99fa764fcdcdb0f4f4f9da9d900a24b27c1d7b5a13d28fd5",
+      "peak_client_anon_bytes": 1752719360,
+      "peak_client_current_bytes": 2144645120,
+      "peak_client_working_bytes": 2050445312,
+      "processes": [
+        {
+          "collection": null,
+          "last": {
+            "anonymous_bytes": 58241024,
+            "pss_bytes": 67147776,
+            "rss_bytes": 70119424,
+            "swap_bytes": 1642496,
+            "threads": 2
+          },
+          "last_arrow_pool": null,
+          "last_glibc": {
+            "arena": 23859200,
+            "fordblks": 14134048,
+            "hblkhd": 1363968,
+            "keepcost": 134240,
+            "uordblks": 9725152
+          },
+          "worker": "controller"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153870336,
+            "pss_bytes": 165409792,
+            "rss_bytes": 247623680,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 124473344,
+            "pss_bytes": 134758400,
+            "rss_bytes": 208273408,
+            "swap_bytes": 46366720,
+            "threads": 10
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 65792,
+            "total": 65792
+          },
+          "last_glibc": {
+            "arena": 55095296,
+            "fordblks": 5486384,
+            "hblkhd": 2326528,
+            "keepcost": 2285824,
+            "uordblks": 49608912
+          },
+          "worker": "gw0"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153812992,
+            "pss_bytes": 165379072,
+            "rss_bytes": 247877632,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 232091648,
+            "pss_bytes": 250744832,
+            "rss_bytes": 335736832,
+            "swap_bytes": 10801152,
+            "threads": 15
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1179648,
+            "total": 6813909520
+          },
+          "last_glibc": {
+            "arena": 104206336,
+            "fordblks": 28675968,
+            "hblkhd": 4247552,
+            "keepcost": 2640528,
+            "uordblks": 75530368
+          },
+          "worker": "gw1"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153792512,
+            "pss_bytes": 165350400,
+            "rss_bytes": 247812096,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 198332416,
+            "pss_bytes": 208655360,
+            "rss_bytes": 282546176,
+            "swap_bytes": 13021184,
+            "threads": 10
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1114112,
+            "total": 5415043328
+          },
+          "last_glibc": {
+            "arena": 88551424,
+            "fordblks": 11580352,
+            "hblkhd": 401408,
+            "keepcost": 134912,
+            "uordblks": 76971072
+          },
+          "worker": "gw2"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153894912,
+            "pss_bytes": 165416960,
+            "rss_bytes": 247701504,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 208330752,
+            "pss_bytes": 218405888,
+            "rss_bytes": 296771584,
+            "swap_bytes": 12320768,
+            "threads": 10
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1179648,
+            "total": 7026645424
+          },
+          "last_glibc": {
+            "arena": 78094336,
+            "fordblks": 23775968,
+            "hblkhd": 24100864,
+            "keepcost": 3610544,
+            "uordblks": 54318368
+          },
+          "worker": "gw3"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153849856,
+            "pss_bytes": 165445632,
+            "rss_bytes": 248074240,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 183123968,
+            "pss_bytes": 193688576,
+            "rss_bytes": 268025856,
+            "swap_bytes": 13185024,
+            "threads": 10
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1245184,
+            "total": 39913521408
+          },
+          "last_glibc": {
+            "arena": 79269888,
+            "fordblks": 25200880,
+            "hblkhd": 401408,
+            "keepcost": 3514480,
+            "uordblks": 54069008
+          },
+          "worker": "gw4"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153919488,
+            "pss_bytes": 165543936,
+            "rss_bytes": 248340480,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 226201600,
+            "pss_bytes": 248048640,
+            "rss_bytes": 333262848,
+            "swap_bytes": 10194944,
+            "threads": 13
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1114112,
+            "total": 3592670788
+          },
+          "last_glibc": {
+            "arena": 108118016,
+            "fordblks": 28822800,
+            "hblkhd": 401408,
+            "keepcost": 2944,
+            "uordblks": 79295216
+          },
+          "worker": "gw5"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153993216,
+            "pss_bytes": 165570560,
+            "rss_bytes": 248086528,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 196771840,
+            "pss_bytes": 206848000,
+            "rss_bytes": 285159424,
+            "swap_bytes": 4837376,
+            "threads": 10
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1245184,
+            "total": 11407035736
+          },
+          "last_glibc": {
+            "arena": 83279872,
+            "fordblks": 6561760,
+            "hblkhd": 401408,
+            "keepcost": 3350896,
+            "uordblks": 76718112
+          },
+          "worker": "gw6"
+        },
+        {
+          "collection": {
+            "anonymous_bytes": 153849856,
+            "pss_bytes": 165468160,
+            "rss_bytes": 248238080,
+            "swap_bytes": 0,
+            "threads": 10
+          },
+          "last": {
+            "anonymous_bytes": 192200704,
+            "pss_bytes": 203415552,
+            "rss_bytes": 280887296,
+            "swap_bytes": 11325440,
+            "threads": 10
+          },
+          "last_arrow_pool": {
+            "backend": "mimalloc",
+            "live": 0,
+            "peak": 1179648,
+            "total": 6686751776
+          },
+          "last_glibc": {
+            "arena": 81846272,
+            "fordblks": 27750512,
+            "hblkhd": 401408,
+            "keepcost": 2388672,
+            "uordblks": 54095760
+          },
+          "worker": "gw7"
+        }
+      ],
+      "pytest_result": "128 passed in 46.40s",
+      "selected_count": 2382,
+      "settings": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_THREAD_LIMIT": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "source_binding_sha256": "f962ea652702e1bb854b5433cca381101b1cf53eae59c240fbd8199bdc8a8307",
+      "source_stable": true,
+      "stop_reason": "bounded45s",
+      "wall_seconds_including_cleanup": 47.4222,
+      "worker_count": 8
+    }
+  ],
+  "scripts_sha256": {
+    "swingset-memory-linux.py": "bcc46aec427e786c0cd3ff29aec13c1a7369603f89d6bce54d006df33f2f3f0d",
+    "swingset-memory-supervisor.py": "b410e8f7827592f917f8e8be997addec1e2ac15ecb225d4cf20337d2e89ffa17",
+    "swingset_memory_probe.py": "0f80a839ade1e4f08336cba6cea541b893e6fba3788c1e3f78b5105a171578c4"
+  }
+}

@@ -40,7 +40,6 @@ import csv
 import hashlib
 import io
 import json
-import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime
@@ -48,6 +47,7 @@ from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json
+from swingset.state import engine
 
 FILE = "release_decreases.csv"
 #: The candidate file the verdict is written to.
@@ -498,7 +498,7 @@ def summary(verdict: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def record(conn: sqlite3.Connection, candidate: Path, verdict: Mapping[str, Any]) -> bool:
+def record(conn: engine.Connection, candidate: Path, verdict: Mapping[str, Any]) -> bool:
     """Store the verdict on the candidate's `release_manifests` row, when it has one."""
     from swingset.state import release_store
 

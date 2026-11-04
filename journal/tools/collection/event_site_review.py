@@ -1,8 +1,7 @@
 """Print event-site `source_urls.csv` proposals from a state copy's CDX evidence.
 
-Offline and read-only. The tool opens a copy of the state database with
-`mode=ro` (and `immutable=1` when no write-ahead log holds data), reads the
-retained filtered CDX receipts and bodies under the copy's `archive-cdx/` and
+Offline and read-only. The tool opens the copy's configured Postgres database
+in one read-only repeatable snapshot, reads the retained filtered CDX receipts and bodies under the copy's `archive-cdx/` and
 `blobs/`, and prints one JSON line per event outcome. It makes no request and
 writes no finding, cursor, `meta` row or file inside the state. Years are
 judged on facts alone (`year_gate_reason` under `facts_only_year_gate`, as the
@@ -29,8 +28,8 @@ import argparse
 import csv
 import io
 import json
+import os
 import re
-import sqlite3
 import sys
 import time
 from collections.abc import Iterable
@@ -45,22 +44,23 @@ from swingset.history.event_sites import Hit, Site, _matches, retained_hits
 from swingset.model.history import HISTORY_START
 from swingset.project.history import facts_only_year_gate, year_gate_reason
 from swingset.sources import get_page_kind
+from swingset.state import engine
+from swingset.state.db import open_database
 
 MAX_EVENTS = 1000
 
 
-def open_state(path: Path) -> sqlite3.Connection:
-    """A read-only connection to a state directory's or file's database."""
-    database = path if path.suffix in {".sqlite", ".db"} else path / "state.sqlite"
-    if not database.is_file():
-        raise FileNotFoundError(f"no state database at {database}")
-    wal = database.with_name(database.name + "-wal")
-    # `immutable` skips locking and the -shm file, so nothing is created. It
-    # would ignore committed frames still in a WAL, so plain `mode=ro` then.
-    flags = "mode=ro" if wal.is_file() and wal.stat().st_size else "mode=ro&immutable=1"
-    conn = sqlite3.connect(f"file:{database}?{flags}", uri=True, isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA query_only = ON")
+def open_state(path: Path) -> engine.Connection:
+    """Open configured Postgres state in one read-only repeatable snapshot."""
+    state = engine.state_directory(path)
+    if not (state / "database.json").is_file() and not any(
+        os.environ.get(name) for name in ("SWINGSET_DATABASE_URL", "DATABASE_URL")
+    ):
+        raise FileNotFoundError(f"no configured state database at {state}")
+    database = open_database(state, lock=False, read_only=True)
+    conn = database.connection
+    conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
+    conn.execute("SELECT pg_current_snapshot()::text AS snapshot").fetchone()
     return conn
 
 
@@ -142,7 +142,7 @@ def proposals(
 
 
 def review(
-    conn: sqlite3.Connection,
+    conn: engine.Connection,
     state_dir: Path,
     *,
     events: int = 10,
@@ -159,7 +159,7 @@ def review(
     sites = tuple(
         Site(str(row[0]), int(row[1]), str(row[2]))
         for row in conn.execute(
-            "SELECT event_id,year,website FROM events WHERE year>=? AND website IS NOT NULL ORDER BY event_id",
+            "SELECT event_id,year,website FROM events WHERE year>=%s AND website IS NOT NULL ORDER BY event_id",
             (history_start.year,),
         )
         if row[2]

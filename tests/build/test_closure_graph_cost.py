@@ -51,15 +51,25 @@ def add_generation(fixture, identifier, dependencies, *, continuity=None, year=F
     kind, unit = scope or (("year", "2026") if year else ("event", identifier))
     with db.transaction():
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+            (
+                "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s) "
+                "ON CONFLICT DO NOTHING"
+            ),
             (dependency, canonical(dependencies)),
         )
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project',?,?,?)",
+            (
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES ('project', "
+                "%s, %s, %s) ON CONFLICT DO NOTHING"
+            ),
             (kind, unit, at),
         )
         conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "INSERT INTO derivation_generations (generation_id, stage, unit_kind, unit_id, "
+                "input_fingerprint, recipe_json, dependency_set_id, previous_generation_id, output_digest, "
+                "row_count, created_at, run_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ),
             (
                 identifier,
                 "project",
@@ -76,7 +86,10 @@ def add_generation(fixture, identifier, dependencies, *, continuity=None, year=F
             ),
         )
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=? WHERE stage='project' AND unit_kind=? AND unit_id=?",
+            (
+                "UPDATE derivation_scopes SET materialized_generation_id = %s WHERE stage = 'project' AND "
+                "unit_kind = %s AND unit_id = %s"
+            ),
             (identifier, kind, unit),
         )
     return dependency
@@ -112,17 +125,23 @@ def test_wide_closure_enumerates_set_inventory_once_and_loads_each_receipt_once(
 
     monkeypatch.setattr(closure._Selection, "__init__", counted)
     reads = []
-    db.connection.set_trace_callback(
-        lambda sql: (
+    with db.connection.observing(
+        lambda sql, parameters: (
             reads.append(sql)
-            if sql.startswith("SELECT * FROM derivation_generations WHERE generation_id=")
+            if isinstance(sql, str)
+            and sql.startswith(
+                "SELECT derivation_generations.generation_id, derivation_generations.stage, "
+                "derivation_generations.unit_kind, derivation_generations.unit_id, "
+                "derivation_generations.input_fingerprint, derivation_generations.recipe_json, "
+                "derivation_generations.dependency_set_id, derivation_generations.previous_generation_id, "
+                "derivation_generations.output_digest, derivation_generations.row_count, "
+                "derivation_generations.created_at, derivation_generations.run_id FROM "
+                "derivation_generations WHERE generation_id ="
+            )
             else None
         )
-    )
-    try:
+    ):
         closure.validate(db.connection, pinned)
-    finally:
-        db.connection.set_trace_callback(None)
     assert len(reads) == count + 1
     assert sum(item.enumerated for item in inventories) == count + 1
 
@@ -133,7 +152,7 @@ def test_continuity_does_not_mark_untraversed_dependency_members_visited(graph_d
     shared = digest([edge("leaf")])
     with db.transaction():
         db.connection.execute(
-            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+            "INSERT INTO derivation_dependency_sets (dependency_set_id, manifest_json) VALUES (%s, %s)",
             (shared, canonical([edge("leaf")])),
         )
     add_generation(graph_db, "prior-support", [], continuity=shared)
@@ -175,9 +194,11 @@ def test_a_conflicting_year_withholds_its_events_only_and_dancers_anchor(graph_d
     with db.transaction():
         for event, year in (("e25", 2025), ("e26", 2026)):
             db.connection.execute(
-                "INSERT INTO events(event_id,series_id,name,year,wsdc_status,sources,source,"
-                "snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
-                "VALUES (?,'s',?,?,'registry','[]','test','snap','1',?,?,?)",
+                (
+                    "INSERT INTO events (event_id, series_id, name, year, wsdc_status, sources, source, "
+                    "snapshot_id, parser_version, first_seen_at, last_seen_at, run_id) VALUES (%s, 's', %s, %s, "
+                    "'registry', '[]', 'test', 'snap', '1', %s, %s, %s)"
+                ),
                 (event, event, year, at, at, run),
             )
     add_generation(graph_db, "d7-old", [], scope=("dancer", "7"))

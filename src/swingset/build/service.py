@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter
 from collections.abc import Iterable, Mapping
+from contextlib import ExitStack
 from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive
 from swingset.publish.card import render_card
-from swingset.publish.service import Hub, expected_parent
+from swingset.publish.journal import Hub, expected_parent
+from swingset.state import engine
 from swingset.state.db import Database
 from swingset.state.inputs import InputBundle
 
@@ -97,7 +99,7 @@ def _identity_part(token: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in token.items() if key != "admission_digest"}
 
 
-def correction_admission(conn: sqlite3.Connection) -> dict[str, str]:
+def correction_admission(conn: engine.Connection) -> dict[str, str]:
     """The admission policies and revocations a correction ran under (D-0250)."""
     from .closure import _revocations
     from .manifest import policies_digest
@@ -116,6 +118,7 @@ def _metadata(
     *,
     card: bytes | None = None,
     correction_only: bool = False,
+    render: Mapping[str, str] | None = None,
 ) -> BuildMetadata:
     captured_versions = {
         str(k): str(v) for k, v in json.loads(bundle.files["versions.json"]).items()
@@ -132,9 +135,9 @@ def _metadata(
         else None
     )
     return BuildMetadata(
-        run_id=run_id,
+        run_id=run_id if render is None else render["run_id"],
         repository_commit=captured_versions["repository"],
-        expected_parent=expected_parent(database.state_dir, remote)
+        expected_parent=expected_parent(database.state_dir, remote, connection=database.connection)
         if remote
         else json.loads((baseline / "PUBLISHED").read_bytes())["commit"]
         if baseline
@@ -142,7 +145,7 @@ def _metadata(
         schema_version=1,
         versions=captured_versions,
         card=render_card(data) if card is None else card,
-        built_at=clock.now(),
+        built_at=clock.now() if render is None else datetime.fromisoformat(render["cutoff"]),
         input_paths=input_paths,
         # The bytes: the gate parses them, so a malformed file refuses the
         # release with the line instead of failing the build (D-0225).
@@ -167,7 +170,7 @@ def release_path(database: Database, bundle: InputBundle) -> str:
     if (
         not derivations.available(conn)
         or not conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='release_manifests'"
+            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'release_manifests') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
         ).fetchone()
     ):
         return "closure"
@@ -211,7 +214,7 @@ def build_release(
         database.transaction(immediate=False) as conn,
         artifact_source(conn, Archive(database.state_dir), clock=clock),
     ):
-        accepted = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+        accepted = conn.execute("SELECT value FROM meta WHERE key = 'input_bundle_hash'").fetchone()
         if accepted is None or accepted[0] != bundle.digest:
             raise BuildError("release inputs have not been accepted")
         from swingset.state import derivations
@@ -295,7 +298,7 @@ def build_release(
                 PRIMARY_KEYS,
                 {
                     str(row[0]): int(row[1])
-                    for row in conn.execute("SELECT name,value FROM revisions")
+                    for row in conn.execute("SELECT name, value FROM revisions")
                 },
                 bundle.file_hashes,
                 bundle.digest,
@@ -340,13 +343,13 @@ def build_release(
                 policy["pending_work"] = {
                     str(row[0]): int(row[1])
                     for row in conn.execute(
-                        "SELECT stage,COUNT(*) FROM pending_work GROUP BY stage"
+                        "SELECT stage, COUNT(*) AS _value_1 FROM pending_work GROUP BY stage"
                     )
                 }
                 policy["pending_findings"] = {
                     str(row[0]): int(row[1])
                     for row in conn.execute(
-                        "SELECT kind,COUNT(*) FROM findings WHERE closed_at IS NULL AND owner_kind IN ('parse','parse_failure') GROUP BY kind"
+                        "SELECT kind, COUNT(*) AS _value_1 FROM findings WHERE closed_at IS NULL AND owner_kind IN ('parse', 'parse_failure') GROUP BY kind"
                     )
                 }
                 policy["admission"] = correction_admission(conn)
@@ -506,7 +509,7 @@ def _build_from_partitions(
 
     path = release_path(database, bundle)
     accepted = database.connection.execute(
-        "SELECT value FROM meta WHERE key='input_bundle_hash'"
+        "SELECT value FROM meta WHERE key = 'input_bundle_hash'"
     ).fetchone()
     if accepted is None or accepted[0] != bundle.digest:
         raise BuildError("release inputs have not been accepted")
@@ -551,9 +554,10 @@ def _build_from_partitions(
         with (
             database.transaction(immediate=False) as conn,
             artifact_source(conn, Archive(database.state_dir), clock=clock),
+            ExitStack() as rendering,
         ):
             accepted = conn.execute(
-                "SELECT value FROM meta WHERE key='input_bundle_hash'"
+                "SELECT value FROM meta WHERE key = 'input_bundle_hash'"
             ).fetchone()
             if accepted is None or accepted[0] != bundle.digest:
                 raise BuildError("release inputs have not been accepted")
@@ -574,15 +578,64 @@ def _build_from_partitions(
                 # An acknowledged baseline already has its durable build and
                 # remote receipts. Reading it again cannot advance publication.
                 return reused
+            parent = (
+                expected_parent(database.state_dir, remote, connection=conn)
+                if remote
+                else generations.baseline_commit(database)
+            )
+            requested_render = {"cutoff": cutoff.isoformat(), "run_id": run_id}
+            cached_policy = None
+            if reused is not None:
+                cached_manifest = json.loads((reused.path / "_meta/manifest.json").read_bytes())
+                cached_policy = cached_manifest.get("release_policy") or {}
+                if (
+                    "render" not in cached_policy
+                    or "render_basis" not in cached_policy
+                    or cached_manifest.get("expected_parent") != parent
+                ):
+                    from swingset.publish.safety import reject_candidate
+
+                    reject_candidate(
+                        reused.path, "unpublished build has no matching sealed render inputs"
+                    )
+                    reused = None
             selection = generations.select(
                 database,
                 bundle_digest=bundle.digest,
                 correction_only=False,
                 manifest=release,
                 build_trigger=build_trigger,
+                render=requested_render,
+                expected_parent=parent,
+            )
+            if reused is not None:
+                assert cached_policy is not None
+                if cached_policy["render_basis"] != generations.render_basis(selection):
+                    from swingset.publish.safety import reject_candidate
+
+                    reject_candidate(reused.path, "unpublished build render proof changed")
+                    reused = None
+                else:
+                    cached_render = generations.render_inputs(cached_policy["render"])
+                    selection = generations.select(
+                        database,
+                        bundle_digest=bundle.digest,
+                        correction_only=False,
+                        manifest=release,
+                        build_trigger=build_trigger,
+                        render=cached_render,
+                        expected_parent=parent,
+                    )
+                    if selection.context["render"] != cached_render:
+                        raise BuildError("cached build render inputs differ from its generation")
+            render = generations.render_inputs(selection.context["render"])
+            cutoff = datetime.fromisoformat(render["cutoff"])
+            rendering.enter_context(
+                artifact_source(conn, Archive(database.state_dir), observed_at=cutoff)
             )
             revisions = {
-                str(row[0]): int(row[1]) for row in conn.execute("SELECT name,value FROM revisions")
+                str(row[0]): int(row[1])
+                for row in conn.execute("SELECT name, value FROM revisions")
             }
             common = {
                 "token": release.value["correction_token"],
@@ -599,6 +652,8 @@ def _build_from_partitions(
                 },
                 "partitions": {"built": len(release.built)},
                 "build_trigger": build_trigger,
+                "render": render,
+                "render_basis": generations.render_basis(selection),
             }
             support: Iterable[Mapping[str, Any]] = (
                 partitioned.source_support(conn, release.support) if reused is None else ()
@@ -724,13 +779,24 @@ def _build_from_partitions(
             generations.complete(database, selection, reused, now=clock.now(), run_id=run_id)
             return reused
         assert data is not None
+        meta = _metadata(
+            database,
+            bundle,
+            clock,
+            run_id,
+            remote,
+            data,
+            baseline,
+            card=b"" if streamed is not None else None,
+            render=render,
+        )
+        if meta.expected_parent != parent:
+            raise BuildError("publication parent changed while rendering the build")
         if streamed is not None:
-            meta = _metadata(database, bundle, clock, run_id, remote, data, baseline, card=b"")
             result = streamed.write(meta, render_card)
             if report is not None:
                 report.update(streamed.report())
         else:
-            meta = _metadata(database, bundle, clock, run_id, remote, data, baseline)
             from .coverage import refresh_identity_counts
 
             def finalize_rows(rows: dict[str, list[dict[str, Any]]]) -> None:
