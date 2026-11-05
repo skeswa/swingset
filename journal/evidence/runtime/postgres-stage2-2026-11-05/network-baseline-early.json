@@ -1,0 +1,220 @@
+{
+  "operation": "owned resolver repair and early network baseline",
+  "timestamp": "2026-11-05T23:29:23.226456+00:00",
+  "commands": [
+    {
+      "argv": [
+        "sftp",
+        "-b",
+        "stage.sftp",
+        "rhuidean"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "compose",
+        "-f",
+        "/var/tmp/swingset-stage2-netproof-0e0ba9f0a719/proof.compose.json",
+        "up",
+        "-d",
+        "--no-deps",
+        "--force-recreate",
+        "resolver"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "swingset.deploy.operation",
+        "--root",
+        "/var/tmp/swingset-stage2-netproof-0e0ba9f0a719",
+        "baseline"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "manifest_sha256": "cdd0d746daea4fbd0c280d63ba73e8f112794faa26dd6a4d0b880df2d25324f1",
+  "raw_summary_sha256": "391d2f4883ec2eb666977f5e36079ba218395a347b0246a1d1965404b6ddf026",
+  "authoritative_receipt_sha256": {
+    "baseline-proof.json": "454d23e001a739da5ed8ef385ed6a8e721cf0ab29d0038e34cd71b44e43a4df1",
+    "baseline.json": "79078a0b863bd4071fb75b8a129e3f59773232b15c104fb29d3f46918b1cb4db",
+    "resolver-repair-postcheck.json": "67ab3a11a57bd7e4cbe0be760c8476e6f2b007f3d9e05c15595197004d201fd6",
+    "resolver-repair-preflight.json": "5a84de24e7dded608d62a90584fb5e57f7a7b0874a093610f9e23d0bd7df76cc"
+  },
+  "resolver_old_id": "402796ff41e44b3f03d8d977544e949f41803e4746455f76991593072554643b",
+  "resolver_new_id": "ad2cf9acd7435d0c78a360efef8e6c87af82830924309d2806aa72f2db14908a",
+  "resolver_security": {
+    "apparmor": "docker-default",
+    "cap_add": [
+      "CAP_NET_BIND_SERVICE"
+    ],
+    "cap_drop": [
+      "ALL"
+    ],
+    "cgroup_mode": "private",
+    "ipc_mode": "private",
+    "pid_mode": "",
+    "privileged": false,
+    "readonly": true,
+    "security_opt": [
+      "no-new-privileges:true"
+    ],
+    "user": "10001:10001"
+  },
+  "all12_running_nonoom": true,
+  "six_roles": [
+    {
+      "role": "acquire-plan",
+      "id": "ea6377b619cf2f57d12bf1b957eb9cf5854f31cfd7572c516d9cd02cfabfab13",
+      "checks": {
+        "allowed_dns": true,
+        "allowed_proxy": true,
+        "allowed_redirect": true,
+        "direct_addresses_blocked": [
+          "172.30.241.5",
+          "fd42:7377:696e:241::5"
+        ],
+        "forbidden_dns": true,
+        "forbidden_proxy": true,
+        "forbidden_redirect": true
+      },
+      "reject_before": [
+        0,
+        0
+      ],
+      "reject_after": [
+        0,
+        0
+      ]
+    },
+    {
+      "role": "derive",
+      "id": "6f73d0f8904e10b9297512c3f7df93e90afaf3a339607cbc50aa50571d5bd05b",
+      "checks": {
+        "allowed_dns": true,
+        "allowed_proxy": true,
+        "allowed_redirect": true,
+        "direct_addresses_blocked": [
+          "172.30.241.5",
+          "fd42:7377:696e:241::5"
+        ],
+        "forbidden_dns": true,
+        "forbidden_proxy": true,
+        "forbidden_redirect": true
+      },
+      "reject_before": [
+        0,
+        0
+      ],
+      "reject_after": [
+        0,
+        0
+      ]
+    },
+    {
+      "role": "release-maintain",
+      "id": "bde4bf340f1eb8d534c8058a56350bfc8fa7797eb6b2631d4ade00735647746b",
+      "checks": {
+        "allowed_dns": true,
+        "allowed_proxy": true,
+        "allowed_redirect": true,
+        "direct_addresses_blocked": [
+          "172.30.241.5",
+          "fd42:7377:696e:241::5"
+        ],
+        "forbidden_dns": true,
+        "forbidden_proxy": true,
+        "forbidden_redirect": true
+      },
+      "reject_before": [
+        0,
+        0
+      ],
+      "reject_after": [
+        0,
+        0
+      ]
+    },
+    {
+      "role": "jobs",
+      "id": "7f0d68d11fc09b7946917166ef42dc8c5fe844b57b1c85a8147e9dc2f8c4042b",
+      "checks": {
+        "allowed_dns": true,
+        "allowed_proxy": true,
+        "allowed_redirect": true,
+        "direct_addresses_blocked": [
+          "172.30.241.5",
+          "fd42:7377:696e:241::5"
+        ],
+        "forbidden_dns": true,
+        "forbidden_proxy": true,
+        "forbidden_redirect": true
+      },
+      "reject_before": [
+        0,
+        0
+      ],
+      "reject_after": [
+        0,
+        0
+      ]
+    },
+    {
+      "role": "checker",
+      "id": "d7dc610a60d47d571ecf7ba00da8f1371ed30e03837740c392e971362f5e120f",
+      "checks": {
+        "allowed_dns": true,
+        "allowed_proxy": true,
+        "allowed_redirect": true,
+        "direct_addresses_blocked": [
+          "172.30.241.5",
+          "fd42:7377:696e:241::5"
+        ],
+        "forbidden_dns": true,
+        "forbidden_proxy": true,
+        "forbidden_redirect": true
+      },
+      "reject_before": [
+        0,
+        0
+      ],
+      "reject_after": [
+        0,
+        0
+      ]
+    },
+    {
+      "role": "health",
+      "id": "2d32975d9fa2bcdbd36e3419842ac6a5cf098be9e763bc0bb19900880a750900",
+      "checks": {
+        "allowed_dns": true,
+        "allowed_proxy": true,
+        "allowed_redirect": true,
+        "direct_addresses_blocked": [
+          "172.30.241.5",
+          "fd42:7377:696e:241::5"
+        ],
+        "forbidden_dns": true,
+        "forbidden_proxy": true,
+        "forbidden_redirect": true
+      },
+      "reject_before": [
+        0,
+        0
+      ],
+      "reject_after": [
+        0,
+        0
+      ]
+    }
+  ],
+  "live_ipv4_ipv6_positive_controls_before_after": true,
+  "old15_and7apps_unchanged": true,
+  "other11_proof_ids_unchanged": true,
+  "scope": "Early c54/4fc/source421 only; zero REJECT counters prove routing/sysctl/proxy/DNS boundaries, not exercised kernel rejection. Routable extra-interface proof remains required.",
+  "independent_review_sha256": "0302b28bc7ea65b73147376d368e0f92e35b4465e9a307e131d272c60121163d"
+}

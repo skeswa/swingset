@@ -1,0 +1,132 @@
+{
+  "operation": "early owned namespace setup; stopped before baseline",
+  "timestamp": "2026-11-05T22:57:02.920273+00:00",
+  "command": [
+    "python3",
+    "-m",
+    "swingset.deploy.operation",
+    "--root",
+    "/var/tmp/swingset-stage2-netproof-0e0ba9f0a719",
+    "setup"
+  ],
+  "command_exit_code": 0,
+  "setup_success": false,
+  "reason": "All6worker namespaces authorized; resolver exited before exec. Setup incorrectly reported complete without requiring support readiness.",
+  "raw_summary_sha256": "a56e5bee505eaa68383dfa66d62f4da927cb02d3ff85de80b50471d62e433de0",
+  "authoritative_receipt_sha256": {
+    "resolver-diagnostic.json": "36f0f74d6cf6c89b09edbf0ff1f48a3f15e203a6a9fecf18a416aff21faf1936",
+    "resolver-filecap.json": "7ce0ede55e521be83f45ee85d56c40d38d812f89d23810775fc6b93c3ee6c204",
+    "setup-result.json": "df82fb6773487095ed89b9c5155183040c0ca5c283ecf228e602e0dfc2a80ef3"
+  },
+  "receipt_transport": "SFTP; local and remote SHA matched",
+  "created": [
+    {
+      "id": "ea6377b619cf2f57d12bf1b957eb9cf5854f31cfd7572c516d9cd02cfabfab13",
+      "role": "acquire-plan",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "6f73d0f8904e10b9297512c3f7df93e90afaf3a339607cbc50aa50571d5bd05b",
+      "role": "derive",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "bde4bf340f1eb8d534c8058a56350bfc8fa7797eb6b2631d4ade00735647746b",
+      "role": "release-maintain",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "7f0d68d11fc09b7946917166ef42dc8c5fe844b57b1c85a8147e9dc2f8c4042b",
+      "role": "jobs",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "d7dc610a60d47d571ecf7ba00da8f1371ed30e03837740c392e971362f5e120f",
+      "role": "checker",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "2d32975d9fa2bcdbd36e3419842ac6a5cf098be9e763bc0bb19900880a750900",
+      "role": "health",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "2cbf3f089de98dd18a871c0ec26b27a330f443aac7aa0afe75bbbf71ee4098f6",
+      "role": "proxy",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "402796ff41e44b3f03d8d977544e949f41803e4746455f76991593072554643b",
+      "role": "resolver",
+      "running": false,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "6d74e6e8b6382a6fbf101850c076b6089bb15d88e3d78e6de27a22372cd65552",
+      "role": "owned-mock",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "62dca21a0a1b276a6401b43142026a6602f4a108c0b80ea9f12f381f5ed9fe58",
+      "role": "control",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "90de9698e5ab6453b88c4bf1de7c7dc362a2a62c6d0634ba6b044cca4b527263",
+      "role": "relay",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    },
+    {
+      "id": "f95b0e2f8d2faf1e8b4a5608496726db6dbcb89f8779faf631c4635c5861566b",
+      "role": "platform-operator",
+      "running": true,
+      "oom": false,
+      "restart": 0
+    }
+  ],
+  "kernel_authorization": "all six worker readiness checks passed under narrow operator capabilities",
+  "operator_capabilities": [
+    "SYS_ADMIN",
+    "NET_ADMIN",
+    "SYS_PTRACE"
+  ],
+  "default_apparmor_seccomp": true,
+  "resolver_error": "exec /coredns: operation not permitted",
+  "resolver_file_capability": {
+    "capability": "CAP_NET_BIND_SERVICE",
+    "effective_flag": true,
+    "inheritable_high": 0,
+    "inheritable_low": 0,
+    "permitted_high": 0,
+    "permitted_low": 1024,
+    "revision": 2
+  },
+  "resolver_config": "sha256:881cbdacb8c168aaba50f10b1458f36d1b976c5a856e72d3589bc9cd262f3442",
+  "baseline_executed": false,
+  "all15_previous_objects_unchanged": true,
+  "seven_original_apps_unchanged": true,
+  "retries": 0,
+  "cleanup_or_deletion": false,
+  "capability_change_applied": false
+}

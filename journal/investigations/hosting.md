@@ -1,5 +1,7 @@
 # Hosting and database migration
 
+- [Stage 2 server rehearsal, in progress (2026-11-05)](2026/stage-2-server-rehearsal-2026-11-05.md).
+
 Find hosting options, PostgreSQL experiments, and storage research.
 
 - [Stage 1 local PostgreSQL implementation, Gates 0 and 1 passed (2026-11-05)](2026/stage-1-implementation-2026-11-04.md).

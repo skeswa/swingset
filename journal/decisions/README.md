@@ -298,6 +298,13 @@ that links the old one.
 | [D-0273](0273-capture-build-rendering-inputs.md)                                             | Capture build cutoff and run before rendering so retries reproduce the same release                                                            | Build identity and recovery                       |
 | [D-0274](0274-retain-semantic-input-tombstones.md)                                           | Retain the accepted semantic input map, including explicit absence tokens, across cold restore                                                 | History backup and recipe identity                |
 | [D-0275](0275-audit-object-gc-clocks-as-monotonic-anchors.md)                                | Audit ordinary GC clocks and candidate pointers while keeping immutable storage and manifest receipts exact                                    | History backup and storage clocks                 |
+| [D-0276](0276-version-native-schema-without-changing-imported-history.md)                    | Version native PostgreSQL migrations separately while preserving the exact SQLite schema-37 history                                            | Schema identity and imports                       |
+| [D-0277](0277-resume-recovery-from-database-bound-progress.md)                               | Resume bounded recovery from database-bound progress while retaining the restore barrier                                                       | Crash recovery                                    |
+| [D-0278](0278-bootstrap-privileged-table-functions-outside-the-application.md)               | Prepare the privileged initial table phase outside the application, then adopt it with a limited owner                                         | Database bootstrap                                |
+| [D-0279](0279-distinguish-image-artifacts-from-daemon-identities.md)                         | Verify artifact, platform, configuration and target-daemon identities separately before authorizing a container                                | Container identity                                |
+| [D-0280](0280-allow-only-the-resolvers-bind-capability.md)                                   | Give the pinned resolver only its required bind capability; application workers keep all capabilities dropped                                  | Server network policy                             |
+
+| [D-0281](0281-resolve-controls-from-the-selected-state-directory.md) | Resolve worker and controller URLs from the selected state before falling back to the process environment | Database connection identity |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

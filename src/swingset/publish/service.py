@@ -178,10 +178,10 @@ def _publication_backup(
     from swingset.versions import versions
 
     transport: Transport
-    if (
-        connection.execute("SELECT environment FROM ops.environment_identity").fetchone()[0]
-        == "production"
-    ):
+    if connection.execute("SELECT environment FROM ops.environment_identity").fetchone()[0] in {
+        "dryrun",
+        "production",
+    }:
         from swingset.backup.r2 import configured
 
         transport = configured(connection)

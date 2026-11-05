@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-06T20:37:30.556920+00:00",
+  "command": "reviewed bootstrap_files.py in isolated bounded root job",
+  "copied_file_bytes": 5871217514,
+  "copied_files": 201576,
+  "copied_files_sha256": "ac8ea94419beca5c00d82fb247c39dcb679db7d2432dcc788aa5dd77d99dece8",
+  "exit_code": 0,
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-06T21:46:24.758465+00:00"
+  },
+  "limits": "Filesystem and scoped credential delivery only; database import not performed by this job.",
+  "oom": false,
+  "operation": "prepare fresh held import state filesystem",
+  "original7_apps_unchanged": true,
+  "raw_SQLite_copied": false,
+  "review_sha256": "8d35645fb6ab12acc4a45248c21a35c77b2b95d4557cc3b876af947a106c8601",
+  "script_sha256": "bdc3cdf53084720b11ffc0f9f4a7b41f967d73988d792d6e729348c514f6af79",
+  "seconds": 534.24,
+  "server_result_sha256": "3d50e5495bf07857b7292409f37b58ec78b05d9d99c22aec05a70fb0dda2b0e7",
+  "stable_SFTP": true,
+  "symlinks": 1,
+  "three_scoped_DSN_files": "0400,UID10001; no credential values emitted or hashed"
+}

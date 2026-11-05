@@ -1,0 +1,26 @@
+{
+  "command": "nix develop -c uv run pytest -q --full-suite -n 4 --dist=loadfile --no-loadscope-reorder --max-worker-restart=0 --timings --durations=40 -o tmp_path_retention_policy=failed --junitxml=/tmp/swingset-stage2-full-final-20261106.xml",
+  "exit_code": null,
+  "exit_code_limit": "Controller exit status was not captured across restart; XML and dead owner are authoritative for observed outcome.",
+  "next": "Fresh complete run with stdout/stderr redirected to durable scratch logs; preserve this original XML.",
+  "operation": "Full suite interrupted by daemon restart closing stdout",
+  "passed_testcases": 4542,
+  "recorded_at": "2026-11-06T02:17:35Z",
+  "reporting_error": "BrokenPipeError in pytest terminal flush after control daemon restarted",
+  "reporting_errors": 1,
+  "source_binding_sha256": "fff3c2929a584f7b3a4b47b06f3c4d9d741ede4984c6ee0f5d5c37fcbacb1f11",
+  "source_binding_unchanged": true,
+  "source_revision": "source-sha256:2a83d305cdfe0230a4dd8b7ba64c4aa859e833b8ebbfb1372904b354c14937c4",
+  "test_failures": 0,
+  "testsuite": {
+    "errors": "1",
+    "failures": "0",
+    "hostname": "koomac",
+    "name": "pytest",
+    "skipped": "0",
+    "tests": "4541",
+    "time": "1412.816",
+    "timestamp": "2026-11-05T20:49:25.466672-05:00"
+  },
+  "xml_sha256": "5af126c204d0b3f709518058152e1857434f6c730e241e34f14bdf65fbc56841"
+}

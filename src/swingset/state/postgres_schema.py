@@ -14,7 +14,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 
-SCHEMA_VERSION = 37
+SOURCE_SCHEMA_VERSION = 37
+SCHEMA_VERSION = 38
 SEARCH_PATH = 'pg_catalog,"fetch",plan,evidence,derive,project,release,ops,pg_temp'
 ROOT = Path(__file__).with_name("postgres_migrations")
 TABLE_NAMESPACES: dict[str, str] = {
@@ -401,14 +402,17 @@ def migration_phases() -> dict[str, str]:
     """Loading installs tables first and never exposes an unfenced worker database."""
     import re
 
-    chunks = re.split(r"(?m)^-- swingset-phase: (\w+)\s*$", migration_sql())
-    return {chunks[i]: chunks[i + 1] for i in range(1, len(chunks), 2)}
+    files = migration_files()
+    chunks = re.split(r"(?m)^-- swingset-phase: (\w+)\s*$", files[0].read_text())
+    phases = {chunks[i]: chunks[i + 1] for i in range(1, len(chunks), 2)}
+    phases["forward"] = "\n".join(path.read_text() for path in files[1:])
+    return phases
 
 
 def seed_environment(conn: Any, environment: str = "dev", database_id: str | None = None) -> str:
     """Assign the destination identity as an administrator, never the worker."""
-    if environment not in {"dev", "production"}:
-        raise ValueError("environment must be dev or production")
+    if environment not in {"dev", "dryrun", "production"}:
+        raise ValueError("environment must be dev, dryrun or production")
     identifier = database_id or str(uuid.uuid4())
     uuid.UUID(identifier)
     conn.execute(
@@ -426,6 +430,8 @@ def validate_schema(conn: Any, *, full: bool = False) -> dict[str, Any]:
         raise RuntimeError("Postgres schema is not initialized; run the migration job") from exc
     if (
         found.get("schema_version") != str(SCHEMA_VERSION)
+        or found.get("source_schema_version", found.get("schema_version"))
+        != str(SOURCE_SCHEMA_VERSION)
         or found.get("postgres_migration_checksum") != migration_checksum()
     ):
         raise RuntimeError("Postgres schema version or migration checksum differs from this code")
@@ -447,19 +453,27 @@ def migrate(conn: Any, *, environment: str | None = None) -> dict[str, Any]:
     admissions first. Every applied script is immutable, including on restart.
     Existing target identities survive a forward migration unchanged.
     """
-    existing = conn.execute("SELECT to_regclass('ops.meta')").fetchone()[0] is not None
+    from . import postgres_bootstrap
+
+    prepared = postgres_bootstrap.adopt(conn)
+    existing = (
+        not prepared and conn.execute("SELECT to_regclass('ops.meta')").fetchone()[0] is not None
+    )
     current = 0
     applied: dict[str, str] = {}
     if existing:
         version = conn.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()
-        current = int(version[0]) if version else 0
+        source_version = int(version[0]) if version else 0
         comment = conn.execute(
             "SELECT obj_description('ops'::regnamespace,'pg_namespace')"
         ).fetchone()[0]
         metadata = json.loads(comment) if comment else {}
+        current = int(metadata.get("schema_version", source_version))
         applied = dict(metadata.get("scripts", {}))
-        if current > SCHEMA_VERSION:
+        if current > SCHEMA_VERSION or source_version > SOURCE_SCHEMA_VERSION:
             raise RuntimeError("Postgres migration refuses a schema downgrade")
+        if source_version != SOURCE_SCHEMA_VERSION:
+            raise RuntimeError("Postgres retained source schema version differs")
         if not applied:
             raise RuntimeError("applied Postgres migration checksums are missing")
         if environment is not None:
@@ -476,25 +490,31 @@ def migrate(conn: Any, *, environment: str | None = None) -> dict[str, Any]:
         raise RuntimeError("an applied Postgres migration checksum differs")
     if any(path.name not in applied for path in files if int(path.name[:4]) <= current):
         raise RuntimeError("applied Postgres migration history is incomplete")
-    for path in files:
-        number = int(path.name[:4])
-        if number <= current:
-            continue
-        if current and number != current + 1:
-            raise RuntimeError("Postgres migration sequence has a gap")
-        with conn.transaction():
+    # A fresh destination receives its immutable identity only after all DDL
+    # accepts that environment. An interrupted existing upgrade preserves it.
+    fresh = not existing
+    with conn.transaction():
+        for path in files:
+            number = int(path.name[:4])
+            if number <= current:
+                continue
+            if current and number != current + 1:
+                raise RuntimeError("Postgres migration sequence has a gap")
             install_roles(conn)
-            conn.execute(path.read_text(), prepare=False)
+            if prepared and number == SOURCE_SCHEMA_VERSION:
+                phases = migration_phases()
+                for phase in ("constraints", "triggers", "seed"):
+                    conn.execute(phases[phase], prepare=False)
+            else:
+                conn.execute(path.read_text(), prepare=False)
             assign_owners(conn)
-            conn.execute("UPDATE ops.meta SET value=%s WHERE key='schema_version'", (str(number),))
-            if not existing:
-                seed_environment(conn, environment or "dev")
             if number > 37:
                 install_publication_fences(conn)
             applied[path.name] = expected[path.name]
-            stamp_schema(conn, scripts=applied)
-        existing, current = True, number
-    with conn.transaction():
+            stamp_schema(conn, scripts=applied, native_version=number)
+            existing, current = True, number
+        if fresh:
+            seed_environment(conn, environment or "dev")
         grant_roles(conn)
         stamp_schema(conn, scripts=applied)
     return validate_schema(conn)
@@ -812,12 +832,14 @@ def _predicate(expression: str) -> str:
     return value
 
 
-def stamp_schema(conn: Any, *, scripts: dict[str, str] | None = None) -> None:
+def stamp_schema(
+    conn: Any, *, scripts: dict[str, str] | None = None, native_version: int | None = None
+) -> None:
     from psycopg import sql
 
     metadata = json.dumps(
         {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": SCHEMA_VERSION if native_version is None else native_version,
             "migration_checksum": migration_checksum(),
             "scripts": scripts
             if scripts is not None

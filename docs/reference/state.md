@@ -37,8 +37,17 @@ starts at schema 37 under `state/postgres_migrations/`, with explicit owner
 migrations and names matching published tables. A worker open never migrates.
 The [namespace map](../plans/postgres-migration/2-schema.md#todays-141-tables-by-namespace)
 locates the logical table names below. The destination also has
-`ops.environment_identity`, with a fresh database UUID and `dev` or
-`production` identity. Worker credentials cannot change it.
+`ops.environment_identity`, with a fresh database UUID and `dev`, `dryrun` or
+`production` identity. Worker credentials cannot change it. Native migrations
+advance independently from the preserved SQLite import version
+([version semantics](schema-history.md#version-semantics)).
+
+`inspect-import` reads a hash-bound native import receipt and finalized target
+through an explicit read-only owner connection. All 141 source tables must be
+marked loaded. It checks database identity, schema, counts and quiescence;
+`typed_values_checked=false` makes clear that counts do not accept a native
+typed audit. It never resumes, grants privileges or rewrites the receipt. See
+the [operator command](../../deploy/README.md#inspect-a-loaded-target).
 
 History backup rules live in
 [`history_catalog.py`](../../src/swingset/state/history_catalog.py).

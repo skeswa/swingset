@@ -1,0 +1,20 @@
+{
+  "at": "2026-11-06T21:40:21.008839+00:00",
+  "checks_passed": true,
+  "command": "mise run check",
+  "errors": [],
+  "exit_code": 0,
+  "job": "b5cce13e521d42d3b0a67c54",
+  "limits": "No deadline, memory cap, selection rule or assertion weakened; no source edit during this run. Full 4573-case result predates the new supervisor and utility allowance.",
+  "mypy": "364 source files pass",
+  "operation": "complete core after maintained import supervisor",
+  "revision_unchanged": true,
+  "ruff": "pass",
+  "selected_count": 3018,
+  "source_binding_sha256": "f9b1dbd693c5a5582ce4230d9bd8318769013fb48e367a63ad676994c84a2aae",
+  "source_revision": "source-sha256:22b218d8adea53244bf94cf027ab0d64888cbf387e85bfc9b7a14b94e8bba49b",
+  "source_unchanged": true,
+  "summary_sha256": "227377b9ff50c05cc7362bea0d3382bc571aa10566af696c7213e5856aa69660",
+  "wall_seconds": 171.6688919160515,
+  "within_180_seconds": true
+}

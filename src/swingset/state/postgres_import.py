@@ -10,18 +10,22 @@ import codecs
 import hashlib
 import json
 import math
+import os
+import re
 import sqlite3
+import stat
 import struct
 import time
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from . import postgres_schema as schema
 
-CHUNK = 64 * 1024
+CHUNK = 1024 * 1024
 LARGE = 256 * 1024
 MAX_FIELD_BYTES = (1 << 30) - 1
 FORMAT = "swingset-postgres-import-v1"
@@ -29,6 +33,120 @@ FORMAT = "swingset-postgres-import-v1"
 
 class ImportRejected(ValueError):
     """A checkpoint or value cannot be imported faithfully."""
+
+
+def inspect_loaded_target(
+    receipt_path: Path,
+    conn: Any,
+    *,
+    receipt_sha256: str,
+    source_sha256: str,
+    database: str,
+    database_oid: int,
+    environment: str,
+    database_id: str | None = None,
+) -> dict[str, Any]:
+    """Read a finalized loaded target without resuming or accepting its typed audit."""
+    from .environment import identity
+
+    descriptor = os.open(receipt_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size > 2 * 1024**2:
+            raise ImportRejected("import receipt must be one bounded regular file")
+        body = stream.read(2 * 1024**2 + 1)
+    if len(body) > 2 * 1024**2 or hashlib.sha256(body).hexdigest() != receipt_sha256:
+        raise ImportRejected("import receipt digest differs")
+    previous = json.loads(body)
+    if not isinstance(previous, dict):
+        raise ImportRejected("import receipt must be an object")
+    tables = previous.get("tables", {})
+    if (
+        not isinstance(tables, dict)
+        or previous.get("format") != FORMAT
+        or previous.get("source_sha256") != source_sha256
+        or not re.fullmatch(r"[a-f0-9]{64}", source_sha256)
+        or previous.get("migration_checksum") != schema.migration_checksum()
+        or previous.get("loaded") != tables
+        or set(tables) != set(schema.reference_manifest()["tables"])
+        or any(
+            not isinstance(value, dict)
+            or set(value) != {"rows", "sha256"}
+            or type(value["rows"]) is not int
+            or value["rows"] < 0
+            or not isinstance(value["sha256"], str)
+            or not re.fullmatch(r"[a-f0-9]{64}", value["sha256"])
+            for value in tables.values()
+        )
+    ):
+        raise ImportRejected("inspection requires the exact fully loaded import receipt")
+    if conn.in_transaction:
+        raise ImportRejected("import inspection requires a fresh connection")
+    if (
+        conn.execute("SELECT current_setting('default_transaction_read_only')").fetchone()[0]
+        != "on"
+    ):
+        raise ImportRejected("import inspection requires a read-only connection")
+    with conn.read_snapshot():
+        catalog = tuple(
+            conn.execute(
+                "SELECT datname,oid,datcollate,datctype,pg_encoding_to_char(encoding) FROM pg_database WHERE datname=current_database()"
+            ).fetchone()
+        )
+        if catalog != (database, database_oid, "C", "C", "UTF8"):
+            raise ImportRejected("import target database identity or locale differs")
+        stored = identity(conn)
+        if (
+            stored.environment != environment
+            or str(UUID(stored.database_id)) != stored.database_id
+            or (database_id is not None and stored.database_id != database_id)
+        ):
+            raise ImportRejected("import target stored identity differs")
+        parity = schema.validate_schema(conn, full=True)
+        if not parity["equal"] or parity["tables"] != len(tables) + 1:
+            raise ImportRejected("import target is not finalized")
+
+        def require_quiet() -> None:
+            conn.execute("SELECT pg_stat_clear_snapshot()")
+            if conn.execute(
+                "SELECT count(*) FROM pg_stat_activity WHERE datid=%s AND pid<>pg_backend_pid() AND (backend_type='client backend' OR backend_type IS NULL)",
+                (database_oid,),
+            ).fetchone()[0]:
+                raise ImportRejected("import target has another client connection")
+
+        require_quiet()
+        counts = {
+            name: conn.execute("SELECT count(*) FROM " + schema.qualified(name)).fetchone()[0]
+            for name in sorted(tables)
+        }
+        if counts != {name: value["rows"] for name, value in tables.items()}:
+            raise ImportRejected("import target row counts differ")
+        size = conn.execute("SELECT pg_database_size(current_database())").fetchone()[0]
+        require_quiet()
+    from swingset.fetch.archive import canonical
+
+    return {
+        "format": "swingset-postgres-import-inspection-v1",
+        "complete": True,
+        "native_complete": previous.get("complete") is True,
+        "typed_values_checked": False,
+        "persistent_database_writes": 0,
+        "database": database,
+        "database_oid": database_oid,
+        "database_id": stored.database_id,
+        "environment": stored.environment,
+        "schema": parity,
+        "finalized_user_triggers": parity["triggers"],
+        "migration_checksum": previous["migration_checksum"],
+        "schema_fingerprint": previous.get("schema_fingerprint"),
+        "counts": counts,
+        "total_rows": sum(counts.values()),
+        "database_bytes": size,
+        "receipt_sha256": receipt_sha256,
+        "source_sha256": source_sha256,
+        "table_matrix_sha256": hashlib.sha256(canonical(tables)).hexdigest(),
+        "other_client_sessions": 0,
+    }
 
 
 def _digest_file(path: Path) -> str:
@@ -49,7 +167,7 @@ def _checkpoint(source: Path, expected_sha256: str | None) -> tuple[Path, str]:
     manifest_path = path.parent / "checkpoint.json"
     if manifest_path.is_file():
         manifest = json.loads(manifest_path.read_text())
-        if manifest.get("schema_version") != schema.SCHEMA_VERSION:
+        if manifest.get("schema_version") != schema.SOURCE_SCHEMA_VERSION:
             raise ImportRejected("checkpoint schema version differs")
         expected_files = manifest.get("files")
         if not isinstance(expected_files, dict) or "state.sqlite" not in expected_files:
@@ -335,29 +453,44 @@ def _row_digest(rows: Iterator[list[Cell]]) -> tuple[int, str]:
     return count, checksum.hexdigest()
 
 
-def preflight(source: Path, *, expected_sha256: str | None = None) -> dict[str, Any]:
+def preflight(
+    source: Path,
+    *,
+    expected_sha256: str | None = None,
+    progress: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     """Reject incompatible source bytes before creating destination tables."""
+    started = time.monotonic()
+
+    def report(phase: str, **details: Any) -> None:
+        if progress is not None:
+            progress({"phase": phase, "seconds": round(time.monotonic() - started, 3), **details})
+
+    report("source_digest")
     path, sha256 = _checkpoint(source, expected_sha256)
     tables: dict[str, Any] = {}
     with _source(path) as conn:
         if conn.execute("PRAGMA user_version").fetchone()[
             0
-        ] != schema.SCHEMA_VERSION or conn.execute(
+        ] != schema.SOURCE_SCHEMA_VERSION or conn.execute(
             "SELECT value FROM meta WHERE key='schema_version'"
-        ).fetchone() != (str(schema.SCHEMA_VERSION),):
+        ).fetchone() != (str(schema.SOURCE_SCHEMA_VERSION),):
             raise ImportRejected("SQLite user_version differs from schema 37")
-        if (
-            conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok"
-            or conn.execute("PRAGMA foreign_key_check").fetchone() is not None
-        ):
+        report("integrity")
+        if conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise ImportRejected("SQLite integrity or foreign-key check failed")
+        report("foreign_keys")
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
             raise ImportRejected("SQLite integrity or foreign-key check failed")
         actual = _catalog(conn)
         if actual != schema.reference_manifest()["objects"]:
             raise ImportRejected("SQLite schema or trigger fingerprint differs from schema 37")
         from .legacy_checkpoint import verify_sqlite_files
 
+        report("files")
         file_receipt = verify_sqlite_files(path.parent, conn)
         for table, specification in sorted(schema.reference_manifest()["tables"].items()):
+            report("values", table=table, checked_tables=len(tables))
             for column in specification["columns"]:
                 if column["name"].endswith("_json"):
                     name = _quote(column["name"])
@@ -370,6 +503,7 @@ def preflight(source: Path, *, expected_sha256: str | None = None) -> dict[str, 
                         raise ImportRejected(table + "." + column["name"] + ": malformed JSON")
             count, checksum = _row_digest(_sqlite_rows(conn, table, physical=True))
             tables[table] = {"rows": count, "sha256": checksum}
+    report("validated", checked_tables=len(tables))
     return {
         "format": FORMAT,
         "source": str(path),
@@ -430,6 +564,62 @@ def load(
     """
     started = time.monotonic()
     checked = preflight(source, expected_sha256=expected_sha256)
+    return _load_checked(
+        checked,
+        conn,
+        receipt_path=receipt_path,
+        environment=environment,
+        stop=stop,
+        started=started,
+    )
+
+
+def load_into(
+    source: Path,
+    destination: Callable[[], AbstractContextManager[Any]],
+    *,
+    expected_sha256: str | None = None,
+    receipt_path: Path | None = None,
+    environment: str = "dev",
+    stop: Callable[[], bool] = lambda: False,
+) -> dict[str, Any]:
+    """Validate before opening the owned destination session, then load and audit.
+
+    Full-size SQLite validation can outlive a relay's idle timeout. Keep no
+    destination session idle during it, and never reconnect during a load.
+    """
+    started = time.monotonic()
+
+    def progress(value: dict[str, Any]) -> None:
+        if receipt_path is not None:
+            from swingset.fetch.archive import canonical, durable_write
+
+            # Diagnostic only: this file never authorizes skipping validation
+            # or replaces the native load/audit receipt during a resume.
+            path = receipt_path.with_name(receipt_path.stem + "-preflight.json")
+            durable_write(path, canonical(value))
+
+    checked = preflight(source, expected_sha256=expected_sha256, progress=progress)
+    with destination() as conn:
+        return _load_checked(
+            checked,
+            conn,
+            receipt_path=receipt_path,
+            environment=environment,
+            stop=stop,
+            started=started,
+        )
+
+
+def _load_checked(
+    checked: dict[str, Any],
+    conn: Any,
+    *,
+    receipt_path: Path | None,
+    environment: str,
+    stop: Callable[[], bool],
+    started: float,
+) -> dict[str, Any]:
     path = Path(checked["source"])
     previous = (
         json.loads(receipt_path.read_text())
@@ -455,18 +645,15 @@ def load(
 
     phases = schema.migration_phases()
     if previous is None:
-        if (
-            conn.execute(
-                "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname=ANY(%s) LIMIT 1",
-                (sorted(set(schema.TABLE_NAMESPACES.values())),),
-            ).fetchone()
-            is not None
-        ):
-            raise ImportRejected("destination application database is not empty")
+        from .postgres_bootstrap import initialize_tables
+
         with conn.transaction():
-            schema.install_roles(conn)
-            conn.execute(phases["tables"], prepare=False)
-            schema.assign_owners(conn)
+            try:
+                initialize_tables(conn)
+            except RuntimeError as exc:
+                raise ImportRejected(
+                    "destination application database is not empty or prepared: " + str(exc)
+                ) from exc
     record()
     with _source(path) as reader:
         for table in sorted(schema.reference_manifest()["tables"]):
@@ -522,6 +709,8 @@ def load(
         with conn.transaction():
             conn.execute(phases["constraints"], prepare=False)
             conn.execute(phases["triggers"], prepare=False)
+            if phases["forward"]:
+                conn.execute(phases["forward"], prepare=False)
             schema.seed_environment(conn, environment)
             schema.stamp_schema(conn)
             schema.verify(conn)

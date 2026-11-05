@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import os
 import shutil
 import sys
@@ -11,11 +10,10 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from swingset.fetch.archive import canonical
 from swingset.state import engine, postgres_backup
 from swingset.state.control_lock import control_lock, holds_control_lock
 from swingset.state.engine.locks import release, try_lock
-from swingset.state.recipes import capture_runtime
+from swingset.state.recipes import runtime_fingerprint
 from swingset.state.rwlock import is_lock_file
 
 
@@ -39,26 +37,14 @@ def current_runtime_identity() -> str:
         if "@sha256:" not in image or len(image.rsplit("@sha256:", 1)[1]) != 64:
             raise ValueError("backup runtime image must name an immutable OCI digest")
         return image
-    return (
-        "native:"
-        + hashlib.sha256(
-            canonical(
-                {
-                    name: hashlib.sha256(value).hexdigest()
-                    for name, value in capture_runtime().items()
-                }
-            )
-        ).hexdigest()
-    )
+    return "native:" + runtime_fingerprint()
 
 
 def runtime_identity(conn: engine.Connection) -> str:
-    if (
-        not os.environ.get("SWINGSET_RUNTIME_IMAGE")
-        and conn.execute("SELECT environment FROM ops.environment_identity").fetchone()[0]
-        == "production"
-    ):
-        raise ValueError("production backups require SWINGSET_RUNTIME_IMAGE")
+    if not os.environ.get("SWINGSET_RUNTIME_IMAGE") and conn.execute(
+        "SELECT environment FROM ops.environment_identity"
+    ).fetchone()[0] in {"dryrun", "production"}:
+        raise ValueError("server backups require SWINGSET_RUNTIME_IMAGE")
     return current_runtime_identity()
 
 

@@ -1,0 +1,51 @@
+{
+  "command": "nix develop -c uv run pytest -q --full-suite -n 4 --dist=loadfile --no-loadscope-reorder --max-worker-restart=0 --timings --durations=40 -o tmp_path_retention_policy=failed --junitxml=/tmp/swingset-stage2-full-20261106-retention.xml",
+  "correction": "Fixture inputs now stay in the owning test temporary tree; scandir mock restores before fixture cleanup. All four pressure variants plus recipe teardown case passed (5 cases, 22.75 seconds).",
+  "counts": {
+    "errors": "1",
+    "failures": "2",
+    "hostname": "koomac",
+    "name": "pytest",
+    "skipped": "0",
+    "tests": "4508",
+    "time": "1437.807",
+    "timestamp": "2026-11-05T19:30:11.857369-05:00"
+  },
+  "diagnosis": "Two sibling fixture-input paths survived passed-temp cleanup and collided on reuse; one global scandir mock broke shutil fixture cleanup.",
+  "exit_code": 1,
+  "failures": [
+    {
+      "classname": "tests.test_event_pressure",
+      "kind": "failure",
+      "message": "FileExistsError: [Errno 17] File exists: '/private/tmp/pytest-of-skeswa/pytest-3165/popen-gw1/test_restore_invalidates_obser0-inputs/config'",
+      "name": "test_restore_invalidates_observations_before_activation[False-True]"
+    },
+    {
+      "classname": "tests.test_event_pressure",
+      "kind": "failure",
+      "message": "FileExistsError: [Errno 17] File exists: '/private/tmp/pytest-of-skeswa/pytest-3165/popen-gw1/test_restore_invalidates_obser1-inputs/config'",
+      "name": "test_restore_invalidates_observations_before_activation[True-True]"
+    },
+    {
+      "classname": "tests.test_recipes",
+      "kind": "error",
+      "message": "failed on teardown with \"TypeError: argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'int'\"",
+      "name": "test_runtime_capture_prunes_cache_before_scanning_and_keeps_permission_skip"
+    }
+  ],
+  "finished_at": "2026-11-06T00:55:30.978907+00:00",
+  "format": "swingset-stage2-full-suite-receipt-v1",
+  "host_free_bytes": 116803330048,
+  "independent_recovery_fix": "Completed activation progress clears needs_rebuild and does not replay rebuild after marker unlink failure. A two-case regression plus activation, pressure and Postgres rebuild checks passed (47 cases, 54.11 seconds).",
+  "pytest_report": {
+    "errors": 1,
+    "failed": 2,
+    "passed": 4506,
+    "seconds": 1437.83
+  },
+  "source_binding_sha256": "24107690c512665f6f00a03d4eb1fc9b85b4a9d94c50cac74e6bad03557411a9",
+  "source_binding_unchanged": true,
+  "source_revision": "source-sha256:022086f9981768f5a4379c5eff9cdee8d238ae9070426e3a27481ee99b18e13d",
+  "status": "Focused corrections pass; complete full-suite rerun remains required.",
+  "xml_sha256": "0c3e5ede0490c8a378d9945da93ceefbcfca6d0f414707d5a38dc0a6f1243a7e"
+}

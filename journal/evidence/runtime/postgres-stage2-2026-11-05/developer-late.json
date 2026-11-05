@@ -1,0 +1,41 @@
+{
+  "operation": "Complete stage2 developer check after fixture corrections",
+  "recorded_at": "2026-11-06T00:31:22.834652+00:00",
+  "command": [
+    "mise",
+    "run",
+    "check"
+  ],
+  "exit_code": 1,
+  "job": "ba81b66ed7674d049c989001",
+  "raw_summary_sha256": "f373d6e087876404e52a89defc74be9d428850b69cb89e73b279e4206dc0dea0",
+  "selected_count": 2928,
+  "wall_seconds": 194.37333341734484,
+  "budget_seconds": 180,
+  "functional_checks_passed": true,
+  "within_180_seconds": false,
+  "source_revision": "source-sha256:2cfe2571b07de7d60d7c4fb6412f80f84282b6e1c7dbe2297387840f89c1f9d0",
+  "source_binding_sha256": "8968c6e921778bc33d68bac83b59923846c5de2b620af3aa2553ba58c1273929",
+  "kernel_limits": {
+    "aggregate_working": 7516192768,
+    "client_cpus": 6,
+    "client_memory": 2147483648,
+    "client_memory_plus_swap": 2147483648,
+    "pytest_tmpfs": 805306368,
+    "test_database_cpus": 6000000000,
+    "test_database_memory": 2147483648
+  },
+  "physical_cleanup": {
+    "complete": true
+  },
+  "ruff": {
+    "exit_code": 0,
+    "seconds": 0.07
+  },
+  "mypy": {
+    "exit_code": 0,
+    "seconds": 0.33,
+    "source_files": 362
+  },
+  "interpretation": "All selected cases pass; developer timing gate remains open. Deadlines, limits and assertions unchanged. Later failure-preservation/ingress additions have separate focused checks and full validation."
+}

@@ -1,0 +1,42 @@
+{
+  "active_pauses": [],
+  "all_latest_loops_without_failure_or_error": true,
+  "at": "2026-11-09T19:08:23.722818+00:00",
+  "diagnostic_sha256": "90bbf5c81b842d4e99b4e399d7e9a02eaa663332f2232c5a4a03059d7d24a671",
+  "expired_wayback_pause": [
+    {
+      "host": "web.archive.org",
+      "reason": "ServerError",
+      "streak": 7,
+      "until": "2026-11-06T00:47:48.030974+00:00"
+    }
+  ],
+  "last_actual_fetch": {
+    "bytes_by_host": {
+      "points.worldsdc.com": 526731
+    },
+    "checked": 82,
+    "failed": false,
+    "finished_at": "2026-11-09T17:14:06.369933+00:00",
+    "run_id": "run_20261109T171012Z"
+  },
+  "latest_acquire_checked": 0,
+  "latest_acquire_offered": 0,
+  "latest_operating_alerts": [
+    "2026-11-09T15:07:41Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+    "2026-11-09T15:35:05Z [loop-idle] derive: no progress since 2026-11-07 01:45 UTC, over 2 h while unheld; its ticks finish but do nothing (read its run records)",
+    "2026-11-09T17:35:04Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+    "2026-11-09T18:35:03Z [loop-idle] acquire: no progress since 2026-11-09 17:14 UTC, over 60 minutes while unheld; its ticks finish but do nothing (read its run records)"
+  ],
+  "limits": "Real requests last observed17:14UTC; latest acquire offers0 and registry cap is reached. This snapshot does not prove current continuous fetching or clear the idle alert. Existing Wayback failure metadata names an expiredNov6pause.",
+  "operation": "read-only production pulse after resuming stage2",
+  "operator_hold": false,
+  "production_changes": 0,
+  "pulse_at": "2026-11-09T19:04:17.446932+00:00",
+  "raw_pulse_sha256": "20934f5201bf452ec0f05d4cee7bfd4f0213b2d8bea867da13da8d0d963230b6",
+  "registry_daily_cap": 1500,
+  "registry_requests_today": 1500,
+  "schema_version": 37,
+  "service_source_path": "/nix/store/dvy0vkgqim4lwsg3wl2f7gwgbdgiic18-source",
+  "service_source_path_matches_original_preflight": true
+}

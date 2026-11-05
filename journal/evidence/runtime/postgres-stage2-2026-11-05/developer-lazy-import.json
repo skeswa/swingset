@@ -1,0 +1,22 @@
+{
+  "at": "2026-11-09T18:45:18.432064+00:00",
+  "checks_passed": true,
+  "command": "mise run check",
+  "errors": [],
+  "exit_code": 1,
+  "job": "813196375c724dbfbb31997e",
+  "later_binding_changes": [
+    "tests/test_postgres_import.py"
+  ],
+  "limits": "Correctness passes; 180-second timing gate remains open at206.959seconds. No assertion, selection or limit weakened; no blind timing retry.",
+  "mypy": "364 source files pass",
+  "operation": "core measurement after delayed import connection and preflight progress",
+  "ruff": "one misplaced fixture noqa; corrected after run; targeted Ruff then passes",
+  "selected_count": 3027,
+  "source_binding_sha256": "a01dc4f0849e1ae1c26dbc0b48089affa50a8cf585f7315a600fa58d9cdd8584",
+  "source_code_unchanged": true,
+  "source_revision": "source-sha256:dd3f5a0d0b3fc93bae5ac1850fd95215075757ceb0726f5b8c66b87cc6e1e578",
+  "summary_sha256": "e039fe6a427e450ea5ab2d1db519ff0a197f79059e9f1286525e1c174310c70f",
+  "wall_seconds": 206.9592965822667,
+  "within_180_seconds": false
+}

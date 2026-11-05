@@ -1,0 +1,17 @@
+{
+  "archive_bytes": 248756224,
+  "archive_sha256": "4939280cc55c0abf4e96f1e1f65cfe879a08b7d1699f9d8d7f6ec847c02915c8",
+  "artifact": "sha256:2b3e052d42f3798c3a291a388c8aa613cdc2b048faf741b4fa9363c863fcff75",
+  "at": "2026-11-09T20:21:46.957330+00:00",
+  "builder_restored_stopped": true,
+  "command": "docker buildx; image save; scp; sha256sum; image load; network-none installed-source probe",
+  "daemon_config": "sha256:4cd9f923d652a667058af893eacd12f1f8c151b10035203b2ff69457c30d9b3d",
+  "exit_code": 0,
+  "installed_python_modules": 364,
+  "installed_source_matches": true,
+  "operation": "Cache tested AMD64 controller-fix runtime for private verification",
+  "probe_sha256": "da5d3b3e34b5e8644d8e86a3507289bb31f548bab9acf03fbf1d5d6d97ddf289",
+  "scope": "Image cache only. Running import retains its prior pinned runtime; no application deployment or Gate2 acceptance.",
+  "source_binding_sha256": "1cd6a2aaeac833abf94115e50f19cd0ebb7729246a8ca50a35be252da37e9ba2",
+  "source_revision": "source-sha256:3e815dbc766300c05aab43f75548ee8e29936a277a775fe21022165173c3cc96"
+}

@@ -1,0 +1,9 @@
+{
+  "database_ids": [],
+  "dataset": "skeswa/swingset-rehearsal-CHANGE-ME",
+  "branch": "stage2-CHANGE-ME",
+  "backup_bucket": "swingset-backups",
+  "backup_endpoint": "https://CHANGE-ME.r2.cloudflarestorage.com",
+  "proxy_url": "http://172.30.240.2:3128",
+  "mock_origins": ["http://owned-mock.swingset.invalid:8080"]
+}

@@ -1,0 +1,217 @@
+{
+  "operation": "Owned early network, incarnation, relay and SSH tunnel rehearsal including exact cleanup",
+  "commands": [
+    "python3 -m swingset.deploy.operation --root NONCE_ROOT PHASE"
+  ],
+  "command_phases": [
+    "adversarial",
+    "repair-targets",
+    "repair-partial-targets",
+    "adversarial-resume",
+    "recreate",
+    "restart",
+    "tunnel-before",
+    "repair-relay-ingress",
+    "tunnel-ingress-before",
+    "relay",
+    "tunnel-after",
+    "cleanup"
+  ],
+  "combined_source_sha256": "6122a47da55e196be5aa438d2b92f9f27c61a0b1a99b2540ce03bc42f309a6a2",
+  "summary": {
+    "all6_allow_deny_checks": true,
+    "cleanup": {
+      "all15_owned_docker_objects_absent": true,
+      "complete": true,
+      "exit": 0,
+      "images_files_and_obsolete_partial_preserved": true,
+      "independent_root_verdict_sha256": "196f5d9a62b42f40cd6164c28b9d8c4d696bd1735a34b5064a7fa6bd4171daf4",
+      "original15_and_seven_apps_unchanged": true,
+      "proposal_sha256": "9cfef5b62202a7e6f0f0c6e8a29389190af05c1d56ac3376d49c64388823b4bd",
+      "removed_containers": 12,
+      "removed_networks": 3
+    },
+    "cleanup_authorized": true,
+    "complete": true,
+    "deployment": "swingset-stage2-netproof-0e0ba9f0a719",
+    "driver_sha256": "07d363b25c0650b32aa49f22a0067eb081d2a5c3d92ee00e7aa7846e175bf3ef",
+    "earlier_resolver_repair": "OfficialCoreDNS filecapNET_BIND_SERVICE required explicitresolver-onlycap; baseline then12running/noOOM; old setup/diagnostics preserved.",
+    "final_manifest_sha256": "ca193a7a63b9c29fb52b8ff3e07b78ceaeff996d047e7664bb7b731d2ca06327",
+    "lifecycle": {
+      "both_actual_binding_fields_only_loopback15435_to5432_before_after": true,
+      "old_authorization_refused_and_fresh_ready": true,
+      "relay_cid_replaced": true,
+      "six_recreated_cids": true,
+      "six_same_cid_restarted": true,
+      "ssh_nonce_and_public_denial_before_after": true
+    },
+    "live_controls_before_after": {
+      "ipv4": true,
+      "ipv6": true
+    },
+    "no_secrets_sql_publication_or_production_configuration_change": true,
+    "old_objects": {
+      "count": 15,
+      "health_restart_oom_unchanged": true,
+      "running_apps": 7,
+      "unchanged": true
+    },
+    "preserved_failed_attempts": [
+      {
+        "exit": 1,
+        "phase": "adversarial",
+        "reason": "Docker unsolicitedIPv6advertisement rejected; no TCP proof reached"
+      },
+      {
+        "exit": 1,
+        "phase": "repair-targets",
+        "reason": "Docker considered running partialendpoint unconnected; no fixture removal reached"
+      },
+      {
+        "exit": 1,
+        "phase": "tunnel-before",
+        "reason": "Bothfixturebridges internal so Docker had no actualhostportbinding; SSH remoteconnectrefused"
+      }
+    ],
+    "prior_combined_sha256": "8be358a0217692cd57c7d1eba3f362d1e41b13d26699527382b99472b6c12be9",
+    "receipts": {
+      "adversarial_failed": {
+        "sha256": "e5c7398ca3e0fae067508612f3f40a7c06c98cc3aa2f50492aabe1ade4854f8d"
+      },
+      "adversarial_proof": {
+        "sha256": "3e2366d8b8c679b79c58cea780ccc8bf2b53e881d150bd3672d2a2f3c07840bb"
+      },
+      "adversarial_resume": {
+        "sha256": "3ae58ca9e8743c556eb61f8b7f141d918cb7835a49a85eef5afc7d518e0d2b9b"
+      },
+      "baseline": {
+        "sha256": "79078a0b863bd4071fb75b8a129e3f59773232b15c104fb29d3f46918b1cb4db"
+      },
+      "cleanup": {
+        "sha256": "b0dc7274bbfed3e4d1f0f85ed214f3f67a157a9c28f356f4ff06ea9a77bbcf7c"
+      },
+      "cleanup-postcheck": {
+        "sha256": "cefdb0ec66407307381f3b614c9c1f24be01d94083acb9bd569beab5ac32047a"
+      },
+      "cleanup-preflight": {
+        "sha256": "bc9aa0035b8690cce5fe7da45264ff1bd499e98191fd90b993d790074ead2e2e"
+      },
+      "postcheck": {
+        "sha256": "c7296485e8d94bfc027a35b12f3dd72455e47be568725f2ce15e403e83afe556"
+      },
+      "recreate": {
+        "sha256": "1216de451169ebd260bda097e35cac621bd27664bb4695bcca97879989355fdd"
+      },
+      "recreated_proof": {
+        "sha256": "180b012b8d4527581d25e6c57b24ac4534c3d6b56ee86df167d5cf13b72091e9"
+      },
+      "relay": {
+        "sha256": "e62811c99a7d054f95d20157490ef9f330300a57b41c3061360d6e116a686417"
+      },
+      "repair_partial_targets": {
+        "sha256": "beed41c94c521dcdaf4a3a8177c67c79490f04d8d7063c84def9181847428044"
+      },
+      "repair_relay_ingress": {
+        "sha256": "8a390d4a6694f8e057dda7942c11bf1a7ddfa5ac40bb430d5dce36fb6aba7f8d"
+      },
+      "repair_targets_failed": {
+        "sha256": "d4a71e208435335a24949682ffa5c3dc153877eda7310e0a1a373fae5698680d"
+      },
+      "restart": {
+        "sha256": "a6cefd0884facabc0715d0e14ed804fee412a8ae4a10855ed46a85818d276bcb"
+      },
+      "restart_proof": {
+        "sha256": "3f750da2bc44d4f045612781311fd4a00a466b9fab06a0f67a237551112a29bd"
+      },
+      "tunnel_after": {
+        "sha256": "18c0684e5c770f5d3fd4f9d95ba36fd67d2bdc9ed8544582bcf122ab57059923"
+      },
+      "tunnel_before_failed": {
+        "sha256": "82c61706c1e000db037aad905f008b85d6ab9a5d72efa76c9d93b8d30c847a37"
+      },
+      "tunnel_diagnosis": {
+        "sha256": "b5134b92ce3b7ab6989f40e73b219e1e6a6533446f3314eb56fc17b0b07a0a2f"
+      },
+      "tunnel_ingress_before": {
+        "sha256": "4bc56ac398b4b94ce66165e065051c7a9f01d2232ece0aadf3440880ccb4723b"
+      }
+    },
+    "routable_tcp": [
+      {
+        "ipv4": {
+          "counter_delta": 1,
+          "errno": 113
+        },
+        "ipv6": {
+          "counter_delta": 2,
+          "errno": 13
+        },
+        "role": "acquire-plan"
+      },
+      {
+        "ipv4": {
+          "counter_delta": 1,
+          "errno": 113
+        },
+        "ipv6": {
+          "counter_delta": 2,
+          "errno": 13
+        },
+        "role": "derive"
+      },
+      {
+        "ipv4": {
+          "counter_delta": 1,
+          "errno": 113
+        },
+        "ipv6": {
+          "counter_delta": 2,
+          "errno": 13
+        },
+        "role": "release-maintain"
+      },
+      {
+        "ipv4": {
+          "counter_delta": 1,
+          "errno": 113
+        },
+        "ipv6": {
+          "counter_delta": 2,
+          "errno": 13
+        },
+        "role": "jobs"
+      },
+      {
+        "ipv4": {
+          "counter_delta": 1,
+          "errno": 113
+        },
+        "ipv6": {
+          "counter_delta": 2,
+          "errno": 13
+        },
+        "role": "checker"
+      },
+      {
+        "ipv4": {
+          "counter_delta": 1,
+          "errno": 113
+        },
+        "ipv6": {
+          "counter_delta": 2,
+          "errno": 13
+        },
+        "role": "health"
+      }
+    ],
+    "runtime": {
+      "artifact": "swingset-runtime@sha256:4fc7e472f794ee6378e84351d6e0d78d5a9ee0dc7ea068a0052fc39d744d7493",
+      "binding": "cd12b90d0cc2d67ddec6982340f1205b0ca2ddc300af2d6efe0ec191e37594d3",
+      "config": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+      "source": "421c7f94b4db770ef04918c56cc055f2188656a4f7cf9ed918e390ed27cda8cd"
+    },
+    "scope": "EARLY kernel/namespace viability only; waiting command, no credentials/database/backup/publication; final-source gates still required",
+    "utc": "2026-11-06T00:20:27.249167+00:00"
+  },
+  "qualification": "Early source421/configc54 only; no final-source isolation, SQL authentication, backup/publication, migration or Gate2 completion claim."
+}

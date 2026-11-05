@@ -1,0 +1,52 @@
+{
+  "operation": "bounded native runtime filesystem measurement",
+  "timestamp": "2026-11-05T22:32:27.364624+00:00",
+  "exit_code": 0,
+  "source_revision": "source-sha256:fc6568f09e10184054a4c1ad993307aa95ad19b5175b73a13f9a0702dc38a846",
+  "raw_report_sha256": "3f0ee4175982a194cb494475b44e3891181b9bae450f4fb993fc2b92b2a43b6a",
+  "image": "sha256:7011c88ac68253ad37b2e525ba68ed65b32a3bc0bf73d19cd959d492c8b99efa",
+  "dependency_image": "sha256:7e3711a1f934a1e97ccc019d8614f0f2aa25dee88dfc6fef29f62e8df1b08557",
+  "raw_files": 538,
+  "raw_manifest_sha256": "672d71d0e86696f49b90a393b397a08f3d9baa2c2a7a02dbebd3fddee0941844",
+  "raw_before_after_equal": true,
+  "native_fingerprint": "native:2db7fefba9176dbcc014a363790aec3b3ea6b2725155120a13205ecaf1900d5a",
+  "samples_per_process": 5,
+  "all_four_processes_match": true,
+  "timings": {
+    "mac-identity": {
+      "first_call_seconds": 0.382066446,
+      "steady_median_seconds": 0.021942416
+    },
+    "linux-identity": {
+      "first_call_seconds": 0.349256563,
+      "steady_median_seconds": 0.0113512005
+    },
+    "mac-capture": {
+      "first_call_seconds": 0.355300186,
+      "steady_median_seconds": 0.026675051499999998
+    },
+    "linux-capture": {
+      "first_call_seconds": 0.321433379,
+      "steady_median_seconds": 0.015092808499999999
+    }
+  },
+  "limits": {
+    "memory_and_swap_bytes": 536870912,
+    "cpus": 1,
+    "network": "none",
+    "readonly_rootfs": true,
+    "cap_drop": [
+      "ALL"
+    ]
+  },
+  "commands": {
+    "entry": "docker run --pull never --platform linux/arm64 --entrypoint python -i IMAGE -c FROZEN_PROBE",
+    "modes": [
+      "readonly Mac source bind",
+      "readonly exact Linux volume"
+    ],
+    "raw_command_arrays_sha256": "bd36ef5011d29c31b9ec16037f6cd7fd15b3c0d104b69155da2bedc04b7ece11"
+  },
+  "interpretation": "Steady identity/capture saves about 10\u201312ms per call on Linux storage. First calls use fresh processes, not cold OS caches. This does not establish total core wall savings.",
+  "cleanup": "Five stopped helpers and one labelled volume retained for independent cleanup review; no deletion."
+}

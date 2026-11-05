@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-09T20:13:25.177331+00:00",
+  "case_work_seconds": 2313.0681,
+  "checks_passed": false,
+  "command": "SWINGSET_CORE_WORKERS=3 mise run check",
+  "errors": [
+    "partition 0: four worker manifests required",
+    "partition 1: four worker manifests required",
+    "partition 2: four worker manifests required",
+    "partition 3: four worker manifests required"
+  ],
+  "executed_cases": 3034,
+  "full_test_binding_restored_exactly": true,
+  "outcome": "Rejected: timing still failed and fixed four-manifest validation refused changed layout. Restore source3e exactly; no gate claim or further automatic timing retry.",
+  "restored_source_revision": "source-sha256:3e815dbc766300c05aab43f75548ee8e29936a277a775fe21022165173c3cc96",
+  "source_revision": "source-sha256:082e1718d6c02cd4583dc9669656f96e98989f0f133b79eb747294c9e2d04db9",
+  "summary_sha256": "ad1b9390ddb77d0325f61f4f22c0b322a65fe1090b3c6d7ff277a979595d5fb2",
+  "wall_seconds": 209.31807754188776,
+  "within_180_seconds": false,
+  "workers_per_client": 3
+}

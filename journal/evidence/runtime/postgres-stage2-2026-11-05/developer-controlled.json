@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-09T19:23:58.488479+00:00",
+  "command": "mise run check",
+  "core_cases": 3027,
+  "core_correctness_pass": true,
+  "current_case_work_seconds": 2807.91,
+  "exit_code": 1,
+  "first_failure_added_case_work_seconds": 2.43,
+  "first_failure_common_case_work_seconds": 3020.04,
+  "job": "6555b53212454f2eb35015a1",
+  "limits": "Timing remains open. No selection, assertion, resource or deadline change; no automatic further timing retry.",
+  "mypy_pass": true,
+  "operation": "Single controlled developer check after image build completion",
+  "prior_common_case_work_seconds": 2441.0,
+  "ruff_pass": true,
+  "source_revision": "source-sha256:dd3f5a0d0b3fc93bae5ac1850fd95215075757ceb0726f5b8c66b87cc6e1e578",
+  "source_unchanged": true,
+  "summary_sha256": "b2add470689e45d9cafed4b2f1bb7dd194294c27931c951e04a551d6e46625f9",
+  "wall_seconds": 192.23438766691834,
+  "within_180_seconds": false
+}

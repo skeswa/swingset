@@ -1,0 +1,65 @@
+{
+  "active_admissions": [],
+  "alert_bytes": 164303,
+  "at": "2026-11-06T01:22:24.347484+00:00",
+  "command": "Read-only maintained source-watch pulse against production SQLite and bounded ALERTS metadata",
+  "exit_code": 0,
+  "fires": [],
+  "format": "swingset-stage2-source-watch-receipt-v1",
+  "last_actual_age_seconds": 181.589674,
+  "last_actual_fetch": {
+    "bytes_by_host": {
+      "points.worldsdc.com": 461615
+    },
+    "checked": 50,
+    "failed": false,
+    "finished_at": "2026-11-06T01:19:22.757810+00:00",
+    "run_id": "run_20261106T011516Z"
+  },
+  "loops": [
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-06T01:21:20.278165+00:00",
+      "last_progress_at": "2026-11-06T01:21:20.278165+00:00",
+      "loop": "derive",
+      "run_id": "run_20261106T011719Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-06T01:19:22.757810+00:00",
+      "last_progress_at": "2026-11-06T01:19:22.757810+00:00",
+      "loop": "acquire",
+      "run_id": "run_20261106T011516Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-06T01:11:42.317021+00:00",
+      "last_progress_at": "2026-11-06T01:11:42.317021+00:00",
+      "loop": "plan",
+      "run_id": "run_20261106T011001Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-06T01:20:28.011446+00:00",
+      "last_progress_at": "2026-11-05T19:31:34.977095+00:00",
+      "loop": "release",
+      "run_id": "run_20261106T012000Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T05:32:46.359640+00:00",
+      "last_progress_at": "2026-11-05T05:32:46.359640+00:00",
+      "loop": "maintain",
+      "run_id": "run_20261105T053000Z"
+    }
+  ],
+  "operator_hold": false,
+  "production_code_or_budgets_changed": false,
+  "pulse_sha256": "cbec8c5a1a5efef4ed69346ffb554c32798ffea60d5f7eb6219346bb94dd0293",
+  "read_only": true
+}

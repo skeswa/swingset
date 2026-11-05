@@ -1,5 +1,7 @@
 # 2026 investigations
 
+- [Stage 2 server rehearsal, in progress (2026-11-05)](stage-2-server-rehearsal-2026-11-05.md).
+
 [Browse by topic](../README.md). Dates in each record describe its evidence.
 A missing original date is not inferred from file modification time.
 

@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-06T02:47:22.749030+00:00",
+  "command": "mise run test -- --full-suite -n4 --dist=loadfile --no-loadscope-reorder --max-worker-restart=0 --timings --durations=40 -o tmp_path_retention_policy=failed --junitxml=/tmp/swingset-stage2-full-durable-20261106.xml",
+  "errors": 0,
+  "exit_code": 0,
+  "failures": 0,
+  "free_bytes": 120721285120,
+  "limits": "This passes the extended correctness suite. The separate 180-second core timing gate remains failed at 214.5614 seconds.",
+  "operation": "stage-2 full suite after daemon interruption",
+  "owner_gone": true,
+  "owner_pid": 41623,
+  "skipped": 0,
+  "source_binding_sha256": "fff3c2929a584f7b3a4b47b06f3c4d9d741ede4984c6ee0f5d5c37fcbacb1f11",
+  "source_inputs": 929,
+  "source_revision": "source-sha256:2a83d305cdfe0230a4dd8b7ba64c4aa859e833b8ebbfb1372904b354c14937c4",
+  "source_unchanged": true,
+  "stdout_log": "/tmp/swingset-stage2-full-durable-20261106.log",
+  "tests": 4550,
+  "wall_seconds": 1328.73,
+  "xml": {
+    "bytes": 641124,
+    "sha256": "27d1d4f57d25dc86bb084ff47a6ea36de85e3330b518e4b865aa6fc260a84e44"
+  }
+}

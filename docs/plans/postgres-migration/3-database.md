@@ -5,6 +5,13 @@ database code: where SQL lives, which values must come back unchanged,
 how triggers, locks and timeouts work, and which roles exist. Stage 1
 builds it; every rule here has a test.
 
+The initial table phase includes one administrator-only internal function.
+The platform prepares that frozen phase on a fresh database and records its
+exact empty-catalog fingerprint. The ordinary owner login adopts only the
+verified marker and finishes the migration; it never receives shared-cluster
+administrator credentials
+([D-0278](../../../journal/decisions/0278-bootstrap-privileged-table-functions-outside-the-application.md)).
+
 ## Where SQL lives
 
 The port is Postgres-only. It lives on its own bookmark, rebased on `main`,
@@ -54,6 +61,9 @@ Other rules:
 - **Column order, defaults and nullability stay exactly as they are.**
   Triggers insert by position, and whole-row hashes depend on order. Do not
   tighten or loosen a constraint during the move.
+- **Typed import and audit streams** use bounded 1 MiB reads. Chunk sizes
+  preserve the physical value encoding and typed digest; a resumed import
+  rechecks completed values before continuing.
 - **Database errors are never "no rows".** Integrity, cancel, lock-timeout
   and lost-connection errors map to stable exception types.
 - **Large manifests** (up to 259 MB) keep today's two passes in one
@@ -231,6 +241,10 @@ statement_timeout` and `lock_timeout` to the time left. Savepoints
   trigger bypass remain denied.
 - Trigger functions run with the caller's rights. A function that runs
   with its owner's rights gets a fixed search path and no PUBLIC execute.
+- A selected state directory's explicit worker and controller URLs take
+  precedence over process environment URLs. The environment remains a fallback.
+  A controller must match that directory's worker endpoint and stored database
+  identity; it never falls back to worker credentials (D-0281).
 - Grants are test data, and tests prove them.
 - **Privacy in logs:** statement and parameter logging stays off, including
   statement text in error logs, because rows hold private notes and

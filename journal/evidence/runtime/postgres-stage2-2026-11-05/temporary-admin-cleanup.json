@@ -1,0 +1,122 @@
+{
+  "operation": "Remove completed trusted bootstrap containers and temporary administrator DSN staging names",
+  "recorded_at": "2026-11-06T01:19:54.842081+00:00",
+  "started_at": "2026-11-06T01:00:00.823799+00:00",
+  "finished_at": "2026-11-06T01:00:01.212198+00:00",
+  "independent_review": {
+    "verdict": "ACCEPT",
+    "sha256": "96ac4aa16aa9578a301aed9efc31ca2012b0cbd365e64485f83e57610743e2a8"
+  },
+  "executor_sha256": "895b27c7b25d100a5c929635da8e53cc513704fb513ffa3aef99c2c341d851c0",
+  "commands": [
+    {
+      "command": "SFTP exact public executor and review; verify receiver SHA and UID1000/mode0600",
+      "exit": 0
+    },
+    {
+      "command": "python3 temporary-admin-cleanup-ed925.py --execute --review temporary-admin-cleanup-root-review.json --review-sha256 96ac4aa16aa9578a301aed9efc31ca2012b0cbd365e64485f83e57610743e2a8",
+      "invocations": 1,
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "rm",
+        "60b36cd92c98ced3a4c7ed0652ef8b3edb0ad42495ffea5bdff6e10bb01f33d2",
+        "74e96052518c3a488f6b42f3b84f3ae106c25f694fbb3f752b2247e7f15ab427"
+      ],
+      "exit": 0,
+      "force_or_volume_removal": false
+    },
+    {
+      "command": "Unlink exactly postgres.dsn and swingset_dryrun.dsn through pinned directory FD; fsync after each",
+      "exit": 0
+    }
+  ],
+  "removed_containers": [
+    {
+      "id": "60b36cd92c98ced3a4c7ed0652ef8b3edb0ad42495ffea5bdff6e10bb01f33d2",
+      "purpose": "bootstrap-roles"
+    },
+    {
+      "id": "74e96052518c3a488f6b42f3b84f3ae106c25f694fbb3f752b2247e7f15ab427",
+      "purpose": "bootstrap-tables"
+    }
+  ],
+  "container_preconditions": {
+    "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+    "nonce": "ed925e2d17fa",
+    "status": "exited",
+    "exit": 0,
+    "pid": 0,
+    "oom_killed": false
+  },
+  "staging_directory": {
+    "device": 2050,
+    "inode": 17039623,
+    "mode": 448,
+    "nlink": 2,
+    "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/platform-admin-ed925e2d17fa",
+    "uid": 1000
+  },
+  "unlinked_files": [
+    {
+      "name": "postgres.dsn",
+      "device": 2050,
+      "inode": 17039625,
+      "uid": 1000,
+      "mode": 384,
+      "nlink_before": 1,
+      "regular_nofollow_metadata_guard": true,
+      "name_absent_after": true,
+      "guarded_nlink_after": 0
+    },
+    {
+      "name": "swingset_dryrun.dsn",
+      "device": 2050,
+      "inode": 17039626,
+      "uid": 1000,
+      "mode": 384,
+      "nlink_before": 1,
+      "regular_nofollow_metadata_guard": true,
+      "name_absent_after": true,
+      "guarded_nlink_after": 0
+    }
+  ],
+  "postchecks": {
+    "two_container_ids_absent": true,
+    "two_staging_names_absent": true,
+    "directory_fsynced_after_each_unlink": true,
+    "remaining_recorded_docker_mount_users": 0,
+    "original7_health_restart_oom_unchanged": true,
+    "non_target_container_ids_preserved": 19,
+    "source_owner_result_metadata_contents_and_identities_preserved": true,
+    "all_other_control_code_and_metadata_preserved": true,
+    "credential_contents_or_hashes_read_or_transferred": false
+  },
+  "preserved_application_state": {
+    "project": "swingset",
+    "project_id": "zgAVyaA7siSNfuGnzxPpa",
+    "database": "swingset_dryrun",
+    "database_oid": 16398,
+    "app_scoped_Dokploy_credentials_untouched": true,
+    "database_roles_acl_prepared_catalog_untouched": true,
+    "prior_prepared_empty_tables": 142,
+    "prior_uuid_uninitialized": true,
+    "basis": "Prior sealed provisioning receipt plus cleanup limited to Docker rm and two staging-name unlinks; no fresh SQL/catalog audit or app operation.",
+    "provision_receipt_sha256": "3d078d71b06fa6627758516600dfb742982df0da6f1d6a1f69aea2c650a7b5dc"
+  },
+  "authoritative_receipt": {
+    "sha256": "b7d0d3040a3ce9e63a54e27c82b2b38769e6af94a9ddb1ce3dbedb20b90ba788",
+    "bytes": 2618,
+    "sftp_exit": 0,
+    "full_json_parse": true,
+    "source_before_after_local_sha_equal": true
+  },
+  "limits": [
+    "UID1000 open-FD scan was partial; no global no-open-FD proof is claimed.",
+    "Only the two staging names were removed. Any existing reader retains its valid inode; no secure erasure or administrator password rotation is claimed.",
+    "Probe, failed-unpack and diagnostic containers, app credentials, project/database/roles and all other files were outside cleanup scope."
+  ],
+  "complete": true
+}

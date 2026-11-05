@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from swingset.sources.base import ParseContext
@@ -267,6 +267,8 @@ def _reconcile_approved_sources(
     clock: Any,
     run_id: str,
     deadline: float,
+    resume: bool = False,
+    stop: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     """Re-key selected evidence only after exact extract, parse and report proof.
 
@@ -297,9 +299,30 @@ def _reconcile_approved_sources(
         raise RuntimeError(
             "approved source declared transform changed or legacy code witness is missing"
         )
+    if resume:
+        return _resume_approved_sources(
+            database,
+            source_keys,
+            bundle=bundle,
+            clock=clock,
+            run_id=run_id,
+            deadline=deadline,
+            binding=binding,
+            candidate_code=candidate_code,
+            stop=stop,
+        )
     proof = []
     recipes = []
     for key in sorted(source_keys):
+        if stop is not None and stop():
+            return {
+                "complete": False,
+                "units": len(source_keys),
+                "completed_units": 0,
+                "cursor": 0,
+                "comparisons": 0,
+                "stopped": True,
+            }
         if time.monotonic() >= deadline:
             raise TimeoutError("approved source verification exceeded the rebuild budget")
         found = conn.execute(
@@ -352,6 +375,170 @@ def _reconcile_approved_sources(
     }
 
 
+def _resume_approved_sources(
+    database: Database,
+    source_keys: set[str],
+    *,
+    bundle: Any,
+    clock: Any,
+    run_id: str,
+    deadline: float,
+    binding: dict[str, Any],
+    candidate_code: str,
+    stop: Callable[[], bool] | None,
+) -> dict[str, Any]:
+    """Commit proved source chunks and their progress in the same transaction."""
+    import re
+    import time
+
+    from swingset.fetch.archive import Archive, canonical, digest
+
+    from . import rekey, verify_graph
+    from .environment import identity
+    from .recipes import capture_runtime
+
+    conn = database.connection
+
+    def selected(keys: Sequence[str]) -> list[tuple[str, str, str, str]]:
+        return [
+            (str(row[0]), str(row[1]), str(row[2]), str(row[3]))
+            for row in conn.execute(
+                'SELECT u.unit_key,g.generation_id,g.page_kind,g.state FROM evidence.source_units u JOIN evidence.source_generations g ON g.generation_id=u.accepted_generation_id WHERE u.unit_key=ANY(%s) ORDER BY u.unit_key COLLATE "C"',
+                (list(keys),),
+            )
+        ]
+
+    plan = selected(sorted(source_keys))
+    if len(plan) != len(source_keys) or any(row[3] != "accepted" for row in plan):
+        raise RuntimeError("required source has no accepted generation")
+    destination_id = identity(conn).database_id
+    ledger_id = "restore_source:" + destination_id
+    bound = {
+        "database_id": destination_id,
+        "runtime_sha256": candidate_code,
+        "input_bundle_hash": bundle.digest,
+        "accepted_context_sha256": digest(canonical(binding)),
+        "source_units_sha256": digest(canonical(plan)),
+        "units": len(plan),
+    }
+    initial_hash = digest(canonical({"format": "swingset-source-proof-chain-v1", "binding": bound}))
+    row = conn.execute("SELECT summary_json FROM ops.runs WHERE run_id=%s", (ledger_id,)).fetchone()
+    if row is None:
+        progress = {
+            "format": "swingset-restore-source-v1",
+            "binding": bound,
+            "cursor": 0,
+            "comparisons": 0,
+            "completed_keys_sha256": digest(canonical([])),
+            "chain_sha256": initial_hash,
+        }
+        stored = canonical(progress).decode()
+        with database.transaction() as tx:
+            tx.execute(
+                "INSERT INTO ops.runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES(%s,%s,%s,1,%s)",
+                (ledger_id, clock.now().isoformat(), clock.now().isoformat(), stored),
+            )
+    else:
+        stored = str(row[0])
+        try:
+            progress = json.loads(stored)
+        except ValueError as error:
+            raise RuntimeError("approved source progress is malformed") from error
+    if not isinstance(progress, dict):
+        raise RuntimeError("approved source progress is malformed")
+    cursor = progress.get("cursor")
+    chain = progress.get("chain_sha256")
+    if (
+        progress.get("format") != "swingset-restore-source-v1"
+        or set(progress)
+        != {"format", "binding", "cursor", "comparisons", "completed_keys_sha256", "chain_sha256"}
+        or progress.get("binding") != bound
+        or type(cursor) is not int
+        or not 0 <= cursor <= len(plan)
+        or type(progress.get("comparisons")) is not int
+        or progress.get("comparisons") != 2 * cursor
+        or progress.get("completed_keys_sha256") != digest(canonical(plan[:cursor]))
+        or not isinstance(chain, str)
+        or re.fullmatch("[0-9a-f]{64}", chain) is None
+        or (cursor == 0 and chain != initial_hash)
+    ):
+        raise RuntimeError("approved source progress or input binding changed")
+    stopped = bool(stop is not None and stop())
+    while cursor < len(plan) and not stopped and time.monotonic() < deadline:
+        end = cursor
+        recipes = []
+        following = dict(progress)
+        while end < min(cursor + 32, len(plan)) and time.monotonic() < deadline:
+            if stop is not None and stop():
+                stopped = True
+                break
+            key, generation, kind, _ = plan[end]
+            for stage in ("extract", "parse"):
+                checked = verify_graph._source(
+                    database, stage + "/" + kind + "/" + key, Archive(database.state_dir)
+                )
+                if checked["state"] != "match" or checked["generation_id"] != generation:
+                    raise RuntimeError("required approved source differs from its retained proof")
+                following["chain_sha256"] = digest(canonical([following["chain_sha256"], checked]))
+            recipes.append((key, *rekey._source_recipe(conn, key)))
+            end += 1
+        if end == cursor:
+            break
+        following.update(
+            cursor=end,
+            comparisons=2 * end,
+            completed_keys_sha256=digest(canonical(plan[:end])),
+        )
+        encoded = canonical(following).decode()
+        with database.transaction() as tx:
+            if (
+                verify_graph.context(tx) != binding
+                or digest(capture_runtime()["recipes/runtime.json"]) != candidate_code
+                or selected([row[0] for row in plan[cursor:end]]) != plan[cursor:end]
+                or (end == len(plan) and selected(sorted(source_keys)) != plan)
+            ):
+                raise RuntimeError("approved source verification code, inputs or pointers changed")
+            for key, generation, fingerprint, recipe in recipes:
+                tx.execute(
+                    "INSERT INTO evidence.source_equivalences(unit_key,input_fingerprint,generation_id,recipe_json,work_token,created_at,run_id) VALUES(%s,%s,%s,%s,NULL,%s,%s) ON CONFLICT DO NOTHING",
+                    (key, fingerprint, generation, recipe, clock.now().isoformat(), run_id),
+                )
+                tx.execute(
+                    "UPDATE evidence.source_units SET desired_fingerprint=%s WHERE unit_key=%s",
+                    (fingerprint, key),
+                )
+            changed = tx.execute(
+                "UPDATE ops.runs SET summary_json=%s,finished_at=%s WHERE run_id=%s AND summary_json=%s",
+                (encoded, clock.now().isoformat(), ledger_id, stored),
+            )
+            if changed.rowcount != 1:
+                raise RuntimeError("approved source progress changed during verification")
+        progress, stored, cursor = following, encoded, end
+    stopped = stopped or bool(stop is not None and stop())
+    if (
+        verify_graph.context(conn) != binding
+        or digest(capture_runtime()["recipes/runtime.json"]) != candidate_code
+        or selected(sorted(source_keys)) != plan
+    ):
+        raise RuntimeError("approved source verification code, inputs or pointers changed")
+    return {
+        "complete": cursor == len(plan),
+        "units": len(plan),
+        "completed_units": cursor,
+        "cursor": cursor,
+        "comparisons": progress["comparisons"],
+        "stopped": stopped,
+        "source_input_bundle_hash": bundle.digest,
+        "candidate_runtime_manifest_sha256": candidate_code,
+        "accepted_context_sha256": bound["accepted_context_sha256"],
+        "unit_set_sha256": digest(canonical(sorted(source_keys))),
+        "source_proof_hash_format": "swingset-source-proof-chain-v1",
+        "source_comparisons_chain_sha256": progress["chain_sha256"],
+        "generation_ids": "preserved",
+        "admission_decisions": "preserved",
+    }
+
+
 def rebuild(
     database: Database,
     bundle: Any,
@@ -361,6 +548,8 @@ def rebuild(
     max_units: int = 100_000,
     bootstrap_cache: bool = True,
     inventory: Sequence[Mapping[str, Any]] | None = None,
+    resume_source: bool = False,
+    stop: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     """Drain ordinary local derivations; incomplete recovery keeps its marker.
 
@@ -400,14 +589,41 @@ def rebuild(
     run_id = database.start_run(clock.now())
     required, sources = _required_closure(database, roots)
     source_proof = _reconcile_approved_sources(
-        database, sources, bundle=bundle, clock=clock, run_id=run_id, deadline=started + seconds
+        database,
+        sources,
+        bundle=bundle,
+        clock=clock,
+        run_id=run_id,
+        deadline=started + seconds,
+        resume=resume_source,
+        stop=stop,
     )
+    if not source_proof["complete"]:
+        return {
+            "complete": False,
+            "run_id": run_id,
+            "bootstrap": initial,
+            "processed_units": 0,
+            "required_materializations": len(required),
+            "approved_source_proof": source_proof,
+            "remaining_units": len(required),
+            "outcomes": {},
+            "reason": "rebuild_stopped"
+            if source_proof.get("stopped")
+            else "rebuild_budget_exhausted",
+            "seconds": round(time.monotonic() - started, 3),
+            "input_bundle_hash": bundle.digest,
+        }
     families = sorted({(unit.stage, unit.unit_kind) for unit in required})
     excluded: set[WorkUnit] = set()
     completed = 0
     outcomes: dict[str, int] = {}
     reason = None
+    stopped = False
     while completed < max_units and time.monotonic() - started < seconds:
+        if stop is not None and stop():
+            stopped = True
+            break
         selected = None
         try:
             for stage, kind in families:
@@ -446,9 +662,13 @@ def rebuild(
     ).fetchall()
     if remaining and reason is None:
         reason = (
-            "rebuild_budget_exhausted"
-            if completed >= max_units or time.monotonic() - started >= seconds
-            else "rebuild_blocked"
+            "rebuild_stopped"
+            if stopped
+            else (
+                "rebuild_budget_exhausted"
+                if completed >= max_units or time.monotonic() - started >= seconds
+                else "rebuild_blocked"
+            )
         )
     mismatches = []
     if not remaining and reason is None:

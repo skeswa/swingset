@@ -1,0 +1,65 @@
+{
+  "after_sha256": "ad20a02ba846e882461487eb5e5622e37a1db0a0c69c931602c0eae6c0df676e",
+  "at": "2026-11-06T02:40:21Z",
+  "before_sha256": "c1e3ade4fe979a57fbfa744bb5ec54ceeb161c76e6fc6f46abec839586486df5",
+  "cleanup_exit_code": 0,
+  "command": [
+    "ssh",
+    "rhuidean",
+    "PYTHONPATH=/var/tmp/swingset-stage2-netproof-41cd9f8968f7/source python3 -m swingset.deploy.operation --root /var/tmp/swingset-stage2-netproof-41cd9f8968f7 cleanup"
+  ],
+  "command_executions": 1,
+  "complete": true,
+  "deployment": "swingset-stage2-netproof-41cd9f8968f7",
+  "fresh_unpack_preserved": true,
+  "images_volumes_unchanged": true,
+  "independent_verdict": "ACCEPT",
+  "operation": "Independent-reviewed exact final proof cleanup",
+  "original_seven_preserved": true,
+  "postcheck_sha256": "76bbd4794f810b513d426fa9c63bd36f4294803975bf88773edb6d2d023b68f5",
+  "precheck_attempts": "Two read-only outer formatter errors preceded the sole maintained cleanup invocation; no mutation occurred in either failed precheck.",
+  "preserved_networks": 7,
+  "preserved_nonproof_containers": 23,
+  "primary_sha256": "a258053e60173ede1e5ab32ae8bf1b083db5cc1110c1a4e88a570d44a35d8f02",
+  "removed_container_ids": [
+    "0471e8a51976c400b00c516c9be775795b5164c7d9140af0e65686a281829ee7",
+    "0bfdef65a4bacf147b6edb44089481bd5212ca9d3fc4687298a2fb8e2df45342",
+    "1a0dbc9a8fbcc3a620c0e38c6a074227c0cfce8f7493c10ae1e9aa85430d88ee",
+    "1a512369555f957ea413c0426847e07c4d52df275d5a926671178faedcb6e35d",
+    "5d0a44c55f394e1f5ff7ebceabbfe91e8b4eb09cfdb47ef718f7afbd06feaad3",
+    "751cfda985b1d6a29b0cd235bc756992bf1a8a54f9fcaf491e31b65ce6e0b96e",
+    "85a1af2b80a8011da8df09d957516cc45979aec8f4c8399a73598ad9438174c3",
+    "880dd410137716057d4315a09e157141cd4c11640586cb167f429457c0cd30a7",
+    "c102afe115c176dff157df290780236bb2e77783e0863216c244ab8c8cd6545e",
+    "ce44395faa0594a651faf224b2ea2f96c20056e20d92f8d1c46504bb5a93f144",
+    "e8fc6dcd48cabe8a098b74df482f36e0358032d657782bc472a9844b9500d981",
+    "fdc8db79ce6f3f4cb6fd3df5505f0d498c32d7561b729835d454824c29a8202e"
+  ],
+  "removed_networks": [
+    {
+      "deployment": "swingset-stage2-netproof-41cd9f8968f7",
+      "driver": "bridge",
+      "id": "a961d3cc9c7e4c6868f41f07d200ab6d69fb17dbce48420cd159d75a9f964df2",
+      "members": [],
+      "name": "swingset-stage2-netproof-41cd9f8968f7-relay-ingress"
+    },
+    {
+      "deployment": "swingset-stage2-netproof-41cd9f8968f7",
+      "driver": "bridge",
+      "id": "46a2df4c59f92f1a413187c80ac4f6861d2bc51ae17720cbc5ca1a37328bd4cc",
+      "members": [],
+      "name": "swingset-stage2-netproof-41cd9f8968f7-targets"
+    },
+    {
+      "deployment": "swingset-stage2-netproof-41cd9f8968f7",
+      "driver": "bridge",
+      "id": "bacb060d5908446956db4ec63c92ed04d15a8c1f4dcd40669bad4f9b9adc7fb3",
+      "members": [],
+      "name": "swingset-stage2-netproof-41cd9f8968f7-workers"
+    }
+  ],
+  "review_sha256": "61189cbca8ce81231b6ea0c331db849d0d7484b0a2cf475e9bbebd84233e1060",
+  "reviewer": "cleanup_review independent agent",
+  "scope": "Exact twelve stopped proof containers and three empty bridges only. Files, images and volumes retained.",
+  "stable_sftp_primary_and_postcheck": true
+}

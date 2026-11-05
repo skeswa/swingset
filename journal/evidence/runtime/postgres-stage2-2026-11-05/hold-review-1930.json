@@ -1,0 +1,17 @@
+{
+  "after_sha256": "0b424f6d55520d4577d5bed92355082c133ff5549ac191acb2ac92609445dd6d",
+  "at": "2026-11-09T19:30:10.830753+00:00",
+  "before_sha256": "a4bee87e3e0df11f646833e7fef6feb4ae6b39b6efb2267b1f12cfe0ea0b3cd3",
+  "command": "docker run --network none --read-only --user0 --cap-dropALL: install0444, sha256sum preimage/staging, mv-T atomic",
+  "complete": true,
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-09T20:30:10.830753+00:00",
+    "reviewed_at": "2026-11-09T19:30:10.830753+00:00"
+  },
+  "method": "Public0444 staging; exact original and staged hash guards; root capability-free network-disabled install and atomic mv",
+  "operation": "Review existing rehearsal hold without clearing it",
+  "result_sha256": "27e7297c992b577f77c07c4fa995b1443352815883e4bcf317aa997310406ffc"
+}

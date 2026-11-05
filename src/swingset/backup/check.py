@@ -19,6 +19,55 @@ from .transport import TransportError
 _LIMIT = 1 << 20
 
 
+def _listener_identity() -> dict[str, Any]:
+    boot: str | None
+    namespace: str | None
+    try:
+        boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        namespace = os.readlink("/proc/self/ns/pid")
+    except OSError:
+        boot = namespace = None
+    return {"boot_id": boot, "pid_namespace": namespace, "pid": os.getpid()}
+
+
+def _probe_response(request: dict[str, Any], admin_dsn: str) -> dict[str, Any]:
+    if request != {"mode": "probe"}:
+        raise ValueError("invalid probe request")
+    with engine.connect(
+        admin_dsn, read_only=True, timeout=2, application_name="swingset-checker-probe"
+    ) as connection:
+        connection.execute("SET statement_timeout='2s'")
+        if connection.execute("SELECT 1 AS ready").fetchone()[0] != 1:
+            raise RuntimeError("scratch database is not ready")
+    return {"ready": True, **_listener_identity()}
+
+
+def probe(endpoint: Path) -> dict[str, Any]:
+    """A separate read-only listener stays responsive during long restore jobs."""
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+            client.settimeout(5)
+            client.connect(str(endpoint) + ".probe")
+            client.sendall(b'{"mode":"probe"}\n')
+            with client.makefile("rb") as reply:
+                body = reply.readline(4097)
+        if len(body) > 4096:
+            raise ValueError("probe response exceeded its bound")
+        result = json.loads(body)
+        local = _listener_identity()
+        if not isinstance(result, dict) or result.get("ready") is not True:
+            raise ValueError("probe did not establish readiness")
+        if (
+            not local["boot_id"]
+            or not local["pid_namespace"]
+            or any(result.get(key) != local[key] for key in ("boot_id", "pid_namespace"))
+        ):
+            raise ValueError("probe listener belongs to another process namespace")
+        return result
+    except (OSError, ValueError):
+        raise TransportError("backup checker readiness or listener identity failed") from None
+
+
 def restore_check(
     history: Path,
     admin_dsn: str,
@@ -231,6 +280,7 @@ def serve(endpoint: Path, root: Path, admin_dsn: str) -> None:
     import fcntl
     import socketserver
     import stat
+    import threading
 
     if not admin_dsn:
         raise ValueError("backup checker requires its own scratch administration credential")
@@ -262,24 +312,53 @@ def serve(endpoint: Path, root: Path, admin_dsn: str) -> None:
                 result = _failure(error)
             self.wfile.write(json.dumps(result).encode() + b"\n")
 
+    class ProbeRequest(socketserver.StreamRequestHandler):
+        def handle(self) -> None:
+            self.connection.settimeout(5)
+            try:
+                body = self.rfile.readline(4097)
+                if len(body) > 4096:
+                    raise ValueError("probe request exceeded its bound")
+                request = json.loads(body)
+                result = _probe_response(request, admin_dsn)
+            except Exception as error:
+                result = _failure(error)
+            with contextlib.suppress(OSError):
+                self.wfile.write(json.dumps(result).encode() + b"\n")
+
     # The singleton lease must survive the socket container's writable layer.
     lock = registry_root / "checker.lock"
     descriptor = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     with os.fdopen(descriptor, "w") as guard:
         fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        if endpoint.exists():
-            if not stat.S_ISSOCK(endpoint.stat().st_mode):
-                raise ValueError("backup checker endpoint is not a socket")
-            endpoint.unlink()
+        probe_endpoint = Path(str(endpoint) + ".probe")
+        for path in (endpoint, probe_endpoint):
+            if path.exists():
+                if not stat.S_ISSOCK(path.stat().st_mode):
+                    raise ValueError("backup checker endpoint is not a socket")
+                path.unlink()
         try:
             # Recover exact job-owned databases and directories after a killed owner.
             with Copies.for_admin(
                 admin_dsn, registry_root=registry_root, checker_lock_fd=guard.fileno()
             ):
                 pass
-            with socketserver.UnixStreamServer(str(endpoint), Request) as server:
-                os.chmod(endpoint, 0o600)
-                server.serve_forever(poll_interval=0.2)
+            with (
+                socketserver.UnixStreamServer(str(endpoint), Request) as server,
+                socketserver.UnixStreamServer(str(probe_endpoint), ProbeRequest) as probes,
+            ):
+                for path in (endpoint, probe_endpoint):
+                    os.chmod(path, 0o600)
+                observer = threading.Thread(
+                    target=probes.serve_forever, kwargs={"poll_interval": 0.2}, daemon=True
+                )
+                observer.start()
+                try:
+                    server.serve_forever(poll_interval=0.2)
+                finally:
+                    probes.shutdown()
+                    observer.join(timeout=5)
         finally:
-            with contextlib.suppress(FileNotFoundError):
-                endpoint.unlink()
+            for path in (endpoint, probe_endpoint):
+                with contextlib.suppress(FileNotFoundError):
+                    path.unlink()

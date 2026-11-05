@@ -1,0 +1,18 @@
+{
+  "all_containers_preserved": true,
+  "at": "2026-11-09T18:44:55.869395+00:00",
+  "capacity_after_delay_bytes": 119952003072,
+  "complete": true,
+  "finished_at": "2026-11-09T18:45:15.232144+00:00",
+  "free_after": 117159694336,
+  "free_before": 116383014912,
+  "full_suite_floor_ready": true,
+  "images_preserved": 36,
+  "limits": "All81 exact scratch volumes removed; no other objects changed. Logical reclaimed size does not establish Mac capacity; do not start full suite below110GiB.",
+  "operation": "remove exact unused historical local test scratch",
+  "other_volumes_preserved": 20,
+  "plan_sha256": "9953b6caab983f880903462675bc8330a50e41dd9e682abe722c10e9942cc4a6",
+  "removed_count": 81,
+  "result_sha256": "3321df2161f482af56df5d08a280e977ab9a91f504a997958714a5c1970afb2c",
+  "review_sha256": "b27bba324f7fd52019a73f74c98c3015d933722bab5dcbcb58e98543daffe8d1"
+}

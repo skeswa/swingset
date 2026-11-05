@@ -27,7 +27,7 @@ def read_settings(path: str | Path) -> dict[str, Any]:
     value = json.loads((state_directory(path) / SETTINGS).read_text())
     if not isinstance(value, dict) or not isinstance(value.get("dsn"), str):
         raise ValueError("invalid local database settings")
-    if value.get("environment") not in {"dev", "production"}:
+    if value.get("environment") not in {"dev", "dryrun", "production"}:
         raise ValueError("invalid local database environment")
     return value
 
@@ -35,7 +35,7 @@ def read_settings(path: str | Path) -> dict[str, Any]:
 def write_settings(
     path: str | Path, dsn: str, environment: str = "dev", *, control_dsn: str | None = None
 ) -> Path:
-    if environment not in {"dev", "production"}:
+    if environment not in {"dev", "dryrun", "production"}:
         raise ValueError("invalid database environment")
     directory = state_directory(path)
     directory.mkdir(parents=True, exist_ok=True)
@@ -82,12 +82,12 @@ def resolve_dsn(path: str | Path, explicit: str | None = None) -> str:
 
 def resolve_control_dsn(path: str | Path) -> str:
     """A controller has its own credential; worker credentials are never a fallback."""
-    configured = os.environ.get("SWINGSET_CONTROL_DATABASE_URL")
-    if configured:
-        return configured
     directory = state_directory(path)
     if (directory / SETTINGS).is_file():
         configured = read_settings(directory).get("control_dsn")
         if isinstance(configured, str) and configured:
             return configured
+    configured = os.environ.get("SWINGSET_CONTROL_DATABASE_URL")
+    if configured:
+        return configured
     raise RuntimeError("control database credentials are not configured")

@@ -1,0 +1,30 @@
+{
+  "all_142_tables_empty": true,
+  "at": "2026-11-06T20:41:01.352351+00:00",
+  "catalog_sha256": "9d421ba71b3e1e79ed73c99e6ab81b8c70e24ef2bb7368842c8a72fbe9311234",
+  "fresh_volumes": [
+    "swingset-stage2-app-cc89f18f5c31-checker-ipc",
+    "swingset-stage2-app-cc89f18f5c31-runtime",
+    "swingset-stage2-app-cc89f18f5c31-spill",
+    "swingset-stage2-app-cc89f18f5c31-state"
+  ],
+  "import_deadline_seconds": 7200,
+  "independent_verdict": "ACCEPT",
+  "minimum_free_bytes": 200000000000,
+  "operation": "full-size import preflight and independent review",
+  "original7_apps_unchanged": true,
+  "plan_sha256": "98ffa1527121f73378194e5178f9700563d80269bd558f870d9b927b11de6f01",
+  "prepared_database": "swingset_dryrun",
+  "prepared_database_oid": 16398,
+  "prepared_probe_exit_code": 0,
+  "prepared_readonly_receipt_sha256": "731b6f201309608d537768112bbc956b07ce0c8f9c13231a53e7c94ed919bb00",
+  "review_sha256": "8d35645fb6ab12acc4a45248c21a35c77b2b95d4557cc3b876af947a106c8601",
+  "runtime_artifact": "swingset-runtime@sha256:896ee0d88d98cb9fc4726ff1ff312a46d517fa7648acac5c80810c09f4e429d6",
+  "runtime_config_id": "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4",
+  "scope": "Attended held import only. No schedulers, third-party credentials, external I/O, reset, retry or Gate2 acceptance. Partial state is retained.",
+  "setup_deadline_seconds": 3600,
+  "source_bytes": 38890938368,
+  "source_mount_read_only": true,
+  "source_sqlite_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "stable_SFTP": true
+}

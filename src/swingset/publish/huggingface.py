@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from huggingface_hub import (
     CommitOperationAdd,
@@ -19,17 +19,32 @@ from swingset.publish.journal import RemoteCommit
 _INITIAL_CARD = b"---\nlicense: odc-by\n---\n"
 
 
+class _RevisionArguments(TypedDict, total=False):
+    revision: str
+
+
 class HuggingFaceHub:
     """Public-repository adapter; the journal logic remains independently testable."""
 
-    def __init__(self, repo_id: str, *, token: str, api: HfApi | None = None) -> None:
+    def __init__(
+        self,
+        repo_id: str,
+        *,
+        token: str,
+        api: HfApi | None = None,
+        revision: str | None = None,
+    ) -> None:
         self.repo_id = repo_id
         self.token = token
         self.api = api or HfApi(token=token)
+        self.revision = revision
 
     def head(self) -> str | None:
         try:
-            value = self.api.repo_info(self.repo_id, repo_type="dataset").sha
+            configured: _RevisionArguments = (
+                {} if self.revision is None else {"revision": self.revision}
+            )
+            value = self.api.repo_info(self.repo_id, repo_type="dataset", **configured).sha
             return str(value) if value is not None else None
         except Exception as error:
             raise RuntimeError(
@@ -85,11 +100,15 @@ class HuggingFaceHub:
             for name, path in sorted(additions.items())
         ]
         operations.extend(CommitOperationDelete(path_in_repo=name) for name in deletions)
+        configured: _RevisionArguments = (
+            {} if self.revision is None else {"revision": self.revision}
+        )
         result = self.api.create_commit(
             repo_id=self.repo_id,
             repo_type="dataset",
             operations=operations,
             commit_message=message,
             parent_commit=parent,
+            **configured,
         )
         return str(result.oid)

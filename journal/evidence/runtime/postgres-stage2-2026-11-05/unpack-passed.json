@@ -1,0 +1,134 @@
+{
+  "at": "2026-11-06T03:23:22.272852+00:00",
+  "baseline_candidate": "cand_9f3a5cc0876a4d08",
+  "checks": [
+    "Frozen transport and file index SHA checks",
+    "Exact SQLite schema/trigger fingerprint",
+    "Full PRAGMA integrity_check",
+    "Foreign-key check",
+    "Original database-bound strict file closure",
+    "All 192 legacy code scopes through thirteen complete immutable bundles"
+  ],
+  "closure": {
+    "bytes": 2166067811,
+    "candidates": 1,
+    "complete": true,
+    "files": 173592,
+    "input_bundles": 13,
+    "legacy_code_scopes": 192,
+    "missing_finding_declarations": 0,
+    "objects": 81832
+  },
+  "command": "swingset unpack-job --policy /var/tmp/swingset-stage2-unpack-control-0f85536fd5c7/policy.json",
+  "complete": true,
+  "container": {
+    "container_id": "b5e44f7d2ee170036d8f3d8a3ecdba03c4faf9c802b2747d2e0d70967029f06b",
+    "exit_code": 0,
+    "not_running": true,
+    "oom_killed": false,
+    "removed": false,
+    "state": {
+      "Error": "",
+      "Pid": 0,
+      "StartedAt": "2026-11-06T02:19:37.495522119Z",
+      "Status": "exited"
+    }
+  },
+  "exit_code": 0,
+  "free_bytes": 754802102272,
+  "indexed_bytes": 5635738551,
+  "indexed_files": 195869,
+  "limits": "Validation only. No Postgres import, environment UUID, application deployment or publication. The stopped successful container, validated files and earlier fenced failed attempts remain retained.",
+  "manifest_sha256": "d7cf3d6b33983191b7b7d217b77ff8657d9a6e739fb0a91a5c456f9b95bb0b68",
+  "native_result_sha256": "002b5090282db77ae690964cdf30a5a81c0b92a831042bce60d4295fba1cd5e5",
+  "operation": "Final-runtime strict SQLite-37 checkpoint unpack with verified historical witnesses",
+  "original_seven_apps_running": true,
+  "owner": {
+    "container_id": "b5e44f7d2ee170036d8f3d8a3ecdba03c4faf9c802b2747d2e0d70967029f06b",
+    "directories": [
+      {
+        "device": 2050,
+        "inode": 15370026,
+        "mode": 448,
+        "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-0f85536fd5c7",
+        "uid": 1000
+      },
+      {
+        "device": 2050,
+        "inode": 15370027,
+        "mode": 448,
+        "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-0f85536fd5c7/work",
+        "uid": 1000
+      },
+      {
+        "device": 2050,
+        "inode": 15370028,
+        "mode": 448,
+        "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-0f85536fd5c7/spill",
+        "uid": 1000
+      },
+      {
+        "device": 2050,
+        "inode": 15370029,
+        "mode": 448,
+        "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-0f85536fd5c7/spill/tmp",
+        "uid": 1000
+      },
+      {
+        "device": 2050,
+        "inode": 15370030,
+        "mode": 448,
+        "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-0f85536fd5c7/spill/home",
+        "uid": 1000
+      }
+    ],
+    "image": "sha256:758d93a57244cc223ef6989217fa2d9f662804730dfbfa79dba8955bdbe2af04",
+    "name": "swingset-unpack-0f85536fd5c7",
+    "nonce": "0f85536fd5c7"
+  },
+  "pending_candidate": null,
+  "retained_state_directory": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-0f85536fd5c7/work/sqlite37",
+  "root_review_sha256": "0e9d06888922e55a858e31fe31bec760a87e3cd1c6c35faa84df8d72162daf4d",
+  "root_review_verdict": "ACCEPT",
+  "schema_version": 37,
+  "segments": 41,
+  "set_id": "set_20261105T040000Z",
+  "source_bytes": 38890938368,
+  "source_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "stable_sftp_both_results": true,
+  "supervisor_owner": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "image": "sha256:758d93a57244cc223ef6989217fa2d9f662804730dfbfa79dba8955bdbe2af04",
+    "nonce": "0f85536fd5c7",
+    "pid": 2776663,
+    "policy_sha256": "186a5651c77e0c6761519e2824174b241c3dde5d077d26e7074352c037fe8e8a",
+    "process_group": 2776663,
+    "process_start": "932801538"
+  },
+  "supervisor_result": {
+    "bytes": 7365,
+    "sha256": "e97b5e2286db8fdd5f7a9ad865fb0beb3dc91f482be2e6c227dbab3fe0d98da0"
+  },
+  "supplement_provenance": {
+    "added_bundles": 12,
+    "added_files": 5707,
+    "all_thirteen_pins_match": true,
+    "pins_sha256": "2d618870a19ebbd5501a945a747f589ff6b6384b4cfe5195bce1a6f4663dd7e1"
+  },
+  "validation": {
+    "container_id": "b5e44f7d2ee170036d8f3d8a3ecdba03c4faf9c802b2747d2e0d70967029f06b",
+    "image": "sha256:758d93a57244cc223ef6989217fa2d9f662804730dfbfa79dba8955bdbe2af04",
+    "log_config": {
+      "Config": {
+        "compress": "false",
+        "max-file": "1",
+        "max-size": "10m"
+      },
+      "Type": "local"
+    },
+    "memory": 2147483648,
+    "memory_swap": 2147483648,
+    "network": "none"
+  },
+  "wall_seconds": 3675.371
+}

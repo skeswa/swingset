@@ -1,0 +1,22 @@
+{
+  "actual_result_sha256": "8c7e0c0efc5979dbf004df2d9abf2568a787746ea4edd075e520ffba58454e5f",
+  "at": "2026-11-06T18:59:54.541688+00:00",
+  "automatic_retry": false,
+  "command": "swingset mirror-bootstrap --policy /operator/policy.json --credentials-file /run/credentials.env --result /result/result.json",
+  "duplicate_POSTs": 1,
+  "earlier_attempts": "One never-started container; one preflight refusal after owner deleted empty target. Neither sent POST.",
+  "exit_code": 1,
+  "http_status": 200,
+  "independent_verdict": "ACCEPT",
+  "limits": "Original objects required separately reviewed branch anchors; no live repository writes.",
+  "module_sha256": "6db2e03290ae00b9c6a0d18f424ca86c3b658b4ad82a3cae0808d35cd20a444c",
+  "operation": "one private Hub duplicate; strict history guard refused provider snapshot",
+  "policy_sha256": "5de2421e886b66f77c3010af897ed6977d71532a52b1c55d737c001cc8a8e0d0",
+  "private_target": "skeswa/swingset-rehearsal",
+  "review_sha256": "dbb3b6ca6041d7eccbf6f4ba06bb33a33e118bade45c6caca93319599931d471",
+  "source_commits": 77,
+  "source_head": "790a604a32e935072079c7ff62f0fcef29f3dfd6",
+  "source_history_sha256": "d4e7da437c066135170d3dd7da3b637dd88c45e4d63546cd473fc85ba480f42d",
+  "strict_history_proof": false,
+  "target_main": "2e93ca146634d67158488cf159f26bd09b4a11e0"
+}

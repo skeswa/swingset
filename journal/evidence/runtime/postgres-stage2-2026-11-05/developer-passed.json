@@ -1,0 +1,111 @@
+{
+  "aggregate_parallel_phase_seconds": 2480.7088847430423,
+  "at": "2026-11-06T03:08:29.075467+00:00",
+  "checks_passed": true,
+  "clients": [
+    {
+      "cleanup": {
+        "complete": true,
+        "copies_endpoints_reaped": 2,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "exit_code": 0,
+      "index": 0,
+      "max_sample_swap_bytes": 0,
+      "max_sample_working_bytes": 1234472960,
+      "oom_kills": 0,
+      "wall_seconds": 160.3157512510661
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "copies_endpoints_reaped": 2,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "exit_code": 0,
+      "index": 1,
+      "max_sample_swap_bytes": 0,
+      "max_sample_working_bytes": 1554120704,
+      "oom_kills": 0,
+      "wall_seconds": 163.14637223398313
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "copies_endpoints_reaped": 2,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "exit_code": 0,
+      "index": 2,
+      "max_sample_swap_bytes": 0,
+      "max_sample_working_bytes": 1344315392,
+      "oom_kills": 0,
+      "wall_seconds": 164.79472431307659
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "copies_endpoints_reaped": 2,
+        "remaining_helpers": [],
+        "remaining_run_records": 0,
+        "test_runs_reaped": 0
+      },
+      "exit_code": 0,
+      "index": 3,
+      "max_sample_swap_bytes": 0,
+      "max_sample_working_bytes": 1416151040,
+      "oom_kills": 0,
+      "wall_seconds": 159.37669144803658
+    }
+  ],
+  "command": "mise run check",
+  "errors": [],
+  "exit_code": 0,
+  "format": "swingset-core-run-v1",
+  "job": "672dafd506674c29ba0785e5",
+  "kernel_limits": {
+    "aggregate_working": 7516192768,
+    "client_cpus": 6,
+    "client_memory": 2147483648,
+    "client_memory_plus_swap": 2147483648,
+    "pytest_tmpfs": 805306368,
+    "test_database_cpus": 6000000000,
+    "test_database_memory": 2147483648
+  },
+  "limits": "Same code and selection as the 214.56-second run, with refreshed measured scheduling weights. Aggregate phase time also changed; this run does not isolate the cause or guarantee future timings. No caps, deadlines or assertions changed.",
+  "membership_sha256": "41281b5f21c2e33389493dbd3b453636e1cd9d6752702b9902638237f44c611b",
+  "minimum_sample_host_free_bytes": 120030220288,
+  "mypy": {
+    "passed": true,
+    "seconds": 0.35,
+    "source_files": 362
+  },
+  "operation": "Stage 2 supported local check with refreshed measured weights",
+  "partition_policy": "measured-lpt-v1",
+  "partitions": 4,
+  "physical_cleanup": {
+    "complete": true
+  },
+  "post_free_bytes": 120729960448,
+  "prologue_passed": true,
+  "ruff": {
+    "passed": true,
+    "seconds": 0.1
+  },
+  "selected_count": 2978,
+  "source_binding_sha256": "fff3c2929a584f7b3a4b47b06f3c4d9d741ede4984c6ee0f5d5c37fcbacb1f11",
+  "source_revision": "source-sha256:2a83d305cdfe0230a4dd8b7ba64c4aa859e833b8ebbfb1372904b354c14937c4",
+  "source_unchanged": true,
+  "summary_sha256": "00af9a726155b2ac5c1d41eba6e8c628d39af0b285651cfd350dd259914a9c48",
+  "supersedes_current_gate": "developer-fixtures.json",
+  "wall_seconds": 171.62148375017568,
+  "weights_sha256": "36c2b4d32e2cb0a4175a32c336ec83b4f77560b9075d1c50335a22f078d1e459",
+  "within_180_seconds": true,
+  "workers_per_client": 4
+}

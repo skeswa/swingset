@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -25,6 +27,243 @@ def source_database(tmp_path):
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_inspection_cli_reads_finalized_partial_import_and_refuses_changed_counts(
+    source_database,
+    fresh_database,  # noqa: F811
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    from swingset.cli import main
+    from swingset.state import engine
+
+    with sqlite3.connect(source_database) as source:
+        source.execute("INSERT INTO meta(key,value) VALUES('inspection-proof','original')")
+    service, name, owner = fresh_database
+    result = importer.load(source_database, owner, expected_sha256=sha(source_database))
+    result.update(complete=False, audit=None)
+    receipt = tmp_path / "stopped-import.json"
+    receipt.write_text(json.dumps(result))
+    original = receipt.read_bytes()
+    oid = owner.execute("SELECT oid FROM pg_database WHERE datname=current_database()").fetchone()[
+        0
+    ]
+    stored_id = owner.execute("SELECT database_id FROM ops.environment_identity").fetchone()[0]
+    owner.close()
+    monkeypatch.setenv("SWINGSET_OWNER_DATABASE_URL", service.dsn(name))
+    arguments = [
+        "inspect-import",
+        str(receipt),
+        "--receipt-sha256",
+        sha(receipt),
+        "--source-sha256",
+        sha(source_database),
+        "--database",
+        name,
+        "--database-oid",
+        str(oid),
+        "--environment",
+        "dev",
+        "--database-id",
+        stored_id,
+    ]
+    connections = []
+    original_connect = engine.connect
+
+    def observe_connection(*args, **kwargs):
+        connection = original_connect(*args, **kwargs)
+        assert kwargs["read_only"] is True
+        with pytest.raises(engine.Error):
+            connection.execute("CREATE TABLE public.inspection_must_not_write(value int)")
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(engine, "connect", observe_connection)
+    assert main(arguments) == 0
+    inspected = json.loads(capsys.readouterr().out)
+    assert inspected["complete"] and not inspected["native_complete"]
+    assert not inspected["typed_values_checked"]
+    assert inspected["database_id"] == stored_id and inspected["schema"]["equal"]
+    assert inspected["counts"] == {key: value["rows"] for key, value in result["tables"].items()}
+    assert inspected["persistent_database_writes"] == inspected["other_client_sessions"] == 0
+    assert len(connections) == 1 and connections[0].closed
+    assert receipt.read_bytes() == original
+    with service.connect(name) as writer:
+        writer.execute("DELETE FROM ops.meta WHERE key='inspection-proof'")
+    assert main(arguments) == 1
+    assert "ImportRejected" in capsys.readouterr().err
+    assert receipt.read_bytes() == original
+
+
+@pytest.mark.parametrize("fault", ["receipt-digest", "source", "migration", "missing", "row-count"])
+def test_inspection_rejects_unbound_or_partial_receipt_before_target_queries(
+    source_database, tmp_path, fault
+):
+    value = importer.preflight(source_database, expected_sha256=sha(source_database))
+    value["loaded"] = json.loads(json.dumps(value["tables"]))
+    value["migration_checksum"] = schema.migration_checksum()
+    if fault == "source":
+        value["source_sha256"] = "0" * 64
+    elif fault == "migration":
+        value["migration_checksum"] = "0" * 64
+    elif fault == "missing":
+        value["loaded"].pop("meta")
+    elif fault == "row-count":
+        value["loaded"]["meta"]["rows"] = value["tables"]["meta"]["rows"] = -1
+    receipt = tmp_path / "import.json"
+    receipt.write_text(json.dumps(value))
+
+    class NoTargetQueries:
+        def execute(self, *args, **kwargs):
+            pytest.fail("a rejected receipt must not query the destination")
+
+    with pytest.raises(importer.ImportRejected):
+        importer.inspect_loaded_target(
+            receipt,
+            NoTargetQueries(),
+            receipt_sha256="0" * 64 if fault == "receipt-digest" else sha(receipt),
+            source_sha256=sha(source_database),
+            database="unused",
+            database_oid=1,
+            environment="dev",
+        )
+
+
+@pytest.mark.parametrize(
+    "fault", ["database-oid", "database-id", "active-client", "hidden-client", "writer-transaction"]
+)
+def test_inspection_refuses_wrong_target_or_another_client(
+    source_database,
+    fresh_database,  # noqa: F811
+    tmp_path,
+    fault,
+):
+    from swingset.state import engine
+
+    service, name, owner = fresh_database
+    result = importer.load(source_database, owner, expected_sha256=sha(source_database))
+    receipt = tmp_path / "import.json"
+    receipt.write_text(json.dumps(result))
+    oid = owner.execute("SELECT oid FROM pg_database WHERE datname=current_database()").fetchone()[
+        0
+    ]
+    if fault not in {"active-client", "hidden-client"}:
+        owner.close()
+    with engine.connect(service.dsn(name), read_only=True) as reader:
+        if fault == "hidden-client":
+            reader.execute("SET ROLE swingset_owner")
+            assert (
+                reader.execute(
+                    "SELECT backend_type FROM pg_stat_activity WHERE pid=%s",
+                    (owner.info.backend_pid,),
+                ).fetchone()[0]
+                is None
+            )
+        if fault == "writer-transaction":
+            reader.execute("BEGIN READ WRITE")
+            assert reader.execute("SHOW transaction_read_only").fetchone()[0] == "off"
+        with pytest.raises(importer.ImportRejected):
+            importer.inspect_loaded_target(
+                receipt,
+                reader,
+                receipt_sha256=sha(receipt),
+                source_sha256=sha(source_database),
+                database=name,
+                database_oid=oid + 1 if fault == "database-oid" else oid,
+                environment="dev",
+                database_id="00000000-0000-0000-0000-000000000000"
+                if fault == "database-id"
+                else None,
+            )
+    assert receipt.read_text() == json.dumps(result)
+
+
+def test_cli_opens_destination_after_preflight_and_closes_it_after_audit(
+    source_database,
+    fresh_database,  # noqa: F811
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    from swingset.backup import destination
+    from swingset.cli import main
+
+    service, name, observer = fresh_database
+    monkeypatch.setenv("SWINGSET_OWNER_DATABASE_URL", service.dsn(name))
+    opened = []
+    validations = 0
+    original_preflight, original_owner = importer.preflight, destination.owner
+
+    def expire_idle_sessions(*args, **kwargs):
+        nonlocal validations
+        validations += 1
+        # A full-size source can outlive the relay's idle timeout. Any owner
+        # session opened before validation finishes is unusable afterwards.
+        for connection in opened:
+            connection.close()
+        return original_preflight(*args, **kwargs)
+
+    @contextmanager
+    def observe_owner(state):
+        with original_owner(state) as connection:
+            opened.append(connection)
+            yield connection
+
+    monkeypatch.setattr(importer, "preflight", expire_idle_sessions)
+    monkeypatch.setattr(destination, "owner", observe_owner)
+    receipt = tmp_path / "import.json"
+    assert (
+        main(
+            [
+                "import-sqlite37",
+                str(source_database),
+                "--state",
+                str(tmp_path / "state"),
+                "--sha256",
+                sha(source_database),
+                "--receipt",
+                str(receipt),
+            ]
+        )
+        == 0
+    )
+    result = json.loads(capsys.readouterr().out)
+    assert result["complete"] and result["audit"]["equal"]
+    assert len(result["audit"]["tables"]) == 141
+    assert validations == 1 and len(opened) == 1 and opened[0].closed
+    assert schema.validate_schema(observer, full=True)["equal"]
+    progress = json.loads(receipt.with_name("import-preflight.json").read_text())
+    assert progress["phase"] == "validated" and progress["checked_tables"] == 141
+
+
+def test_preflight_progress_distinguishes_source_validation_from_loading(source_database):
+    observed = []
+    result = importer.preflight(
+        source_database, expected_sha256=sha(source_database), progress=observed.append
+    )
+    assert result["complete"]
+    assert [row["phase"] for row in observed[:4]] == [
+        "source_digest",
+        "integrity",
+        "foreign_keys",
+        "files",
+    ]
+    checks = [row for row in observed if row["phase"] == "values"]
+    assert {row["table"] for row in checks} == set(result["tables"])
+    assert len(checks) == 141 and observed[-1]["phase"] == "validated"
+    assert all("loaded" not in row and "complete" not in row for row in observed)
+
+
+def test_managed_import_rejects_source_before_opening_destination(source_database):
+    @contextmanager
+    def forbidden():
+        pytest.fail("invalid source must not open a destination")
+        yield  # pragma: no cover
+
+    with pytest.raises(importer.ImportRejected, match="digest differs"):
+        importer.load_into(source_database, forbidden, expected_sha256="0" * 64)
 
 
 @pytest.mark.parametrize(
@@ -130,29 +369,36 @@ def test_exact_large_unicode_copy_independent_audit_and_idempotent_resume(
     source_database,
     fresh_database,  # noqa: F811
     tmp_path,  # noqa: F811
+    monkeypatch,
 ):  # noqa: F811
     _, _, destination = fresh_database
-    body = "雪\t\\N\n" * 100_000
+    # Snow crosses both the old 64 KiB and new 1 MiB byte boundaries.
+    body = "x" * (1024**2 - 1) + "雪\t\\N\n" * 100_000
+    monkeypatch.setattr(importer, "CHUNK", 64 * 1024)
     with sqlite3.connect(source_database) as conn:
         conn.execute("INSERT INTO meta(key,value) VALUES('large-fixture',?)", (body,))
     expected = sha(source_database)
     receipt = tmp_path / "import.json"
     calls = 0
+    loaded_before_stop = sorted(schema.reference_manifest()["tables"]).index("meta") + 1
 
     def stop():
         nonlocal calls
         calls += 1
-        return calls > 2
+        return calls > loaded_before_stop
 
     partial = importer.load(
         source_database, destination, expected_sha256=expected, receipt_path=receipt, stop=stop
     )
-    assert not partial["complete"] and len(partial["loaded"]) == 2
+    assert not partial["complete"] and len(partial["loaded"]) == loaded_before_stop
+    assert "meta" in partial["loaded"]
+    monkeypatch.setattr(importer, "CHUNK", 1024**2)
     resumed = importer.load(
         source_database, destination, expected_sha256=expected, receipt_path=receipt
     )
     assert resumed["complete"] and len(resumed["loaded"]) == 141
     assert resumed["audit"]["equal"]
+    assert resumed["tables"] == partial["tables"]
     assert (
         destination.execute("SELECT value FROM ops.meta WHERE key='large-fixture'").fetchone()[0]
         == body
@@ -163,9 +409,11 @@ def test_exact_large_unicode_copy_independent_audit_and_idempotent_resume(
         ).fetchone()[0]
         == 0
     )
-    assert importer.load(
+    monkeypatch.setattr(importer, "CHUNK", 4 * 1024**2)
+    repeated = importer.load(
         source_database, destination, expected_sha256=expected, receipt_path=receipt
-    )["complete"]
+    )
+    assert repeated["complete"] and repeated["tables"] == partial["tables"]
     assert schema.validate_schema(destination, full=True)["equal"]
 
 

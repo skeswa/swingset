@@ -1,0 +1,43 @@
+{
+  "operation": "core source-volume experiment",
+  "recorded_at": "2026-11-05T22:59:38.415009+00:00",
+  "command": [
+    "mise",
+    "run",
+    "check"
+  ],
+  "exit_code": 1,
+  "job": "90cf466a132745939a8a94d3",
+  "raw_summary_sha256": "b1ab9d46075f3a124cf1173c2c2234ddeca4013828796b27c87cecf7ee6b8c5d",
+  "selected_count": 2782,
+  "wall_seconds": 200.65588754229248,
+  "budget_seconds": 180,
+  "source_revision": "source-sha256:49e5d564314856d06eb5cff6323ba66e74c716336b3c6a48aed52c9771e379ea",
+  "source_binding_sha256": "58d2dd984e81072fa97c55f273b549f3759061765a866a1bd2f762c50aff8693",
+  "checks_passed": false,
+  "failures": [
+    "Copied read-only file modes made a temporary migration copy unwritable; existing migration assertion preserved.",
+    "180-second timing budget exceeded."
+  ],
+  "experiment": "Exact Linux source overlay with native fingerprint cache",
+  "outcome": "Rejected and reverted Linux-overlay code/tests; whole-run timing gain was not material. Kept prior source binding expansion.",
+  "exhaustive_case": {
+    "node": "tests/test_read_sets.py::test_pipeline_fixtures_run_armed_with_zero_undeclared_reads",
+    "parent_call_seconds": 105.99090837698895,
+    "experiment_call_seconds": 120.30156580288894,
+    "behavior": "Replays five complete fixture files in a nested pytest process; requires all declared unit kinds and no undeclared reads.",
+    "next_selection": "Move intact exhaustive case to extended under testing guide/D0175; retain direct guard/static checks and selected fixture cases, add one armed real project/link smoke. Full suite required."
+  },
+  "smoke_focused": {
+    "command": [
+      "mise",
+      "run",
+      "test",
+      "--",
+      "tests/test_read_sets.py::test_an_armed_pipeline_records_project_and_link_reads"
+    ],
+    "exit_code": 0,
+    "passed": 1,
+    "pytest_seconds": 2.96
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "deployment": "swingset-stage2-CHANGE-ME",
+  "image_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "network": "swingset-stage2-private-CHANGE-ME",
+  "subnet": "172.30.240.0/24",
+  "proxy": "172.30.240.2",
+  "dns": "172.30.240.4",
+  "workers": {
+    "acquire-plan": { "address": "172.30.240.10", "database": "172.30.240.3" },
+    "derive": { "address": "172.30.240.11", "database": "172.30.240.3" },
+    "release-maintain": { "address": "172.30.240.12", "database": "172.30.240.3" },
+    "jobs": { "address": "172.30.240.13", "database": "172.30.240.3" },
+    "checker": { "address": "172.30.240.14", "database": "172.30.240.6" },
+    "health": { "address": "172.30.240.17", "database": "172.30.240.3" },
+    "operator": { "address": "172.30.240.15", "database": "172.30.240.3", "required": false },
+    "verifier": { "address": "172.30.240.18", "database": "172.30.240.6", "required": false }
+  }
+}

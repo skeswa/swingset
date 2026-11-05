@@ -294,24 +294,32 @@ def _install(
 
 
 def verify_set(
-    source: Transport, set_id: str, *, maximum_schema_version: int = 37
+    source: Transport, set_id: str, *, maximum_schema_version: int | None = None
 ) -> dict[str, Any]:
     """Read back all published bytes and require a fresh owner-job restore check."""
     return _check_set(source, set_id, maximum_schema_version=maximum_schema_version, mode="verify")
 
 
 def drill_set(
-    source: Transport, set_id: str, *, maximum_schema_version: int = 37
+    source: Transport, set_id: str, *, maximum_schema_version: int | None = None
 ) -> dict[str, Any]:
     """Restore and reproduce the historical release in the separate owner job."""
     return _check_set(source, set_id, maximum_schema_version=maximum_schema_version, mode="drill")
 
 
 def _check_set(
-    source: Transport, set_id: str, *, maximum_schema_version: int, mode: Literal["verify", "drill"]
+    source: Transport,
+    set_id: str,
+    *,
+    maximum_schema_version: int | None,
+    mode: Literal["verify", "drill"],
 ) -> dict[str, Any]:
     import tempfile
 
+    if maximum_schema_version is None:
+        from swingset.state.db import SCHEMA_VERSION
+
+        maximum_schema_version = SCHEMA_VERSION
     check_root = os.environ.get("SWINGSET_BACKUP_CHECK_ROOT")
     if check_root is None and os.environ.get("SWINGSET_BACKUP_CHECK_SOCKET"):
         check_root = "/var/lib/swingset/checkpoints"
@@ -441,6 +449,7 @@ def restore_from_set(
     maximum_schema_version: int | None = None,
     owner_dsn: str | None = None,
     environment: str = "dev",
+    defer_activation: bool = False,
 ) -> dict[str, Any]:
     """Install a set under the writer lock, check the public hub, activate."""
     from swingset.build.files import durable_write
@@ -470,8 +479,12 @@ def restore_from_set(
                     owner_dsn=make_conninfo(connection.info.dsn, password=connection.info.password),
                     environment=environment,
                 )
-            verify_restored_public(state_dir, hub, connection=connection)
-            activate_restored_state(state_dir, connection=connection, locks=locks, clock=clock)
+            if not defer_activation:
+                verify_restored_public(state_dir, hub, connection=connection)
+                activate_restored_state(state_dir, connection=connection, locks=locks, clock=clock)
+            else:
+                summary["activation_pending"] = True
+                summary["public_reconciled"] = False
         finally:
             locks.release()
     return summary

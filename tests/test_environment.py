@@ -63,3 +63,25 @@ def test_production_identity_is_read_from_database_and_conflicting_flag_is_refus
     monkeypatch.setenv("SWINGSET_ENV", "dev")
     with pytest.raises(environment.EnvironmentRefused):
         environment.ensure_external_allowed(connection, "publish", environment.FixtureIO())
+
+
+def test_rehearsal_adapter_interface_requires_explicit_authorization(monkeypatch):
+    monkeypatch.delenv("SWINGSET_ENV", raising=False)
+    identifier = str(uuid4())
+    connection = Connection(("dryrun", identifier))
+    with pytest.raises(environment.EnvironmentRefused):
+        environment.ensure_external_allowed(connection, "publication", environment.RehearsalIO())
+
+    calls = []
+
+    class Adapter(environment.RehearsalIO):
+        def authorize(self, database_id, operation):
+            calls.append((database_id, operation))
+
+    adapter = Adapter()
+    environment.ensure_external_allowed(connection, "publication", adapter)
+    assert calls == [(identifier, "publication")]
+    with pytest.raises(environment.EnvironmentRefused):
+        environment.ensure_external_allowed(
+            connection, "publication", type("DuckAdapter", (), {"authorize": adapter.authorize})()
+        )

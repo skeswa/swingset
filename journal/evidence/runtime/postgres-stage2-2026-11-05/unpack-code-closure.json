@@ -1,0 +1,132 @@
+{
+  "operation": "Full frozen04 offline SQLite37 unpack and strict file/code closure validation",
+  "recorded_at": "2026-11-06T00:18:46.190034+00:00",
+  "command": [
+    "ssh",
+    "rhuidean",
+    "python3",
+    "reviewed-maintained-unpack.py",
+    "--policy",
+    "reviewed-unpack-policy.json"
+  ],
+  "controller_sha256": "c315f60b7959ba85a280e4fcfc043ac72a5987d891b8d89962f7697c37113458",
+  "policy_sha256": "362fdceedbee836aba6081835ba2c5d8954f01c9a0845c34c4ec3ca785a7f095",
+  "independent_review_sha256": "c62a82d8e5e9e3b7b7d56c64961bb85d",
+  "review_note": "Independent review file /tmp/swingset-stage2-unpack-maintained-root-review.json; actual SHA recorded below",
+  "actual_independent_review_sha256": "d3206f9d2e8a790a9db64e4d70eeaa9ebac3bd85a54ea2290337c09262b8feb4",
+  "result": {
+    "complete": false,
+    "container_cleanup": {
+      "container_id": "6c46bc2804b26590569fdc23438b187829ff1b3d6a3ab5dc209e176871c9cf8c",
+      "exit_code": 1,
+      "not_running": true,
+      "oom_killed": false,
+      "removed": false,
+      "state": {
+        "Error": "",
+        "Pid": 0,
+        "StartedAt": "2026-11-05T23:06:53.835964337Z",
+        "Status": "exited"
+      }
+    },
+    "error": "Unpack container did not succeed",
+    "error_class": "RuntimeError",
+    "owner": {
+      "container_id": "6c46bc2804b26590569fdc23438b187829ff1b3d6a3ab5dc209e176871c9cf8c",
+      "directories": [
+        {
+          "device": 2050,
+          "inode": 15500386,
+          "mode": 448,
+          "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-c94cba2e96ba",
+          "uid": 1000
+        },
+        {
+          "device": 2050,
+          "inode": 15500387,
+          "mode": 448,
+          "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-c94cba2e96ba/work",
+          "uid": 1000
+        },
+        {
+          "device": 2050,
+          "inode": 15500388,
+          "mode": 448,
+          "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-c94cba2e96ba/spill",
+          "uid": 1000
+        },
+        {
+          "device": 2050,
+          "inode": 15500389,
+          "mode": 448,
+          "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-c94cba2e96ba/spill/tmp",
+          "uid": 1000
+        },
+        {
+          "device": 2050,
+          "inode": 15500390,
+          "mode": 448,
+          "path": "/var/tmp/swingset-stage2-20261105-3bd7b122c532/unpack-c94cba2e96ba/spill/home",
+          "uid": 1000
+        }
+      ],
+      "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+      "name": "swingset-unpack-c94cba2e96ba",
+      "nonce": "c94cba2e96ba"
+    },
+    "seconds": 3587.218,
+    "supervisor_exit": 1,
+    "supervisor_owner": {
+      "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+      "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+      "nonce": "c94cba2e96ba",
+      "pid": 2354969,
+      "policy_sha256": "362fdceedbee836aba6081835ba2c5d8954f01c9a0845c34c4ec3ca785a7f095",
+      "process_group": 2354969,
+      "process_start": "931645174"
+    },
+    "validation": {
+      "container_id": "6c46bc2804b26590569fdc23438b187829ff1b3d6a3ab5dc209e176871c9cf8c",
+      "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+      "log_config": {
+        "Config": {
+          "compress": "false",
+          "max-file": "1",
+          "max-size": "10m"
+        },
+        "Type": "local"
+      },
+      "memory": 2147483648,
+      "memory_swap": 2147483648,
+      "network": "none"
+    }
+  },
+  "transfer": {
+    "at": "2026-11-06T00:10:35.442972+00:00",
+    "sftp_exit": 0,
+    "stable_source_before_after_local_sha256": "14fbf62d26407d460617d392754f115f38970fd346bd04dd2f318e258a228365",
+    "bytes": 2114,
+    "json_complete_parse": true,
+    "result_complete": false,
+    "supervisor_exit": 1,
+    "container_exit": 1,
+    "not_running": true,
+    "oom_killed": false,
+    "original7_unchanged": true,
+    "stderr": "153 legacy code scopes have no verified retained bundle"
+  },
+  "failure": "153 legacy code scopes have no verified retained bundle",
+  "input_bundle_inventory": {
+    "ids": [
+      "e80f675d21364ab4c88e42bec52ac2e810827754386f77ddc96ef0719efc126a"
+    ],
+    "members": 525,
+    "historical_scopes_unresolved": 153,
+    "exact_pairs_captured": false
+  },
+  "automatic_failed_stage_cleanup_observed": true,
+  "immutable_transport_retained": true,
+  "manual_cleanup_or_retry": false,
+  "original7_unchanged": true,
+  "interpretation": "Strict rejection, not a successful restore/import. No OOM or deadline breach. Existing library automatically removed its own new failed staging copy; later maintained jobs opt into fenced failure preservation."
+}

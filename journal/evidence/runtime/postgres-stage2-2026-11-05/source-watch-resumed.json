@@ -1,0 +1,76 @@
+{
+  "operation": "Observe production fetching after UTC budget reset",
+  "recorded_at": "2026-11-06T00:22:23.338113+00:00",
+  "raw_watch_line_sha256": "97e1573a2f1ad92d40fd073cf97d389773412af4c6808cdf8a0624c7917ff528",
+  "read_only": true,
+  "exit_code": 0,
+  "watch": {
+    "active_admissions": [],
+    "alert_bytes": 164303,
+    "at": "2026-11-06T00:22:23.338113+00:00",
+    "fires": [],
+    "last_actual_age_seconds": 197.330548,
+    "last_actual_fetch": {
+      "bytes_by_host": {
+        "points.worldsdc.com": 523428
+      },
+      "checked": 54,
+      "failed": false,
+      "finished_at": "2026-11-06T00:19:06.007565+00:00",
+      "run_id": "run_20261106T001502Z"
+    },
+    "loops": [
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T00:21:09.786059+00:00",
+        "last_progress_at": "2026-11-06T00:21:09.786059+00:00",
+        "loop": "derive",
+        "run_id": "run_20261106T001702Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T00:19:06.007565+00:00",
+        "last_progress_at": "2026-11-06T00:19:06.007565+00:00",
+        "loop": "acquire",
+        "run_id": "run_20261106T001502Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T00:11:28.970587+00:00",
+        "last_progress_at": "2026-11-06T00:11:28.970587+00:00",
+        "loop": "plan",
+        "run_id": "run_20261106T001000Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T00:20:07.299964+00:00",
+        "last_progress_at": "2026-11-05T19:31:34.977095+00:00",
+        "loop": "release",
+        "run_id": "run_20261106T002000Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-05T05:32:46.359640+00:00",
+        "last_progress_at": "2026-11-05T05:32:46.359640+00:00",
+        "loop": "maintain",
+        "run_id": "run_20261105T053000Z"
+      }
+    ],
+    "operator_hold": false,
+    "read_only": true
+  },
+  "alert_classification": {
+    "new_bytes": 127,
+    "sha256": "4f5257922dce8886d50495a8428326849f9c83294c1cdb2a54ec1274eb63ac0e",
+    "class": "host-failing",
+    "host": "web.archive.org",
+    "reason": "ServerError x7",
+    "pause_until": "2026-11-06T00:47:48.030974+00:00",
+    "interpretation": "Previously observed pause repeated; acquisition resumed on points.worldsdc.com. No hold, budget or production changes."
+  }
+}

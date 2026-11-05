@@ -1,0 +1,23 @@
+{
+  "checks_passed": true,
+  "command": "mise run test",
+  "exit_code": 1,
+  "format": "swingset-stage2-developer-receipt-v1",
+  "image": "sha256:7011c88ac68253ad37b2e525ba68ed65b32a3bc0bf73d19cd959d492c8b99efa",
+  "job": "80e44e1e15d549fc884933a6",
+  "limits_changed": false,
+  "membership_sha256": "2a75e031fffe7fb4fd1c75ecd7ed1f3a53fc64e091a98a0de158d87afea02885",
+  "selected_count": 2945,
+  "source_binding_sha256": "5dc9f1dcbcd6d27f3ebc96e8d1840e303b4e6a9eb028c4744876d106550a58d3",
+  "source_revision": "source-sha256:d9522a49d855ba52877a32704a7b9915167e291adbaee26c20bcd7f285f6664a",
+  "status": "All selected cases pass; unchanged 180-second timing gate fails.",
+  "summary_sha256": "9aa412f0cf3541847c8d9899ad76667d82119775787df2dadc3f6f240f498ee1",
+  "validation": {
+    "mypy": "362 files passed",
+    "ruff": "passed"
+  },
+  "wall_seconds": 202.56044316710904,
+  "weights_sha256": "0414c2c6def4b6407af0f38f2994c1aba23bcfd5c3db94d206c6a835a25cb1be",
+  "within_180_seconds": false,
+  "workers_per_client": 4
+}

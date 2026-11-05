@@ -1,0 +1,146 @@
+{
+  "authoritative_receipt_sha256": "1c196a775c150b7eb100dd28e3ea6f872473a4c8f5b7b1f63e9ccdb8ba590cc8",
+  "command": "python3 reviewed archive-only operator; isolated c54 unchanged resolve_scope_bundles",
+  "complete": true,
+  "container_exit_code": 0,
+  "container_id": "d886b7fda087c853fafa55fa50a4da7fc0f2f6e917d9208e0970fa5cc1c19015",
+  "exit_code": 0,
+  "final_free_bytes": 845656862720,
+  "finished_at": "2026-11-06T01:49:13Z",
+  "format": "swingset-stage2-code-archive-verification-receipt-v1",
+  "historical_gaps_resolved": 153,
+  "image_config": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+  "independent_review_sha256": "cced013024db27a4ccb36cd1358733a05a5f6fb3b9335dff47082ad9761612d8",
+  "no_deletion": true,
+  "no_oom": true,
+  "nonce": "5f40a2597bdf",
+  "original_seven_unchanged": true,
+  "owned_container_stopped": true,
+  "policy_sha256": "072499f6cbb918ee1e5092d1a8cbea2befeede84ec3bbbcb29b413daf8a040ac",
+  "proof_limits": [
+    "No database mounted/opened, captured Python executed, checkpoint rewritten or archive adopted.",
+    "Full immutable archive witnesses verified; maintained strict unpack still must prove combined checkpoint closure.",
+    "Quarantine, raw39GB diagnostic database, container and reports retained."
+  ],
+  "reader_bindings": {
+    "fetch/archive.py": {
+      "bytes": 5121,
+      "sha256": "1a5abffda8641fcc2ae835ca462c08272e5c9ed8dee00aaf736f16b2d19b36eb"
+    },
+    "state/legacy_recipes.py": {
+      "bytes": 15223,
+      "sha256": "9e7adcc8b615b166b31fafdc363b1e70df07ea69611ea0bdf86f358b19cafb74"
+    },
+    "state/recipe_scope.py": {
+      "bytes": 31511,
+      "sha256": "9e65e21dd551633fd341cc0759b77a6013b4395bb022ae1b4f0a57b5b7d8c9f2"
+    }
+  },
+  "required_reference_report_sha256": "c63779254ee19e848714229322770a1ec445cf655867fb4c61173f06f9b436b8",
+  "resolutions_sha256": "8cf7056d0da9b1b56e27f6cb578159870132db3a0806a15f22318ed28420e84e",
+  "seconds": 9.747,
+  "source_inventory_sha256": "342b613a0d6f7a838c0c5e00cd624b90074f91b5e22448ca6e38b54d9489e2c5",
+  "source_sqlite_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "supervisor_sha256": "a973a13d62eaaa1f06afa74a111025ce2972a48683c06da2c88316030feb66d9",
+  "supplemental_directory": "/var/tmp/swingset-stage2-legacy-code-quarantine-5f40a2597bdf/inputs",
+  "supplemental_pins": [
+    {
+      "added": true,
+      "bundle": "053cb46d2b64d9af4c232442bafa62272c7c5a7bd2deda6f2e3833036682d1ab",
+      "bytes": 20090743,
+      "files": 486,
+      "manifest_sha256": "053cb46d2b64d9af4c232442bafa62272c7c5a7bd2deda6f2e3833036682d1ab"
+    },
+    {
+      "added": true,
+      "bundle": "0606ea9ea7f348da9e02e458540d56ed66524b378e4372903b3db34c51dc3370",
+      "bytes": 20781811,
+      "files": 525,
+      "manifest_sha256": "0606ea9ea7f348da9e02e458540d56ed66524b378e4372903b3db34c51dc3370"
+    },
+    {
+      "added": true,
+      "bundle": "0e449027f6fb1eb0c595cecb91dac4714e4cd5d54b7889c741c3c602b1b241e3",
+      "bytes": 20064268,
+      "files": 483,
+      "manifest_sha256": "0e449027f6fb1eb0c595cecb91dac4714e4cd5d54b7889c741c3c602b1b241e3"
+    },
+    {
+      "added": true,
+      "bundle": "15838dc0c5a3d1422fa5781ad158184de6baa1cf7ad4a760bd37adc8eee96092",
+      "bytes": 18095664,
+      "files": 423,
+      "manifest_sha256": "15838dc0c5a3d1422fa5781ad158184de6baa1cf7ad4a760bd37adc8eee96092"
+    },
+    {
+      "added": true,
+      "bundle": "1cd1bc0b86d2118439b0f3973b090052ed095cb324f39c547c9b3e9ffd8793c7",
+      "bytes": 18252125,
+      "files": 439,
+      "manifest_sha256": "1cd1bc0b86d2118439b0f3973b090052ed095cb324f39c547c9b3e9ffd8793c7"
+    },
+    {
+      "added": true,
+      "bundle": "38913441ed8a34c18b15a6243277239d132234e59660e426f0309a4dde221d37",
+      "bytes": 20035007,
+      "files": 484,
+      "manifest_sha256": "38913441ed8a34c18b15a6243277239d132234e59660e426f0309a4dde221d37"
+    },
+    {
+      "added": true,
+      "bundle": "461817e3bfb28b40cedc6dafc98141610742c1c4f234c44ba488b128a10d1924",
+      "bytes": 20030531,
+      "files": 484,
+      "manifest_sha256": "461817e3bfb28b40cedc6dafc98141610742c1c4f234c44ba488b128a10d1924"
+    },
+    {
+      "added": true,
+      "bundle": "58c93e86f25ad834aa35f8d3dc70d2ee8bef460c3462fbc9edab6fbc9f00cb03",
+      "bytes": 20065618,
+      "files": 483,
+      "manifest_sha256": "58c93e86f25ad834aa35f8d3dc70d2ee8bef460c3462fbc9edab6fbc9f00cb03"
+    },
+    {
+      "added": true,
+      "bundle": "5c9f5d5a4390b656995babf200049165f7355f1d3f0740283a9945982d45ba1f",
+      "bytes": 20788675,
+      "files": 525,
+      "manifest_sha256": "5c9f5d5a4390b656995babf200049165f7355f1d3f0740283a9945982d45ba1f"
+    },
+    {
+      "added": true,
+      "bundle": "6a04cec5745b6c405a8119f45937ccb8c97e3a68bc3d8287d6dd6f56810b7d37",
+      "bytes": 18095947,
+      "files": 423,
+      "manifest_sha256": "6a04cec5745b6c405a8119f45937ccb8c97e3a68bc3d8287d6dd6f56810b7d37"
+    },
+    {
+      "added": true,
+      "bundle": "b159c394637cd89aa6c9dcfad5ce579fab11e628a6bf0ad4799d7a2187267e1f",
+      "bytes": 19050513,
+      "files": 465,
+      "manifest_sha256": "b159c394637cd89aa6c9dcfad5ce579fab11e628a6bf0ad4799d7a2187267e1f"
+    },
+    {
+      "added": false,
+      "bundle": "e80f675d21364ab4c88e42bec52ac2e810827754386f77ddc96ef0719efc126a",
+      "bytes": 20791260,
+      "files": 525,
+      "manifest_sha256": "e80f675d21364ab4c88e42bec52ac2e810827754386f77ddc96ef0719efc126a"
+    },
+    {
+      "added": true,
+      "bundle": "effc2008cad743a5e9ffd4a29904fc08fc8c47bede2b89cb1519d436fc6e7334",
+      "bytes": 20128061,
+      "files": 487,
+      "manifest_sha256": "effc2008cad743a5e9ffd4a29904fc08fc8c47bede2b89cb1519d436fc6e7334"
+    }
+  ],
+  "supplemental_pins_sha256": "2d618870a19ebbd5501a945a747f589ff6b6384b4cfe5195bce1a6f4663dd7e1",
+  "verified_bundles": 13,
+  "verified_bytes": 256270223,
+  "verified_files": 6232,
+  "verified_pairs": 192,
+  "worker_report_sha256": "97a0e6d82e98fd2390d85488221236a0bf12ecbba790436204f431b25124c3e2",
+  "worker_sha256": "a8b3998792972070d4d3963265110eaf9f48892938573c8f6e70c6ed14ef2f4f"
+}

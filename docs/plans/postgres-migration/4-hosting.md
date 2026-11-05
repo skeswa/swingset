@@ -487,6 +487,10 @@ So:
   tests from every actual service container, repeated after recreation,
   must show blocked disallowed DNS names and direct IP routes against
   owned test endpoints, without contacting a collection site.
+- The pinned DNS resolver runs nonroot with only `NET_BIND_SERVICE` added
+  after dropping all capabilities. Its executable requires that file
+  capability to start; application workers keep all capabilities dropped
+  ([D-0280](../../../journal/decisions/0280-allow-only-the-resolvers-bind-capability.md)).
 - **Named external volumes,** so a redeploy cannot recreate them. Never run
   `compose down -v`, a global prune, or a fresh-volume deploy. Delete only
   by an exact owned label or id, after the receipts exist.
@@ -540,6 +544,12 @@ So:
 - **The running image is the proved image.** After each deploy, compare the
   running container's digest with the verify receipt's. Pin the Postgres
   base image by digest; no floating tags.
+- **Image identifiers have different owners.** Record the OCI artifact digest,
+  platform manifest and configuration digest separately from the target
+  daemon's container image ID. Verify their hash chain, AMD64 platform and
+  source binding after loading or pulling. The firewall authorization pins
+  the target daemon's actual container image identity
+  ([D-0279](../../../journal/decisions/0279-distinguish-image-artifacts-from-daemon-identities.md)).
 - **Hardening, as today's units:** non-root, umask 0077, read-only root
   filesystem, no new privileges, dropped capabilities, no Docker socket,
   secrets mounted read-only. Temporary and spill files go on a disk-backed
@@ -581,6 +591,17 @@ run as verified or unavailable:
   dump schedule;
 - whether its login has two-factor login, an address allowlist and current
   updates.
+
+Stage 2 checks, 2026-11-06:
+
+| Fact                                       | Result                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Swingset project and database              | Verified: project `swingset`, C-locale `swingset_dryrun`, three scoped logins and 142 empty tables; no environment row or pipeline start yet ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/dryrun-provision.json)).                                            |
+| Compose type, private relay and logins     | Verified: actual `docker-compose` service runs four support services; loopback-only relay, three read-only login checks and owner-role separation pass. Final guarded workers remain pending ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/gateway-sql.json)). |
+| Persistent full-dump exclusion             | Verified by rediscovery: no enabled `swingset*` dump; the existing Postgres backup stays unchanged ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/dryrun-provision.json)).                                                                                      |
+| Threshold and failed-job notifications     | Unavailable: owner endpoints are not provisioned yet; delivery and dead-man tests remain open ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                                |
+| Twice-weekly backup time and size          | Unavailable: scoped R2 credentials are verified, but import and real backup runs remain pending ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                              |
+| Dokploy login protections and update state | Unavailable: not verified by these platform operations ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                                                                       |
 
 Rhuidean drives Dokploy through its CLI and `curl` (Rhuidean D-0009,
 D-0020). Its rules carry over: never send `freshVolumes`; a queued

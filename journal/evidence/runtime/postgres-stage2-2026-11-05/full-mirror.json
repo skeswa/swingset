@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-06T19:28:01.585618+00:00",
+  "changes_since_previous_full": [
+    "tests/suite.toml",
+    "deploy/README.md",
+    "src/swingset/deploy/mirror.py",
+    "src/swingset/cli.py",
+    "tests/test_deploy_mirror.py"
+  ],
+  "command": "mise run test -- --full-suite -n4 --dist=loadfile --no-loadscope-reorder --max-worker-restart=0 --timings --durations=40 -o tmp_path_retention_policy=failed --junitxml=/tmp/swingset-stage2-mirror-full-20261106.xml",
+  "errors": 0,
+  "exit_code": 0,
+  "failures": 0,
+  "limits": "Core timing is a separate gate. This run does not establish provider mirror semantics, final application topology or publication/recovery.",
+  "operation": "full suite including maintained mirror bootstrap guards",
+  "skipped": 0,
+  "source_binding_sha256": "36ac78e129c9c975268333ef33c399ebcb5093551fc286156a271d027e526698",
+  "source_revision": "source-sha256:dd050410ef875bbd8c6bb9ef9a3f474aa0da8133073418f03c1eddf213521c2a",
+  "source_unchanged": true,
+  "tests": 4573,
+  "wall_seconds": 1760.54,
+  "xml_sha256": "c9db17590fdcbe666d72230b0a21706a65b88e11a39089dd32fb19baef6a032f"
+}

@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-06T20:51:58Z",
+  "container_id": "f292e4f2ac0ae7fcb92b3b1717f441cf9e3c29f4abbdbfc9c2f81ade9e2a0db0",
+  "error_type": "PermissionError",
+  "exit_code": 1,
+  "failure": "UID10001 cannot stat original UID1000-mode0700 source; load preflight failed before initialize_tables or TRUNCATE",
+  "fresh_readonly_adoption_guard": {
+    "all_142_tables_empty": true,
+    "catalog_sha256": "9d421ba71b3e1e79ed73c99e6ab81b8c70e24ef2bb7368842c8a72fbe9311234",
+    "complete": true,
+    "native_receipt_absent": true,
+    "stdout_sha256": "387c1a260fd3777f3eab9c41bc18a0a15ba3fbfbe569aae9c1ed08e577b3c0f4"
+  },
+  "limits": "Old container, failed supervisor and hold retained. A separately reviewed fresh attempt uses a separately verified readable source copy.",
+  "native_log_sha256": "d51712ea8b3837c2425d2e0116276c8352dfb3af1281de584958743a65989a9a",
+  "no_automatic_retry": true,
+  "oom": false,
+  "operation": "first guarded import refused before initialization",
+  "original7_apps_unchanged": true,
+  "runtime_config_id": "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4"
+}

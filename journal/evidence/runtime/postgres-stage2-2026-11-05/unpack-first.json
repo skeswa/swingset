@@ -1,0 +1,44 @@
+{
+  "operation": "first offline SQLite37 checkpoint unpack attempt",
+  "recorded_at": "2026-11-05T22:52:42.388329+00:00",
+  "command": [
+    "python3",
+    "/tmp/swingset-stage2-unpack-operation-c54b150f.py"
+  ],
+  "exit_code": 1,
+  "server_supervisor_exit": 1,
+  "server_seconds": 0.523,
+  "review_sha256": "146b3d2e1156393cf67e973dc7a1eca6227dd21b25d96315d5cb3bab3545a9ab",
+  "authoritative_server_result_sha256": "742241f255fb7c07bbddaef0f9a41073a313fbf0bb3ab1c8668d489c6ca587df",
+  "root_inspection_sha256": "e1a8b8980a8f9426f90a65f655bdeaaae447e4530af6b7e0f75cc6d008db0710",
+  "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+  "container_id": "131039dba82e1943468f69bd9663a46f2896f1093481c2e56303685f3fdf93d0",
+  "container_state": "created",
+  "pid": 0,
+  "exit": 128,
+  "oom": false,
+  "started_at": "0001-01-01T00:00:00Z",
+  "error": "failed to create task for container: failed to initialize logging driver: compression cannot be enabled when max file count is 1",
+  "supervisor_owner": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+    "label": "unpack-c54b150f-3bd7b122c532",
+    "marker": "swingset-stage2-unpack-supervisor:unpack-c54b150f-3bd7b122c532",
+    "pid": 2304522,
+    "process_start": "931531957"
+  },
+  "supervisor_dead_checked": true,
+  "container_retained": true,
+  "unpack_started": false,
+  "data_or_source_changes": false,
+  "bounds": {
+    "memory": 2147483648,
+    "memory_swap": 2147483648,
+    "nano_cpus": 2000000000,
+    "pids_limit": 128,
+    "network": "none",
+    "readonly_rootfs": true,
+    "credential_environment_names": []
+  },
+  "follow_up": "Promote the reusable server job supervisor to a maintained command; correct bounded local logging before a fresh owned attempt. Preserve this failed job."
+}

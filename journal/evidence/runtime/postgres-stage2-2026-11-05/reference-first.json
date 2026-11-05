@@ -1,0 +1,58 @@
+{
+  "operation": "frozen04 offline reference R",
+  "timestamp": "2026-11-05T22:42:10.976514+00:00",
+  "exit_code": 1,
+  "nonce": "a5e7d68f4b12",
+  "invocation_id": "2212e43777e04f858c9e5d9fac56ff0f",
+  "command": [
+    "python3",
+    "/tmp/swingset-stage2-reference-r.py",
+    "--review",
+    "/tmp/swingset-stage2-reference-r-root-review.json"
+  ],
+  "script_sha256": {
+    "swingset-stage2-reference-r.py": "dc3b9a99757c119f06c1dd554baa3546ab675177726fe762f44da07a95e2a13b",
+    "swingset-stage2-reference-r-vm.py": "e3422375a2dc1f7bcaeccaac9cf5046e334633df06dc38349921a1c9e1ea0d01",
+    "swingset-stage2-reference-r-worker.py": "064ee912794889e926206827163377e69f703424fce97f2c9742e1f9ced76381"
+  },
+  "raw_result_sha256": "ecf0d46690389102161812c408d933930e894117887786185f0b57c9a8cc4f8d",
+  "authoritative_receipt_sha256": "54a54b7e3bfd1deab27f8d7bb81b634c52d2be85b11770a300b17a8ef23c00c6",
+  "receipt_sftp_verified": true,
+  "failure_phase": "private filesystem mount-option readback, before quota proof, full restore or build",
+  "observed_error": "private namespace failed; inspect retained owned logs",
+  "runtime_preflight": {
+    "passed": true,
+    "checked_files": 525,
+    "source_identity": "source-sha256:b6cc9c28f977502686e63b9dfdaf57ab7106904b72d3ac67e54816fea8ec70b4",
+    "input_bundle": "e80f675d21364ab4c88e42bec52ac2e810827754386f77ddc96ef0719efc126a",
+    "peak_rss_kib": 151860
+  },
+  "resources": {
+    "backend_cap_bytes": 17331904512,
+    "allocated_bytes_after": 4345856,
+    "image_identity": {
+      "allocated_bytes": 4345856,
+      "device": 41,
+      "inode": 24589763,
+      "logical_bytes": 68719476736,
+      "mode": 384,
+      "uid": 0
+    },
+    "memory_max_bytes": 8589934592,
+    "swap_max_bytes": 0,
+    "cpus": 1,
+    "minimum_mac_free_bytes": 118782742528,
+    "hard_floor_bytes": 85899345920,
+    "oom_kills": 0
+  },
+  "cleanup": {
+    "namespace_owner_absent": true,
+    "owned_cgroup_empty": true,
+    "remaining_owned_loops": [],
+    "image_preserved": true,
+    "shared_mount_unchanged": true
+  },
+  "reference_release_built": false,
+  "production_code_or_state_changed": false,
+  "follow_up": "Promote reusable orchestration to a maintained command and test the synchronous-discard readback before another attempt. No scratch supervisor retry."
+}

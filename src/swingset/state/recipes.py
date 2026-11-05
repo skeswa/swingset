@@ -10,13 +10,18 @@ import os
 import platform
 import sys
 import sysconfig
+from collections import OrderedDict
 from collections.abc import Mapping
 from pathlib import Path
+from threading import Lock
 
 from swingset.fetch.archive import canonical, digest
 from swingset.state import engine
 
 from . import recipe_scope
+
+_RUNTIME_FINGERPRINTS: OrderedDict[str, str] = OrderedDict()
+_RUNTIME_FINGERPRINTS_LOCK = Lock()
 
 
 def environment_identity() -> dict[str, object]:
@@ -92,8 +97,7 @@ def _runtime_files(root: Path) -> dict[str, bytes]:
     return result
 
 
-def capture_runtime(package_root: Path | None = None) -> dict[str, bytes]:
-    """Retain code, schemas, vocabularies, lock inputs, and their exact manifest."""
+def _capture_runtime_files(package_root: Path | None) -> dict[str, bytes]:
     root = package_root or Path(__file__).resolve().parents[1]
     files = _runtime_files(root)
     if not files or "runtime/swingset/__init__.py" not in files:
@@ -103,13 +107,19 @@ def capture_runtime(package_root: Path | None = None) -> dict[str, bytes]:
         path = project / name
         if path.is_file():
             files["runtime/" + name] = path.read_bytes()
+    files["runtime/environment.json"] = canonical(environment_identity())
+    return files
+
+
+def _complete_runtime(files: dict[str, bytes]) -> dict[str, bytes]:
+    environment = files.pop("runtime/environment.json")
     if "runtime/pyproject.toml" in files:
         import tomllib
 
         # What `recipe/env` reads of pyproject (recipe_scope.ENV_FILES).
         table = tomllib.loads(files["runtime/pyproject.toml"].decode()).get("project", {})
         files["runtime/project.json"] = canonical(table)
-    files["runtime/environment.json"] = canonical(environment_identity())
+    files["runtime/environment.json"] = environment
     files["recipes/runtime.json"] = canonical(
         {
             "format": "swingset-runtime-recipe-v1",
@@ -118,6 +128,38 @@ def capture_runtime(package_root: Path | None = None) -> dict[str, bytes]:
     )
     files["recipes/scopes.json"] = canonical(recipe_scope.manifest(files))
     return files
+
+
+def capture_runtime(package_root: Path | None = None) -> dict[str, bytes]:
+    """Retain code, schemas, vocabularies, lock inputs, and their exact manifest."""
+    return _complete_runtime(_capture_runtime_files(package_root))
+
+
+def runtime_fingerprint(package_root: Path | None = None) -> str:
+    """Hash the full payload, reusing derived work only for identical current bytes."""
+    files = _capture_runtime_files(package_root)
+    key = hashlib.sha256()
+    for name, body in sorted(files.items()):
+        encoded = name.encode()
+        key.update(len(encoded).to_bytes(4, "big"))
+        key.update(encoded)
+        key.update(len(body).to_bytes(8, "big"))
+        key.update(body)
+    identity = key.hexdigest()
+    with _RUNTIME_FINGERPRINTS_LOCK:
+        cached = _RUNTIME_FINGERPRINTS.get(identity)
+        if cached is not None:
+            _RUNTIME_FINGERPRINTS.move_to_end(identity)
+            return cached
+    result = digest(
+        canonical({name: digest(body) for name, body in _complete_runtime(files).items()})
+    )
+    with _RUNTIME_FINGERPRINTS_LOCK:
+        _RUNTIME_FINGERPRINTS[identity] = result
+        _RUNTIME_FINGERPRINTS.move_to_end(identity)
+        while len(_RUNTIME_FINGERPRINTS) > 8:
+            _RUNTIME_FINGERPRINTS.popitem(last=False)
+    return result
 
 
 def captured_recipe_inputs(files: Mapping[str, bytes], *, history_start: str) -> dict[str, str]:

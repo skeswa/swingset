@@ -11,6 +11,7 @@ import dataclasses
 import hashlib
 import json
 import multiprocessing
+import os
 import resource
 import shutil
 import subprocess
@@ -512,8 +513,8 @@ def run(
 ) -> dict[str, Any]:
     """Freeze one read-only snapshot, then write only on private process copies.
 
-    Scratch lives under /tmp and is removed on exit. Archive content is read
-    from the checkpoint, while all projector filesystem writes use the clone.
+    Scratch uses TMPDIR (default /tmp) and is removed on exit. Archive content
+    is read from the checkpoint, while projector filesystem writes use the clone.
     """
     from .postgres_copy import Copies
 
@@ -525,7 +526,9 @@ def run(
     results: list[dict[str, Any]] = []
     peak = 0
     with (
-        tempfile.TemporaryDirectory(prefix="swingset-verify-", dir="/tmp") as temporary,
+        tempfile.TemporaryDirectory(
+            prefix="swingset-verify-", dir=os.environ.get("TMPDIR", "/tmp")
+        ) as temporary,
         Copies(checkpoint) as copies,
     ):
         root = Path(temporary)

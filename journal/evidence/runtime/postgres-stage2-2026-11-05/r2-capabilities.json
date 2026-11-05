@@ -1,0 +1,50 @@
+{
+  "at": "2026-11-06T19:41:40.806142+00:00",
+  "buckets": {
+    "swingset-backups": {
+      "absent_after": true,
+      "absent_before": true,
+      "delete_accepted": true,
+      "delete_attempted": true,
+      "isolation": {
+        "rhuidean-backups": 403,
+        "rhuidean-tier": 403,
+        "swingset-dev": 403
+      },
+      "ownership_rechecked_before_delete": true,
+      "put_accepted": true,
+      "put_attempted": true,
+      "read_hash_matches": true
+    },
+    "swingset-dev": {
+      "absent_after": true,
+      "absent_before": true,
+      "delete_accepted": true,
+      "delete_attempted": true,
+      "isolation": {
+        "rhuidean-backups": 403,
+        "rhuidean-tier": 403,
+        "swingset-backups": 403
+      },
+      "ownership_rechecked_before_delete": true,
+      "put_accepted": true,
+      "put_attempted": true,
+      "read_hash_matches": true
+    }
+  },
+  "command": "python /operator/probe.py",
+  "credential_values_emitted_or_hashed": false,
+  "exit_code": 0,
+  "independent_verdict": "ACCEPT",
+  "key": "_stage2/permission-probe/11fcae2eb4ce4712ad7b36cc/capability.txt",
+  "limits": "HeadBucket denial checks establish those requests only. Final egress and real backup/restore gates remain separate.",
+  "operation": "bucket-scoped R2 capability probe",
+  "original7_apps_unchanged": true,
+  "payload_bytes": 36,
+  "policy_sha256": "9f7af7cd7dacaa9fefec7cd9955e00ee28d457533b4aed51dafac85b05f7d5ce",
+  "result_sha256": "4362d72c4fa8045c93ff09fe9076e02fee13e8bee3341a71ef3a1408a4890f3d",
+  "review_sha256": "240a9023847397cb15174342845f630065941903720abf15d32ae9fd66040707",
+  "script_sha256": "195e6fc928c6c14c58cf978ea7c4c0f6a7fc949d9802ed2d16a1cd687ab9c705",
+  "seconds": 40.257,
+  "stable_SFTP": true
+}

@@ -1,0 +1,142 @@
+{
+  "active_admissions": [],
+  "active_guards": [],
+  "at": "2026-11-06T02:48:08.585326+00:00",
+  "budgets": [
+    [
+      "eepro.com",
+      "2026-11-06",
+      1,
+      29738
+    ],
+    [
+      "points.worldsdc.com",
+      "2026-11-06",
+      1500,
+      16972433
+    ],
+    [
+      "scoring.dance",
+      "2026-11-06",
+      28,
+      15291948
+    ],
+    [
+      "web.archive.org",
+      "2026-11-06",
+      10,
+      146
+    ]
+  ],
+  "changes": "No production code, flags, budgets, timers, host state or dataset changed.",
+  "exit_code": 0,
+  "finding": "Registry reached its 1500-request daily cap, Wayback reached its 10-request cap, and the latest plan contains no eligible page rows. These explain the observed idle collection cycles; completion is not evidence of fetching.",
+  "hosts": [
+    [
+      "eepro.com",
+      "2026-11-06T01:46:24.518941+00:00",
+      null,
+      null
+    ],
+    [
+      "points.worldsdc.com",
+      "2026-11-06T02:07:10.966729+00:00",
+      null,
+      null
+    ],
+    [
+      "scoring.dance",
+      "2026-11-06T01:55:54.134788+00:00",
+      null,
+      null
+    ],
+    [
+      "web.archive.org",
+      "2026-11-06T02:46:23.104892+00:00",
+      "2026-11-06T00:47:48.030974+00:00",
+      "ServerError"
+    ]
+  ],
+  "last_actual_fetch": {
+    "bytes_by_host": {
+      "points.worldsdc.com": 1002017
+    },
+    "checked": 38,
+    "failed": false,
+    "finished_at": "2026-11-06T02:07:31.013623+00:00",
+    "run_id": "run_20261106T020508Z"
+  },
+  "latest_acquire": {
+    "checked": 0,
+    "counters": {
+      "index_pages": 0,
+      "progress": 0,
+      "requests": 0
+    },
+    "error": null,
+    "failed": false,
+    "finished_at": "2026-11-06T02:46:13.304373+00:00",
+    "offered": 0,
+    "paused_hosts": [],
+    "run_id": "run_20261106T024600Z"
+  },
+  "new_alert": {
+    "at": "2026-11-06T02:35:04Z",
+    "bytes": 127,
+    "class": "host-failing",
+    "finding": "The new alert repeats the same expired ServerError pause; no new active host pause or error appears in the observed loop summaries.",
+    "host": "web.archive.org",
+    "sha256": "e4d2ef5b47edf7740e1d0d305e3b015837364d49138810cb75d5856b9493c3ad",
+    "stored_pause_until": "2026-11-06T00:47:48.030974+00:00"
+  },
+  "operation": "Read-only production collection observation during stage 2",
+  "operator_hold": false,
+  "per_query_deadline_seconds": 2,
+  "plan_reasons": [
+    [
+      "page",
+      "capture_gap_exhausted",
+      2944
+    ],
+    [
+      "page",
+      "complete",
+      179
+    ],
+    [
+      "page",
+      "history_year_unaccepted",
+      2113
+    ],
+    [
+      "page",
+      "parent_document_pending",
+      1173
+    ],
+    [
+      "page",
+      "watch_cooldown",
+      247
+    ],
+    [
+      "year",
+      "acceptance_digest_changed",
+      1
+    ],
+    [
+      "year",
+      "eligible",
+      16
+    ],
+    [
+      "year",
+      "year_unaccepted",
+      4
+    ]
+  ],
+  "pulse_at": "2026-11-06T02:49:12.252154+00:00",
+  "query_only": true,
+  "query_source_sha256": "db2f2ad5762a7a63a82dbe38d94db9fb2261113c51baf80d2d541cfc65c67b3b",
+  "read_only": true,
+  "result_sha256": "0e7455de587747bb20b45c352e8f42ae29e397bd8a22bb1ce86d374a9b2ab545"
+}

@@ -1,0 +1,53 @@
+{
+  "operation": "Dedicated trusted platform capability-role bootstrap",
+  "recorded_at": "2026-11-06T00:18:46.190034+00:00",
+  "plan_sha256": "57e71336a133d09e3de7a57ec94d02577e041b0465a0b6be3eeaae11fc81f729",
+  "independent_review_sha256": "13c1bfd65a18bd58306f240069faeaa114b9b2cc10b562b78d49e95a192e3fa0",
+  "wrapper_sha256": "db1270cfd8ee9918d10be648a6978c8129e0c979cacbe9c513754eeea475f478",
+  "credential_stager_sha256": "2a7cb40c0826690480ab9c92fa87f0d91b927053a732ea07073bc4caf4249401",
+  "command": [
+    "dedicated-platform-container",
+    "/app/.venv/bin/python",
+    "/run/platform/bootstrap.py",
+    "--mode",
+    "roles",
+    "--admin-dsn-file",
+    "/run/secrets/admin-dsn",
+    "--database",
+    "postgres"
+  ],
+  "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+  "container_id": "60b36cd92c98ced3a4c7ed0652ef8b3edb0ad42495ffea5bdff6e10bb01f33d2",
+  "state": {
+    "Error": "",
+    "ExitCode": 0,
+    "FinishedAt": "2026-11-06T00:05:58.391102353Z",
+    "OOMKilled": false,
+    "Pid": 0,
+    "Running": false,
+    "StartedAt": "2026-11-06T00:05:57.228875716Z",
+    "Status": "exited"
+  },
+  "safe_output": {
+    "database": {
+      "name": "postgres",
+      "oid": 5
+    },
+    "mode": "roles",
+    "role_count": 4,
+    "roles_sha256": "1e0f3376ff9fe830a1f3c562241d6da5070f5c1cc75a2758a746faea564dbc3d"
+  },
+  "actual_role_attributes_passed": true,
+  "secret_stager_invocations": 1,
+  "credential_values_hashes_or_files_transferred": false,
+  "administrator_in_environment_arguments_or_stdout": false,
+  "application_or_migration_received_admin": false,
+  "original7_unchanged": true,
+  "scope": "Four capability roles only. Later DB provisioning has a separate review and receipt.",
+  "sequencing_finding": {
+    "observed": "First local role setting assertion compared TimeZone case-sensitively. Approved backup reconciliation was launched before inspecting that failed assertion result.",
+    "correction": "Source role metadata validated with the same casefold normalization as maintained APIs; actual role attributes all correct. Exact backup readback and original7 guards passed before any further mutation; project never launched.",
+    "separate_failure_and_corrected_reports_preserved": true
+  },
+  "safe_metadata_bundle_sha256": "6fd469331808bc7ab4d9d3939f098339641ef29c5656af3fb50c817ca50bb003"
+}

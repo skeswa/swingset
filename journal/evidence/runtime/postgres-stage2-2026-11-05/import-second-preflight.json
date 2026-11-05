@@ -1,0 +1,26 @@
+{
+  "all11_mount_sources_types_rw_exact": true,
+  "at": "2026-11-06T21:40:21.009834+00:00",
+  "container_id": "aec49e0175f8da8a702476708b40f92b91c89db42e307e50420799856a2ac558",
+  "deadline_seconds": 7200,
+  "independent_verdict": "ACCEPT",
+  "minimum_free_bytes": 200000000000,
+  "native_result": "pending; source validation running",
+  "only_scoped_internal_credentials": [
+    "owner-dsn",
+    "worker-dsn",
+    "control-dsn"
+  ],
+  "operation": "fresh held native import after pre-initialization permission refusal",
+  "original7_apps_unchanged": true,
+  "plan_sha256": "f08f8d9a564e564d51f9360a7ca04d497fd43b7a679c7ed29505ecd8a55fa5c4",
+  "platform_id": "70203c4f2b2f4b8adec0bfb6aded428fa1fe19d7c9170502fc72be70b60db6f9",
+  "prepared_tables_empty": 142,
+  "review_sha256": "60ec110157b8826def8168dfbf7df6e5157bef4057b0c29cd12e554044cdf718",
+  "scope": "Attended held import only. No schedulers, external I/O, retry, reset or Gate2 acceptance. Complete native audit and stored identity remain required.",
+  "source_mount_read_only": true,
+  "source_sqlite_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "source_volume": "swingset-stage2-source-5472a2becdb5",
+  "started_at": "2026-11-06T21:25:27.477732747Z",
+  "supervisor_sha256": "52d76f742b8f0274dca5c81360055fe2d8df067cd4b0399e4ca081939ef2777a"
+}

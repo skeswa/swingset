@@ -1,0 +1,23 @@
+{
+  "archive_bytes": 248756224,
+  "archive_sha256": "f7d0ddc8b404bcf62da19c63c009a29d5506235f3669183323aff9fea6360f14",
+  "at": "2026-11-09T19:17:48.290275+00:00",
+  "builder_restored_stopped": true,
+  "command": "docker buildx build --builder swingset-stage1-final --load --platform linux/amd64 --target runtime --provenance=false --sbom=false; docker image save; scp; sha256sum; docker image load; isolated installed-module probe",
+  "config": "sha256:9a1f5b69b49b95a5a98d538438911045818809cb22746b0b8a8f79e068a74ac4",
+  "exit_code": 0,
+  "limits": "Image cache and isolated probe only; no import or deployment acceptance.",
+  "manifest": "sha256:a7b521ffe28d423a23ed9318f322d5bdd62aa325ea2954fcc35b06c215506474",
+  "operation": "Build and transfer tested AMD64 lazy-import runtime",
+  "probe_result_sha256": "a928154ad5bc9551a23965ca53b2670d37e21dce2ee879a2ce08d79559a30b6d",
+  "source_revision": "source-sha256:dd3f5a0d0b3fc93bae5ac1850fd95215075757ceb0726f5b8c66b87cc6e1e578",
+  "verified_modules": {
+    "swingset.cli": "2445c15ae381dae7b04dfc9498c11a2016e26d81e47b1fdc4f98bc4e330a523f",
+    "swingset.deploy.import_job": "02203f846c627ea4deea9446fe8cde134f7b1870324c5d94651b28463c09d270",
+    "swingset.deploy.runtime": "7674faf8fd20a102f3090f20c9e675f4b66e0ccb0cb941260e34972e880ea602",
+    "swingset.deploy.security": "097123f37f85e27c29a7fc719e8b80277907822c3e9c9fcd7bb492ae676e777c",
+    "swingset.deploy.utility": "2e628f2754ba07a28ab55ef4bef43e590d963e3d269f3055b8c8ccdf5edfcd86",
+    "swingset.publish.huggingface": "155ae52939aaac0cd887a01f8bd0132683debea59acc2330aec53f4205ea4b75",
+    "swingset.state.postgres_import": "eae4be0f23913dca674453a16b6738b980f88cfe9476cd2dd2c6e35e08d12145"
+  }
+}

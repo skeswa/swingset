@@ -435,8 +435,9 @@ def test_only_bare_local_default_controls_docker(monkeypatch):
     assert not core.uses_fast_core([])
 
 
+@pytest.mark.parametrize("edited", ["config/hosts.toml", "deploy/compose.yaml", "mise.toml"])
 def test_launcher_uses_the_exact_source_identity_and_detects_noncode_input_edits(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, edited
 ):
     from swingset.versions import repository_identity
 
@@ -444,11 +445,17 @@ def test_launcher_uses_the_exact_source_identity_and_detects_noncode_input_edits
     package.mkdir(parents=True)
     module = package / "example.py"
     module.write_text("VERSION = 1\n")
-    for name in ("Dockerfile", "pyproject.toml", "uv.lock"):
+    for name in (
+        "Dockerfile",
+        "pyproject.toml",
+        "uv.lock",
+        "mise.toml",
+        "uv.toml",
+        ".dockerignore",
+    ):
         (tmp_path / name).write_text("fixture\n")
-    config = tmp_path / "config"
-    config.mkdir()
-    policy = config / "hosts.toml"
+    policy = tmp_path / edited
+    policy.parent.mkdir(parents=True, exist_ok=True)
     policy.write_text("first\n")
     monkeypatch.delenv("SWINGSET_REVISION", raising=False)
     identity = repository_identity(package)

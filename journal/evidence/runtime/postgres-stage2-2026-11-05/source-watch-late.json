@@ -1,0 +1,72 @@
+{
+  "operation": "source production watch and bounded read-only gate check",
+  "recorded_at": "2026-11-05T23:57:23.115599+00:00",
+  "exit_code": 0,
+  "raw_sha256": "540e46553d81b23927f396ed0a9d1bb5ca0046e968efb07fd04d4a886ded4fec",
+  "read_only": true,
+  "last_actual_fetch": {
+    "bytes_by_host": {
+      "scoring.dance": 13510991
+    },
+    "checked": 4,
+    "failed": false,
+    "finished_at": "2026-11-05T19:55:40.538518+00:00",
+    "run_id": "run_20261105T195523Z"
+  },
+  "last_actual_age_seconds": 14502.577081,
+  "operator_hold": false,
+  "active_admissions": [],
+  "alert_bytes": 164176,
+  "new_failure_signals": [],
+  "latest_loops": [
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T23:53:36.512590+00:00",
+      "last_progress_at": "2026-11-05T20:21:13.222685+00:00",
+      "loop": "derive",
+      "run_id": "run_20261105T235300Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T23:56:03.806868+00:00",
+      "last_progress_at": "2026-11-05T19:55:40.538518+00:00",
+      "loop": "acquire",
+      "run_id": "run_20261105T235600Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T23:41:35.364870+00:00",
+      "last_progress_at": "2026-11-05T23:41:35.364870+00:00",
+      "loop": "plan",
+      "run_id": "run_20261105T234001Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T23:20:01.400238+00:00",
+      "last_progress_at": "2026-11-05T19:31:34.977095+00:00",
+      "loop": "release",
+      "run_id": "run_20261105T232000Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T05:32:46.359640+00:00",
+      "last_progress_at": "2026-11-05T05:32:46.359640+00:00",
+      "loop": "maintain",
+      "run_id": "run_20261105T053000Z"
+    }
+  ],
+  "query_seconds": 0.009099720045924187,
+  "eligible_pages": 0,
+  "registry_budget": {
+    "used": 1500,
+    "limit": 1500
+  },
+  "web_archive_pause_until": "2026-11-06T00:47:48.030974+00:00",
+  "scope": "Acquisition-plan reasons and named future/due registry(priority5) and live(priority2) slices only; no claim about globally earliest eligible request.",
+  "interpretation": "Known fetch-idle alert remains unresolved; no eligible page and registry daily budget exhausted. No production mutation or new-host collection request."
+}

@@ -40,8 +40,18 @@ def uses_fast_core(arguments: Sequence[str]) -> bool:
 
 
 def source_binding(root: Path) -> dict[str, str]:
-    paths = [root / name for name in ("Dockerfile", "pyproject.toml", "uv.lock")]
-    for name in ("src", "tests", "config", "overrides"):
+    paths = [
+        root / name
+        for name in (
+            "Dockerfile",
+            "pyproject.toml",
+            "uv.lock",
+            "mise.toml",
+            "uv.toml",
+            ".dockerignore",
+        )
+    ]
+    for name in ("src", "tests", "config", "overrides", "deploy", ".github"):
         paths.extend(
             path
             for path in (root / name).rglob("*")

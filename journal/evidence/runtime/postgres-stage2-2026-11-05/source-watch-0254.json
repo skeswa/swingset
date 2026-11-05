@@ -1,0 +1,70 @@
+{
+  "at": "2026-11-06T02:54:12.304898+00:00",
+  "captured_prefix_bytes": 9636,
+  "captured_prefix_sha256": "f1996845653ad04eddff044aba45e38368995c9e0c9ee5f332ee7bc4eef80924",
+  "exit_code": 0,
+  "finding": "Actual collection resumed without intervention: one eepro.com page at 02:51 UTC. Registry and Wayback remain at the daily caps recorded by the 02:48 read-only check.",
+  "observer_source_sha256": "caf7e2a2a0e5071358380fba31de7782ce78b593881e189493eb5c301bb232ad",
+  "operation": "Continuing read-only production observation",
+  "production_changes": false,
+  "pulse": {
+    "active_admissions": [],
+    "alert_bytes": 164430,
+    "at": "2026-11-06T02:54:12.304898+00:00",
+    "fires": [],
+    "last_actual_age_seconds": 176.083813,
+    "last_actual_fetch": {
+      "bytes_by_host": {
+        "eepro.com": 29738
+      },
+      "checked": 1,
+      "failed": false,
+      "finished_at": "2026-11-06T02:51:16.221085+00:00",
+      "run_id": "run_20261106T025100Z"
+    },
+    "loops": [
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T02:53:43.134116+00:00",
+        "last_progress_at": "2026-11-06T02:06:03.473801+00:00",
+        "loop": "derive",
+        "run_id": "run_20261106T025300Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T02:51:16.221085+00:00",
+        "last_progress_at": "2026-11-06T02:51:16.221085+00:00",
+        "loop": "acquire",
+        "run_id": "run_20261106T025100Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T02:41:23.652196+00:00",
+        "last_progress_at": "2026-11-06T02:41:23.652196+00:00",
+        "loop": "plan",
+        "run_id": "run_20261106T024000Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T02:20:02.032221+00:00",
+        "last_progress_at": "2026-11-05T19:31:34.977095+00:00",
+        "loop": "release",
+        "run_id": "run_20261106T022000Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-05T05:32:46.359640+00:00",
+        "last_progress_at": "2026-11-05T05:32:46.359640+00:00",
+        "loop": "maintain",
+        "run_id": "run_20261105T053000Z"
+      }
+    ],
+    "operator_hold": false,
+    "read_only": true
+  }
+}

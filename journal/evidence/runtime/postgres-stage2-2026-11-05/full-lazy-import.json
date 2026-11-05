@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-09T19:12:17.065902+00:00",
+  "command": "mise run test -- --full-suite -n 4 --dist=loadfile --no-loadscope-reorder --max-worker-restart=0 --timings --durations=40 -o tmp_path_retention_policy=failed --junitxml=/tmp/swingset-stage2-import-fix-full-20261109/full.xml",
+  "errors": 0,
+  "exit_code": 0,
+  "failures": 0,
+  "limits": "Core timing remains open at 206.96 seconds. This run does not prove native checkpoint import, application topology, publication, recovery or alerts.",
+  "operation": "Full suite after lazy import connection and bounded progress supervision",
+  "skipped": 0,
+  "source_binding_sha256": "7d2df3c5ee1cf93cdc4fdb52b6b32b57192ea4afe81556d9938bb7998489fa45",
+  "source_revision": "source-sha256:dd3f5a0d0b3fc93bae5ac1850fd95215075757ceb0726f5b8c66b87cc6e1e578",
+  "source_unchanged": true,
+  "tests": 4599,
+  "wall_seconds": 1343.64,
+  "xml_sha256": "dd08599511edb6b0428fe655497272ad41c77dd85d613afe1db0331fc9c30d71"
+}

@@ -1,0 +1,22 @@
+{
+  "at": "2026-11-06T19:44:15.438391+00:00",
+  "checks_passed": true,
+  "command": "mise run check",
+  "earlier_mirror_core": {
+    "all_pass": true,
+    "cases": 3000,
+    "seconds": 261.53165
+  },
+  "errors": [],
+  "exit_code": 1,
+  "job": "61b6ab2f1c134568bfc01bc6",
+  "limits": "Timing gate remains open. No deadline, memory cap, assertion or membership weakened. Host swap pressure observed afterwards does not establish cause.",
+  "mypy": "363 source files pass",
+  "operation": "complete core after maintained mirror helper",
+  "ruff": "pass",
+  "selected_count": 3001,
+  "source_binding_sha256": "36ac78e129c9c975268333ef33c399ebcb5093551fc286156a271d027e526698",
+  "source_revision": "source-sha256:dd050410ef875bbd8c6bb9ef9a3f474aa0da8133073418f03c1eddf213521c2a",
+  "wall_seconds": 285.2542690830305,
+  "within_180_seconds": false
+}

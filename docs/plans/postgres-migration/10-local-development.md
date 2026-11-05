@@ -267,8 +267,8 @@ hours (measured when first used), with the disk rules of
 
 ### Dev and production stay apart
 
-- **Every database records what it is.** A row in `ops.meta`,
-  `environment` = `dev`, `dryrun` or `prod`, is written by the owner role
+- **Every database records what it is.** A row in `ops.environment_identity`,
+  `environment` = `dev`, `dryrun` or `production`, is written by the owner role
   when a fresh database is created and never changed. Import, restore
   and template cloning omit the source environment row and create the
   destination identity explicitly; it is the one named exception to
@@ -278,7 +278,7 @@ hours (measured when first used), with the disk rules of
   runner may drive the real loops on `dev` only with mock transport and
   publishing impossible. `dryrun` uses the isolated rehearsal services
   and rehearsal dataset; `--prod` never removes those restrictions.
-  Operator commands refuse `dryrun` or `prod` unless given `--prod`, and
+  Operator commands refuse `dryrun` or `production` unless given `--prod`, and
   print the database they will write to. Test backup-to-dryrun and
   slice-to-dev restores, a missing/conflicting environment flag, and a
   worker's attempt to alter the identity. These guards ship before stage 2.

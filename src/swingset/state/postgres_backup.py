@@ -751,19 +751,16 @@ def restore(
     manifest = verify(
         source, runtime_identity=runtime_identity, expected_manifest_sha256=expected_manifest_sha256
     )
-    if (
-        conn.execute(
-            "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname=ANY(%s) LIMIT 1",
-            (sorted(set(schema.TABLE_NAMESPACES.values())),),
-        ).fetchone()
-        is not None
-    ):
-        raise ValueError("history restore requires a fresh destination database")
+    from .postgres_bootstrap import initialize_tables
+
     phases = schema.migration_phases()
     with conn.transaction():
-        schema.install_roles(conn)
-        conn.execute(phases["tables"], prepare=False)
-        schema.assign_owners(conn)
+        try:
+            initialize_tables(conn)
+        except RuntimeError as exc:
+            raise ValueError(
+                "history restore requires a fresh or prepared destination database: " + str(exc)
+            ) from exc
     for table, entry in manifest["tables"].items():
         with conn.transaction():
             _copy_in(
@@ -804,6 +801,8 @@ def restore(
             )
         conn.execute(phases["constraints"], prepare=False)
         conn.execute(phases["triggers"], prepare=False)
+        if phases["forward"]:
+            conn.execute(phases["forward"], prepare=False)
         identity = schema.seed_environment(conn, environment)
         schema.stamp_schema(conn)
         schema.verify(conn)

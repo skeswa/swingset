@@ -1,0 +1,32 @@
+{
+  "adopted": false,
+  "all6232_sha256_pass": true,
+  "all_local_process_groups_quiet": true,
+  "bytes": 256270223,
+  "commands": [
+    {
+      "command": "standard scp -3 SFTP relay of13 exact immutable selected bundle directories",
+      "exit_code": 0
+    },
+    {
+      "command": "receiver exact inventory and sha256sum --check --strict over6232files",
+      "exit_code": 0
+    }
+  ],
+  "complete": true,
+  "deleted": false,
+  "files": 6232,
+  "finished_at": "2026-11-06T01:48:31Z",
+  "format": "swingset-stage2-code-archive-transfer-receipt-v1",
+  "raw_receipt_sha256": "fa2d40dc89901c9de67eebc867ff8601b60bbde43cbb0a991cb914ff9d5adb47",
+  "root_identity": {
+    "device": 2050,
+    "inode": 16024767,
+    "mode": 448,
+    "nonce": "5f40a2597bdf",
+    "uid": 1000
+  },
+  "seconds": 990.007,
+  "source_inventory_sha256": "342b613a0d6f7a838c0c5e00cd624b90074f91b5e22448ca6e38b54d9489e2c5",
+  "source_sqlite_untouched": true
+}

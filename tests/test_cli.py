@@ -33,6 +33,134 @@ class EmptyHub(FixtureIO):
         raise AssertionError("restore must not publish")
 
 
+def test_import_supervisor_dispatch_does_not_open_a_database_target(tmp_path, monkeypatch):
+    from swingset.deploy import import_job
+
+    seen = []
+
+    def execute(args):
+        seen.append((args.plan, args.plan_sha256, args.container, args.platform))
+        return 7
+
+    monkeypatch.setattr(import_job, "execute", execute)
+    monkeypatch.setattr(
+        cli, "_operator_intent", lambda args: pytest.fail("supervisor opened database target")
+    )
+    policy = tmp_path / "policy.json"
+    assert (
+        main(
+            [
+                "import-job",
+                "--plan",
+                str(policy),
+                "--plan-sha256",
+                "a" * 64,
+                "--container",
+                "b" * 64,
+                "--platform",
+                "c" * 64,
+            ]
+        )
+        == 7
+    )
+    assert seen == [(policy, "a" * 64, "b" * 64, "c" * 64)]
+
+
+@pytest.mark.parametrize("command", ["unpack-job", "reference-build"])
+def test_offline_job_commands_dispatch_without_a_database_target(tmp_path, monkeypatch, command):
+    from swingset.deploy import reference, unpack
+
+    policy = tmp_path / "policy.json"
+    review = tmp_path / "review.json"
+    arguments = ["--policy", str(policy)]
+    if command == "reference-build":
+        arguments += ["--review", str(review)]
+    received = []
+
+    def execute(argv):
+        received.append(argv)
+        return 7
+
+    monkeypatch.setattr(reference if command == "reference-build" else unpack, "main", execute)
+    monkeypatch.setattr(
+        cli, "_operator_intent", lambda args: pytest.fail("offline job opened a database target")
+    )
+    assert main([command, *arguments]) == 7
+    assert received == [arguments]
+
+
+@pytest.mark.parametrize("keep_failed", [False, True])
+@pytest.mark.parametrize("supplement", [False, True])
+def test_sqlite_unpack_passes_explicit_failure_preservation(
+    tmp_path, monkeypatch, keep_failed, supplement
+):
+    from swingset.state import legacy_restore
+
+    received = []
+
+    def unpack(source, target, **kwargs):
+        received.append((target, kwargs))
+        return {"complete": True}
+
+    monkeypatch.setattr(legacy_restore, "unpack", unpack)
+    target = tmp_path / "target"
+    arguments = [
+        "unpack-sqlite37",
+        "--from",
+        str(tmp_path / "transport"),
+        "--set-id",
+        "set_20261105T040000Z",
+        "--manifest-sha256",
+        "a" * 64,
+        str(target),
+    ]
+    if keep_failed:
+        arguments.append("--keep-failed")
+    if supplement:
+        arguments.extend(["--supplemental-inputs", str(tmp_path / "supplements")])
+    assert main(arguments) == 0
+    assert received == [
+        (
+            target,
+            {
+                "set_id": "set_20261105T040000Z",
+                "expected_manifest_sha256": "a" * 64,
+                "keep_failed": keep_failed,
+                "supplemental_inputs": tmp_path / "supplements" if supplement else None,
+            },
+        )
+    ]
+
+
+def test_platform_bootstrap_dispatches_only_its_explicit_administrator_inputs(
+    tmp_path, monkeypatch
+):
+    from swingset.deploy import bootstrap
+
+    arguments = [
+        "--mode",
+        "roles",
+        "--admin-dsn-file",
+        str(tmp_path / "admin.dsn"),
+        "--database",
+        "postgres",
+    ]
+    received = []
+
+    def execute(argv):
+        received.append(argv)
+        return 7
+
+    monkeypatch.setattr(bootstrap, "main", execute)
+    monkeypatch.setattr(
+        cli,
+        "_operator_intent",
+        lambda args: pytest.fail("platform job opened an application target"),
+    )
+    assert main(["platform-bootstrap", *arguments]) == 7
+    assert received == [arguments]
+
+
 def checkpoint(tmp_path: Path) -> Path:
     source = tmp_path / "source"
     with open_database(source) as database:
@@ -397,3 +525,67 @@ def test_graph_verify_and_rekey_commands_write_receipts(tmp_path, capsys):
     capsys.readouterr()
     result = json.loads((state / "rekey" / "receipt.json").read_text())
     assert result["complete"] and result["equivalences"] == {}
+
+
+def test_remote_fresh_import_requires_prod_before_touching_source_or_destination(tmp_path, capsys):
+    target = tmp_path / "not-created"
+    assert (
+        main(
+            [
+                "import-sqlite37",
+                str(tmp_path / "absent.sqlite"),
+                "--state",
+                str(target),
+                "--environment",
+                "dryrun",
+            ]
+        )
+        == 1
+    )
+    assert "--prod" in capsys.readouterr().err
+    assert not target.exists()
+
+
+def test_remote_control_requires_prod_and_prints_only_safe_identity(
+    tmp_path, fresh_database, capsys
+):
+    from swingset.state import engine, postgres_schema
+
+    service, name, owner = fresh_database
+    postgres_schema.migrate(owner, environment="dryrun")
+    engine.write_settings(
+        tmp_path,
+        service.dsn(name, role="worker"),
+        environment="dryrun",
+        control_dsn=service.dsn(name, role="control"),
+    )
+    assert main(["pause", "--all", "--state", str(tmp_path)]) == 1
+    assert owner.execute("SELECT count(*) FROM ops.control_events").fetchone()[0] == 0
+    assert main(["pause", "--all", "--state", str(tmp_path), "--prod"]) == 0
+    output = capsys.readouterr()
+    assert "operator_target" in output.err and name in output.err
+    assert "postgresql://" not in output.err and "password=" not in output.err
+    assert (
+        owner.execute("SELECT environment FROM ops.environment_identity").fetchone()[0] == "dryrun"
+    )
+
+
+def test_prod_operator_guard_allows_explicit_forward_upgrade_without_current_schema_open(
+    tmp_path, fresh_database, monkeypatch, capsys
+):
+    from swingset.state import engine, postgres_schema
+
+    service, name, owner = fresh_database
+    with monkeypatch.context() as older:
+        older.setattr(postgres_schema, "SCHEMA_VERSION", 37)
+        postgres_schema.migrate(owner, environment="production")
+    original = owner.execute("SELECT database_id FROM ops.environment_identity").fetchone()[0]
+    engine.write_settings(tmp_path, service.dsn(name, role="worker"), environment="production")
+    monkeypatch.setenv("SWINGSET_OWNER_DATABASE_URL", service.dsn(name))
+    assert main(["migrate", "--state", str(tmp_path)]) == 1
+    assert main(["migrate", "--state", str(tmp_path), "--prod"]) == 0
+    assert (
+        owner.execute("SELECT database_id FROM ops.environment_identity").fetchone()[0] == original
+    )
+    assert postgres_schema.validate_schema(owner)["schema_version"] == 38
+    assert "operator_target" in capsys.readouterr().err

@@ -1,0 +1,30 @@
+{
+  "POSTs": [
+    {
+      "branch": "mirror-live",
+      "http_status": 200,
+      "revision": "790a604a32e935072079c7ff62f0fcef29f3dfd6"
+    },
+    {
+      "branch": "rehearsal",
+      "http_status": 200,
+      "revision": "84939a5d3e53fd12da200adf9be8e310b22beb02"
+    }
+  ],
+  "at": "2026-11-06T19:20:32.453882+00:00",
+  "command": "python /operator/anchor.py",
+  "exit_code": 0,
+  "history_sha256": "d4e7da437c066135170d3dd7da3b637dd88c45e4d63546cd473fc85ba480f42d",
+  "independent_verdict": "ACCEPT",
+  "limits": "Baseline file download proof pending. Bootstrap token remained outside applications and was restricted later.",
+  "operation": "anchor original rehearsal history",
+  "policy_sha256": "b25accddf0bfb4b9027b78f110f90717788d6dc16cf651b8c5879b8ac36bca3f",
+  "private": true,
+  "repository": "skeswa/swingset-rehearsal",
+  "result_sha256": "2c3348be3e3e164f972b0756961b59162cf68de7832d9d495766fae987450acf",
+  "review_sha256": "75b37f7212764f4f8716ccc4f55a6e4dec7a0ecb370e84bccd0a668c975962e8",
+  "script_sha256": "8bb6fe673b5843e52f1d4fa2761a12408ef73c727747eb8527055d2427cb4ee3",
+  "seconds": 40.334,
+  "source_and_default_head_unchanged": true,
+  "source_commits": 77
+}

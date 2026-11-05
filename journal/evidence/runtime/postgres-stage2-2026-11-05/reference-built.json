@@ -1,0 +1,118 @@
+{
+  "operation": "frozen-source offline reference R",
+  "recorded_at": "2026-11-05T23:57:20.043899+00:00",
+  "command": [
+    "mise",
+    "exec",
+    "--",
+    "uv",
+    "run",
+    "swingset",
+    "reference-build",
+    "--policy",
+    "/tmp/swingset-reference-build-policy-d95311cc49c0.json",
+    "--review",
+    "/tmp/swingset-reference-build-policy-d95311cc49c0-root-review.json"
+  ],
+  "exit_code": 0,
+  "complete": true,
+  "result": "pass",
+  "nonce": "d95311cc49c0",
+  "invocation_id": "9eb2e3f5ce2c4a4c888f7e11dcb0758a",
+  "policy_sha256": "3cf69269eb1627918a96dfc12192fa09df54669c55826f51cf7de0ea4260c7f1",
+  "review_sha256": "42420f299bfb11b2e4d3d80edda17b4c93b165b88df71c474b3c442e96e82633",
+  "script_sha256": {
+    "reference.py": "dc0667e4ee866ce3af2d5acbf310c575defb19573581ad2d445a00412116945c",
+    "reference_policy.py": "93c01aa5bb8f78a57d3554e8bab56ac549e734f943abe179452af3f1cecca17e",
+    "reference_worker.py": "2120cbfc0b3165b292eb178f3064ed362cbbbde23dd14b294e19759035be0816",
+    "reference_workspace.py": "cbd84bc29c2e92c81ae38751b9380d770890341310ee112a06ed41f85662cc28"
+  },
+  "authoritative_result_sha256": "91652a32b3b2e552ad7cd9e2b0232798dd930eced1ee76e9b00cb50b9ed0c669",
+  "authoritative_transfer": {
+    "endpoint": "root@swingset@orb",
+    "remote_path": "/var/tmp/swingset-stage2-reference-r-d95311cc49c0/result.json",
+    "before": {
+      "sha256": "91652a32b3b2e552ad7cd9e2b0232798dd930eced1ee76e9b00cb50b9ed0c669",
+      "bytes": 87314,
+      "device": 41,
+      "inode": 24591247
+    },
+    "after": {
+      "sha256": "91652a32b3b2e552ad7cd9e2b0232798dd930eced1ee76e9b00cb50b9ed0c669",
+      "bytes": 87314,
+      "device": 41,
+      "inode": 24591247
+    },
+    "local_sha256": "91652a32b3b2e552ad7cd9e2b0232798dd930eced1ee76e9b00cb50b9ed0c669",
+    "verified": true
+  },
+  "source_identity": "source-sha256:b6cc9c28f977502686e63b9dfdaf57ab7106904b72d3ac67e54816fea8ec70b4",
+  "input_bundle": "e80f675d21364ab4c88e42bec52ac2e810827754386f77ddc96ef0719efc126a",
+  "checkpoint": "set_20261105T040000Z",
+  "raw_sqlite_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "raw_bytes": 38890938368,
+  "filesystem_uuid": "100c1495-c691-4f08-ab8b-dcafa44e97de",
+  "backend_cap_bytes": 16178532352,
+  "final_image_identity": {
+    "allocated_bytes": 8270884864,
+    "device": 41,
+    "inode": 24590111,
+    "logical_bytes": 16178532352,
+    "mode": 384,
+    "uid": 0
+  },
+  "reference_seconds": 1051.38,
+  "phases": [
+    {
+      "phase": "restore-start",
+      "seconds": 0.188
+    },
+    {
+      "phase": "restore-verified",
+      "seconds": 404.909
+    },
+    {
+      "phase": "pre-build-identities-verified",
+      "seconds": 437.377
+    },
+    {
+      "phase": "reference-built",
+      "seconds": 1051.38
+    }
+  ],
+  "candidate": {
+    "candidate_id": "cand_459f6af282274dc4",
+    "changed": true,
+    "baseline_commit": "84939a5d3e53fd12da200adf9be8e310b22beb02",
+    "expected_parent": "84939a5d3e53fd12da200adf9be8e310b22beb02",
+    "build_fingerprint": "f7fd109433a55a14d631b0b0f499edcf2a63ef4a880a8665e5adc288997056a9",
+    "content_hash": "195f81ccce9f41ff304700a6b88474b0ddce943adba6391d3a9e747358660a64",
+    "manifest_hash": "0bb2309d45995bb14abea13821f19a11928609eec2ca7b8faea01e272c50a312"
+  },
+  "export_files": 53,
+  "export_bytes": 381573994,
+  "transport_manifest_sha256": "129765c796322665ef164da5743fbcfd5313adb64599f7ca00449b034fa49e66",
+  "runtime_preflight_files": 525,
+  "cgroup_final": {
+    "cgroup.events": "populated 0\nfrozen 0",
+    "cgroup.procs": "",
+    "cpu.max": "100000 100000",
+    "cpu.stat": "usage_usec 792342369\nuser_usec 685177307\nsystem_usec 107165061\nnice_usec 623490000\nnr_periods 10534\nnr_throttled 717\nthrottled_usec 11981277\nnr_bursts 0\nburst_usec 0",
+    "memory.current": "592240640",
+    "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+    "memory.max": "8589934592",
+    "memory.oom.group": "1",
+    "memory.peak": "7546150912",
+    "memory.swap.current": "0",
+    "memory.swap.max": "0"
+  },
+  "owned_cgroup_empty": true,
+  "namespace_owner_absent": true,
+  "remaining_owned_loops": [],
+  "shared_mount_unchanged": true,
+  "minimum_mac_free_bytes": 107099852800,
+  "host_free_after": 108737179648,
+  "no_publication": true,
+  "export_and_cleanup": "pending; source image and all outputs retained",
+  "gate_2": "open; no B/C comparison or recovery proof yet"
+}

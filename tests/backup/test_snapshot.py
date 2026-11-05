@@ -10,7 +10,21 @@ from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint, ve
 from swingset.backup.segments import LOCAL_TRANSPORT, create_set
 from swingset.backup.snapshot import BackupBusy, backup_lock, capture
 from swingset.backup.transport import LocalDirectoryTransport
-from swingset.state.db import open_database
+from swingset.state.db import SCHEMA_VERSION, open_database
+
+
+def test_native_runtime_identity_matches_the_full_captured_payload(monkeypatch):
+    from swingset.backup.snapshot import current_runtime_identity
+    from swingset.fetch.archive import canonical
+    from swingset.state.recipes import capture_runtime
+
+    monkeypatch.delenv("SWINGSET_RUNTIME_IMAGE", raising=False)
+    expected = hashlib.sha256(
+        canonical(
+            {name: hashlib.sha256(body).hexdigest() for name, body in capture_runtime().items()}
+        )
+    ).hexdigest()
+    assert current_runtime_identity() == "native:" + expected
 
 
 def test_checkpoint_exports_history_and_restores_a_fresh_destination(tmp_path):
@@ -20,7 +34,7 @@ def test_checkpoint_exports_history_and_restores_a_fresh_destination(tmp_path):
             state,
             database.connection,
             tmp_path / "checkpoint",
-            schema_version=37,
+            schema_version=SCHEMA_VERSION,
             versions={},
             input_bundle_hash=None,
         )
@@ -32,15 +46,17 @@ def test_checkpoint_exports_history_and_restores_a_fresh_destination(tmp_path):
             "manifest_sha256": hashlib.sha256(durable_manifest.read_bytes()).hexdigest(),
             "bytes": sum(path.stat().st_size for path in raw.rglob("*") if path.is_file()),
         }
-        manifest = verify_checkpoint(checkpoint.path, maximum_schema_version=37)
+        manifest = verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION)
         assert manifest["format"] == "swingset-postgres-checkpoint-v1"
         assert not any("database.json" in path for path in manifest["files"])
-        restore_checkpoint(checkpoint.path, tmp_path / "restored", maximum_schema_version=37)
+        restore_checkpoint(
+            checkpoint.path, tmp_path / "restored", maximum_schema_version=SCHEMA_VERSION
+        )
     with open_database(
         tmp_path / "restored", read_only=True, allow_restore_pending=True
     ) as restored:
         assert restored.environment == "dev"
-        assert restored.schema_version == 37
+        assert restored.schema_version == SCHEMA_VERSION
     assert (tmp_path / "restored/RESTORE_PENDING").is_file()
 
 
@@ -59,7 +75,7 @@ def test_segmented_set_uses_the_same_history_bundle(tmp_path):
         summary = install(transport, tmp_path / "restored", set_id=result["set_id"])
         assert summary["set_id"] == result["set_id"]
     with open_database(tmp_path / "restored", read_only=True) as restored:
-        assert restored.schema_version == 37
+        assert restored.schema_version == SCHEMA_VERSION
 
 
 def test_checkpoint_and_publication_backup_share_one_nonblocking_job_lock(tmp_path):

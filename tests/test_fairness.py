@@ -19,7 +19,7 @@ from swingset.schedule.fairness import (
     report,
 )
 from swingset.state.attempts import begin_attempt, finish_attempt
-from swingset.state.db import open_database
+from swingset.state.db import SCHEMA_VERSION, open_database
 from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit, enqueue
 
@@ -188,7 +188,7 @@ def test_report_keeps_objectives_separate_when_request_history_is_unavailable(tm
         assert not old["supported"]
         assert old["observed_attributed_service"] is None
         assert old["observed_host_usage"] == before["observed_host_usage"]
-        assert db.schema_version == 37
+        assert db.schema_version == SCHEMA_VERSION
 
 
 def test_daily_fair_share_counts_have_a_day_bounded_index(tmp_path):

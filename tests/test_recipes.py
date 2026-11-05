@@ -1,6 +1,8 @@
 """Captured policy identity excludes acquisition-only scheduling controls."""
 
+import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -9,6 +11,125 @@ from swingset.clock import FakeClock
 from swingset.fetch.archive import canonical, digest
 from swingset.state import inputs, recipes
 from swingset.state.db import open_database
+
+
+def _fingerprint_package(tmp_path, monkeypatch):
+    package = tmp_path / "project/src/swingset"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("VALUE = 1\n")
+    (package / "payload.txt").write_text("payload\n")
+    (package.parent.parent / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "1"\n'
+    )
+    (package.parent.parent / "uv.lock").write_text("version = 1\n")
+    monkeypatch.setenv("SWINGSET_DEPENDENCY_IMAGE", "sha256:" + digest(str(tmp_path).encode()))
+    return package
+
+
+def _uncached_fingerprint(package):
+    return digest(
+        canonical({name: digest(body) for name, body in recipes.capture_runtime(package).items()})
+    )
+
+
+def test_runtime_fingerprint_matches_full_capture_and_reuses_derived_work(tmp_path, monkeypatch):
+    package = _fingerprint_package(tmp_path, monkeypatch)
+    expected_files = recipes.capture_runtime(package)
+    expected = digest(canonical({name: digest(body) for name, body in expected_files.items()}))
+    first = recipes.runtime_fingerprint(package)
+    assert first == expected
+    with monkeypatch.context() as context:
+        context.setattr(
+            recipes.recipe_scope,
+            "manifest",
+            lambda files: pytest.fail("unchanged fingerprint rebuilt the derived manifest"),
+        )
+        assert recipes.runtime_fingerprint(package) == first
+    assert recipes.capture_runtime(package) == expected_files
+
+
+@pytest.mark.parametrize("change", ["code", "new_file", "deleted_file", "project", "lock"])
+def test_runtime_fingerprint_reads_current_bytes_and_file_inventory(tmp_path, monkeypatch, change):
+    package = _fingerprint_package(tmp_path, monkeypatch)
+    before = recipes.runtime_fingerprint(package)
+    if change == "new_file":
+        (package / "new.txt").write_text("new bytes\n")
+    elif change == "deleted_file":
+        (package / "payload.txt").unlink()
+    else:
+        path = {
+            "code": package / "__init__.py",
+            "project": package.parent.parent / "pyproject.toml",
+            "lock": package.parent.parent / "uv.lock",
+        }[change]
+        original = path.stat()
+        path.write_bytes(path.read_bytes().replace(b"1", b"2"))
+        os.utime(path, ns=(original.st_atime_ns, original.st_mtime_ns))
+        assert (path.stat().st_size, path.stat().st_mtime_ns) == (
+            original.st_size,
+            original.st_mtime_ns,
+        )
+    after = recipes.runtime_fingerprint(package)
+    assert after != before
+    assert after == _uncached_fingerprint(package)
+
+
+def test_runtime_fingerprint_rechecks_dependency_image(tmp_path, monkeypatch):
+    package = _fingerprint_package(tmp_path, monkeypatch)
+    before = recipes.runtime_fingerprint(package)
+    monkeypatch.setenv("SWINGSET_DEPENDENCY_IMAGE", "sha256:" + "b" * 64)
+    after = recipes.runtime_fingerprint(package)
+    assert after != before
+    assert after == _uncached_fingerprint(package)
+
+
+def test_runtime_fingerprint_rechecks_installed_dependency_records(tmp_path, monkeypatch):
+    package = _fingerprint_package(tmp_path, monkeypatch)
+    monkeypatch.delenv("SWINGSET_DEPENDENCY_IMAGE")
+    record = tmp_path / "RECORD"
+    record.write_text("first\n")
+    distribution = SimpleNamespace(
+        metadata={"Name": "fixture-dependency"},
+        version="1",
+        read_text=lambda name: record.read_text(),
+    )
+    monkeypatch.setattr(recipes.importlib.metadata, "distributions", lambda: [distribution])
+    before = recipes.runtime_fingerprint(package)
+    metadata = record.stat()
+    record.write_text("other\n")
+    os.utime(record, ns=(metadata.st_atime_ns, metadata.st_mtime_ns))
+    assert (record.stat().st_size, record.stat().st_mtime_ns) == (
+        metadata.st_size,
+        metadata.st_mtime_ns,
+    )
+    after = recipes.runtime_fingerprint(package)
+    assert after != before
+    assert after == _uncached_fingerprint(package)
+
+
+def test_runtime_fingerprint_rejects_missing_required_code_after_a_hit(tmp_path, monkeypatch):
+    package = _fingerprint_package(tmp_path, monkeypatch)
+    recipes.runtime_fingerprint(package)
+    (package / "__init__.py").unlink()
+    with pytest.raises(ValueError, match="missing its source artifact"):
+        recipes.runtime_fingerprint(package)
+
+
+def test_runtime_fingerprint_does_not_cache_a_failed_derived_build(tmp_path, monkeypatch):
+    package = _fingerprint_package(tmp_path, monkeypatch)
+    manifest = recipes.recipe_scope.manifest
+    attempted = []
+
+    def unavailable_once(files):
+        if not attempted:
+            attempted.append(True)
+            raise RuntimeError("manifest temporarily unavailable")
+        return manifest(files)
+
+    monkeypatch.setattr(recipes.recipe_scope, "manifest", unavailable_once)
+    with pytest.raises(RuntimeError, match="temporarily unavailable"):
+        recipes.runtime_fingerprint(package)
+    assert recipes.runtime_fingerprint(package) == _uncached_fingerprint(package)
 
 
 def test_only_the_runtime_parts_of_pyproject_and_the_lock_change_the_environment(tmp_path):
@@ -416,16 +537,17 @@ def test_runtime_capture_prunes_cache_before_scanning_and_keeps_permission_skip(
             raise PermissionError("directory access denied")
         return original(path)
 
-    monkeypatch.setattr(os, "scandir", scandir)
-    result = recipes.capture_runtime(package)
-    assert [key for key in result if key.startswith("runtime/swingset/")] == [
-        "runtime/swingset/__init__.py"
-    ]
-    cached_root = tmp_path / "__pycache__/swingset"
-    cached_root.mkdir(parents=True)
-    (cached_root / "__init__.py").write_bytes(b"VALUE = 1\n")
-    with pytest.raises(ValueError, match="missing its source artifact"):
-        recipes.capture_runtime(cached_root)
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "scandir", scandir)
+        result = recipes.capture_runtime(package)
+        assert [key for key in result if key.startswith("runtime/swingset/")] == [
+            "runtime/swingset/__init__.py"
+        ]
+        cached_root = tmp_path / "__pycache__/swingset"
+        cached_root.mkdir(parents=True)
+        (cached_root / "__init__.py").write_bytes(b"VALUE = 1\n")
+        with pytest.raises(ValueError, match="missing its source artifact"):
+            recipes.capture_runtime(cached_root)
 
 
 @pytest.mark.parametrize("error_type", [PermissionError, OSError])

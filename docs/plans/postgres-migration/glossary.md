@@ -55,3 +55,12 @@ Words used across the [migration plan](README.md). Pages put a word in
 | Unit                          | One piece of derived work: one page's parse, one dancer's or event's projection, one event's links, one build                                                                     |
 | User-Agent                    | The name a program gives a website when it asks for a page                                                                                                                        |
 | Verify run                    | Running the new code over every current unit of the changed transforms on a copy, and comparing each output and dependency set with what is stored; releases wait for a clean one |
+
+## Schema versions
+
+**Import schema version:** the structure of the frozen source database. The
+migration reads SQLite schema 37 and preserves its source version row exactly.
+
+**Native schema version:** the structure expected by the PostgreSQL application.
+Only checked forward migrations advance it. It may advance while the import
+schema version stays unchanged.

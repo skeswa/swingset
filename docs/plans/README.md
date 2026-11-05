@@ -416,3 +416,17 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     ignores such rows since D-0262, so this is hygiene: make the deleting unit
     dirty the inventory, or have the inventory's output read only rows it
     owns. Both change project scopes; batch with item 20.
+39. Stop the watchdog repeating expired host failures. During the stage 2
+    rehearsal on 2026-11-06, `[host-failing]` at 02:35 UTC repeated a Wayback
+    `ServerError` pause that expired at 00:47 UTC. The acquire summary had
+    no active pause or error. Keep real current failure alerts; add a check
+    that expired host rows do not produce a fresh failure
+    ([receipt](../journal/evidence/runtime/postgres-stage2-2026-11-05/source-watch-0248.json)).
+
+40. Explain empty acquire ticks and their progress accounting after the registry
+    daily cap. A saved history fetch checked one EEPro page at 21:10 UTC on
+    November 9, but inspected acquire reports through 22:15 offer and check no
+    pages, with no error or paused host. Establish whether eligible work exists
+    and whether history fetches update the right progress marker. Preserve real
+    idle alerts and source budgets
+    ([pulse](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#source-collection-pulse-at-2217-utc)).

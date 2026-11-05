@@ -1,0 +1,88 @@
+{
+  "authoritative_result_sha256": "df96a3ec019921a5eea6de0e0be0ec4aefc8ac7aaad5a012a77208c5dc1b868c",
+  "complete": true,
+  "container_id": "aa27a4b049460b368fbdb722232e777202f4bdd09406f53de29725638c1c8836",
+  "coverage": {
+    "blob_bytes": {
+      "derivation_generations": 450369449,
+      "derivation_recipes": 89199,
+      "source_equivalences": 102088932,
+      "source_generations": 1184473741
+    },
+    "current_rowid": 97,
+    "current_table": "derivation_recipes",
+    "decompressed_bytes": 38890938368,
+    "hashed_raw_bytes": 38890938368,
+    "phase": "collect-code-references",
+    "rows": {
+      "derivation_generations": 664326,
+      "derivation_recipes": 97,
+      "source_equivalences": 100962,
+      "source_generations": 326379
+    }
+  },
+  "final_container_state": {
+    "Dead": false,
+    "Error": "",
+    "ExitCode": 0,
+    "FinishedAt": "2026-11-06T01:10:51.25383115Z",
+    "OOMKilled": false,
+    "Paused": false,
+    "Pid": 0,
+    "Restarting": false,
+    "Running": false,
+    "StartedAt": "2026-11-06T00:40:23.9972686Z",
+    "Status": "exited"
+  },
+  "final_free_bytes": 846233219072,
+  "finished_at": "2026-11-06T01:10:51Z",
+  "format": "swingset-stage2-frozen-code-reference-receipt-v1",
+  "image_config": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+  "independent_review_sha256": "e6dd6a3fe2243f69849958db091e2a5b4fb6ea45be7d3fae1957e4a9496e5810",
+  "limits": {
+    "capabilities": [],
+    "cpus": 1,
+    "memory_plus_swap_bytes": 2147483648,
+    "network": "none",
+    "pids": 32,
+    "read_only_root": true
+  },
+  "no_deletion": true,
+  "nonce": "a364c6c51f02",
+  "operation": "Offline database-only exact legacy code reference discovery",
+  "original_seven_services_unchanged": true,
+  "owned_container_stopped": true,
+  "policy_sha256": "c69c00aef9164bde26d6e786669357a53e7ae779841d05869264432111703ff2",
+  "proof_limit": "This proves exact references, not archive closure or full checkpoint integrity/file replay. Required scopes still need full verified retained witnesses.",
+  "reader_bindings": {
+    "backup/restore_set.py": {
+      "bytes": 18669,
+      "sha256": "c8069a952483a3b5232062dc926b46548fc395c217df4f9992cad5f74b93b7d1"
+    },
+    "state/legacy_checkpoint.py": {
+      "bytes": 14732,
+      "sha256": "9650f98f0d2ea8f410d429034216731806927a63ea80f5d09956352757e84b47"
+    },
+    "state/legacy_recipes.py": {
+      "bytes": 15223,
+      "sha256": "9e7adcc8b615b166b31fafdc363b1e70df07ea69611ea0bdf86f358b19cafb74"
+    },
+    "state/postgres_migrations/sqlite37_manifest.json": {
+      "bytes": 963705,
+      "sha256": "c94d724c4b6a9757d8460cd8dc2e64a21d1c3069860fdfd0a7d9bdf06dd51edd"
+    },
+    "state/postgres_schema.py": {
+      "bytes": 40972,
+      "sha256": "e430d295a6719bb1bd9669a556a2a6710eff7b31dff8e84da2a1fb13f0d67a39"
+    }
+  },
+  "required_count": 192,
+  "required_reference_report_sha256": "c63779254ee19e848714229322770a1ec445cf655867fb4c61173f06f9b436b8",
+  "retained": "Fenced 38,890,938,368-byte raw SQLite and stopped owned container remain on server; no cleanup, import or activation.",
+  "seconds": 1827.789,
+  "source_sqlite_bytes": 38890938368,
+  "source_sqlite_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "supervisor_sha256": "944c7dd1877601579b6ee4fa12d6acc7931d99e9e97ebda76a175f06089b2ad3",
+  "worker_report_sha256": "3d9924f962d63d7df6cd69aadc0c725f6be5a41e8a38986aaa91e493afb3e349",
+  "worker_sha256": "15c2c9d4746e5db2ebcf5c2fae6f2de73678f4bfcff259ca17f2df8c4ad21539"
+}

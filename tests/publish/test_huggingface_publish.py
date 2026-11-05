@@ -76,3 +76,95 @@ def test_inspect_translates_actual_remote_entry_error(monkeypatch: pytest.Monkey
     with pytest.raises(FileNotFoundError, match="remote manifest") as raised:
         instance.inspect("initial")
     assert raised.value.__cause__ is error
+
+
+class BranchApi:
+    def __init__(self):
+        self.reads = []
+        self.writes = []
+
+    def repo_info(self, *args, **kwargs):
+        from types import SimpleNamespace
+
+        self.reads.append((args, kwargs))
+        return SimpleNamespace(sha="frozen-A")
+
+    def create_commit(self, **kwargs):
+        from types import SimpleNamespace
+
+        self.writes.append(kwargs)
+        return SimpleNamespace(oid="rehearsal-B")
+
+
+@pytest.mark.parametrize("revision", [None, "stage2/frozen-A"])
+def test_head_reads_only_the_configured_branch_and_preserves_default_kwargs(revision):
+    api = BranchApi()
+    adapter = HuggingFaceHub(
+        "fixture/rehearsal", token="unused", api=cast("Any", api), revision=revision
+    )
+    assert adapter.head() == "frozen-A"
+    expected = {"repo_type": "dataset"}
+    if revision is not None:
+        expected["revision"] = revision
+    assert api.reads == [(("fixture/rehearsal",), expected)]
+
+
+@pytest.mark.parametrize("revision", [None, "stage2/frozen-A"])
+def test_publication_keeps_its_parent_and_writes_only_the_configured_branch(tmp_path, revision):
+    api = BranchApi()
+    adapter = HuggingFaceHub(
+        "fixture/rehearsal", token="unused", api=cast("Any", api), revision=revision
+    )
+    artifact = tmp_path / "README.md"
+    artifact.write_bytes(b"rehearsal release\n")
+    assert (
+        adapter.create_commit(
+            parent="frozen-A",
+            message="candidate B",
+            additions={"README.md": artifact},
+            deletions=(),
+        )
+        == "rehearsal-B"
+    )
+    (write,) = api.writes
+    assert write["repo_id"] == "fixture/rehearsal"
+    assert write["repo_type"] == "dataset"
+    assert write["parent_commit"] == "frozen-A"
+    assert write["commit_message"] == "candidate B"
+    assert len(write["operations"]) == 1
+    assert write["operations"][0].path_in_repo == "README.md"
+    if revision is None:
+        assert "revision" not in write
+    else:
+        assert write["revision"] == revision
+
+
+def test_branch_does_not_replace_the_explicit_commit_used_for_baseline_download(
+    tmp_path, monkeypatch
+):
+    from swingset.publish import huggingface
+
+    artifact = tmp_path / "baseline"
+    calls = []
+
+    def download(**kwargs):
+        calls.append(kwargs)
+        return str(artifact)
+
+    monkeypatch.setattr(huggingface, "hf_hub_download", download)
+    adapter = HuggingFaceHub(
+        "fixture/rehearsal",
+        token="unused",
+        api=cast("Any", BranchApi()),
+        revision="stage2/frozen-A",
+    )
+    assert adapter.download("data/events/events.parquet", "exact-commit-A") == artifact
+    assert calls == [
+        {
+            "repo_id": "fixture/rehearsal",
+            "repo_type": "dataset",
+            "filename": "data/events/events.parquet",
+            "revision": "exact-commit-A",
+            "token": "unused",
+        }
+    ]

@@ -1,0 +1,88 @@
+# Add with -f compose.yaml -f compose.utilities.yaml. Profiles never autostart.
+x-utility: &utility
+  image: ${SWINGSET_IMAGE:?}
+  user: "10001:10001"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: "no"
+  environment: &utility-environment
+    SWINGSET_ENV: dryrun
+    SWINGSET_RUNTIME_IMAGE: ${SWINGSET_RUNTIME_IMAGE:?qualified verified runtime OCI identity required}
+    SWINGSET_REHEARSAL_POLICY: /run/swingset-config/rehearsal.json
+    SWINGSET_HOLDS_DIR: /run/swingset-holds
+    SWINGSET_BACKUP_CHECK_SOCKET: /run/swingset-checker/check.sock
+    SWINGSET_BACKUP_CHECK_ROOT: /var/lib/swingset/checkpoints
+    SWINGSET_R2_ENDPOINT: ${SWINGSET_R2_ENDPOINT:?}
+    SWINGSET_R2_BUCKET: swingset-backups
+    SWINGSET_COPY_ROOT: /var/lib/swingset-runtime/verifier/copies
+    HTTP_PROXY: http://${SWINGSET_PROXY_IP:?}:3128
+    HTTPS_PROXY: http://${SWINGSET_PROXY_IP}:3128
+    ALL_PROXY: http://${SWINGSET_PROXY_IP}:3128
+    NO_PROXY: ""
+    HF_HUB_DISABLE_XET: "1"
+    HF_HUB_DISABLE_TELEMETRY: "1"
+    TMPDIR: /var/lib/swingset-spill/tmp
+    XDG_CACHE_HOME: /var/lib/swingset-spill/cache
+    PYTHONDONTWRITEBYTECODE: "1"
+    TZ: UTC
+  dns: ["${SWINGSET_DNS_IP:?}"]
+  dns_opt: [timeout:1, attempts:1]
+  sysctls: { net.ipv6.conf.all.disable_ipv6: "1", net.ipv6.conf.default.disable_ipv6: "1" }
+  mem_limit: 8g
+  memswap_limit: 8g
+  cpus: 6
+  stop_grace_period: 120s
+  volumes: &utility-volumes
+    - utility-state:/var/lib/swingset
+    - spill:/var/lib/swingset-spill
+    - runtime:/var/lib/swingset-runtime
+    - checker-ipc:/run/swingset-checker
+    - ${SWINGSET_CONFIG_DIRECTORY:?}:/run/swingset-config:ro
+    - ${SWINGSET_AUTHORIZATION_DIRECTORY:?}:/run/swingset-authorization:ro
+    - ${SWINGSET_HOLDS_DIRECTORY:?}:/run/swingset-holds:ro
+    - ${SWINGSET_SOURCE_DIRECTORY:?}:/var/lib/swingset-source:ro
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: "5" }
+
+services:
+  operator:
+    <<: *utility
+    profiles: [operator]
+    entrypoint: [python, -m, swingset.deploy.utility, --role, operator, --]
+    labels:
+      {
+        io.swingset.deployment: "${SWINGSET_DEPLOYMENT_ID:?}",
+        io.swingset.role: operator,
+        io.swingset.guarded: "true",
+      }
+    networks:
+      workers: { ipv4_address: "${SWINGSET_OPERATOR_IP:?}" }
+    secrets: [worker-dsn, control-dsn, owner-dsn, hf-token, r2-access-key, r2-secret-key]
+
+  verifier:
+    <<: *utility
+    profiles: [verifier]
+    entrypoint: [python, -m, swingset.deploy.utility, --role, verifier, --]
+    labels:
+      {
+        io.swingset.deployment: "${SWINGSET_DEPLOYMENT_ID}",
+        io.swingset.role: verifier,
+        io.swingset.guarded: "true",
+      }
+    networks:
+      workers: { ipv4_address: "${SWINGSET_VERIFIER_IP:?}" }
+    secrets:
+      - { source: verifier-worker-dsn, target: /run/secrets/worker-dsn }
+      - { source: verifier-control-dsn, target: /run/secrets/control-dsn }
+      - scratch-admin-dsn
+
+volumes:
+  utility-state: { external: true, name: "${SWINGSET_UTILITY_STATE_VOLUME:?}" }
+
+secrets:
+  control-dsn: { file: "${SWINGSET_SECRETS_DIRECTORY:?}/control-dsn" }
+  owner-dsn: { file: "${SWINGSET_SECRETS_DIRECTORY}/owner-dsn" }
+  verifier-worker-dsn: { file: "${SWINGSET_SECRETS_DIRECTORY}/verifier-worker-dsn" }
+  verifier-control-dsn: { file: "${SWINGSET_SECRETS_DIRECTORY}/verifier-control-dsn" }

@@ -241,8 +241,9 @@ def test_restore_cache_certificate_survives_crash_without_losing_cutoff_witness(
 
 
 @pytest.mark.parametrize("changed_parser", [False, True])
+@pytest.mark.parametrize("resumable", [False, True])
 def test_verified_approved_source_rekey_keeps_generation_and_newer_unapproved_hint(
-    tmp_path, monkeypatch, changed_parser
+    tmp_path, monkeypatch, changed_parser, resumable
 ):
     import time
     from dataclasses import replace
@@ -287,6 +288,7 @@ def test_verified_approved_source_rekey_keeps_generation_and_newer_unapproved_hi
                     clock=corpus.clock,
                     run_id=corpus.run,
                     deadline=time.monotonic() + 30,
+                    resume=resumable,
                 )
             assert (
                 database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[
@@ -302,6 +304,7 @@ def test_verified_approved_source_rekey_keeps_generation_and_newer_unapproved_hi
                 clock=corpus.clock,
                 run_id=corpus.run,
                 deadline=time.monotonic() + 30,
+                resume=resumable,
             )
             assert proof["complete"] and proof["comparisons"] == 2
             assert (
@@ -475,7 +478,8 @@ def test_legacy_calendar_observation_survives_backup_and_ordinary_reprojection(
             admin.execute(sql.SQL("DROP DATABASE {} WITH(FORCE)").format(sql.Identifier(name)))
 
 
-def test_approved_source_rekey_refuses_declared_bump_even_when_bytes_match(tmp_path):
+@pytest.mark.parametrize("resumable", [False, True])
+def test_approved_source_rekey_refuses_declared_bump_even_when_bytes_match(tmp_path, resumable):
     import time
     from types import SimpleNamespace
 
@@ -501,6 +505,7 @@ def test_approved_source_rekey_refuses_declared_bump_even_when_bytes_match(tmp_p
                 clock=corpus.clock,
                 run_id=corpus.run,
                 deadline=time.monotonic() + 30,
+                resume=resumable,
             )
         assert (
             database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
@@ -512,6 +517,357 @@ def test_approved_source_rekey_refuses_declared_bump_even_when_bytes_match(tmp_p
             ).fetchone()[0]
             == generation
         )
+
+
+@pytest.fixture
+def source_resume_case(fresh_database, tmp_path, monkeypatch):  # noqa: F811
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from test_admission import Corpus
+
+    from swingset.schedule.watches import upsert_watch
+    from swingset.state import recipes
+
+    service, name, owner = fresh_database
+    schema.migrate(owner)
+    write_settings(
+        tmp_path, service.dsn(name, role="worker"), control_dsn=service.dsn(name, role="control")
+    )
+    with open_database(tmp_path) as database:
+        corpus = Corpus(database)
+        for number in range(2):
+            spec = replace(corpus.spec, url=corpus.spec.url + "?source=" + str(number))
+            upsert_watch(database.connection, spec, corpus.clock.now())
+            context = corpus.snapshot("resume-source-" + str(number), spec=spec)
+            generation, _ = corpus.stage(context)
+            corpus.review(generation)
+            assert corpus.admit(generation) == "accepted"
+        keys = {
+            str(row[0]) for row in database.connection.execute("SELECT unit_key FROM source_units")
+        }
+        assert len(keys) == 2
+    # Other agents may edit unrelated source while these transaction tests run.
+    # This fixture deliberately fixes the candidate bytes, and mutation tests
+    # explicitly replace that capture to exercise refusal.
+    runtime = recipes.capture_runtime()
+    monkeypatch.setattr(recipes, "capture_runtime", lambda: runtime)
+    (tmp_path / "RESTORE_PENDING").write_text("source proof is incomplete\n")
+    return SimpleNamespace(
+        state=tmp_path,
+        owner=owner,
+        keys=keys,
+        clock=corpus.clock,
+        run_id=corpus.run,
+        bundle=SimpleNamespace(digest="fixture-approved-source-bundle"),
+        runtime=runtime,
+    )
+
+
+def source_turn(case, database, *, deadline=float("inf"), stop=None):
+    from swingset.state.postgres_rebuild import _reconcile_approved_sources
+
+    return _reconcile_approved_sources(
+        database,
+        case.keys,
+        bundle=case.bundle,
+        clock=case.clock,
+        run_id=case.run_id,
+        deadline=deadline,
+        resume=True,
+        stop=stop,
+    )
+
+
+def source_progress(database):
+    row = database.connection.execute(
+        "SELECT run_id,summary_json FROM ops.runs WHERE run_id LIKE 'restore_source:%%' ORDER BY started_at,run_id"
+    ).fetchall()
+    return [(str(item[0]), json.loads(item[1])) for item in row]
+
+
+def one_source_budget(monkeypatch):
+    from swingset.state import verify_graph
+
+    original = verify_graph._source
+    checked = []
+
+    def observe(*args):
+        result = original(*args)
+        checked.append(result["unit"])
+        return result
+
+    class Deadline:
+        def __gt__(self, current):
+            return len(checked) < 2
+
+    monkeypatch.setattr(verify_graph, "_source", observe)
+    return Deadline(), checked
+
+
+def test_source_proof_resumes_after_restart_and_completed_turn_is_idempotent(
+    source_resume_case, monkeypatch
+):
+    import signal
+
+    case = source_resume_case
+    budget, checked = one_source_budget(monkeypatch)
+    timer, handler = signal.getitimer(signal.ITIMER_REAL), signal.getsignal(signal.SIGALRM)
+    with open_database(case.state, allow_restore_pending=True) as database:
+        first = source_turn(case, database, deadline=budget)
+        assert not first["complete"] and first["completed_units"] == first["cursor"] == 1
+        assert first["comparisons"] == 2
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 1
+        )
+        assert source_progress(database)[0][1]["cursor"] == 1
+        assert database.connection._write_deadline is None
+    with open_database(case.state, allow_restore_pending=True) as database:
+        final = source_turn(case, database)
+        assert final["complete"] and final["completed_units"] == 2
+        assert final["comparisons"] == 4 and len(checked) == 4
+        assert final["source_proof_hash_format"] == "swingset-source-proof-chain-v1"
+        assert "exact_source_comparisons_sha256" not in final
+        assert source_turn(case, database) == final
+        assert len(checked) == 4
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 2
+        )
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_generations").fetchone()[0]
+            == 2
+        )
+        assert (
+            database.connection.execute("SELECT count(*) FROM admission_decisions").fetchone()[0]
+            == 2
+        )
+        assert database.connection._write_deadline is None
+    assert signal.getitimer(signal.ITIMER_REAL) == timer
+    assert signal.getsignal(signal.SIGALRM) is handler
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "cursor",
+        "comparisons",
+        "completed_keys_sha256",
+        "chain_sha256",
+        "pointer",
+        "inputs",
+        "runtime",
+    ],
+)
+def test_resumed_source_proof_refuses_changed_binding_or_inconsistent_progress(
+    source_resume_case, monkeypatch, mutation
+):
+    from swingset.state import recipes
+
+    case = source_resume_case
+    budget, checked = one_source_budget(monkeypatch)
+    with open_database(case.state, allow_restore_pending=True) as database:
+        assert not source_turn(case, database, deadline=budget)["complete"]
+        ledger_id, progress = source_progress(database)[0]
+        if mutation == "pointer":
+            database.connection.execute(
+                "UPDATE evidence.source_units SET accepted_generation_id=NULL WHERE unit_key=%s",
+                (sorted(case.keys)[0],),
+            )
+        elif mutation == "inputs":
+            database.connection.execute(
+                "INSERT INTO accepted_inputs(consumer,input_name,digest) VALUES('pipeline','fixture-changed','changed')"
+            )
+        elif mutation == "runtime":
+            changed = {**case.runtime, "recipes/runtime.json": b"different candidate"}
+            monkeypatch.setattr(recipes, "capture_runtime", lambda: changed)
+        else:
+            progress[mutation] = 99 if mutation in {"cursor", "comparisons"} else "invalid"
+            database.connection.execute(
+                "UPDATE ops.runs SET summary_json=%s WHERE run_id=%s",
+                (json.dumps(progress), ledger_id),
+            )
+        with pytest.raises(RuntimeError, match="binding|progress|required source"):
+            source_turn(case, database)
+        assert len(checked) == 2
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 1
+        )
+
+
+def test_source_progress_and_equivalences_roll_back_together_on_commit_path_failure(
+    source_resume_case,
+):
+    from swingset.state import engine
+
+    case = source_resume_case
+    case.owner.execute(
+        "CREATE FUNCTION ops.fixture_source_crash() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.run_id LIKE 'restore_source:%' THEN RAISE EXCEPTION 'injected source progress failure'; END IF; RETURN NEW; END $$"
+    )
+    case.owner.execute(
+        "CREATE TRIGGER fixture_source_crash BEFORE UPDATE ON ops.runs FOR EACH ROW EXECUTE FUNCTION ops.fixture_source_crash()"
+    )
+    with open_database(case.state, allow_restore_pending=True) as database:
+        before = database.connection.execute(
+            "SELECT unit_key,desired_fingerprint FROM source_units ORDER BY unit_key"
+        ).fetchall()
+        with pytest.raises(engine.Error, match="SQLSTATE P0001"):
+            source_turn(case, database)
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 0
+        )
+        assert source_progress(database)[0][1]["cursor"] == 0
+        assert (
+            database.connection.execute(
+                "SELECT unit_key,desired_fingerprint FROM source_units ORDER BY unit_key"
+            ).fetchall()
+            == before
+        )
+        case.owner.execute("DROP TRIGGER fixture_source_crash ON ops.runs")
+        assert source_turn(case, database)["complete"]
+
+
+def test_crash_after_committed_source_chunk_resumes_without_repeating_it(
+    source_resume_case, monkeypatch
+):
+    from contextlib import contextmanager
+
+    from swingset.state import verify_graph
+
+    case = source_resume_case
+    with open_database(case.state, allow_restore_pending=True) as database:
+        transaction = database.transaction
+
+        @contextmanager
+        def crash_after_commit():
+            with transaction() as conn:
+                yield conn
+            if source_progress(database)[0][1]["cursor"]:
+                raise RuntimeError("injected after source commit")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(database, "transaction", crash_after_commit)
+            with pytest.raises(RuntimeError, match="after source commit"):
+                source_turn(case, database)
+        assert source_progress(database)[0][1]["cursor"] == 2
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 2
+        )
+    monkeypatch.setattr(
+        verify_graph, "_source", lambda *args: pytest.fail("committed source was repeated")
+    )
+    with open_database(case.state, allow_restore_pending=True) as database:
+        assert source_turn(case, database)["complete"]
+
+
+def test_fresh_destination_uuid_never_adopts_restored_source_progress(
+    source_resume_case, monkeypatch
+):
+    import uuid
+
+    case = source_resume_case
+    budget, checked = one_source_budget(monkeypatch)
+    with open_database(case.state, allow_restore_pending=True) as database:
+        assert not source_turn(case, database, deadline=budget)["complete"]
+        previous = source_progress(database)[0][0]
+        schema.seed_environment(case.owner, environment="dev", database_id=str(uuid.uuid4()))
+        assert source_turn(case, database)["complete"]
+        ledgers = source_progress(database)
+        assert len(ledgers) == 2
+        assert next(row[1]["cursor"] for row in ledgers if row[0] == previous) == 1
+        assert next(row[1]["cursor"] for row in ledgers if row[0] != previous) == 2
+        assert len(checked) == 6
+
+
+def test_runtime_change_before_chunk_commit_cannot_advance_source_progress(
+    source_resume_case, monkeypatch
+):
+    from swingset.state import verify_graph
+
+    case = source_resume_case
+    original = verify_graph._source
+
+    def change_after_proof(*args):
+        result = original(*args)
+        case.runtime["recipes/runtime.json"] = b"changed"
+        return result
+
+    monkeypatch.setattr(verify_graph, "_source", change_after_proof)
+    with open_database(case.state, allow_restore_pending=True) as database:
+        with pytest.raises(RuntimeError, match="code, inputs or pointers changed"):
+            source_turn(case, database)
+        assert source_progress(database)[0][1]["cursor"] == 0
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 0
+        )
+
+
+@pytest.mark.parametrize("phase", ["source", "derive"])
+@pytest.mark.parametrize("stop_requested", [False, True])
+def test_rebuild_budget_or_stop_cannot_start_another_derivation(
+    source_resume_case, monkeypatch, phase, stop_requested
+):
+    from swingset.schedule import derive
+    from swingset.state import inputs, postgres_rebuild, work
+
+    case = source_resume_case
+    required = {work.WorkUnit("project", "dancer", "1")}
+    monkeypatch.setattr(inputs, "accept", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        postgres_rebuild,
+        "_required_closure",
+        lambda *args: (required, case.keys if phase == "source" else set()),
+    )
+    monkeypatch.setattr(
+        derive, "derive_one", lambda *args: pytest.fail("unproved input reached a derivation")
+    )
+    monkeypatch.setattr(
+        work, "next_work", lambda *args, **kwargs: pytest.fail("unproved input reached selection")
+    )
+    with open_database(case.state, allow_restore_pending=True) as database:
+        report = postgres_rebuild.rebuild(
+            database,
+            case.bundle,
+            case.clock,
+            seconds=30 if stop_requested else 0.000001,
+            bootstrap_cache=False,
+            inventory=[],
+            resume_source=True,
+            stop=lambda: stop_requested,
+        )
+        assert not report["complete"]
+        assert report["reason"] == (
+            "rebuild_stopped" if stop_requested else "rebuild_budget_exhausted"
+        )
+        assert report["processed_units"] == 0 and report["remaining_units"] == 1
+        assert report["approved_source_proof"]["cursor"] == 0
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 0
+        )
+
+
+def test_stop_flushes_only_verified_source_keys_and_next_turn_continues(
+    source_resume_case, monkeypatch
+):
+    case = source_resume_case
+    _, checked = one_source_budget(monkeypatch)
+    with open_database(case.state, allow_restore_pending=True) as database:
+        first = source_turn(case, database, stop=lambda: len(checked) >= 2)
+        assert not first["complete"] and first["stopped"]
+        assert first["cursor"] == 1 and first["comparisons"] == 2
+        assert source_progress(database)[0][1]["cursor"] == 1
+        assert (
+            database.connection.execute("SELECT count(*) FROM source_equivalences").fetchone()[0]
+            == 1
+        )
+        assert source_turn(case, database)["complete"]
+        assert len(checked) == 4
 
 
 @pytest.mark.parametrize("unpublished_change", [False, True])
@@ -661,7 +1017,7 @@ def test_empty_restore_rebuild_preserves_public_bytes_and_unpublished_generation
             source,
             database.connection,
             checkpoint,
-            schema_version=37,
+            schema_version=schema.SCHEMA_VERSION,
             versions=json.loads(bundle.files["versions.json"]),
             input_bundle_hash=bundle.digest,
         )
@@ -682,7 +1038,7 @@ def test_empty_restore_rebuild_preserves_public_bytes_and_unpublished_generation
         restore_checkpoint(
             checkpoint,
             destination,
-            maximum_schema_version=37,
+            maximum_schema_version=schema.SCHEMA_VERSION,
             owner_dsn=service.dsn(destination_name),
         )
         clock.sleep(300)

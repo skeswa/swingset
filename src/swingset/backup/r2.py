@@ -53,7 +53,14 @@ class R2Transport:
         if write and self.read_only:
             raise TransportError("read-only backup credentials cannot publish")
         if self.connection is not None:
-            ensure_external_allowed(self.connection, operation, self.client)
+            target = self.client
+            if identity(self.connection).environment == "dryrun":
+                from swingset.deploy.rehearsal import BackupTarget
+                from swingset.state.environment import FixtureIO
+
+                if not isinstance(target, FixtureIO):
+                    target = BackupTarget(str(self.client.meta.endpoint_url), self.bucket)
+            ensure_external_allowed(self.connection, operation, target)
             self.connection.check_alive()
 
     def _listing(self) -> list[dict[str, Any]]:
@@ -171,7 +178,17 @@ def configured(connection: Connection | None, *, read_only: bool = False) -> R2T
     if not endpoint or not endpoint.startswith("https://") or not bucket:
         raise ValueError("SWINGSET_R2_ENDPOINT and SWINGSET_R2_BUCKET are required")
     if connection is not None:
-        ensure_external_allowed(connection, "backup transport configuration")
+        from swingset.deploy.rehearsal import BackupTarget
+
+        ensure_external_allowed(
+            connection, "backup transport configuration", BackupTarget(endpoint, bucket)
+        )
+    elif os.environ.get("SWINGSET_REHEARSAL_POLICY") or os.environ.get("SWINGSET_ENV") == "dryrun":
+        from swingset.deploy.rehearsal import Policy
+
+        policy = Policy.load()
+        if endpoint.rstrip("/") != policy.backup_endpoint or bucket != policy.backup_bucket:
+            raise EnvironmentRefused("backup destination differs from the rehearsal policy")
     access_key, secret_key = (
         os.environ.get("AWS_ACCESS_KEY_ID"),
         os.environ.get("AWS_SECRET_ACCESS_KEY"),

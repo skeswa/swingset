@@ -1,10 +1,12 @@
 """Staged completion: large generations store in chunks after their live write (WP4)."""
 
 import contextlib
+import json
 import shutil
 import subprocess
 import sys
 import textwrap
+import time
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -199,6 +201,7 @@ def test_the_single_path_keeps_small_units_and_callers_in_a_transaction(arranged
 
 KILL = textwrap.dedent(
     """
+    import json
     import os
     import sys
     from datetime import datetime
@@ -228,6 +231,10 @@ KILL = textwrap.dedent(
 
     derivations._store_chunk = store
     with open_database(state) as db:
+        backend = db.connection.execute(
+            "SELECT pg_backend_pid(),backend_start::text FROM pg_stat_activity WHERE pid=pg_backend_pid()"
+        ).fetchone()
+        print(json.dumps(list(backend)), flush=True)
         bundle = capture(Path(config), Path(overrides), db.state_dir, versions())
         derive_one(
             db,
@@ -245,22 +252,7 @@ KILL = textwrap.dedent(
 def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monkeypatch):
     expected = expected_year(arranged, tmp_path, monkeypatch)
     state = twin(arranged, tmp_path / "killed")
-    killed = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            KILL,
-            str(state),
-            str(arranged.config),
-            str(arranged.overrides),
-            arranged.now.isoformat(),
-            arranged.run,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    assert killed.returncode == 91, killed.stderr
+    kill_in_chunk_two(arranged, state)
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
     with open_database(state) as db:
         conn = db.connection
@@ -302,6 +294,7 @@ def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monk
 
 
 def kill_in_chunk_two(arranged, state: Path) -> None:
+    deadline = time.monotonic() + 120
     killed = subprocess.run(
         [
             sys.executable,
@@ -318,6 +311,20 @@ def kill_in_chunk_two(arranged, state: Path) -> None:
         timeout=120,
     )
     assert killed.returncode == 91, killed.stderr
+    backend_pid, backend_start = json.loads(killed.stdout)
+    # Process exit and PostgreSQL observing the closed socket are separate.
+    # Keep the same total deadline and wait for that exact backend to exit;
+    # recovery still uses the ordinary nonblocking state lock.
+    with engine.connect(
+        engine.resolve_dsn(state), timeout=max(0.001, deadline - time.monotonic())
+    ) as connection:
+        while connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid=%s AND backend_start::text=%s)",
+            (backend_pid, backend_start),
+        ).fetchone()[0]:
+            assert time.monotonic() < deadline, "crashed PostgreSQL backend did not exit"
+            time.sleep(0.01)
+    assert time.monotonic() < deadline, "crash recovery synchronization exceeded its deadline"
 
 
 @pytest.mark.parametrize("staged", [True, False], ids=["staged", "inline"])
@@ -588,22 +595,7 @@ def test_a_resume_after_its_generation_was_removed_starts_over(arranged, tmp_pat
     restarts: same id and label, every ordinal stored once."""
     expected = expected_year(arranged, tmp_path, monkeypatch)
     state = twin(arranged, tmp_path / "killed")
-    killed = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            KILL,
-            str(state),
-            str(arranged.config),
-            str(arranged.overrides),
-            arranged.now.isoformat(),
-            arranged.run,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    assert killed.returncode == 91, killed.stderr
+    kill_in_chunk_two(arranged, state)
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
     generation_id = str(expected["generation_id"])
     with open_database(state) as db:

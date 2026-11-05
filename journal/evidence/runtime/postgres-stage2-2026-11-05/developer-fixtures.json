@@ -1,0 +1,55 @@
+{
+  "checks_passed": true,
+  "clients": [
+    {
+      "aggregate_phase_seconds": 783.9905000000001,
+      "index": 0,
+      "seconds_including_cleanup": 204.1589661000762
+    },
+    {
+      "aggregate_phase_seconds": 784.0396,
+      "index": 1,
+      "seconds_including_cleanup": 206.2822661290411
+    },
+    {
+      "aggregate_phase_seconds": 754.7092,
+      "index": 2,
+      "seconds_including_cleanup": 197.60279339714907
+    },
+    {
+      "aggregate_phase_seconds": 666.9834000000001,
+      "index": 3,
+      "seconds_including_cleanup": 174.82038874109276
+    }
+  ],
+  "command": "mise run test",
+  "exit_code": 1,
+  "fixture_file_phase_seconds": {
+    "tests/backup/test_restore_set.py": 32.63806732860394,
+    "tests/backup/test_transport.py": 31.152159252902493,
+    "tests/test_artifact_recovery.py": 7.968151700682938
+  },
+  "format": "swingset-stage2-developer-receipt-v1",
+  "image": "sha256:7011c88ac68253ad37b2e525ba68ed65b32a3bc0bf73d19cd959d492c8b99efa",
+  "interpretation": "Fixture work decreased, while unchanged cases grew and old weights left one client30seconds early. New ordinary passing weights were recorded; no full-core improvement claim.",
+  "job": "cf67b90924d7419dacaa33eb",
+  "limits_changed": false,
+  "membership_sha256": "41281b5f21c2e33389493dbd3b453636e1cd9d6752702b9902638237f44c611b",
+  "post_run_host_observation": {
+    "BTLEServer_percent_of_one_CPU": 99.1,
+    "CPU_idle_percent": 75.42,
+    "at": "2026-11-06T01:47:03Z",
+    "command": "top -l2 -s10 -n12 -o cpu -stats pid,cpu,command",
+    "fseventsd_percent_of_one_CPU": 82.9,
+    "scope": "Read-only post-run observation, not proof that these processes caused the preceding regression. No unrelated process was changed."
+  },
+  "selected_count": 2978,
+  "source_binding_sha256": "fff3c2929a584f7b3a4b47b06f3c4d9d741ede4984c6ee0f5d5c37fcbacb1f11",
+  "source_revision": "source-sha256:2a83d305cdfe0230a4dd8b7ba64c4aa859e833b8ebbfb1372904b354c14937c4",
+  "status": "All2978 selected cases pass; fixed180second timing gate fails.",
+  "summary_sha256": "be6af9c395b4573fc0e9ebe10ad98a9de8d107bb645e64f4a7571c48fc5e8e8b",
+  "wall_seconds": 214.56141191581264,
+  "weights_sha256": "280bd914564c81ce1d863785df268d46976f948f77679e300249a86a667e259d",
+  "within_180_seconds": false,
+  "workers_per_client": 4
+}

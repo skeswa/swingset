@@ -100,7 +100,7 @@ def test_worker_and_control_grants_protect_schema_identity_and_evidence(fresh_da
     schema.migrate(conn)
     for role in ("worker", "control"):
         with psycopg.connect(service.dsn(name, role=role), autocommit=True) as limited:
-            assert schema.validate_schema(limited)["schema_version"] == 37
+            assert schema.validate_schema(limited)["schema_version"] == schema.SCHEMA_VERSION
             assert limited.execute(
                 "SELECT environment FROM ops.environment_identity"
             ).fetchone() == ("dev",)
@@ -227,15 +227,15 @@ def test_explicit_forward_migration_preserves_environment_and_fences_new_tables(
     ]
     copied = tmp_path / "migrations"
     shutil.copytree(schema.ROOT, copied)
-    (copied / "0038_fixture_probe.sql").write_text(
+    (copied / "0039_fixture_probe.sql").write_text(
         "CREATE TABLE ops.fixture_probe(value TEXT PRIMARY KEY);\n"
     )
     monkeypatch.setattr(schema, "ROOT", copied)
-    monkeypatch.setattr(schema, "SCHEMA_VERSION", 38)
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", 39)
     with pytest.raises(RuntimeError, match="version or migration checksum"):
         schema.validate_schema(conn)
-    assert schema.migrate(conn)["schema_version"] == 38
-    assert schema.migrate(conn)["schema_version"] == 38
+    assert schema.migrate(conn)["schema_version"] == 39
+    assert schema.migrate(conn)["schema_version"] == 39
     assert (
         conn.execute("SELECT database_id FROM ops.environment_identity").fetchone()[0]
         == original_identity
@@ -252,7 +252,7 @@ def test_explicit_forward_migration_preserves_environment_and_fences_new_tables(
     )
     with pytest.raises(psycopg.errors.CheckViolation, match="active publication fences"):
         conn.execute("INSERT INTO ops.fixture_probe VALUES('blocked')")
-    monkeypatch.setattr(schema, "SCHEMA_VERSION", 37)
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", 38)
     with pytest.raises(RuntimeError, match="downgrade"):
         schema.migrate(conn)
 
@@ -281,3 +281,249 @@ def test_full_parity_uses_unique_row_labels_on_the_worker_engine(fresh_database)
     schema.migrate(conn)
     with engine.connect(service.dsn(name, role="worker")) as worker:
         assert schema.validate_schema(worker, full=True)["equal"]
+
+
+def test_native38_forward_upgrade_keeps_sqlite37_rows_and_existing_identity(
+    fresh_database, monkeypatch
+):
+    _, _, conn = fresh_database
+    with monkeypatch.context() as legacy:
+        legacy.setattr(schema, "SCHEMA_VERSION", 37)
+        schema.migrate(conn, environment="dev")
+    original_identity = conn.execute("SELECT * FROM ops.environment_identity").fetchall()
+    original_meta = conn.execute("SELECT * FROM ops.meta ORDER BY key").fetchall()
+    with pytest.raises(RuntimeError, match="version or migration checksum"):
+        schema.validate_schema(conn)
+    assert schema.migrate(conn)["schema_version"] == 38
+    assert conn.execute("SELECT * FROM ops.environment_identity").fetchall() == original_identity
+    assert conn.execute("SELECT * FROM ops.meta ORDER BY key").fetchall() == original_meta
+    assert (
+        dict(conn.execute("SELECT key,value FROM ops.schema_identity()"))["source_schema_version"]
+        == "37"
+    )
+    with monkeypatch.context() as legacy:
+        legacy.setattr(schema, "SCHEMA_VERSION", 37)
+        with pytest.raises(RuntimeError, match="version or migration checksum"):
+            schema.validate_schema(conn)
+        with pytest.raises(RuntimeError, match="downgrade"):
+            schema.migrate(conn)
+
+
+def test_fresh_dryrun_is_seeded_once_after_forward_ddl_and_worker_cannot_change_it(
+    fresh_database, monkeypatch
+):
+    service, name, conn = fresh_database
+    seed = schema.seed_environment
+    calls = []
+
+    def observed_seed(connection, environment="dev", database_id=None):
+        assert (
+            connection.execute("SELECT count(*) FROM ops.environment_identity").fetchone()[0] == 0
+        )
+        assert (
+            dict(connection.execute("SELECT key,value FROM ops.schema_identity()"))[
+                "schema_version"
+            ]
+            == "38"
+        )
+        calls.append(environment)
+        return seed(connection, environment, database_id)
+
+    monkeypatch.setattr(schema, "seed_environment", observed_seed)
+    schema.migrate(conn, environment="dryrun")
+    assert calls == ["dryrun"]
+    original = conn.execute(
+        "SELECT environment,database_id FROM ops.environment_identity"
+    ).fetchone()
+    assert original[0] == "dryrun"
+    schema.migrate(conn, environment="dryrun")
+    assert calls == ["dryrun"]
+    with psycopg.connect(service.dsn(name, role="worker"), autocommit=True) as worker:
+        assert (
+            worker.execute(
+                "SELECT environment,database_id FROM ops.environment_identity"
+            ).fetchone()
+            == original
+        )
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            worker.execute("UPDATE ops.environment_identity SET environment='production'")
+    with pytest.raises(RuntimeError, match="cannot change"):
+        schema.migrate(conn, environment="production")
+
+
+def test_failed_fresh_forward_ddl_leaves_no_temporary_identity(
+    fresh_database, tmp_path, monkeypatch
+):
+    import shutil
+
+    _, _, conn = fresh_database
+    copied = tmp_path / "migration-failure"
+    shutil.copytree(schema.ROOT, copied)
+    (copied / "0039_fixture_failure.sql").write_text("SELECT 1/0;\n")
+    monkeypatch.setattr(schema, "ROOT", copied)
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", 39)
+    with pytest.raises(psycopg.errors.DivisionByZero):
+        schema.migrate(conn, environment="dryrun")
+    assert conn.execute("SELECT to_regclass('ops.environment_identity')").fetchone()[0] is None
+
+
+def test_trusted_empty_table_bootstrap_is_adopted_by_owner_without_cluster_admin(fresh_database):
+    from swingset.state import postgres_bootstrap as bootstrap
+
+    _, _, conn = fresh_database
+    marker = bootstrap.prepare(conn)
+    assert bootstrap.prepare(conn) == marker
+    assert conn.execute("SELECT count(*) FROM ops.environment_identity").fetchone()[0] == 0
+    with pytest.raises(RuntimeError, match="version or migration checksum"):
+        schema.validate_schema(conn)
+    conn.execute("RESET search_path")
+    conn.execute("SET ROLE swingset_owner")
+    try:
+        assert bootstrap.adopt(conn)
+        assert schema.migrate(conn, environment="dryrun")["schema_version"] == 38
+        assert (
+            conn.execute("SELECT environment FROM ops.environment_identity").fetchone()[0]
+            == "dryrun"
+        )
+        assert (
+            conn.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+            == "37"
+        )
+    finally:
+        conn.execute("RESET ROLE")
+    assert not bootstrap.prepared(conn)
+    assert schema.validate_schema(conn, full=True)["equal"]
+
+
+@pytest.mark.parametrize("change", ["row", "column", "binding", "acl"])
+def test_prepared_table_adoption_refuses_data_catalog_or_foreign_binding_drift(
+    fresh_database, change
+):
+    from swingset.state import postgres_bootstrap as bootstrap
+
+    _, _, conn = fresh_database
+    bootstrap.prepare(conn)
+    if change == "row":
+        conn.execute("INSERT INTO ops.meta VALUES('unexpected','data')")
+    elif change == "column":
+        conn.execute("ALTER TABLE ops.runs ALTER COLUMN dry_run DROP NOT NULL")
+    elif change == "acl":
+        conn.execute("GRANT SELECT ON ops.runs TO swingset_worker")
+    else:
+        metadata = bootstrap._comment(conn)
+        metadata[bootstrap.KEY]["database"]["name"] = "a_foreign_database"
+        conn.execute(
+            sql.SQL("COMMENT ON SCHEMA ops IS {}").format(sql.Literal(json.dumps(metadata)))
+        )
+    with pytest.raises(RuntimeError, match="prepared database"):
+        bootstrap.adopt(conn)
+
+
+def test_worker_and_control_cannot_prepare_or_adopt_tables(fresh_database):
+    from swingset.state import postgres_bootstrap as bootstrap
+
+    _, _, conn = fresh_database
+    bootstrap.prepare(conn)
+    for role in ("swingset_worker", "swingset_control"):
+        conn.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(role)))
+        try:
+            with pytest.raises(RuntimeError, match="administrator"):
+                bootstrap.prepare(conn)
+            with pytest.raises(RuntimeError, match="only the application owner"):
+                bootstrap.adopt(conn)
+        finally:
+            conn.execute("RESET ROLE")
+
+
+def test_prepared_catalog_hash_matches_native_engine_reader_and_real_owner_open(fresh_database):
+    from swingset.state import engine
+    from swingset.state import postgres_bootstrap as bootstrap
+
+    service, name, admin = fresh_database
+    marker = bootstrap.prepare(admin)
+    with engine.connect(service.dsn(name)) as wrapped:
+        assert bootstrap._catalog(wrapped) == marker["catalog_sha256"]
+        wrapped.execute("RESET search_path")
+        wrapped.execute("SET ROLE swingset_owner")
+        assert bootstrap.adopt(wrapped)
+        assert schema.migrate(wrapped, environment="dryrun")["schema_version"] == 38
+        assert schema.validate_schema(wrapped, full=True)["equal"]
+
+
+def test_real_owner_login_finishes_bootstrap_without_wal_grant_authority(fresh_database):
+    from psycopg.conninfo import make_conninfo
+
+    from swingset.state import postgres_bootstrap as bootstrap
+
+    service, name, admin = fresh_database
+    login = "sst_owner_" + uuid.uuid4().hex[:20]
+    password = uuid.uuid4().hex
+    marker = bootstrap.prepare(admin)
+    assert marker["owner_wal_execute"] is True
+    assert marker["owner_wal_grant_option"] is False
+    admin.execute(
+        sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+            sql.Identifier(login), sql.Literal(password)
+        )
+    )
+    try:
+        admin.execute(
+            sql.SQL("GRANT swingset_owner TO {} WITH INHERIT TRUE, SET TRUE, ADMIN FALSE").format(
+                sql.Identifier(login)
+            )
+        )
+        with psycopg.connect(
+            make_conninfo(service.dsn(name), user=login, password=password), autocommit=True
+        ) as owner:
+            assert owner.execute(
+                "SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user"
+            ).fetchone() == (False, False, False)
+            assert bootstrap.adopt(owner)
+            assert (
+                schema.migrate(owner, environment="dryrun")["schema_version"]
+                == schema.SCHEMA_VERSION
+            )
+            assert owner.execute(
+                "SELECT has_function_privilege(current_user,'pg_catalog.pg_ls_waldir()','EXECUTE'),has_function_privilege(current_user,'pg_catalog.pg_ls_waldir()','EXECUTE WITH GRANT OPTION')"
+            ).fetchone() == (True, False)
+            assert not owner.execute(
+                "SELECT has_function_privilege('swingset_reader','pg_catalog.pg_ls_waldir()','EXECUTE')"
+            ).fetchone()[0]
+            try:
+                owner.execute(
+                    "GRANT EXECUTE ON FUNCTION pg_catalog.pg_ls_waldir() TO swingset_reader"
+                )
+            except psycopg.errors.InsufficientPrivilege:
+                pass
+            assert not owner.execute(
+                "SELECT has_function_privilege('swingset_reader','pg_catalog.pg_ls_waldir()','EXECUTE')"
+            ).fetchone()[0]
+        with psycopg.connect(service.dsn(name, role="worker"), autocommit=True) as worker:
+            assert worker.execute("SELECT ops.wal_size()").fetchone()[0] > 0
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                worker.execute("SELECT * FROM pg_catalog.pg_ls_waldir()")
+    finally:
+        admin.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(login)))
+
+
+@pytest.mark.parametrize("phase", ["prepare", "adopt"])
+def test_bootstrap_refuses_unexpected_wal_grant_authority_without_revoking_it(
+    fresh_database, phase
+):
+    from swingset.state import postgres_bootstrap as bootstrap
+
+    _, _, admin = fresh_database
+    schema.install_roles(admin)
+    with admin.transaction(force_rollback=True):
+        if phase == "adopt":
+            bootstrap.prepare(admin)
+        admin.execute(
+            "GRANT EXECUTE ON FUNCTION pg_catalog.pg_ls_waldir() TO swingset_owner WITH GRANT OPTION"
+        )
+        with pytest.raises(RuntimeError, match="without grant authority"):
+            getattr(bootstrap, phase)(admin)
+        assert admin.execute(
+            "SELECT has_function_privilege('swingset_owner','pg_catalog.pg_ls_waldir()','EXECUTE WITH GRANT OPTION')"
+        ).fetchone()[0]
+        if phase == "prepare":
+            assert admin.execute("SELECT to_regnamespace('ops')").fetchone()[0] is None

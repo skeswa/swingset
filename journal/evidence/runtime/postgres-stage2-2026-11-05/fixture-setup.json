@@ -1,0 +1,31 @@
+{
+  "artifact_recovery": {
+    "baseline_limit": "Earlier Linux16-worker core recorded38.6495693 aggregate phase seconds for these18 cases; the focused Mac result is not a measured full-core saving.",
+    "command": "mise run test -- tests/test_artifact_recovery.py --timings --durations=10 --junitxml=/tmp/swingset-stage2-artifact-fixture-after.xml",
+    "current_sha256": "e8278be381443ee03cb0a2fa2643367444f2efd5ad9aae2c3fc7d9ca5ab8690a",
+    "exit_code": 0,
+    "parent_sha256": "d69fa93c04261558dfb22c68eb7d4c3d9d3b8dfc64fad96a7225df4b549a886f",
+    "passed": 18,
+    "per_case": "private blobs/extracts/checkpoints plus fresh Archive and recovery cache; no source DSN or live DB copy",
+    "seconds": 6.26,
+    "source_fixture": "one real native checkpoint per nested-manifest variant; source DB immediately retired through exact test ownership API",
+    "test_function_assert_ASTs_unchanged": true,
+    "test_functions": 12,
+    "xml_sha256": "8325abfd740bae97ea5800d9a4178ee7e9e5a73784fa37870441a340f9d93a2e"
+  },
+  "format": "swingset-stage2-fixture-setup-receipt-v1",
+  "gate": "Whole core remains to be measured; no deadline, memory cap or assertion relaxed.",
+  "operation": "Amortize immutable backup creation while preserving every restore and artifact recovery check",
+  "restore_set": {
+    "after_passed": 11,
+    "after_seconds": 22.7378,
+    "assertions_unchanged": true,
+    "baseline_passed": 11,
+    "baseline_seconds": 50.6786,
+    "destination_database": "fresh per actual restore; private checkpoint copy per case",
+    "measurement_sha256": "de89ee977e7a3302446c0c99cee5624f0150f5d14e847187f1986c06738e0cbe",
+    "production_source_unchanged": true,
+    "scope": "CLI case still generates its own source; ten other consumers share one immutable offsite source"
+  },
+  "transport_measurement_sha256": "6df6c3f340e9c208f294b4434e5eb0b8fef8995186e2c733dd59851b5c3abe39"
+}

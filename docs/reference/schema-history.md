@@ -15,6 +15,14 @@ frozen application sources, see [candidate history](candidate-history.md).
 
 ## Version semantics
 
+The port keeps two explicit versions. The **import schema version** describes
+the frozen SQLite source and its exact `meta.schema_version` history; it stays 37. The **native schema version** describes PostgreSQL's applied migrations.
+Its checked schema metadata and `ops.schema_identity()` advance together,
+starting with native migration 38 for the stored `dryrun` identity. Updating
+native metadata never rewrites the imported source version or migration 37.
+A worker refuses a mismatched native version; only the explicit owner job
+migrates it ([D-0276](../../journal/decisions/0276-version-native-schema-without-changing-imported-history.md)).
+
 The SQLite schema version is the migration number recorded in both
 `PRAGMA user_version` and the `schema_version` row in `meta`. A writable
 `open_database()` call applies each intervening numbered migration in order,

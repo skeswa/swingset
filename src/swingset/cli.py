@@ -50,7 +50,46 @@ def parser() -> argparse.ArgumentParser:
         default=Path(os.environ.get("SWINGSET_OVERRIDES_DIR", "overrides")),
     )
     shared.add_argument("--lock-timeout", type=float, default=60)
+    shared.add_argument(
+        "--prod",
+        action="store_true",
+        help="Explicitly authorize an operator command on a stored remote database",
+    )
     commands = root.add_subparsers(dest="command", required=True)
+    from swingset.deploy.operation import arguments as deployment_arguments
+
+    deployment_arguments(
+        commands.add_parser(
+            "deploy-proof", help="Run one reviewed isolated server network-proof phase"
+        )
+    )
+    unpack_job = commands.add_parser(
+        "unpack-job", help="Supervise an isolated server checkpoint unpack from a pinned policy"
+    )
+    unpack_job.add_argument("--policy", type=Path, required=True)
+    from swingset.deploy.import_job import arguments as import_job_arguments
+
+    import_job_arguments(
+        commands.add_parser("import-job", help="Supervise one reviewed held server import")
+    )
+    reference = commands.add_parser(
+        "reference-build", help="Build the frozen offline reference in a bounded private workspace"
+    )
+    reference.add_argument("--policy", type=Path, required=True)
+    reference.add_argument("--review", type=Path, required=True)
+    bootstrap = commands.add_parser(
+        "platform-bootstrap", help="Prepare roles or empty tables in a dedicated platform job"
+    )
+    bootstrap.add_argument("--mode", choices=("roles", "tables"), required=True)
+    bootstrap.add_argument("--admin-dsn-file", type=Path, required=True)
+    bootstrap.add_argument("--database", required=True)
+    from swingset.deploy.mirror import arguments as mirror_arguments
+
+    mirror_arguments(
+        commands.add_parser(
+            "mirror-bootstrap", help="Create one fresh private rehearsal history mirror"
+        )
+    )
     for name in (
         "doctor",
         "summary",
@@ -310,13 +349,40 @@ def parser() -> argparse.ArgumentParser:
     importer.add_argument("source", type=Path)
     importer.add_argument("--sha256")
     importer.add_argument("--receipt", type=Path)
-    importer.add_argument("--environment", choices=("dev", "production"), default="dev")
+    importer.add_argument("--environment", choices=("dev", "dryrun", "production"), default="dev")
+    inspection = commands.add_parser(
+        "inspect-import", help="Read a fully loaded import target without resuming it"
+    )
+    inspection.add_argument("receipt", type=Path)
+    inspection.add_argument("--receipt-sha256", required=True)
+    inspection.add_argument("--source-sha256", required=True)
+    inspection.add_argument("--database", required=True)
+    inspection.add_argument("--database-oid", type=int, required=True)
+    inspection.add_argument("--database-id")
+    inspection.add_argument("--environment", choices=("dev", "dryrun", "production"), required=True)
+    unpacker = commands.add_parser(
+        "unpack-sqlite37", help="Verify and unpack a frozen legacy backup without a database"
+    )
+    unpacker.add_argument("--from", dest="source", type=Path, required=True)
+    unpacker.add_argument("--set-id", required=True)
+    unpacker.add_argument("--manifest-sha256", required=True)
+    unpacker.add_argument(
+        "--supplemental-inputs",
+        type=Path,
+        help="Verify separate immutable legacy code bundles before checking file closure",
+    )
+    unpacker.add_argument(
+        "--keep-failed",
+        action="store_true",
+        help="Preserve a fenced validation workspace on failure",
+    )
+    unpacker.add_argument("target", type=Path)
     migration = commands.add_parser(
         "migrate",
         parents=[shared],
         help="Apply pending Postgres migrations with the explicit owner credential",
     )
-    migration.add_argument("--environment", choices=("dev", "production"))
+    migration.add_argument("--environment", choices=("dev", "dryrun", "production"))
     verify = commands.add_parser(
         "verify-derivations",
         parents=[shared],
@@ -383,16 +449,35 @@ def parser() -> argparse.ArgumentParser:
         help="A directory with the set layout (sets/, segments/) for --backup-set",
     )
     restore.add_argument("--writer-stopped", action="store_true", required=True)
-    restore.add_argument("--environment", choices=("dev", "production"), default="dev")
+    restore.add_argument("--environment", choices=("dev", "dryrun", "production"), default="dev")
+    restore.add_argument("--defer-activation", action="store_true")
+    resume = commands.add_parser(
+        "restore-resume", parents=[shared], help="Resume a checked restore in one bounded turn"
+    )
+    resume.add_argument("--seconds", type=float, default=540)
+    resume.add_argument("--max-units", type=int, default=100_000)
     return root
 
 
-def hub() -> Hub:
+def hub(connection: engine.Connection | None = None) -> Hub:
     from swingset.publish.huggingface import HuggingFaceHub
 
     token = os.environ.get("HF_TOKEN")
     if not token:
         raise ValueError("HF_TOKEN is required for publication or remote verification")
+    mode: str | None
+    if connection is not None:
+        from swingset.state.environment import identity
+
+        mode = identity(connection).environment
+        if mode == "production" and os.environ.get("SWINGSET_REHEARSAL_POLICY"):
+            raise ValueError("a production database cannot use a rehearsal policy")
+    else:
+        mode = os.environ.get("SWINGSET_ENV")
+    if os.environ.get("SWINGSET_REHEARSAL_POLICY") or mode == "dryrun":
+        from swingset.deploy.rehearsal import RehearsalHub
+
+        return RehearsalHub(token=token)
     return HuggingFaceHub("skeswa/swingset", token=token)
 
 
@@ -953,6 +1038,11 @@ def _loop(args: argparse.Namespace, stopped: list[bool]) -> int:
     # Only release publishes, and only with --publish.
     dry_run = getattr(args, "dry_run", True)
     current: Tick
+    transport = None
+    if os.environ.get("SWINGSET_ENV") == "dryrun":
+        from swingset.deploy.rehearsal import RehearsalTransport
+
+        transport = RehearsalTransport()
     with tick(
         args.command,
         state=args.state,
@@ -962,6 +1052,7 @@ def _loop(args: argparse.Namespace, stopped: list[bool]) -> int:
         budget=args.budget,
         should_stop=lambda: stopped[0],
         timer=args.timer,
+        transport=transport,
         hub=None if dry_run else hub(),
         dry_run=dry_run,
     ) as current:
@@ -1255,7 +1346,7 @@ def _mutate(
     elif command in ("build", "publish"):
         from swingset.publish.service import publish, reconcile
 
-        remote = hub() if command == "publish" else None
+        remote = hub(database.connection) if command == "publish" else None
         if remote:
             reconcile(args.state, remote, dry_run=False)
         from swingset.state.controls import ControlPaused
@@ -2070,8 +2161,173 @@ def _queue(args: argparse.Namespace) -> int:
     return 0
 
 
+def _operator_intent(args: argparse.Namespace) -> None:
+    """Remote operator intent never replaces the stored environment or I/O policy."""
+    if not hasattr(args, "state") or args.command in {"doctor", "summary"}:
+        return
+    if args.command == "queue" and args.action is None:
+        return
+    if args.command == "hold" and args.action == "list":
+        return
+    if args.command == "partitions" and args.action in {"list", "show"}:
+        return
+    requested = getattr(args, "environment", None)
+    confirmed = bool(args.prod)
+    if requested in {"dryrun", "production"} and not confirmed:
+        raise ValueError("a remote destination requires the explicit --prod operator flag")
+    if args.command in {"migrate", "import-sqlite37", "restore"}:
+        dsn = os.environ.get("SWINGSET_OWNER_DATABASE_URL")
+    elif args.command in {"pause", "resume"}:
+        dsn = os.environ.get("SWINGSET_CONTROL_DATABASE_URL")
+    else:
+        dsn = None
+    directory = engine.state_directory(args.state)
+    settings = engine.read_settings(directory) if (directory / "database.json").is_file() else None
+    configured = settings is not None or any(
+        os.environ.get(name)
+        for name in ("SWINGSET_DATABASE_URL", "DATABASE_URL", "SWINGSET_CONTROL_DATABASE_URL")
+    )
+    if not dsn and not configured:
+        return  # A fresh local dev destination is provisioned by its ordinary handler.
+    if not dsn:
+        dsn = engine.resolve_dsn(args.state)
+    with engine.connect(
+        dsn, read_only=True, application_name="swingset-operator-intent"
+    ) as connection:
+        initialized = connection.execute(
+            "SELECT to_regclass('ops.environment_identity')"
+        ).fetchone()[0]
+        row = (
+            connection.execute(
+                "SELECT environment,database_id FROM ops.environment_identity WHERE singleton=1"
+            ).fetchone()
+            if initialized is not None
+            else None
+        )
+        if row is not None:
+            from swingset.state.environment import identity
+
+            stored = identity(connection)
+            remote = stored.environment in {"dryrun", "production"}
+            if remote and not confirmed:
+                raise ValueError(
+                    "this stored remote database requires the explicit --prod operator flag"
+                )
+            if requested is not None and requested != stored.environment:
+                raise ValueError("requested environment differs from the stored database identity")
+            if remote:
+                print(
+                    json.dumps(
+                        {
+                            "operator_target": {
+                                "environment": stored.environment,
+                                "database_id": stored.database_id,
+                                "database": connection.info.dbname,
+                            }
+                        }
+                    ),
+                    file=sys.stderr,
+                )
+        elif (
+            settings is not None
+            and settings["environment"] in {"dryrun", "production"}
+            and requested != settings["environment"]
+        ):
+            raise ValueError("a fresh remote target requires its explicit matching --environment")
+        elif requested in {"dryrun", "production"}:
+            print(
+                json.dumps(
+                    {
+                        "operator_target": {
+                            "environment": requested,
+                            "database": connection.info.dbname,
+                            "fresh": True,
+                        }
+                    }
+                ),
+                file=sys.stderr,
+            )
+        elif args.command not in {"migrate", "import-sqlite37", "restore"}:
+            raise ValueError("operator destination has no stored environment identity")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
+    if args.command == "inspect-import":
+        from swingset.state.postgres_import import inspect_loaded_target
+
+        try:
+            dsn = os.environ.get("SWINGSET_OWNER_DATABASE_URL")
+            if not dsn:
+                raise ValueError("inspection requires an explicit owner credential")
+            with engine.connect(
+                dsn, read_only=True, application_name="swingset-import-inspection", timeout=10
+            ) as connection:
+                connection.execute("SET statement_timeout='240s'")
+                result = inspect_loaded_target(
+                    args.receipt,
+                    connection,
+                    receipt_sha256=args.receipt_sha256,
+                    source_sha256=args.source_sha256,
+                    database=args.database,
+                    database_oid=args.database_oid,
+                    environment=args.environment,
+                    database_id=args.database_id,
+                )
+            print(json.dumps(result, sort_keys=True))
+            return 0
+        except (OSError, ValueError, RuntimeError, engine.Error) as exc:
+            # Connection errors and malformed input must not print credentials
+            # or values from the imported source.
+            log("error", error_type=type(exc).__name__)
+            return 1
+    if args.command == "import-job":
+        from swingset.deploy.import_job import execute as import_job
+
+        return import_job(args)
+    if args.command == "mirror-bootstrap":
+        from swingset.deploy.mirror import main as mirror_main
+
+        return mirror_main(
+            [
+                "--policy",
+                str(args.policy),
+                "--credentials-file",
+                str(args.credentials_file),
+                "--result",
+                str(args.result),
+            ]
+        )
+    if args.command == "deploy-proof":
+        from swingset.deploy.operation import main as deployment_main
+
+        return deployment_main(["--root", str(args.root), args.phase])
+    if args.command == "unpack-job":
+        from swingset.deploy.unpack import main as unpack_main
+
+        return unpack_main(["--policy", str(args.policy)])
+    if args.command == "reference-build":
+        from swingset.deploy.reference import main as reference_main
+
+        return reference_main(["--policy", str(args.policy), "--review", str(args.review)])
+    if args.command == "platform-bootstrap":
+        from swingset.deploy.bootstrap import main as bootstrap_main
+
+        return bootstrap_main(
+            [
+                "--mode",
+                args.mode,
+                "--admin-dsn-file",
+                str(args.admin_dsn_file),
+                "--database",
+                args.database,
+            ]
+        )
+    try:
+        _operator_intent(args)
+    except (OSError, ValueError, RuntimeError, engine.Error) as exc:
+        log("error", message=str(exc))
+        return 1
     stopped = [False]
     if args.command == "queue":
         try:
@@ -2125,16 +2381,33 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "import-sqlite37":
         from swingset.backup.destination import owner
-        from swingset.state.postgres_import import load
+        from swingset.state.postgres_import import load_into
 
-        with owner(args.state) as connection:
-            result = load(
-                args.source,
-                connection,
-                expected_sha256=args.sha256,
-                receipt_path=args.receipt,
-                environment=args.environment,
+        result = load_into(
+            args.source,
+            lambda: owner(args.state),
+            expected_sha256=args.sha256,
+            receipt_path=args.receipt,
+            environment=args.environment,
+        )
+        print(json.dumps(result, indent=2))
+        return 0
+    if args.command == "unpack-sqlite37":
+        from swingset.backup.transport import LocalDirectoryTransport
+        from swingset.state.legacy_restore import unpack
+
+        try:
+            result = unpack(
+                LocalDirectoryTransport(args.source, keep=None),
+                args.target,
+                set_id=args.set_id,
+                expected_manifest_sha256=args.manifest_sha256,
+                keep_failed=args.keep_failed,
+                supplemental_inputs=args.supplemental_inputs,
             )
+        except (OSError, ValueError) as exc:
+            log("error", message=str(exc))
+            return 1
         print(json.dumps(result, indent=2))
         return 0
     if args.command == "migrate":
@@ -2277,6 +2550,7 @@ def main(argv: list[str] | None = None) -> int:
                     SystemClock(),
                     lock_timeout=args.lock_timeout,
                     environment=args.environment,
+                    defer_activation=args.defer_activation,
                 )
                 print(json.dumps(summary, indent=2, default=str))
             elif args.archive_commit:
@@ -2299,6 +2573,7 @@ def main(argv: list[str] | None = None) -> int:
                         SystemClock(),
                         lock_timeout=args.lock_timeout,
                         environment=args.environment,
+                        defer_activation=args.defer_activation,
                     )
             else:
                 restore_from_checkpoint(
@@ -2308,8 +2583,33 @@ def main(argv: list[str] | None = None) -> int:
                     SystemClock(),
                     lock_timeout=args.lock_timeout,
                     environment=args.environment,
+                    defer_activation=args.defer_activation,
                 )
             return 0
+        if args.command == "restore-resume":
+            from swingset.backup.checkpoint import activate_restored_state, verify_restored_public
+
+            if not 0 < args.seconds <= 540 or not 0 < args.max_units <= 100_000:
+                raise ValueError(
+                    "restore resume requires 0 < seconds <= 540 and 0 < max-units <= 100000"
+                )
+            with open_database(
+                args.state, allow_restore_pending=True, lock_timeout=args.lock_timeout
+            ) as database:
+                remote = hub(database.connection)
+                verify_restored_public(args.state, remote, connection=database.connection)
+                summary = activate_restored_state(
+                    args.state,
+                    connection=database.connection,
+                    clock=SystemClock(),
+                    locks=database._locks,
+                    seconds=args.seconds,
+                    max_units=args.max_units,
+                    allow_partial=True,
+                    stop=lambda: stopped[0],
+                )
+            print(json.dumps(summary, indent=2, default=str))
+            return 0 if summary.get("complete") else 2
         timeout = (
             None
             if args.command == "backup"

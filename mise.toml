@@ -33,6 +33,14 @@ run = "uv run python -m swingset.dev.commands dev"
 description = "Start or reuse the separate persistent development Postgres service"
 run = "uv run python -m swingset.dev.commands db"
 
+[tasks.tunnel]
+description = "Forward localhost to Rhuidean's loopback-only Postgres relay"
+run = "uv run python -m swingset.deploy.tunnel tunnel"
+
+[tasks.psql]
+description = "Read SQL through the tunnel with one named keychain credential"
+run = "uv run python -m swingset.deploy.tunnel psql"
+
 [tasks.test]
 description = "Run selected tests, or the reviewed core, against isolated Postgres databases"
 run = "uv run python -m swingset.dev.commands test"

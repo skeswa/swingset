@@ -20,7 +20,7 @@ from .engine.locks import acquire_writer
 from .engine.settings import SETTINGS
 from .rwlock import Held, LockBusy, exclusive, shared
 
-SCHEMA_VERSION = 37
+SCHEMA_VERSION = 38
 BUSY_TIMEOUT_SECONDS = 70.0
 MIGRATION_PENDING = "migration pending"
 
@@ -76,7 +76,7 @@ class Database:
     @property
     def schema_version(self) -> int:
         row = self.connection.execute(
-            "SELECT value FROM ops.meta WHERE key='schema_version'"
+            "SELECT value FROM ops.schema_identity() WHERE key='schema_version'"
         ).fetchone()
         return int(row[0]) if row is not None else 0
 
@@ -85,7 +85,7 @@ class Database:
         row = self.connection.execute(
             "SELECT environment FROM ops.environment_identity WHERE singleton=1"
         ).fetchone()
-        if row is None or row[0] not in {"dev", "production"}:
+        if row is None or row[0] not in {"dev", "dryrun", "production"}:
             raise RuntimeError("database environment identity is missing or invalid")
         return str(row[0])
 

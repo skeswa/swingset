@@ -137,7 +137,7 @@ def test_packed_transport_reconstructs_a_verifiable_checkpoint(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     state = tmp_path / "state"
-    from swingset.state.db import open_database
+    from swingset.state.db import SCHEMA_VERSION, open_database
 
     with open_database(state, lock=False) as database:
         database.connection.execute("INSERT INTO ops.meta(key,value) VALUES('durable','kept')")
@@ -145,7 +145,7 @@ def test_packed_transport_reconstructs_a_verifiable_checkpoint(
             state,
             database.connection,
             tmp_path / "checkpoint",
-            schema_version=37,
+            schema_version=SCHEMA_VERSION,
             versions={"projector": "8"},
             input_bundle_hash=None,
         )
@@ -169,12 +169,12 @@ def test_packed_transport_reconstructs_a_verifiable_checkpoint(
     )
     restored = tmp_path / "restored"
     archive.download("packed", restored)
-    manifest = verify_checkpoint(restored, maximum_schema_version=37)
+    manifest = verify_checkpoint(restored, maximum_schema_version=SCHEMA_VERSION)
     assert manifest["versions"] == {"projector": "8"}
     from swingset.backup.checkpoint import restore_checkpoint
 
     active = tmp_path / "active"
-    restore_checkpoint(restored, active, maximum_schema_version=37)
+    restore_checkpoint(restored, active, maximum_schema_version=SCHEMA_VERSION)
     with open_database(active, allow_restore_pending=True) as database:
         assert (
             database.connection.execute(

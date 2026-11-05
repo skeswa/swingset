@@ -220,23 +220,33 @@ class Copies:
         self.identifier = uuid.uuid4().hex[:24]
         if checker_lock_fd is not None and registry_root is None:
             raise ValueError("Checker ownership requires its durable registry root")
-        root = (
-            Path("/tmp") / f"swingset-pg-copies-{os.getuid()}"
-            if registry_root is None
-            else Path(registry_root)
-        )
+        configured_root = os.environ.get("SWINGSET_COPY_ROOT")
+        if (
+            registry_root is None
+            and configured_root is not None
+            and (not configured_root or not Path(configured_root).is_absolute())
+        ):
+            raise ValueError("Scratch owner registry must be an explicit absolute directory")
+        if registry_root is not None:
+            root = Path(registry_root)
+        elif configured_root is not None:
+            root = Path(configured_root)
+        else:
+            root = Path("/tmp") / f"swingset-pg-copies-{os.getuid()}"
         if root.is_symlink():
             raise ValueError("Scratch owner registry refuses symlinks")
         root.mkdir(mode=0o700, exist_ok=True)
+        found = root.stat()
+        if found.st_uid != os.getuid() or found.st_mode & 0o077:
+            raise ValueError("Scratch owner registry must be private")
         self.path = root.resolve(strict=True) / (self.identifier + ".json")
         self._checker_lock_fd = checker_lock_fd
         self._process_identity = (
-            _incarnation(os.getpid(), os.getpgrp()) if registry_root is not None else None
+            _incarnation(os.getpid(), os.getpgrp())
+            if registry_root is not None or configured_root is not None
+            else None
         )
-        if registry_root is not None:
-            found = root.stat()
-            if found.st_uid != os.getuid() or found.st_mode & 0o077:
-                raise ValueError("Checker owner registry must be private")
+        if registry_root is not None or configured_root is not None:
             _sync_directory(root.parent)
         self.record: dict[str, Any] = {
             "pid": os.getpid(),
@@ -484,6 +494,8 @@ class Copies:
             with destination.transaction():
                 destination.execute(phases["constraints"], prepare=False)
                 destination.execute(phases["triggers"], prepare=False)
+                if phases["forward"]:
+                    destination.execute(phases["forward"], prepare=False)
                 schema.seed_environment(destination, environment="dev")
                 schema.stamp_schema(destination)
                 schema.grant_roles(destination)

@@ -608,12 +608,13 @@ def test_future_migration_recovers_stale_reservation_and_fences_new_tables(tmp_p
             pass
     migrations = tmp_path / "future-migrations"
     shutil.copytree(postgres_schema.ROOT, migrations)
-    (migrations / "0038_fixture_probe.sql").write_text(
+    future_version = postgres_schema.SCHEMA_VERSION + 1
+    (migrations / f"{future_version:04d}_fixture_probe.sql").write_text(
         "CREATE TABLE ops.future_evidence(id TEXT PRIMARY KEY);"
         "GRANT SELECT,INSERT,UPDATE,DELETE ON ops.future_evidence TO swingset_worker;"
     )
     monkeypatch.setattr(postgres_schema, "ROOT", migrations)
-    monkeypatch.setattr(postgres_schema, "SCHEMA_VERSION", 38)
+    monkeypatch.setattr(postgres_schema, "SCHEMA_VERSION", future_version)
     with pytest.raises(RuntimeError, match="schema version|checksum"):
         open_database(state)
     with ensure_service().connect(name) as raw:
@@ -624,7 +625,7 @@ def test_future_migration_recovers_stale_reservation_and_fences_new_tables(tmp_p
             recover_admissions(conn, now=NOW)
             postgres_schema.migrate(conn)
     with open_database(state) as database:
-        assert database.schema_version == 38
+        assert database.schema_version == future_version
         assert (
             database.connection.execute(
                 "SELECT database_id FROM ops.environment_identity"
@@ -877,6 +878,31 @@ def test_control_role_cannot_write_data_or_change_schema(tmp_path):
             database.connection.execute("SELECT 1 FROM ops.meta WHERE key='forbidden'").fetchone()
             is None
         )
+
+
+def test_private_copy_controls_use_its_settings_with_an_ambient_source_controller(
+    tmp_path, monkeypatch
+):
+    from swingset.state.postgres_copy import Copies
+
+    source, frozen, clone = (tmp_path / name for name in ("source", "frozen", "clone"))
+    with open_database(source):
+        monkeypatch.setenv("SWINGSET_CONTROL_DATABASE_URL", engine.resolve_control_dsn(source))
+    with Copies(source) as copies:
+        with open_database(source, read_only=True, lock=False) as database:
+            copies.freeze(database.connection, frozen)
+        copies.clone(frozen, clone)
+        receipt = change(clone)
+        assert receipt["persisted"] and receipt["state"] == "paused"
+        with open_database(clone, read_only=True, lock=False) as isolated:
+            assert (
+                status(isolated.connection, now=NOW)["pauses"][0]["pause_id"] == receipt["pause_id"]
+            )
+        with open_database(source, read_only=True, lock=False) as original:
+            assert status(original.connection, now=NOW)["pauses"] == []
+        assert engine.resolve_control_dsn(
+            tmp_path / "environment-only"
+        ) == engine.resolve_control_dsn(source)
 
 
 def test_worker_credentials_cannot_stand_in_for_a_control_role(tmp_path):

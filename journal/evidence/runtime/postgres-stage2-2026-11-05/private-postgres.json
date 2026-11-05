@@ -1,0 +1,53 @@
+{
+  "additional_global_log_settings": "panic error statements; zero parameter values",
+  "address": "172.30.240.6:5432",
+  "application_databases_created": 0,
+  "application_secret_mode": "0400",
+  "application_secret_uid": 10001,
+  "at": "2026-11-09T18:58:25.841615+00:00",
+  "bootstrap_result_sha256": "e27d4c752f1a04933b1676381f787365cab85d0bc4bb12d105ec9b0ab11b84ec",
+  "capability_roles": 4,
+  "compose_id": "XeKMlhSKH9FokoDJ8B4eL",
+  "compose_sha256": "452c9067446fcf355d6e076e446ef563939d6166399659c72e5e9bb5f78f4688",
+  "container_id": "f8a44ca81bdf27e16f4e9ae8cf02a75c9153b618b7503ed86416aff82fcf7465",
+  "cpus": 6,
+  "encoding": "UTF8",
+  "image_artifact": "postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+  "image_config_id": "sha256:7296f210ae81031ec955dbad9a67a84fe958572a2153b8d0826a647522904dc1",
+  "limits": "Support service only; no import, shared writes, verifier worker start, external I/O or Gate2 acceptance.",
+  "locale": "C/C",
+  "memory_bytes": 8589934592,
+  "operation": "provision isolated private Postgres for graph verification",
+  "original7_apps_and_existing4_gateways_unchanged": true,
+  "pids_limit": 256,
+  "postcheck_sha256": "74f770d1ea5fbf98336704b9c4728a25b2f1be8a5b3c117302669e594eb3e0fb",
+  "preflight_sha256": "97518b96e4a1637f0fa3289a94cd52276e4d685079186b046d958b4791f74183",
+  "private_network_only": true,
+  "published_ports": 0,
+  "scoped_worker_control_logins_authenticate": true,
+  "secret_values_emitted_or_hashed": false,
+  "shared_settings_compared": 22,
+  "shared_settings_differences": {
+    "fsync": {
+      "scratch": [
+        "off",
+        null
+      ],
+      "shared": [
+        "on",
+        null
+      ]
+    },
+    "full_page_writes": {
+      "scratch": [
+        "off",
+        null
+      ],
+      "shared": [
+        "on",
+        null
+      ]
+    }
+  },
+  "worker_control_have_no_owner_or_cross_capability": true
+}

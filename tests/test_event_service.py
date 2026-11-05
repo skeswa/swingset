@@ -214,7 +214,7 @@ def test_retained_turn_history_without_capacity_receipts_keeps_capacity_unknown(
             assert value["supported"] and not value["capacity_supported"]
             assert value["total_recorded_requests"] == value["capacity_unrecorded_requests"] == 1
             assert value["recent_requests"][0]["capacity"] is None
-            assert database.schema_version == 37
+            assert database.schema_version == state_db.SCHEMA_VERSION
             assert conn.total_changes == before
 
 

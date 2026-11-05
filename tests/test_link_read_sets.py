@@ -565,7 +565,10 @@ def test_ready_links_are_listed_without_the_dancer_cohort(world, monkeypatch):
     assert checked and set(checked) == read
 
 
-@pytest.mark.parametrize("seed", range(3))
+@pytest.mark.parametrize(
+    "seed",
+    [0, pytest.param(1, marks=pytest.mark.extended), pytest.param(2, marks=pytest.mark.extended)],
+)
 def test_every_link_the_probe_and_index_leave_current_reruns_to_identical_output(
     world, monkeypatch, seed
 ):

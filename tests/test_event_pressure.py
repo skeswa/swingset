@@ -192,9 +192,7 @@ def test_restore_invalidates_observations_before_activation(
     f, policy = event, config()
     from test_event_completion_restore import retain_configuration
 
-    retain_configuration(
-        f, f.db.state_dir.parent / (f.db.state_dir.name + "-inputs"), pressure=True
-    )
+    retain_configuration(f, f.db.state_dir / "tmp" / "fixture-inputs", pressure=True)
     settled(f, policy)
     refresh(f, policy)
     assert gate(f, policy)["states"] == {"locally_accounted": 1}

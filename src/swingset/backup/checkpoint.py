@@ -4,12 +4,13 @@ import json
 import os
 import shutil
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
-from swingset.clock import Clock, SystemClock
+from swingset.clock import Clock
 from swingset.publish.journal import Hub, RemoteCommit, pending_candidates
 from swingset.state import engine
 from swingset.state.retention import RetentionError
@@ -167,7 +168,9 @@ def verify_checkpoint(
 def _check_database_schema(connection: engine.Connection, declared: int) -> None:
     """A manifest cannot disguise a newer state database as an older schema."""
     actual = int(
-        connection.execute("SELECT value FROM ops.meta WHERE key='schema_version'").fetchone()[0]
+        connection.execute(
+            "SELECT value FROM ops.schema_identity() WHERE key='schema_version'"
+        ).fetchone()[0]
     )
     if actual != declared:
         raise CheckpointError(
@@ -245,6 +248,7 @@ def restore_from_checkpoint(
     maximum_schema_version: int | None = None,
     owner_dsn: str | None = None,
     environment: str = "dev",
+    defer_activation: bool = False,
 ) -> None:
     from swingset.state.control_lock import control_lock
     from swingset.state.rwlock import exclusive
@@ -278,8 +282,9 @@ def restore_from_checkpoint(
                     connection=conn,
                     environment=environment,
                 )
-            verify_restored_public(state_dir, hub, connection=conn)
-            activate_restored_state(state_dir, connection=conn, locks=held, clock=clock)
+            if not defer_activation:
+                verify_restored_public(state_dir, hub, connection=conn)
+                activate_restored_state(state_dir, connection=conn, locks=held, clock=clock)
         finally:
             held.release()
 
@@ -290,79 +295,24 @@ def activate_restored_state(
     connection: engine.Connection | None = None,
     locks: Held | None = None,
     clock: Clock | None = None,
-) -> None:
-    """Activate verified state while the caller owns the exclusive restore locks."""
-    clock = clock or SystemClock()
-    marker = state_dir / "RESTORE_PENDING"
-    if not marker.is_file():
-        raise CheckpointError("restore marker is missing")
-    # Restoring bytes is not a new check of their scheduling observations.
-    # Fence these disposable hints before removing the restore barrier. A crash
-    # between commit and unlink may increment twice on retry; both are safe.
-    from swingset.state.control_lock import control_lock
-    from swingset.state.db import Database, open_database
+    seconds: float = 540,
+    max_units: int = 100_000,
+    allow_partial: bool = False,
+    stop: Callable[[], bool] = lambda: False,
+) -> dict[str, Any]:
+    """Activate a restore, or retain its barrier after a bounded partial turn."""
+    from .activation import activate
 
-    if connection is None:
-        with open_database(state_dir, allow_restore_pending=True) as database:
-            return activate_restored_state(
-                state_dir, connection=database.connection, locks=database._locks, clock=clock
-            )
-    from swingset.state.postgres_rebuild import bootstrap, rebuild
-    from swingset.state.rwlock import exclusive
-
-    if locks is not None and (locks.connection is not connection or locks.mode != "exclusive"):
-        raise CheckpointError("restore activation requires the matching exclusive state lock")
-    held = locks if locks is not None else exclusive(state_dir, connection=connection)
-    try:
-        database = Database(state_dir, connection, held)
-        with control_lock(state_dir, connection=connection):
-            with database.transaction() as conn:
-                from swingset.state.controls import recover_admissions
-
-                recover_admissions(conn, now=clock.now())
-                conn.execute("UPDATE event_pressure_state SET epoch=epoch+1")
-        witness = state_dir / "tmp/restore-history"
-        inventory = []
-        if witness.exists():
-            from swingset.state import postgres_backup
-
-            inventory = postgres_backup.verify(witness)["rebuild_units"]
-        recovered = bootstrap(database, enqueued_at=clock.now().isoformat(), inventory=inventory)
-        # Existing project/link anchors certify caches that the history backup
-        # deliberately omitted. They must be rebuilt before activation, even
-        # when the retained software and input fingerprints are unchanged.
-        if recovered["materializations"]["queued_units"]:
-            from swingset.state import verify
-            from swingset.state.inputs import load
-
-            selected = connection.execute(
-                "SELECT value FROM ops.meta WHERE key='input_bundle_hash'"
-            ).fetchone()
-            if selected is None:
-                raise CheckpointError("restored materializations have no retained input bundle")
-            bundle = load(state_dir, str(selected[0]))
-            rebuilt = rebuild(database, bundle, clock, bootstrap_cache=False, inventory=inventory)
-            if not rebuilt["complete"]:
-                raise CheckpointError(
-                    f"restore rebuild is incomplete: {rebuilt['reason']}; use a fresh database and volume"
-                )
-            checked = verify.run(database, bundle, clock, str(rebuilt["run_id"]), alert=False)
-            if not checked["complete"] or checked["mismatches"] or checked["failures"]:
-                raise CheckpointError(
-                    "restored derivations failed verification; use a fresh database and volume"
-                )
-        witness = state_dir / "tmp/restore-history"
-        if witness.exists():
-            from swingset.state import postgres_backup
-
-            postgres_backup.audit(connection, witness, after_rebuild=True)
-        marker.unlink()
-        fsync_dir(state_dir)
-        connection.restore_pending = False
-        shutil.rmtree(witness, ignore_errors=True)
-    finally:
-        if locks is None:
-            held.release()
+    return activate(
+        state_dir,
+        connection=connection,
+        locks=locks,
+        clock=clock,
+        seconds=seconds,
+        max_units=max_units,
+        allow_partial=allow_partial,
+        stop=stop,
+    )
 
 
 def _verify_candidate_remote(candidate: Path, remote: RemoteCommit) -> None:

@@ -1,0 +1,16 @@
+{
+  "after_sha256": "a4bee87e3e0df11f646833e7fef6feb4ae6b39b6efb2267b1f12cfe0ea0b3cd3",
+  "at": "2026-11-09T18:37:55.678091+00:00",
+  "before_sha256": "5bbfe9edeb9987e013ce6d73b429233fd6bb205894e68e431c8824c9b150fae7",
+  "complete": true,
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-09T19:37:55.678091+00:00",
+    "reviewed_at": "2026-11-09T18:37:55.678091+00:00"
+  },
+  "method": "stage root-owned0444 file; verify original and staged hashes; atomic mv in network-disabled capability-free jobs",
+  "operation": "review existing rehearsal hold without clearing it",
+  "result_sha256": "6289c165b0b2103ea3dd362bdee1eb675facfb27f31d41df0c0ace997af0b1b2"
+}

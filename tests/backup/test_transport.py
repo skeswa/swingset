@@ -3,6 +3,7 @@ against a recording fake `HfApi`, and a directory transport. No network."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from datetime import timedelta
@@ -11,7 +12,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from test_segments import NOW, backup, build_state
+from test_segments import NOW, backup, build_state, index_of
 
 import swingset.backup.transport as transport_module
 from swingset.backup.restore_set import install
@@ -23,7 +24,7 @@ from swingset.backup.transport import (
     TransportError,
 )
 from swingset.state.db import open_database
-from swingset.state.environment import EnvironmentRefused, FixtureIO
+from swingset.state.environment import EnvironmentRefused, FixtureIO, identity
 
 
 class RecordingApi(FixtureIO):
@@ -97,7 +98,6 @@ def test_stored_dev_identity_blocks_every_real_archive_io_before_the_api(
     tmp_path, monkeypatch, flag
 ):
     state = tmp_path / "state"
-    build_state(state)
     api = UntrustedApi()
     with open_database(state) as database:
         if flag is not None:
@@ -177,6 +177,7 @@ def test_archive_rechecks_stored_identity_between_listing_and_commit(tmp_path):
         assert api.calls == ["list_repo_files"]
 
 
+@pytest.mark.extended
 def test_the_archive_gets_one_commit_per_set_and_keeps_three(tmp_path: Path) -> None:
     state = tmp_path / "state"
     build_state(state)
@@ -233,6 +234,7 @@ def _named(api: RecordingApi, set_id: str) -> list[str]:
     return list(json.loads(api.files[f"sets/{set_id}/backup.json"])["segments"])
 
 
+@pytest.mark.extended
 def test_the_collector_removes_a_segment_no_kept_set_names_and_squashes(tmp_path: Path) -> None:
     """Day 1's ALERTS.log lives in its own segment; once day 1's set is no
     longer kept, nothing names it: it goes, and the history is squashed so
@@ -265,6 +267,7 @@ def test_the_collector_removes_a_segment_no_kept_set_names_and_squashes(tmp_path
         install(remote, tmp_path / result["set_id"], set_id=result["set_id"])
 
 
+@pytest.mark.extended
 def test_the_collector_never_squashes_a_repository_that_holds_checkpoints(tmp_path: Path) -> None:
     """Squashing drops every old commit. A repository that also holds the
     full-checkpoint archive (`checkpoint.json`, `_transport/`) is refused:
@@ -345,6 +348,7 @@ def test_no_file_over_the_limit_is_sent(tmp_path: Path, monkeypatch: pytest.Monk
     assert api.commits == []
 
 
+@pytest.mark.extended
 def test_a_directory_transport_copies_a_set_and_keeps_three(tmp_path: Path) -> None:
     state = tmp_path / "state"
     build_state(state)
@@ -360,6 +364,7 @@ def test_a_directory_transport_copies_a_set_and_keeps_three(tmp_path: Path) -> N
         remote.fetch("../escape", tmp_path)
 
 
+@pytest.mark.extended
 def test_a_directory_transport_collects_a_segment_no_kept_set_names(tmp_path: Path) -> None:
     state = tmp_path / "state"
     build_state(state)
@@ -379,3 +384,150 @@ def test_a_directory_transport_collects_a_segment_no_kept_set_names(tmp_path: Pa
     gone = set(results[1]["new_segments"]) - named
     assert len(gone) == 1 and results[4]["remote"]["removed_segments"] == 1
     assert remote.segments() == named and not gone & remote.segments()
+
+
+def _transport_set(root: Path, day: int) -> tuple[str, list[str]]:
+    """Opaque publication files and the segment references collection reads."""
+    set_id = f"set_2026100{day + 1}T120000Z"
+    directory = root / "sets" / set_id
+    (directory / "db").mkdir(parents=True)
+    segments = []
+    for body in (b"shared segment", f"day {day}".encode()):
+        digest = hashlib.sha256(body).hexdigest()
+        path = root / "segments" / f"{digest}.tar"
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(body)
+        segments.append(digest)
+    (directory / "db" / "part-0000.zst").write_bytes(b"database part")
+    (directory / "index.jsonl.zst").write_bytes(b"index")
+    (directory / "backup.json").write_text(json.dumps({"segments": segments}))
+    return set_id, segments
+
+
+def _transport(tmp_path: Path, backend: str):
+    api = RecordingApi()
+    remote = (
+        HuggingFaceSegments("owner/archive", token="t", api=api)
+        if backend == "hf"
+        else LocalDirectoryTransport(tmp_path / "offsite", keep=3)
+    )
+    return remote, api
+
+
+@pytest.mark.parametrize("backend", ["hf", "directory"])
+def test_transport_publication_keeps_three_sets_without_deleting_shared_segments(tmp_path, backend):
+    remote, api = _transport(tmp_path, backend)
+    local = tmp_path / "local"
+    sets = []
+    for day in range(4):
+        set_id, segments = _transport_set(local, day)
+        remote.publish(local, set_id, segments)
+        sets.append((set_id, segments))
+    assert remote.sets() == [set_id for set_id, _ in sets[1:]]
+    assert remote.segments() == {segment for _, segments in sets for segment in segments}
+    for set_id, _ in sets[1:]:
+        for relative in ("backup.json", "index.jsonl.zst", "db/part-0000.zst"):
+            name = f"sets/{set_id}/{relative}"
+            assert (
+                remote.fetch(name, tmp_path / "fetch").read_bytes() == (local / name).read_bytes()
+            )
+    if backend == "hf":
+        assert len(api.commits) == 4 and api.squashes == 0
+        first = api.commits[0]["added"]
+        assert first[-1][0] == f"sets/{sets[0][0]}/backup.json"
+        assert {name for name, _ in first} == {
+            *(f"segments/{segment}.tar" for segment in sets[0][1]),
+            f"sets/{sets[0][0]}/backup.json",
+            f"sets/{sets[0][0]}/index.jsonl.zst",
+            f"sets/{sets[0][0]}/db/part-0000.zst",
+        }
+        assert [name for name, _ in api.commits[1]["added"] if name.startswith("segments/")] == [
+            f"segments/{sets[1][1][1]}.tar"
+        ]
+        assert api.commits[3]["deleted"] == [f"sets/{sets[0][0]}/"]
+        assert all(size <= MAX_FILE_BYTES for commit in api.commits for _, size in commit["added"])
+
+
+@pytest.mark.parametrize("backend", ["hf", "directory"])
+def test_transport_collection_removes_only_unnamed_segments_and_is_idempotent(tmp_path, backend):
+    remote, api = _transport(tmp_path, backend)
+    local = tmp_path / "local"
+    sets = []
+    for day in range(4):
+        set_id, segments = _transport_set(local, day)
+        remote.publish(local, set_id, segments)
+        sets.append((set_id, segments))
+    needed = {segment for _, segments in sets[1:] for segment in segments}
+    removed = sets[0][1][1]
+    result = remote.collect()
+    assert result["removed_segments"] == 1
+    assert result["sets"] == 3 and result["segments"] == len(needed)
+    assert remote.segments() == needed and removed not in remote.segments()
+    assert remote.sets() == [set_id for set_id, _ in sets[1:]]
+    if backend == "hf":
+        assert len(api.commits) == 5 and api.squashes == 1
+        assert api.commits[-1]["deleted"] == [f"segments/{removed}.tar"]
+        assert api.commits[-1]["added"] == []
+        assert result["squashed"] is True
+        assert result["bytes"] == sum(map(len, api.files.values()))
+    else:
+        assert result["bytes"] == sum(
+            path.stat().st_size for path in remote.root.rglob("*") if path.is_file()
+        )
+    assert remote.collect()["removed_segments"] == 0
+    if backend == "hf":
+        assert len(api.commits) == 5 and api.squashes == 1
+
+
+def test_foreign_checkpoint_paths_prevent_every_collection_mutation(tmp_path):
+    assert transport_module.SETS_REPO != "skeswa/swingset-archive"
+    assert HuggingFaceSegments(token="t", api=RecordingApi()).repo_id == transport_module.SETS_REPO
+    remote, api = _transport(tmp_path, "hf")
+    local = tmp_path / "local"
+    for day in range(4):
+        set_id, segments = _transport_set(local, day)
+        remote.publish(local, set_id, segments)
+    api.files.update({"checkpoint.json": b"{}", "_transport/checkpoint.tar": b"checkpoint"})
+    before = dict(api.files)
+    with pytest.raises(TransportError, match="holds _transport, checkpoint.json"):
+        remote.collect()
+    assert api.files == before and len(api.commits) == 4 and api.squashes == 0
+    del api.files["checkpoint.json"], api.files["_transport/checkpoint.tar"]
+    assert remote.collect()["removed_segments"] == 1
+    assert api.squashes == 1
+
+
+@pytest.mark.parametrize("backend", ["hf", "directory"])
+def test_one_native_set_restores_from_the_transport_alone(tmp_path, backend):
+    state = tmp_path / "state"
+    build_state(state)
+    remote, _ = _transport(tmp_path, backend)
+    result = backup(state, transport=remote)
+    entries = index_of(state, result["set_id"])
+    record = json.loads((state / "checkpoints" / "remote.json").read_text())
+    assert record["set_id"] == result["set_id"] and record["transport"] == remote.name
+    assert "collect_error" not in record
+    with open_database(state) as database:
+        source_id = identity(database.connection).database_id
+        assert database.connection.execute("SELECT COUNT(*) FROM backup_sets").fetchone()[0] == 1
+        assert (
+            database.connection.execute(
+                "SELECT COUNT(*) FROM backup_sets WHERE NOT uploaded_at IS NULL"
+            ).fetchone()[0]
+            == 1
+        )
+        transports = database.connection.execute(
+            "SELECT DISTINCT transport FROM backup_objects"
+        ).fetchall()
+        assert [row[0] for row in transports] == [remote.name]
+    shutil.rmtree(state / "checkpoints")
+    restored = tmp_path / "restored"
+    summary = install(remote, restored)
+    assert summary["set_id"] == result["set_id"] and summary["items"] == len(entries)
+    for name in entries:
+        assert (restored / name).read_bytes() == (state / name).read_bytes(), name
+    with open_database(restored, allow_restore_pending=True) as database:
+        assert identity(database.connection).database_id != source_id
+        assert database.connection.execute("SELECT host FROM hosts").fetchone()[0] == "h.example"
+    with pytest.raises(TransportError, match="unsafe"):
+        remote.fetch("../escape", tmp_path)

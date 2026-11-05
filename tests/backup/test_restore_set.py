@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -28,10 +29,24 @@ def _placed(target: Path) -> list[str]:
     return sorted(path.name for path in target.iterdir() if not is_lock_file(path.name))
 
 
-def _set(tmp_path: Path) -> tuple[Path, dict[str, Any], Path]:
+@pytest.fixture(scope="module")
+def archived_set(tmp_path_factory):
+    """Generate source bytes once; each restore still owns a fresh database."""
+    from swingset.dev import testing
+
+    state = tmp_path_factory.mktemp("restore-set-source") / "state"
+    try:
+        build_state(state)
+        result = backup(state)
+    finally:
+        testing.retire_state(state)
+    return state / "checkpoints", result
+
+
+def _set(tmp_path: Path, archived_set) -> tuple[Path, dict[str, Any], Path]:
+    checkpoints, result = archived_set
     state = tmp_path / "state"
-    build_state(state)
-    result = backup(state)
+    shutil.copytree(checkpoints, state / "checkpoints")
     return state, result, state / "checkpoints" / "sets" / result["set_id"]
 
 
@@ -41,8 +56,8 @@ def _rewrite_manifest(directory: Path, change: Any) -> None:
     (directory / "backup.json").write_bytes(canonical_json(manifest))
 
 
-def test_a_corrupt_part_fails_before_anything_is_placed(tmp_path: Path) -> None:
-    state, _, directory = _set(tmp_path)
+def test_a_corrupt_part_fails_before_anything_is_placed(tmp_path: Path, archived_set) -> None:
+    state, _, directory = _set(tmp_path, archived_set)
     part = directory / "db" / "part-0000.zst"
     body = bytearray(part.read_bytes())
     body[len(body) // 2] ^= 0xFF
@@ -53,8 +68,8 @@ def test_a_corrupt_part_fails_before_anything_is_placed(tmp_path: Path) -> None:
     assert _placed(target) == []
 
 
-def test_a_missing_segment_fails_before_anything_is_placed(tmp_path: Path) -> None:
-    state, result, _ = _set(tmp_path)
+def test_a_missing_segment_fails_before_anything_is_placed(tmp_path: Path, archived_set) -> None:
+    state, result, _ = _set(tmp_path, archived_set)
     (state / "checkpoints" / "segments" / f"{result['new_segments'][0]}.tar").unlink()
     target = tmp_path / "restored"
     with pytest.raises(SetError, match="missing"):
@@ -62,8 +77,8 @@ def test_a_missing_segment_fails_before_anything_is_placed(tmp_path: Path) -> No
     assert _placed(target) == []
 
 
-def test_a_truncated_segment_fails_before_anything_is_placed(tmp_path: Path) -> None:
-    state, result, _ = _set(tmp_path)
+def test_a_truncated_segment_fails_before_anything_is_placed(tmp_path: Path, archived_set) -> None:
+    state, result, _ = _set(tmp_path, archived_set)
     segment = state / "checkpoints" / "segments" / f"{result['new_segments'][0]}.tar"
     segment.write_bytes(segment.read_bytes()[:-4096])
     target = tmp_path / "restored"
@@ -72,8 +87,8 @@ def test_a_truncated_segment_fails_before_anything_is_placed(tmp_path: Path) -> 
     assert _placed(target) == []
 
 
-def test_a_wrong_item_digest_fails_before_anything_is_placed(tmp_path: Path) -> None:
-    state, _, directory = _set(tmp_path)
+def test_a_wrong_item_digest_fails_before_anything_is_placed(tmp_path: Path, archived_set) -> None:
+    state, _, directory = _set(tmp_path, archived_set)
     index = directory / "index.jsonl.zst"
     with pa.input_stream(str(index), compression="zstd") as stream:
         lines = stream.read().decode().splitlines()
@@ -96,8 +111,8 @@ def test_a_wrong_item_digest_fails_before_anything_is_placed(tmp_path: Path) -> 
     assert _placed(target) == []
 
 
-def test_a_database_that_does_not_match_its_raw_digest_fails(tmp_path: Path) -> None:
-    state, _, directory = _set(tmp_path)
+def test_a_database_that_does_not_match_its_raw_digest_fails(tmp_path: Path, archived_set) -> None:
+    state, _, directory = _set(tmp_path, archived_set)
     _rewrite_manifest(directory, lambda manifest: manifest["database"].update(raw_sha256="0" * 64))
     target = tmp_path / "restored"
     with pytest.raises(SetError, match="joined database"):
@@ -105,8 +120,8 @@ def test_a_database_that_does_not_match_its_raw_digest_fails(tmp_path: Path) -> 
     assert _placed(target) == []
 
 
-def test_install_refuses_a_target_with_state(tmp_path: Path) -> None:
-    state, _, _ = _set(tmp_path)
+def test_install_refuses_a_target_with_state(tmp_path: Path, archived_set) -> None:
+    state, _, _ = _set(tmp_path, archived_set)
     target = tmp_path / "restored"
     target.mkdir()
     (target / "state.sqlite").write_bytes(b"live")
@@ -115,8 +130,8 @@ def test_install_refuses_a_target_with_state(tmp_path: Path) -> None:
     assert (target / "state.sqlite").read_bytes() == b"live"
 
 
-def test_install_quick_checks_and_names_the_latest_set(tmp_path: Path) -> None:
-    state, result, _ = _set(tmp_path)
+def test_install_quick_checks_and_names_the_latest_set(tmp_path: Path, archived_set) -> None:
+    state, result, _ = _set(tmp_path, archived_set)
     summary = install(local(state), tmp_path / "restored", integrity="quick")
     assert summary["set_id"] == result["set_id"]
     assert summary["integrity"] == "quick"
@@ -134,8 +149,8 @@ class Hub(FixtureIO):
         raise AssertionError("a published baseline needs no inspection")
 
 
-def test_restore_from_set_activates_against_the_public_head(tmp_path: Path) -> None:
-    state, result, _ = _set(tmp_path)
+def test_restore_from_set_activates_against_the_public_head(tmp_path: Path, archived_set) -> None:
+    state, result, _ = _set(tmp_path, archived_set)
     target = tmp_path / "restored"
     summary = restore_from_set(local(state), None, target, Hub("abc"), FakeClock(), lock_timeout=1)
     assert summary["set_id"] == result["set_id"]
@@ -145,8 +160,32 @@ def test_restore_from_set_activates_against_the_public_head(tmp_path: Path) -> N
     copy.close()
 
 
-def test_restore_from_set_keeps_the_marker_when_the_hub_differs(tmp_path: Path) -> None:
-    state, result, _ = _set(tmp_path)
+def test_staged_set_restore_fences_workers_until_fresh_policy_and_reconciliation(
+    tmp_path, archived_set
+):
+    from swingset.state.db import open_database
+
+    state, result, _ = _set(tmp_path, archived_set)
+    target = tmp_path / "staged"
+    summary = restore_from_set(
+        local(state),
+        result["set_id"],
+        target,
+        object(),
+        FakeClock(),
+        lock_timeout=1,
+        defer_activation=True,
+    )
+    assert summary["activation_pending"] is True and summary["public_reconciled"] is False
+    assert (target / "RESTORE_PENDING").is_file()
+    with pytest.raises(RuntimeError, match="restore verification is pending"):
+        open_database(target)
+
+
+def test_restore_from_set_keeps_the_marker_when_the_hub_differs(
+    tmp_path: Path, archived_set
+) -> None:
+    state, result, _ = _set(tmp_path, archived_set)
     target = tmp_path / "restored"
     with pytest.raises(CheckpointError, match="public head differs"):
         restore_from_set(

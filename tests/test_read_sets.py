@@ -296,7 +296,7 @@ ARMED_FIXTURES = (
 )
 
 
-def test_pipeline_fixtures_run_armed_with_zero_undeclared_reads(tmp_path):
+def _armed_pipeline(tmp_path, fixtures):
     report = tmp_path / "reads.jsonl"
     environment = {
         **os.environ,
@@ -313,7 +313,7 @@ def test_pipeline_fixtures_run_armed_with_zero_undeclared_reads(tmp_path):
             "no:cacheprovider",
             "--basetemp",
             str(tmp_path / "run"),
-            *ARMED_FIXTURES,
+            *fixtures,
         ],
         cwd=ROOT,
         env=environment,
@@ -325,6 +325,25 @@ def test_pipeline_fixtures_run_armed_with_zero_undeclared_reads(tmp_path):
     lines = [json.loads(line) for line in report.read_text().splitlines()]
     violations = [line for line in lines if "violation" in line or line.get("undeclared")]
     assert violations == []
+    return lines
+
+
+def test_an_armed_pipeline_records_project_and_link_reads(tmp_path):
+    lines = _armed_pipeline(
+        tmp_path,
+        (
+            "tests/test_h15_acceptance.py::"
+            "test_a_dancer_change_runs_the_dancer_the_inventory_the_years_and_its_readers",
+        ),
+    )
+    kinds = {tuple(line["unit"].split("/")[:2]) for line in lines}
+    assert {("project", "dancer"), ("project", "inventory"), ("link", "event")} <= kinds
+
+
+@pytest.mark.extended
+def test_pipeline_fixtures_run_armed_with_zero_undeclared_reads(tmp_path):
+    """The full five-file replay covers every kind; the core keeps one real pipeline."""
+    lines = _armed_pipeline(tmp_path, ARMED_FIXTURES)
     kinds = {tuple(line["unit"].split("/")[:2]) for line in lines}
     assert set(RULES) <= kinds, sorted(set(RULES) - kinds)
 

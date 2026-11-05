@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-09T19:24:46.970702+00:00",
+  "command": "Reviewed one-use executor; exact native docker create; hash-bound maintained import-job supervisor",
+  "container_id": "da6d54d821b4704bddde56449c880fd5f4d753ee171e7c21ae0d693370d5ea17",
+  "deadline_seconds": 21600,
+  "exact_mounts": 11,
+  "executor_sha256": "fb83e6411be09613c46e98f0b5830299cdaa0ecfe7a79e2b4f40bad1b98e825c",
+  "exit_code": 0,
+  "independent_verdict": "ACCEPT",
+  "internal_scoped_credentials_only": true,
+  "minimum_free_bytes": 200000000000,
+  "native_result": "pending; full source validation before opening destination",
+  "operation": "Start one reviewed attended held import with lazy destination session",
+  "pipeline_workers_started": false,
+  "plan_sha256": "bbeafff33cbbb191d336e8938d0511e10d56dff71795a5c0456a6692cdc4a546",
+  "platform_id": "4b1de6154194e6786bd1f24823eb45d3a0be9a59ff88f9dde59ff443adddd5e3",
+  "prepared_empty_tables": 142,
+  "review_sha256": "0d36ae72976b9af1783e2b4c123e7d83f9592ef7347a9c0cb2f8b91f6ee5900e",
+  "scope": "One attempt, no reset/retry/schedulers/third-party credentials/external I/O or Gate2 acceptance. Native audit and stored identity remain required.",
+  "source_mount_read_only": true
+}

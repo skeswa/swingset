@@ -1,0 +1,163 @@
+{
+  "operation": "Release only successfully exported owned reference image",
+  "command": [
+    "python3",
+    "/tmp/swingset-reference-cleanup-d95311cc49c0.py",
+    "/tmp/swingset-reference-cleanup-d95311cc49c0-root-review.json"
+  ],
+  "controller_sha256": "0890ccb0e554b2250ce5f572ba7e83df35866148c1c85787a550dfbdee204311",
+  "review_sha256": "07caf6dd1152ef197998c837e3c26523719bde19d0e7a509ca8487e89cd29b1c",
+  "authoritative_source_result_sha256": "df92e51b610c9d67c5451d932a4bd7ad36faa842f254d4bab496713c7c99cf28",
+  "exit_code": 0,
+  "complete": true,
+  "utc": "2026-11-06T00:10:28Z",
+  "source_result": {
+    "checked_descriptor_metadata": 622,
+    "commands": [
+      {
+        "argv": [
+          "findmnt",
+          "-n",
+          "-o",
+          "SOURCE,FSTYPE,OPTIONS",
+          "-T",
+          "/var/lib/swingset/checkpoints"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "/dev/vdb1[/scon/containers/01M223D03H8T35BA3EFSYFPP39/rootfs] btrfs rw,noatime,nodatasum,nodatacow,ssd,discard,space_cache=v2,subvolid=258,subvol=/scon/containers/01M223D03H8T35BA3EFSYFPP39\n"
+      },
+      {
+        "argv": [
+          "losetup",
+          "--list",
+          "--json",
+          "--output",
+          "NAME,BACK-FILE,AUTOCLEAR,RO"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\n   \"loopdevices\": [\n      {\n         \"name\": \"/dev/loop0\",\n         \"back-file\": \"/var/tmp/swingset-stage2-reference-r-d95311cc49c0/filesystem.img\",\n         \"autoclear\": false,\n         \"ro\": true\n      }\n   ]\n}\n"
+      },
+      {
+        "argv": [
+          "findmnt",
+          "--json",
+          "--mountpoint",
+          "/var/tmp/swingset-stage2-reference-r-d95311cc49c0/export-readonly-43c481e9f27a",
+          "-o",
+          "TARGET,SOURCE,FSTYPE,OPTIONS,UUID"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\n   \"filesystems\": [\n      {\n         \"target\": \"/var/tmp/swingset-stage2-reference-r-d95311cc49c0/export-readonly-43c481e9f27a\",\n         \"source\": \"/dev/loop0\",\n         \"fstype\": \"btrfs\",\n         \"options\": \"ro,nosuid,nodev,noexec,relatime,ssd,rescue=nologreplay,discard=async,space_cache=v2,subvolid=5,subvol=/\",\n         \"uuid\": \"100c1495-c691-4f08-ab8b-dcafa44e97de\"\n      }\n   ]\n}\n"
+      },
+      {
+        "argv": [
+          "blockdev",
+          "--getsize64",
+          "/dev/loop0"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "16178532352\n"
+      },
+      {
+        "argv": [
+          "umount",
+          "/var/tmp/swingset-stage2-reference-r-d95311cc49c0/export-readonly-43c481e9f27a"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "losetup",
+          "--list",
+          "--json",
+          "--output",
+          "NAME,BACK-FILE,AUTOCLEAR,RO"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\n   \"loopdevices\": [\n      {\n         \"name\": \"/dev/loop0\",\n         \"back-file\": \"/var/tmp/swingset-stage2-reference-r-d95311cc49c0/filesystem.img\",\n         \"autoclear\": false,\n         \"ro\": true\n      }\n   ]\n}\n"
+      },
+      {
+        "argv": [
+          "losetup",
+          "--detach",
+          "/dev/loop0"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "argv": [
+          "losetup",
+          "--list",
+          "--json",
+          "--output",
+          "NAME,BACK-FILE,AUTOCLEAR,RO"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\n   \"loopdevices\": [\n\n   ]\n}\n"
+      },
+      {
+        "argv": [
+          "findmnt",
+          "-n",
+          "-o",
+          "SOURCE,FSTYPE,OPTIONS",
+          "-T",
+          "/var/lib/swingset/checkpoints"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "/dev/vdb1[/scon/containers/01M223D03H8T35BA3EFSYFPP39/rootfs] btrfs rw,noatime,nodatasum,nodatacow,ssd,discard,space_cache=v2,subvolid=258,subvol=/scon/containers/01M223D03H8T35BA3EFSYFPP39\n"
+      }
+    ],
+    "complete": true,
+    "deleted_paths": [
+      "/var/tmp/swingset-stage2-reference-r-d95311cc49c0/filesystem.img"
+    ],
+    "export_mount_before": {
+      "fstype": "btrfs",
+      "options": "ro,nosuid,nodev,noexec,relatime,ssd,rescue=nologreplay,discard=async,space_cache=v2,subvolid=5,subvol=/",
+      "source": "/dev/loop0",
+      "target": "/var/tmp/swingset-stage2-reference-r-d95311cc49c0/export-readonly-43c481e9f27a",
+      "uuid": "100c1495-c691-4f08-ab8b-dcafa44e97de"
+    },
+    "image_absent": true,
+    "image_before": {
+      "allocated_bytes": 8270884864,
+      "bytes": 16178532352,
+      "device": 41,
+      "inode": 24590111,
+      "links": 1,
+      "mode": 384,
+      "uid": 0
+    },
+    "operation": "cleanup only exported reference R image d95311cc49c0",
+    "owned_loop_absent": true,
+    "server_receipt_sha256": "2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f",
+    "shared_mount_after": "/dev/vdb1[/scon/containers/01M223D03H8T35BA3EFSYFPP39/rootfs] btrfs rw,noatime,nodatasum,nodatacow,ssd,discard,space_cache=v2,subvolid=258,subvol=/scon/containers/01M223D03H8T35BA3EFSYFPP39",
+    "shared_mount_before": "/dev/vdb1[/scon/containers/01M223D03H8T35BA3EFSYFPP39/rootfs] btrfs rw,noatime,nodatasum,nodatacow,ssd,discard,space_cache=v2,subvolid=258,subvol=/scon/containers/01M223D03H8T35BA3EFSYFPP39",
+    "utc": "2026-11-06T00:10:28Z",
+    "vm_free_after": 101899010048,
+    "vm_free_before": 101899010048
+  },
+  "server_export_all59_rechecked": {
+    "all59_sha256_pass": true,
+    "server_receipt_sha256": "2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f"
+  },
+  "host_free_before": 107173752832,
+  "host_free_immediate_after": 107170951168,
+  "delayed_reclaim": {
+    "vm_free_bytes": 110207983616,
+    "mac_free_bytes": 115956600832,
+    "observed_by": "stage2_data after authoritative SFTP verification; immediate counters did not yet show reclamation"
+  }
+}

@@ -1,0 +1,277 @@
+{
+  "operation": "Provision Swingset dry-run foundation on shared Postgres",
+  "recorded_at": "2026-11-06T00:40:22.719402+00:00",
+  "source_review_bundle_sha256": "9b14186cd84883d6460cf3bedabdd894aa5a0292d1942aa3026e0aa084422b96",
+  "independent_review_sha256": "a1adec56627dc99d8dca1d00ba68e18474c31c72f4bbc9561a975bbc07c20df3",
+  "plan_sha256": "57e71336a133d09e3de7a57ec94d02577e041b0465a0b6be3eeaae11fc81f729",
+  "commands": [
+    {
+      "command": "dk_ensure_project swingset \"Swingset migration dry run\"",
+      "exit": 0,
+      "scope": "project only"
+    },
+    {
+      "command": "mise run infra:swingset-db swingset_dryrun --project swingset",
+      "invocations": 1,
+      "exit": 0
+    },
+    {
+      "command": "exact planned tables platform job /run/platform/bootstrap.py --mode tables --admin-dsn-file /run/secrets/admin-dsn --database swingset_dryrun",
+      "exit": 0,
+      "deadline_seconds": 120
+    },
+    {
+      "command": "read-only actual three-login capability probes",
+      "exit": 0
+    },
+    {
+      "command": "mise run infra:backups",
+      "exit": 0,
+      "scope": "rediscovery and persistent Swingset prefix exclusion"
+    }
+  ],
+  "project": {
+    "name": "swingset",
+    "project_id": "zgAVyaA7siSNfuGnzxPpa",
+    "services_created": 0,
+    "domains_DNS_GitHub_buckets_redis_created": false,
+    "managed_variable_names": [
+      "DATABASE_URL",
+      "SWINGSET_DATABASE_URL",
+      "SWINGSET_OWNER_DATABASE_URL",
+      "SWINGSET_CONTROL_DATABASE_URL"
+    ],
+    "database_url_is_worker": true
+  },
+  "database": {
+    "database": "swingset_dryrun",
+    "oid": "16398",
+    "owner": "swingset_owner",
+    "locale": [
+      "C",
+      "C"
+    ],
+    "login_count": 3,
+    "exact_login_definitions": true,
+    "public_connect_and_create_revoked": true,
+    "per_database_login_grants_only": true,
+    "original7_unchanged": true
+  },
+  "prepared_state": {
+    "at": "2026-11-06T00:33:02.058046+00:00",
+    "prepared_binding": {
+      "catalog_sha256": "9d421ba71b3e1e79ed73c99e6ab81b8c70e24ef2bb7368842c8a72fbe9311234",
+      "database": {
+        "name": "swingset_dryrun",
+        "oid": 16398,
+        "owner": "swingset_owner"
+      },
+      "format": 1,
+      "migration_sha256": "f3ff9118fc0c0ac721e24336208397318fbca72773fc9939099422a9749d3c68",
+      "owner_wal_execute": true,
+      "owner_wal_grant_option": false,
+      "roles_sha256": "1e0f3376ff9fe830a1f3c562241d6da5070f5c1cc75a2758a746faea564dbc3d",
+      "tables_phase_sha256": "76cf375987a3c77ef5ab2d847d9ff9927735dbb62d3c20097034f73b60e6921b"
+    },
+    "user_tables": 142,
+    "all_user_tables_empty": true,
+    "environment_identity_rows": 0,
+    "stored_uuid_absent": true,
+    "migration_call_performed": false,
+    "original7_unchanged": true,
+    "psql_select_echo_lines": 142
+  },
+  "table_job": {
+    "container_id": "74e96052518c3a488f6b42f3b84f3ae106c25f694fbb3f752b2247e7f15ab427",
+    "image": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+    "state": {
+      "Error": "",
+      "ExitCode": 0,
+      "FinishedAt": "2026-11-06T00:28:49.324411558Z",
+      "OOMKilled": false,
+      "Pid": 0,
+      "Running": false,
+      "StartedAt": "2026-11-06T00:28:47.499476448Z",
+      "Status": "exited"
+    },
+    "binding": {
+      "catalog_sha256": "9d421ba71b3e1e79ed73c99e6ab81b8c70e24ef2bb7368842c8a72fbe9311234",
+      "database": {
+        "name": "swingset_dryrun",
+        "oid": 16398,
+        "owner": "swingset_owner"
+      },
+      "format": 1,
+      "migration_sha256": "f3ff9118fc0c0ac721e24336208397318fbca72773fc9939099422a9749d3c68",
+      "owner_wal_execute": true,
+      "owner_wal_grant_option": false,
+      "roles_sha256": "1e0f3376ff9fe830a1f3c562241d6da5070f5c1cc75a2758a746faea564dbc3d",
+      "tables_phase_sha256": "76cf375987a3c77ef5ab2d847d9ff9927735dbb62d3c20097034f73b60e6921b"
+    },
+    "wrapper_sha256": "db1270cfd8ee9918d10be648a6978c8129e0c979cacbe9c513754eeea475f478",
+    "admin_dsn_inode": 17039626,
+    "new_secret_stager_invocations": 0,
+    "only_two_readonly_file_mounts": true,
+    "memory": 536870912,
+    "memory_plus_swap": 536870912,
+    "cpus": 1,
+    "pids": 64,
+    "user": "1000:1000",
+    "cap_drop": [
+      "ALL"
+    ],
+    "no_new_privileges": true,
+    "readonly_rootfs": true,
+    "private_pid_and_cgroup": true,
+    "network": "container:74c66fa35161b73bd676d5939f510970942146dd128c2049fa7a610f9d1d71e8"
+  },
+  "actual_limited_login_checks": {
+    "actual_login_checks": [
+      {
+        "login": "swingset_dryrun_migrate",
+        "session_user": "swingset_dryrun_migrate",
+        "database": "swingset_dryrun",
+        "superuser": false,
+        "connect": true,
+        "temporary": true,
+        "create": true,
+        "capability_inherited": true,
+        "capability_set": true,
+        "owner_inherited": true,
+        "owner_set": true,
+        "wal_execute": true,
+        "wal_grant_option": false
+      },
+      {
+        "login": "swingset_dryrun_worker",
+        "session_user": "swingset_dryrun_worker",
+        "database": "swingset_dryrun",
+        "superuser": false,
+        "connect": true,
+        "temporary": true,
+        "create": false,
+        "capability_inherited": true,
+        "capability_set": false,
+        "owner_inherited": false,
+        "owner_set": false,
+        "wal_execute": false,
+        "wal_grant_option": false
+      },
+      {
+        "login": "swingset_dryrun_control",
+        "session_user": "swingset_dryrun_control",
+        "database": "swingset_dryrun",
+        "superuser": false,
+        "connect": true,
+        "temporary": true,
+        "create": false,
+        "capability_inherited": true,
+        "capability_set": false,
+        "owner_inherited": false,
+        "owner_set": false,
+        "wal_execute": false,
+        "wal_grant_option": false
+      }
+    ],
+    "owner_set_role_allowed": {
+      "set_role": "swingset_owner",
+      "session_user": "swingset_dryrun_migrate"
+    },
+    "worker_control_set_role_denials": [
+      {
+        "login": "swingset_dryrun_worker",
+        "target_role": "swingset_worker",
+        "exit_code": 3,
+        "denied": true
+      },
+      {
+        "login": "swingset_dryrun_worker",
+        "target_role": "swingset_owner",
+        "exit_code": 3,
+        "denied": true
+      },
+      {
+        "login": "swingset_dryrun_control",
+        "target_role": "swingset_control",
+        "exit_code": 3,
+        "denied": true
+      },
+      {
+        "login": "swingset_dryrun_control",
+        "target_role": "swingset_owner",
+        "exit_code": 3,
+        "denied": true
+      }
+    ],
+    "passed": true,
+    "credential_values_persisted_or_printed": false,
+    "persistent_sql_writes": false
+  },
+  "backup": {
+    "discovered_databases": [
+      "postgres",
+      "swingset_dryrun"
+    ],
+    "excluded_databases": [
+      "swingset_dryrun"
+    ],
+    "postgres_backup_metadata_exactly_unchanged": true,
+    "backups": [
+      {
+        "backupId": "03xLHFXj8oKfRaa9YSGWv",
+        "database": "postgres",
+        "enabled": true,
+        "backupType": "database",
+        "schedule": "0 3 * * *",
+        "keepLatestCount": 30,
+        "prefix": "postgres/postgres/",
+        "destinationId": "XsmeSRhVbYzG4sb9i5FS4"
+      }
+    ],
+    "enabled_swingset_full_dump_schedules": 0,
+    "original7_unchanged": true,
+    "history_deleted": false
+  },
+  "authoritative_table_receipts": {
+    "at": "2026-11-06T00:39:36.877870+00:00",
+    "sftp_exit": 0,
+    "stable_source_before_after_local_sha256": {
+      "tables-created.json": {
+        "bytes": 1549,
+        "sha256": "7d18a1cea5b5003c584fed2dedfa912c55d112dbaf9bbaf9ad545d99af5289ca"
+      },
+      "tables-run-result.json": {
+        "bytes": 1173,
+        "sha256": "042cff89a19de81689a26175de274228781b7cc164f5080a22fdb473b6f42aa4"
+      }
+    },
+    "full_json_parse": true,
+    "original7_unchanged": true,
+    "credential_files_transferred_or_hashed": false,
+    "table_job_exit": 0,
+    "table_job_nonrunning": true,
+    "table_job_no_oom": true,
+    "actual_container_id": "74e96052518c3a488f6b42f3b84f3ae106c25f694fbb3f752b2247e7f15ab427"
+  },
+  "first_postcheck_assertion": {
+    "incorrect_assumption": "environment_identity relation absent before migration38",
+    "actual_expected_by_pinned0037": "table exists but zero rows; no stored UUID",
+    "stopped_before_next_action": true,
+    "first_failure_and_corrected_pass_preserved": true
+  },
+  "credential_boundary": {
+    "shared_administrator_secret_file_only_in_separate_platform_job": true,
+    "shared_admin_in_application_or_migration_container": false,
+    "credential_values_or_credential_hashes_or_files_transferred_to_receipts": false,
+    "three_generated_login_credentials_persist_only_in_Dokploy": true
+  },
+  "unchanged_original7": true,
+  "not_performed": [
+    "SQLite import or COPY",
+    "migration38 or UUID initialization",
+    "application service creation/start",
+    "deployment or publication",
+    "production cutover"
+  ],
+  "gate_2": "open; strict historical code closure and credentials still pending"
+}

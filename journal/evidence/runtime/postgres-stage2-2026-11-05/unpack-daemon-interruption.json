@@ -1,0 +1,38 @@
+{
+  "authoritative_receipt": {
+    "device": 2050,
+    "inode": 15370024,
+    "mtime_ns": 1793931194310793317,
+    "sha256": "292a554aa5c583005389364ca48f9da65f0a6f066736399561fbd1bfb65e700a",
+    "size": 2108
+  },
+  "command": "Reviewed maintained unpack.py --policy policy2171a8\u2026",
+  "complete": false,
+  "container_cleanup": {
+    "container_id": "f5ce4ea6026c65f982c8119112392a3660a766a26a129b9c0717e406d89b96c0",
+    "exit_code": 143,
+    "not_running": true,
+    "oom_killed": false,
+    "removed": false,
+    "state": {
+      "Error": "",
+      "Pid": 0,
+      "StartedAt": "2026-11-06T02:00:40.346108671Z",
+      "Status": "exited"
+    }
+  },
+  "error": "[Errno 32] Broken pipe",
+  "error_class": "BrokenPipeError",
+  "full_json_parse": true,
+  "new_partial_workspace_retained": true,
+  "next": "Fresh policy nonce and target; redirect detached server supervisor logs to private durable files. Never adopt or overwrite this partial target.",
+  "nonce": "f8dc7903e652",
+  "operation": "Strict supplemented checkpoint unpack stopped after control daemon closed log pipe",
+  "policy_sha256": "2171a8d5d0e025d09ab4ea3e036bbbad881fa6e541faa962626b9bcf0257b22f",
+  "recorded_at": "2026-11-06T02:18:31Z",
+  "seconds": 754.453,
+  "sftp_exit_code": 0,
+  "source_before_after_local_sha_equal": true,
+  "source_or_prior_workspaces_deleted": false,
+  "source_runtime": "source-sha256:2a83d305cdfe0230a4dd8b7ba64c4aa859e833b8ebbfb1372904b354c14937c4"
+}

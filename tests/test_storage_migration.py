@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from swingset.state import engine
-from swingset.state.db import Database, open_database
+from swingset.state.db import SCHEMA_VERSION, Database, open_database
 from swingset.state.objects import CLASSES, STUB
 from swingset.state.publication_fence import (
     NARROW_KIND,
@@ -131,7 +131,7 @@ def test_postgres_schema_preserves_the_lifecycle_tables(migrated: Database) -> N
     from swingset.state.postgres_schema import validate_schema
 
     conn = migrated.connection
-    assert migrated.schema_version == 37
+    assert migrated.schema_version == SCHEMA_VERSION
     validate_schema(conn, full=True)
     rows = conn.execute(
         "SELECT class,location,roots,collector,min_age_seconds,backed_up FROM blob_classes"

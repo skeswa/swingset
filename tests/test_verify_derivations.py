@@ -7,6 +7,7 @@ registry, with real dancer, event, year and link units.
 import json
 import shutil
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 import test_link_read_sets as linked
@@ -498,15 +499,32 @@ def test_graph_new_dependency_is_difference_even_with_identical_output(world, mo
     assert result["found"] == result["expected"]
 
 
-def test_graph_entire_projection_and_link_fixture(world):
+def test_graph_entire_projection_and_link_fixture(world, tmp_path, monkeypatch):
     from swingset.state import verify_graph
 
+    spill = tmp_path / "writable-spill"
+    spill.mkdir()
+    monkeypatch.setenv("TMPDIR", str(spill))
+    replay = verify_graph._shard
+    scratch = []
+
+    def private_replay(clone, *arguments):
+        root = Path(clone).parent
+        assert root.parent == spill
+        scratch.append(root)
+        return replay(clone, *arguments)
+
+    monkeypatch.setattr(verify_graph, "_shard", private_replay)
+    before = _state(world.conn)
     receipt = verify_graph.run(world.db.state_dir, linked.Bundle())
     assert receipt["complete"] and receipt["clean"], receipt
     stages = {r["unit"].split("/")[0] for r in receipt["results"]}
     assert stages == {"project", "link"}
     kinds = {r["unit"].split("/")[1] for r in receipt["results"]}
     assert {"dancer", "event", "year"} <= kinds
+    assert scratch and all(not path.exists() for path in scratch)
+    assert not list(spill.iterdir())
+    assert _state(world.conn) == before
 
 
 def test_graph_replays_the_33_page_event_cohort(event):

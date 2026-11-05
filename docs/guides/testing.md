@@ -115,6 +115,22 @@ expected transition set instead of hard-coding transaction numbers. The extended
 case tests all remaining transaction boundaries, so a full run retains the
 exhaustive coverage without repeating the core boundaries.
 
+Read-set coverage follows the same split: the core runs a real armed project
+and link pipeline, plus the recorder's refusal and static-wrapper checks. The
+extended case repeats five complete fixture files with recording armed and
+requires every unit kind. Those files keep their own reviewed core cases.
+
+Link read-set fuzzing keeps one deterministic mutation sequence in core; two
+additional seeds run in the full suite. All targeted identity and dependency
+cases stay in core. Transport core checks retention and collection directly,
+plus one real native backup and standalone restore per backend. The five
+multi-day transport integrations remain intact in the full suite.
+
+Restore and artifact-recovery cases may share an immutable, real backup source.
+Each gets private files and fresh recovery state; every actual restore still
+creates its own database identity. Retire the source database before sharing
+archive bytes. Never copy its live database settings into a test destination.
+
 ## Maintain the selection
 
 [tests/suite.toml](../../tests/suite.toml) owns the selection. Whole-file entries

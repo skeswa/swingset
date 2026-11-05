@@ -1,0 +1,147 @@
+{
+  "operation": "readonly source fetch-idle follow-up",
+  "timestamp": "2026-11-05T22:37:21.101826+00:00",
+  "exit_code": 0,
+  "query_snapshot_at": "2026-11-05T22:11:17.867661+00:00",
+  "query_snapshot_sha256": "ffe801c4f2c1397dfeffc06f964f2e16122bca2416d74db3f8909eb5f794140a",
+  "latest_watch_record_sha256": "f51ed76c056f705738515a78d7d5c1f3c0d1c6878274106e81816792165c02b7",
+  "read_only": true,
+  "production_changes": false,
+  "last_actual_fetch": {
+    "bytes_by_host": {
+      "scoring.dance": 13510991
+    },
+    "checked": 4,
+    "failed": false,
+    "finished_at": "2026-11-05T19:55:40.538518+00:00",
+    "run_id": "run_20261105T195523Z"
+  },
+  "eligible_pages": 0,
+  "plan_reasons": [
+    [
+      "page",
+      "capture_gap_exhausted",
+      2944
+    ],
+    [
+      "page",
+      "complete",
+      179
+    ],
+    [
+      "page",
+      "history_year_unaccepted",
+      2087
+    ],
+    [
+      "page",
+      "parent_document_pending",
+      1173
+    ],
+    [
+      "page",
+      "watch_cooldown",
+      247
+    ],
+    [
+      "year",
+      "acceptance_digest_changed",
+      1
+    ],
+    [
+      "year",
+      "eligible",
+      16
+    ],
+    [
+      "year",
+      "year_unaccepted",
+      4
+    ]
+  ],
+  "budget_requests": {
+    "points.worldsdc.com": 1500,
+    "scoring.dance": 109,
+    "eepro.com": 25,
+    "web.archive.org": 84,
+    "worldsdc.com": 2
+  },
+  "latest_loops": [
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T22:32:55.520788+00:00",
+      "last_progress_at": "2026-11-05T20:21:13.222685+00:00",
+      "loop": "derive",
+      "run_id": "run_20261105T223222Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T22:36:03.338794+00:00",
+      "last_progress_at": "2026-11-05T19:55:40.538518+00:00",
+      "loop": "acquire",
+      "run_id": "run_20261105T223600Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T22:11:14.988538+00:00",
+      "last_progress_at": "2026-11-05T22:11:14.988538+00:00",
+      "loop": "plan",
+      "run_id": "run_20261105T221000Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T22:20:01.587498+00:00",
+      "last_progress_at": "2026-11-05T19:31:34.977095+00:00",
+      "loop": "release",
+      "run_id": "run_20261105T222000Z"
+    },
+    {
+      "error": null,
+      "failed": 0,
+      "finished_at": "2026-11-05T05:32:46.359640+00:00",
+      "last_progress_at": "2026-11-05T05:32:46.359640+00:00",
+      "loop": "maintain",
+      "run_id": "run_20261105T053000Z"
+    }
+  ],
+  "operator_hold": false,
+  "alert_bytes": 164176,
+  "new_signals_at_latest_pulse": [],
+  "known_alerts": "Earlier watcher signals reported existing web.archive.org ServerError pause and two hours without a fetch; inspected eligibility/budget explains idle cycles, not a new outage.",
+  "scope": "Acquisition-plan reasons and indexed named registry/live slices; no globally-earliest-request claim. Registry priority5 has currently due rows but its daily host budget is exhausted.",
+  "commands": [
+    {
+      "argv": [
+        "orb",
+        "run",
+        "-m",
+        "swingset",
+        "-u",
+        "root",
+        "/var/lib/swingset/venv/bin/python",
+        "-c",
+        "READ_ONLY_BOUNDED_QUERIES"
+      ],
+      "exit_code": 0,
+      "query_arrays_sha256": "47b34d6960fbfe1ae162bf01d3fc99cd51045f2ef557db7717e21080848f0c2f"
+    },
+    {
+      "argv": [
+        "orb",
+        "run",
+        "-m",
+        "swingset",
+        "-u",
+        "root",
+        "/var/lib/swingset/venv/bin/python",
+        "-c",
+        "READ_ONLY_WATCHER"
+      ],
+      "status": "running; bounded observation pulse"
+    }
+  ]
+}

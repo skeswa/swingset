@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-06T21:32:41.061600+00:00",
+  "commands": [
+    "bounded netnone GNU cp -a original RO source to new named volume",
+    "bounded chown -h -R10001:10001 on new source volume only",
+    "actual UID10001/no-cap/netnone/RO mount entire SQLite SHA and schema/baseline proof"
+  ],
+  "copy_exit_code": 0,
+  "copy_seconds": 564.379,
+  "image": "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4",
+  "limits": "New source volume is independent of the working state volume. No original checkpoint chmod, database mutation or third-party credential use.",
+  "operation": "materialize separate UID10001-readable immutable import source",
+  "original_checkpoint_and_permissions_unchanged": true,
+  "ownership_exit_code": 0,
+  "proof": {
+    "baseline_manifest_verified": true,
+    "complete": true,
+    "database_credentials_mounted": false,
+    "external_io": false,
+    "source_bytes": 38890938368,
+    "source_inode_distinct": true,
+    "source_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+    "sqlite_schema": 37,
+    "uid": 10001
+  },
+  "proof_sha256": "74da68468c4f180c8ae92efaf6385e04a0c10b9ac841dfcff9a9a3bca380d480",
+  "readability_exit_code": 0,
+  "readability_seconds": 273.02493500709534,
+  "volume": "swingset-stage2-source-5472a2becdb5"
+}

@@ -1,0 +1,21 @@
+{
+  "all_142_tables_empty": true,
+  "at": "2026-11-09T18:31:24.754550+00:00",
+  "authoritative_result_sha256": "07e7d1f2e5dfe8e2ffe206b79d3710228c560100f9b426e8610b82c5cf41be0f",
+  "catalog_sha256": "9d421ba71b3e1e79ed73c99e6ab81b8c70e24ef2bb7368842c8a72fbe9311234",
+  "container_id": "aec49e0175f8da8a702476708b40f92b91c89db42e307e50420799856a2ac558",
+  "destination_initialized": false,
+  "failure": "initial destination transaction: connection closed after lengthy SQLite preflight",
+  "finished_at": "2026-11-06T23:20:04.435661+00:00",
+  "native_exit_code": 1,
+  "native_receipt_absent": true,
+  "no_automatic_retry": true,
+  "operation": "postcheck of second native import refusal",
+  "original7_apps_unchanged_then_and_now": true,
+  "readonly_postcheck_sha256": "387c1a260fd3777f3eab9c41bc18a0a15ba3fbfbe569aae9c1ed08e577b3c0f4",
+  "relay_idle_timeout_seconds": 4200,
+  "scope": "No publication, schedulers or external credentials. Hold and all source/state copies retained. Relay cause is inferred from its 4200-second timeout and idle connection, not a retained relay timeout log.",
+  "seconds": 6877.315,
+  "source_preflight_returned": true,
+  "traceback_sha256": "b03bee7cbe815d78c930efe2fe3e50ddafdfe4472900ebc9fdd1bc5089458294"
+}

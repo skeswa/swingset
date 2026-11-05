@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -19,9 +20,62 @@ from swingset.build.files import canonical_json
 from swingset.clock import FakeClock
 from swingset.publish.service import RemoteCommit
 from swingset.state import engine
+from swingset.state.db import SCHEMA_VERSION
 from swingset.state.environment import FixtureIO
 
 BUNDLE_HASH = hashlib.sha256(b"{}").hexdigest()
+
+
+def test_checkpoint_version_uses_native_identity_not_imported_source_row(tmp_path):
+    from swingset.backup.checkpoint import _check_database_schema
+    from swingset.state.db import open_database
+
+    with open_database(tmp_path / "native") as database:
+        assert (
+            database.connection.execute(
+                "SELECT value FROM ops.meta WHERE key='schema_version'"
+            ).fetchone()[0]
+            == "37"
+        )
+        _check_database_schema(database.connection, SCHEMA_VERSION)
+        with pytest.raises(CheckpointError, match="declared checkpoint schema"):
+            _check_database_schema(database.connection, SCHEMA_VERSION - 1)
+
+
+def test_staged_restore_audits_bytes_but_waits_for_policy_before_public_io(tmp_path, monkeypatch):
+    from swingset.backup import checkpoint as module
+    from swingset.state.db import open_database
+
+    source = tmp_path / "source"
+    connection = state(source)
+    saved = create_checkpoint(
+        source,
+        connection,
+        tmp_path / "checkpoint",
+        schema_version=SCHEMA_VERSION,
+        versions={},
+        input_bundle_hash=BUNDLE_HASH,
+    )
+    connection.close()
+
+    def premature(*args, **kwargs):
+        raise AssertionError("staged restore must wait for the fresh UUID's policy")
+
+    monkeypatch.setattr(module, "verify_restored_public", premature)
+    monkeypatch.setattr(module, "activate_restored_state", premature)
+    target = tmp_path / "restored"
+    restore_from_checkpoint(
+        saved.path,
+        target,
+        object(),
+        FakeClock(datetime(2026, 11, 5, tzinfo=UTC)),
+        lock_timeout=0,
+        defer_activation=True,
+    )
+    assert (target / "RESTORE_PENDING").is_file()
+    assert (target / "tmp/restore-history/history.json").is_file()
+    with pytest.raises(RuntimeError, match="restore verification is pending"):
+        open_database(target)
 
 
 def state(root: Path) -> engine.Connection:
@@ -74,7 +128,7 @@ def test_checkpoint_uses_postgres_copy_and_restores_pending(tmp_path: Path) -> N
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={"parser": "1"},
         input_bundle_hash=None,
     )
@@ -82,11 +136,13 @@ def test_checkpoint_uses_postgres_copy_and_restores_pending(tmp_path: Path) -> N
     assert "venv/secret" not in checkpoint.files
     assert f"database/files/inputs/{BUNDLE_HASH}/manifest.json" in checkpoint.files
     assert (
-        verify_checkpoint(checkpoint.path, maximum_schema_version=37)["baseline_candidate"]
+        verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION)[
+            "baseline_candidate"
+        ]
         == "cand_base"
     )
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     assert (restored / "RESTORE_PENDING").exists()
     assert (restored / "baseline").resolve().name == "cand_base"
     from swingset.state.db import open_database
@@ -120,7 +176,7 @@ def test_checkpoint_excludes_service_home_tool_caches(tmp_path: Path) -> None:
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
@@ -128,7 +184,7 @@ def test_checkpoint_excludes_service_home_tool_caches(tmp_path: Path) -> None:
 
     assert not any(name == ".cache" or name.startswith(".cache/") for name in checkpoint.files)
     assert f"database/files/inputs/{BUNDLE_HASH}/manifest.json" in checkpoint.files
-    verify_checkpoint(checkpoint.path, maximum_schema_version=37)
+    verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION)
 
 
 def test_nested_checkpoint_manifest_is_retained_verified_and_restored(tmp_path: Path) -> None:
@@ -143,22 +199,22 @@ def test_nested_checkpoint_manifest_is_retained_verified_and_restored(tmp_path: 
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     assert (
         "database/files/" + relative.as_posix()
-        in verify_checkpoint(checkpoint.path, maximum_schema_version=37)["files"]
+        in verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION)["files"]
     )
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     assert (restored / relative).read_bytes() == body
     assert not (restored / "checkpoint.json").exists()
     (checkpoint.path / "database/files" / relative).write_bytes(b"changed nested evidence")
     with pytest.raises(CheckpointError, match="file failed verification"):
-        verify_checkpoint(checkpoint.path, maximum_schema_version=37)
+        verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION)
 
 
 def test_changed_checkpoint_file_is_rejected(tmp_path: Path) -> None:
@@ -168,7 +224,7 @@ def test_changed_checkpoint_file_is_rejected(tmp_path: Path) -> None:
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=None,
     )
@@ -178,7 +234,7 @@ def test_changed_checkpoint_file_is_rejected(tmp_path: Path) -> None:
     )
     blob.write_bytes(b"corrupt")
     with pytest.raises(CheckpointError, match="failed verification"):
-        verify_checkpoint(checkpoint.path, maximum_schema_version=37)
+        verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION)
 
 
 @pytest.mark.parametrize("quick", [True, False])
@@ -193,7 +249,7 @@ def test_a_copy_hashed_after_it_went_bad_fails_the_database_check(
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=None,
     )
@@ -219,7 +275,7 @@ def test_a_copy_hashed_after_it_went_bad_fails_the_database_check(
         }
     manifest_path.write_bytes(canonical_json(manifest))
     with pytest.raises((CheckpointError, ValueError)) as caught:
-        verify_checkpoint(checkpoint.path, maximum_schema_version=37, quick=quick)
+        verify_checkpoint(checkpoint.path, maximum_schema_version=SCHEMA_VERSION, quick=quick)
     assert "file failed verification" not in str(caught.value)
 
 
@@ -237,7 +293,7 @@ def test_missing_referenced_extract_blocks_checkpoint(tmp_path: Path) -> None:
             source,
             connection,
             tmp_path / "checkpoint",
-            schema_version=37,
+            schema_version=SCHEMA_VERSION,
             versions={},
             input_bundle_hash=None,
         )
@@ -277,13 +333,13 @@ def test_restore_public_verification_keeps_activation_explicit(tmp_path: Path) -
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     verify_restored_public(restored, StaticHub("abc"))
     assert (restored / "RESTORE_PENDING").exists()
     activate_restored_state(restored)
@@ -297,13 +353,13 @@ def test_remote_ahead_keeps_restore_disabled(tmp_path: Path) -> None:
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     with pytest.raises(CheckpointError, match="differs"):
         verify_restored_public(restored, StaticHub("newer"))
     assert (restored / "RESTORE_PENDING").exists()
@@ -353,13 +409,13 @@ def test_restore_recovers_landed_pending_candidate_without_publish(tmp_path: Pat
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     remote = RemoteCommit(
         "landed",
         "abc",
@@ -392,7 +448,7 @@ def test_restore_from_checkpoint_holds_protocol_through_activation(tmp_path: Pat
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
@@ -434,7 +490,7 @@ def test_restore_lock_timeout_makes_no_staging_state(tmp_path: Path) -> None:
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
@@ -469,7 +525,7 @@ def test_restore_refuses_valid_unmarked_state_and_resumes_marked_staging(tmp_pat
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
@@ -715,7 +771,7 @@ def test_a_hold_added_during_a_checkpoint_waits_for_the_copy(
             source,
             connection,
             tmp_path / "checkpoint",
-            schema_version=37,
+            schema_version=SCHEMA_VERSION,
             versions={},
             input_bundle_hash=None,
         )
@@ -744,14 +800,14 @@ def test_a_hold_added_during_a_checkpoint_waits_for_the_copy(
         source,
         connection,
         tmp_path / "checkpoint-2",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=None,
     )
     connection.close()
     assert [name for name in after.files if name.startswith("database/files/holds/")]
     assert "database/files/" + relative in after.files
-    verify_checkpoint(after.path, maximum_schema_version=37)
+    verify_checkpoint(after.path, maximum_schema_version=SCHEMA_VERSION)
 
 
 def test_restore_downloads_only_reconciled_baseline_and_verifies_sealed_hashes(tmp_path):
@@ -771,13 +827,13 @@ def test_restore_downloads_only_reconciled_baseline_and_verifies_sealed_hashes(t
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     hub = StaticHub("abc", files={("abc", "data/current.parquet"): payload})
     verify_restored_public(restored, hub)
     assert hub.downloads == [("data/current.parquet", "abc")]
@@ -802,13 +858,13 @@ def test_changed_public_baseline_download_keeps_restore_barrier(tmp_path):
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     corrupt = tmp_path / "corrupt.parquet"
     corrupt.write_bytes(b"changed")
     with pytest.raises(CheckpointError, match="differs from its manifest"):
@@ -843,13 +899,13 @@ def test_unlanded_restored_intent_is_abandoned_before_rebuild(tmp_path):
         source,
         connection,
         tmp_path / "checkpoint",
-        schema_version=37,
+        schema_version=SCHEMA_VERSION,
         versions={},
         input_bundle_hash=BUNDLE_HASH,
     )
     connection.close()
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=37)
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=SCHEMA_VERSION)
     verify_restored_public(restored, StaticHub("abc"))
     candidate = restored / "candidates/cand_unlanded"
     assert not (candidate / "PUBLISHING").exists()

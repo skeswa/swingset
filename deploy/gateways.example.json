@@ -1,0 +1,12 @@
+{
+  "proxy_origins": [
+    "https://huggingface.co",
+    "https://CHANGE-ME.r2.cloudflarestorage.com",
+    "http://owned-mock.swingset.invalid:8080"
+  ],
+  "internal_hosts": {
+    "database.swingset.invalid": "172.30.240.3",
+    "scratch.swingset.invalid": "172.30.240.6",
+    "owned-mock.swingset.invalid": "172.30.240.5"
+  }
+}

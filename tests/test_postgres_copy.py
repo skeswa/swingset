@@ -350,3 +350,35 @@ def test_ownership_records_and_nonce_publish_are_fsynced_before_effects(tmp_path
         assert copies.path.parent.stat().st_ino in sync
         assert (work / ".swingset-scratch-owner.json").stat().st_ino in sync
         assert work.stat().st_ino in sync
+
+
+def test_explicit_durable_copy_registry_is_private_and_cannot_adopt_foreign_namespace(
+    tmp_path, monkeypatch
+):
+    durable = tmp_path / "durable-owners"
+    monkeypatch.setenv("SWINGSET_COPY_ROOT", str(durable))
+    copies = Copies.for_admin(ensure_service().dsn())
+    assert copies.path.parent == durable.resolve()
+    assert copies.record["incarnation"] == copies._process_identity
+    foreign = {
+        **copies.record,
+        "incarnation": {
+            **copies.record["incarnation"],
+            "namespace": "pid:[foreign]",
+            "pid_start": "foreign",
+        },
+    }
+    assert not copies._owner_dead(foreign)
+    explicit = tmp_path / "checker-owners"
+    assert Copies.for_admin(ensure_service().dsn(), registry_root=explicit).path.parent == explicit
+    durable.chmod(0o755)
+    with pytest.raises(ValueError, match="private"):
+        Copies.for_admin(ensure_service().dsn())
+    durable.chmod(0o700)
+    monkeypatch.setenv("SWINGSET_COPY_ROOT", "relative")
+    with pytest.raises(ValueError, match="absolute"):
+        Copies.for_admin(ensure_service().dsn())
+    monkeypatch.setenv("SWINGSET_COPY_ROOT", str(tmp_path / "owners-link"))
+    (tmp_path / "owners-link").symlink_to(durable, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlinks"):
+        Copies.for_admin(ensure_service().dsn())

@@ -233,3 +233,110 @@ def test_drill_uses_private_owner_job_without_client_credentials_and_cleans_ever
         child.terminate()
         stdout, stderr = child.communicate(timeout=10)
         assert service.password.encode() not in stdout + stderr
+
+
+def test_readonly_probe_stays_responsive_during_real_restore_and_rejects_stale_listener(
+    tmp_path, monkeypatch, private_checker_files
+):
+    import importlib
+    import socket
+
+    checker = importlib.import_module("swingset.backup.check")
+    monkeypatch.setenv("SWINGSET_RUNTIME_IMAGE", "example.test/swingset@sha256:" + "a" * 64)
+    root = private_checker_files
+    root.mkdir()
+    history = root / "history"
+    with open_database(tmp_path / "state") as database:
+        capture(database.state_dir, database.connection, history)
+    digest = hashlib.sha256((history / "history.json").read_bytes()).hexdigest()
+    endpoint, busy, release = (tmp_path / name for name in ("checker.sock", "busy", "release"))
+    # Only the unit's platform-identity provider is replaced on macOS. The
+    # production provider always reads Linux procfs; no runtime override exists.
+    code = """
+import importlib,os,sys,time
+from pathlib import Path
+checker=importlib.import_module("swingset.backup.check")
+original=checker.restore_check
+endpoint,root,busy,release=map(Path,sys.argv[1:])
+def delayed(*args,**kwargs):
+    busy.write_text("restore entered")
+    until=time.monotonic()+20
+    while not release.exists():
+        if time.monotonic()>until:raise RuntimeError("fixture release timed out")
+        time.sleep(.01)
+    return original(*args,**kwargs)
+checker.restore_check=delayed
+checker._listener_identity=lambda:{"boot_id":"fixture-boot","pid_namespace":"pid:[fixture]","pid":os.getpid()}
+checker.serve(endpoint,root,os.environ["SWINGSET_SCRATCH_ADMIN_DSN"])
+"""
+    env = {**os.environ, "SWINGSET_SCRATCH_ADMIN_DSN": ensure_service().dsn()}
+    env.pop("SWINGSET_TEST_RUN", None)
+    process = subprocess.Popen(
+        [sys.executable, "-c", code, str(endpoint), str(root), str(busy), str(release)],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    client = None
+    try:
+        until = time.monotonic() + 10
+        while (
+            not Path(str(endpoint) + ".probe").exists()
+            and process.poll() is None
+            and time.monotonic() < until
+        ):
+            time.sleep(0.02)
+        assert Path(str(endpoint) + ".probe").exists()
+        monkeypatch.setenv("SWINGSET_BACKUP_CHECK_SOCKET", str(endpoint))
+        monkeypatch.setenv("SWINGSET_BACKUP_CHECK_ROOT", str(root))
+        monkeypatch.delenv("SWINGSET_SCRATCH_ADMIN_DSN", raising=False)
+        values = []
+        client = threading.Thread(
+            target=lambda: values.append(check(history, manifest_sha256=digest))
+        )
+        client.start()
+        while not busy.exists() and time.monotonic() < until:
+            time.sleep(0.01)
+        assert busy.exists()
+        monkeypatch.setattr(
+            checker,
+            "_listener_identity",
+            lambda: {
+                "boot_id": "fixture-boot",
+                "pid_namespace": "pid:[fixture]",
+                "pid": os.getpid(),
+            },
+        )
+        started = time.monotonic()
+        assert checker.probe(endpoint)["ready"] is True
+        assert time.monotonic() - started < 3
+        assert client.is_alive(), "the real restore remains queued in its main-thread handler"
+        monkeypatch.setattr(
+            checker,
+            "_listener_identity",
+            lambda: {
+                "boot_id": "fixture-boot",
+                "pid_namespace": "pid:[another-container]",
+                "pid": os.getpid(),
+            },
+        )
+        with pytest.raises(TransportError, match="listener identity"):
+            checker.probe(endpoint)
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as request:
+            request.settimeout(5)
+            request.connect(str(endpoint) + ".probe")
+            request.sendall(b'{"history":"secret-marker","manifest_sha256":"not-a-job"}\n')
+            body = request.recv(4096)
+        assert json.loads(body)["complete"] is False
+        assert b"secret-marker" not in body
+        release.write_text("continue")
+        client.join(timeout=15)
+        assert not client.is_alive()
+        assert values and values[0]["complete"] and values[0]["audit"]["equal"]
+    finally:
+        release.write_text("continue")
+        if client is not None:
+            client.join(timeout=15)
+        process.terminate()
+        stdout, stderr = process.communicate(timeout=10)
+        assert ensure_service().password.encode() not in stdout + stderr

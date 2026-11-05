@@ -1,0 +1,106 @@
+{
+  "operation": "Export completed reference R candidate and controls through standard SFTP",
+  "finished_at": "2026-11-06T00:04:20Z",
+  "command": [
+    "python3",
+    "/tmp/swingset-reference-export-d95311cc49c0.py",
+    "/tmp/swingset-reference-export-d95311cc49c0-root-review.json"
+  ],
+  "controller_sha256": "4d354cd2b8b7195f0352077698b211ada57158d486ab95a6cf35e37c99761ee3",
+  "review_sha256": "62b612831ba0c39406f5bac09359765d54a0e452c4b1f754a7bab41f90104735",
+  "raw_controller_result_sha256": "5cc547da1b7811fac700f5444e7eb5c631f8d385a3ebf860d9bc7db4c25574fd",
+  "exit_code": 0,
+  "complete": true,
+  "source_setup": {
+    "bytes": 381583989,
+    "file_count": 54,
+    "metadata_sha256": "b0af4f25c549e83a10e54c419d6be834548b086d5b863c6bcfa41c556f4b4b55"
+  },
+  "destination_root": "/var/tmp/swingset-stage2-reference-export-43c481e9f27a",
+  "destination_identity": {
+    "allocated_bytes": 4096,
+    "bytes": 4096,
+    "device": 2050,
+    "inode": 15894262,
+    "mode": 448,
+    "uid": 1000
+  },
+  "verification": {
+    "all_sha256_pass": true,
+    "bytes": 381686344,
+    "files": 59,
+    "receipt_sha256": "2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f"
+  },
+  "transfer": {
+    "before": {
+      "bytes": 10625,
+      "device": 2050,
+      "inode": 15894291,
+      "sha256": "2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f",
+      "uid": 1000
+    },
+    "after": {
+      "bytes": 10625,
+      "device": 2050,
+      "inode": 15894291,
+      "sha256": "2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f",
+      "uid": 1000
+    },
+    "local_sha256": "2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f",
+    "complete": true
+  },
+  "phases": [
+    {
+      "label": "source-setup",
+      "exit_code": 0,
+      "seconds": 0.4149787089999999,
+      "stdout_sha256": "f23e505fba3c85bb5bbcb7986835d320cfcfefecc9bfcaf6b36c3fdcac9521d2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "source-metadata-sftp",
+      "exit_code": 0,
+      "seconds": 0.20161374999999992,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "server-init",
+      "exit_code": 0,
+      "seconds": 0.8271630000000001,
+      "stdout_sha256": "e98b05260ed9fe1a98e9b973b792b7ffd95176f361b7c323922fe5dc1504cfbc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "control-sftp",
+      "exit_code": 0,
+      "seconds": 4.31127675,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "candidate-sftp",
+      "exit_code": 0,
+      "seconds": 85.89399933300001,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "receipts-sftp",
+      "exit_code": 0,
+      "seconds": 1.8627501659999979,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "server-verify",
+      "exit_code": 0,
+      "seconds": 3.125995916000008,
+      "stdout_sha256": "3d7a9a16d76e90b099a289a06fa3f3058b595afcfbb481cfa06d2a79d043b5e4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "no_local_payload_copy": true,
+  "no_publication": true,
+  "cleanup": "separate reviewed operation"
+}

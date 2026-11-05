@@ -1,0 +1,33 @@
+# Host operator tools only. Application code and policy are mounted read-only.
+# Resolve the platform's manifest from these pinned multi-platform indexes.
+FROM docker:29.9.3-cli@sha256:2357639ad1ea7d0194134bf3292622fd4e562483966ed674e5d7c945b5f3b28d AS docker-client
+FROM python:3.12.16-slim-trixie@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+
+# Snapshot URLs freeze both package selection and their signed package hashes.
+# Ignore only the historical Release expiry; repository signatures stay checked.
+RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/* \
+    && printf '%s\n' \
+      'Types: deb' \
+      'URIs: https://snapshot.debian.org/archive/debian/20261104T000000Z/' \
+      'Suites: trixie trixie-updates' \
+      'Components: main' \
+      'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' \
+      'Check-Valid-Until: no' \
+      '' \
+      'Types: deb' \
+      'URIs: https://snapshot.debian.org/archive/debian-security/20261104T000000Z/' \
+      'Suites: trixie-security' \
+      'Components: main' \
+      'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' \
+      'Check-Valid-Until: no' \
+      > /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
+    && apt-get install --yes --no-install-recommends util-linux iptables \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=docker-client /usr/local/bin/docker /usr/local/bin/docker
+RUN python --version && docker --version && nsenter --version \
+    && iptables --version && ip6tables --version
+
+LABEL io.swingset.operator.debian-snapshot="20261104T000000Z"
+CMD ["python", "--version"]

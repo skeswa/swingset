@@ -1,0 +1,274 @@
+{
+  "all_twelve_readonly_no_new_privileges_apparmor_nonprivileged": true,
+  "at": "2026-11-06T02:48:59.097306+00:00",
+  "complete": true,
+  "deployment": "swingset-stage2-netproof-41cd9f8968f7",
+  "driver_sha256": "07d363b25c0650b32aa49f22a0067eb081d2a5c3d92ee00e7aa7846e175bf3ef",
+  "limits": [
+    "Owned endpoints and HTTP nonce relay only; no SQL/SCRAM authentication proof.",
+    "No credentials, database mounts, application deployment, collection-site requests or live publication.",
+    "This proof does not substitute for the final credentialed application topology."
+  ],
+  "live_ipv4_ipv6_control_before_and_after": true,
+  "manifest_sha256": "a1f69b63d2a83c0f672aa951c36037f8fcd79641f4c8b4c7ddc73d324010aa9e",
+  "operation": "Final-runtime isolated network and lifecycle proof",
+  "operator_added_capabilities": [
+    "NET_ADMIN",
+    "SYS_ADMIN",
+    "SYS_PTRACE"
+  ],
+  "operator_security_note": "Observed pid-host operator also has label=disable; daemon has AppArmor and builtin seccomp, no SELinux. No profile was weakened. An earlier overly strict metadata assertion failed before any lifecycle phase.",
+  "phases": {
+    "adversarial": {
+      "bytes": 244169,
+      "complete": true,
+      "sha256": "a5b765b64b48090f6efe7aa932009b94482a76293ea3a507e04623ab70161160",
+      "utc": 1793930669.5102878
+    },
+    "adversarial-proof": {
+      "bytes": 5187,
+      "complete": true,
+      "sha256": "257c93c2e4b86a2666c33b114f0214190469fce54663484b07a08231d15510de"
+    },
+    "baseline": {
+      "bytes": 104942,
+      "complete": true,
+      "sha256": "3646e624858c27434d1728fd48b4ce29ed7149999591de6113146414a11f41e9",
+      "utc": 1793930396.3037918
+    },
+    "baseline-proof": {
+      "bytes": 3536,
+      "complete": true,
+      "sha256": "ceaa24a139b843d685cee4300e01f28b677a926c44d30c9cdb1cf792c341612f"
+    },
+    "recreate": {
+      "bytes": 123838,
+      "complete": true,
+      "sha256": "3ae25fe2336038b6f9bdcb759c3e6ddb724109a15a4906e1346342640c6e5399",
+      "utc": 1793930912.9322712
+    },
+    "recreated-proof": {
+      "bytes": 3537,
+      "complete": true,
+      "sha256": "e657208c7fc7a512419fbe0f019a0529fe9a50ad9708342ccb7a99092e43b759"
+    },
+    "relay": {
+      "bytes": 41498,
+      "complete": true,
+      "sha256": "5b8923ef7bf0ec4284767c21b05a11d51159d85c4f4328eb6eee617c2684473a",
+      "utc": 1793931782.1018813
+    },
+    "restart": {
+      "bytes": 123044,
+      "complete": true,
+      "sha256": "f89985a78f229b91c613ecae24a0b1e3ef1ccd613a230880467ed77e9079c130",
+      "utc": 1793931034.4851909
+    },
+    "restart-proof": {
+      "bytes": 3537,
+      "complete": true,
+      "sha256": "82ad1f29618a7ca03a327dfda494c91c71fffd7eaa12e1b25d7d972bef6454b6"
+    },
+    "setup": {
+      "bytes": 100880,
+      "complete": true,
+      "sha256": "a8b91f450a428ca263ccf0fea7fced9ea0325c1e2576b808b282298ac9a897e8",
+      "utc": 1793930189.91587
+    },
+    "setup-topology": {
+      "bytes": 56252,
+      "complete": true,
+      "sha256": "25cb976516749c12028fcdedd7905c22a4abe7552e2bc16a1043fdb70d160834"
+    },
+    "tunnel-after": {
+      "bytes": 375,
+      "complete": true,
+      "sha256": "5c283936ac5b0ada0a2c12cfede7b37d69bbecbd031f56f25a2fc162a261f9b9",
+      "utc": 1793931906.258032
+    },
+    "tunnel-before": {
+      "bytes": 376,
+      "complete": true,
+      "sha256": "167e1abb9e4b916b44f168d0173d9c0ce10fa040a45c3106b55eedf0f2ad98a8",
+      "utc": 1793931152.215521
+    }
+  },
+  "portable_config": "758d93a57244cc223ef6989217fa2d9f662804730dfbfa79dba8955bdbe2af04",
+  "production_compose_sha256": "79b77eb9cc4fc4e4126b6789de505fc7a6e2e116d762dcb7c2692476dd2ed7c6",
+  "proof_only_changes": [
+    "waiting command instead of scheduler/checker/health; disabled service healthcheck",
+    "secrets empty; private fresh bind directories",
+    "reduced CPU/memory limits; restart=no; pull_policy=never",
+    "owned target IPv4/IPv6 control/mock replaces every outside endpoint and Postgres",
+    "two external worker/target bridges plus relay-only Compose-managed noninternal ingress with masqueradefalse",
+    "standalone trusted operator image with existing reviewed narrow namespace capabilities and Docker socket; no worker socket"
+  ],
+  "relay_binding": {
+    "container_id": "afa783f1c040cda2fb5d02c6309f5cd115acad49c338bdd068855dde979f1f13",
+    "host_config": {
+      "5432/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "15435"
+        }
+      ]
+    },
+    "network_settings": {
+      "5432/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "15435"
+        }
+      ]
+    }
+  },
+  "relay_recreated_once": true,
+  "resolver_added_capability": "NET_BIND_SERVICE",
+  "root_lifecycle_review_sha256": "9583110633cd83f460ccc83b6091696040c7a7c41c84d996212d731c8ae2956a",
+  "runtime_source_sha256": "2a83d305cdfe0230a4dd8b7ba64c4aa859e833b8ebbfb1372904b354c14937c4",
+  "security_sha256": "097123f37f85e27c29a7fc719e8b80277907822c3e9c9fcd7bb492ae676e777c",
+  "six_worker_recreation_and_restart": true,
+  "source_comparison_sha256": "275e76cc0831798465f75200b5637048b95de069a2e63ea93ecd497acfef2e7d",
+  "worker_added_capabilities": 0,
+  "worker_boundary_fields_equal": true,
+  "workers": [
+    {
+      "allow_and_deny_checks_passed": true,
+      "container_id": "fb4c51ac39b1e6f42bffc6037073b063d69b369b53928590d7f94d9c7578e0c5",
+      "role": "acquire-plan",
+      "tcp": [
+        {
+          "address": "172.30.244.5",
+          "errno": 113,
+          "ipv6_flags": null,
+          "reject_after": 1,
+          "reject_before": 0,
+          "source": "172.30.244.30"
+        },
+        {
+          "address": "fd42:7377:696e:244::5",
+          "errno": 13,
+          "ipv6_flags": 130,
+          "reject_after": 10,
+          "reject_before": 8,
+          "source": "fd42:7377:696e:244::30"
+        }
+      ]
+    },
+    {
+      "allow_and_deny_checks_passed": true,
+      "container_id": "b6cec186f3180f9da19be1161144177cc89633acb15eb041273bc01382768617",
+      "role": "derive",
+      "tcp": [
+        {
+          "address": "172.30.244.5",
+          "errno": 113,
+          "ipv6_flags": null,
+          "reject_after": 1,
+          "reject_before": 0,
+          "source": "172.30.244.31"
+        },
+        {
+          "address": "fd42:7377:696e:244::5",
+          "errno": 13,
+          "ipv6_flags": 130,
+          "reject_after": 11,
+          "reject_before": 9,
+          "source": "fd42:7377:696e:244::31"
+        }
+      ]
+    },
+    {
+      "allow_and_deny_checks_passed": true,
+      "container_id": "13c6507431819de6ea87219977c9b74e801418746cf82ea9850d419965b34f6c",
+      "role": "release-maintain",
+      "tcp": [
+        {
+          "address": "172.30.244.5",
+          "errno": 113,
+          "ipv6_flags": null,
+          "reject_after": 1,
+          "reject_before": 0,
+          "source": "172.30.244.32"
+        },
+        {
+          "address": "fd42:7377:696e:244::5",
+          "errno": 13,
+          "ipv6_flags": 130,
+          "reject_after": 11,
+          "reject_before": 9,
+          "source": "fd42:7377:696e:244::32"
+        }
+      ]
+    },
+    {
+      "allow_and_deny_checks_passed": true,
+      "container_id": "0ac95c3111ac3c5c26f063e7fc8f64d7f335e1c238dee020825376856f07185c",
+      "role": "jobs",
+      "tcp": [
+        {
+          "address": "172.30.244.5",
+          "errno": 113,
+          "ipv6_flags": null,
+          "reject_after": 1,
+          "reject_before": 0,
+          "source": "172.30.244.33"
+        },
+        {
+          "address": "fd42:7377:696e:244::5",
+          "errno": 13,
+          "ipv6_flags": 130,
+          "reject_after": 12,
+          "reject_before": 9,
+          "source": "fd42:7377:696e:244::33"
+        }
+      ]
+    },
+    {
+      "allow_and_deny_checks_passed": true,
+      "container_id": "737e0d4be0b06c5209c4c08409b375ef8610147f90685c7664c33430b99ba9ed",
+      "role": "checker",
+      "tcp": [
+        {
+          "address": "172.30.244.5",
+          "errno": 113,
+          "ipv6_flags": null,
+          "reject_after": 1,
+          "reject_before": 0,
+          "source": "172.30.244.34"
+        },
+        {
+          "address": "fd42:7377:696e:244::5",
+          "errno": 13,
+          "ipv6_flags": 130,
+          "reject_after": 12,
+          "reject_before": 10,
+          "source": "fd42:7377:696e:244::34"
+        }
+      ]
+    },
+    {
+      "allow_and_deny_checks_passed": true,
+      "container_id": "7763b76deb2262608d4669f1bcf770f6868286ba433f7a14796d6b32f7a54234",
+      "role": "health",
+      "tcp": [
+        {
+          "address": "172.30.244.5",
+          "errno": 113,
+          "ipv6_flags": null,
+          "reject_after": 1,
+          "reject_before": 0,
+          "source": "172.30.244.35"
+        },
+        {
+          "address": "fd42:7377:696e:244::5",
+          "errno": 13,
+          "ipv6_flags": 130,
+          "reject_after": 12,
+          "reject_before": 10,
+          "source": "fd42:7377:696e:244::35"
+        }
+      ]
+    }
+  ]
+}

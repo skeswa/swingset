@@ -1,0 +1,35 @@
+{
+  "operation": "first maintained frozen reference workspace",
+  "timestamp": "2026-11-05T23:25:04.886258+00:00",
+  "command": [
+    "swingset",
+    "reference-build",
+    "--policy",
+    "/tmp/swingset-reference-build-policy-49088a5b1cee.json",
+    "--review",
+    "/tmp/swingset-reference-build-policy-49088a5b1cee-root-review-v2.json"
+  ],
+  "exit_code": 1,
+  "nonce": "49088a5b1cee",
+  "policy_sha256": "63c1ea41e98d479d8026ebfafd7b0e1173e357d4d79db4cbeea6b92bef7b9ba3",
+  "review_sha256": "2c9d5ffa68ecbc2f2ac75854722dc69add72481225407540b1af614b2d01b875",
+  "runner_sha256": {
+    "reference.py": "dc0667e4ee866ce3af2d5acbf310c575defb19573581ad2d445a00412116945c",
+    "reference_policy.py": "25344c1f239b0e914f3341edd1b53909c1b7c9769fe83e7fa4b5696948f0ad40",
+    "reference_worker.py": "c2d7cc2e9716e9d28764a2596750e95df9104f2dc855dcd1f6f8548f3cc30041",
+    "reference_workspace.py": "cc148f04302da0c99271178e84c51205e55b8c06a7a5946561fce4d3149b59f1"
+  },
+  "raw_result_sha256": "476909edfde5ccdeee129a03ff3d74e805cf05b481072757ad2f83e3fe83c7cf",
+  "authoritative_sftp_sha256": "947786a0c4b70a90874b388f08acf73f446a9a62a013df9353722124c1e2bb40",
+  "failure_phase": "btrfs quota enable; no full restore or build",
+  "mount_readback": "rw,nosuid,nodev,noexec,relatime,compress=zstd:3,ssd,discard,space_cache=v2,subvolid=5,subvol=/",
+  "mount_guard_passed": true,
+  "allocated_bytes_after": 4345856,
+  "namespace_owner_absent": true,
+  "owned_cgroup_empty": true,
+  "remaining_owned_loops": [],
+  "partial_image_preserved": true,
+  "shared_mount_unchanged": true,
+  "reference_built": false,
+  "follow_up": "Replace64GiB sparse device plus quotas with a device whose own capacity equals the reviewed dynamic physical budget; compressed logical file sizes may exceed device capacity. Preserve source/resource/free-space/identity guards."
+}

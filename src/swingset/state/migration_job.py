@@ -27,13 +27,16 @@ def run(
                 conn.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
                 try:
                     acquire_writer(conn)
-                    existing = (
+                    from .postgres_bootstrap import prepared
+
+                    initial_prepared = prepared(conn)
+                    existing = not initial_prepared and (
                         conn.execute("SELECT to_regclass('ops.meta')").fetchone()[0] is not None
                     )
                     before = (
                         int(
                             conn.execute(
-                                "SELECT value FROM ops.meta WHERE key='schema_version'"
+                                "SELECT value FROM ops.schema_identity() WHERE key='schema_version'"
                             ).fetchone()[0]
                         )
                         if existing
@@ -41,14 +44,23 @@ def run(
                     )
                     if before > postgres_schema.SCHEMA_VERSION:
                         raise RuntimeError("Postgres migration refuses a schema downgrade")
+                    if existing:
+                        logical_version = int(
+                            conn.execute(
+                                "SELECT value FROM ops.meta WHERE key='schema_version'"
+                            ).fetchone()[0]
+                        )
+                        if logical_version > postgres_schema.SOURCE_SCHEMA_VERSION:
+                            raise RuntimeError("Postgres migration refuses a schema downgrade")
                     if (state / SETTINGS).is_file():
                         with engine.connect(engine.resolve_dsn(state), read_only=True) as worker:
-                            actual = conn.execute(
-                                "SELECT environment,database_id FROM ops.environment_identity WHERE singleton=1"
-                            ).fetchone()
-                            expected = worker.execute(
-                                "SELECT environment,database_id FROM ops.environment_identity WHERE singleton=1"
-                            ).fetchone()
+                            target_query = (
+                                "SELECT oid,inet_server_addr(),inet_server_port() FROM pg_database WHERE datname=current_database()"
+                                if initial_prepared
+                                else "SELECT environment,database_id FROM ops.environment_identity WHERE singleton=1"
+                            )
+                            actual = conn.execute(target_query).fetchone()
+                            expected = worker.execute(target_query).fetchone()
                             if actual is None or actual != expected:
                                 raise ValueError("owner and worker database identities differ")
                     if (

@@ -654,7 +654,7 @@ def test_a_real_release_rebuilds_the_same_way_after_the_migration(
         copies.freeze(fixture.conn, held)
         with open_database(held, lock=False) as migrated:
             conn = migrated.connection
-            assert migrated.schema_version == 37
+            assert migrated.schema_version == db_module.SCHEMA_VERSION
             assert (
                 digest(
                     select(conn, cutoff=fixture.corpus.clock.now(), baseline=baseline).manifest()

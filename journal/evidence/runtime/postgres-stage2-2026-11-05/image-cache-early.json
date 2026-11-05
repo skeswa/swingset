@@ -1,0 +1,42 @@
+{
+  "operation": "early server image staging and cache verification",
+  "timestamp": "2026-11-05T22:47:07.139632+00:00",
+  "commands": [
+    {
+      "argv": [
+        "sh",
+        "/tmp/swingset-stage2-security-draft/early-phase1-4fc7-0e0ba9f0a719/phase1-stage.sh"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "sh",
+        "/tmp/swingset-stage2-security-draft/early-phase1-4fc7-0e0ba9f0a719/phase1-cache.sh"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "review_sha256": "de083b723723a851a0d47551d66025cf89b860c9d268ec80143c4f0b9368c55e",
+  "manifest_sha256": "e8a22b7888315ec3ed4a00b70aea474667a0a8ef11114ca3a555ee74c2772491",
+  "raw_result_sha256": "ec67bfa0ffaead7b4f6e6379d2d1a50795d151febcf97b3ec0cd7b3372ff5671",
+  "archive_sha256": "086c39df8bdce9aab8acc5ac90ff3a2cf73d1719bfad1910e0d25b9d2fe2f2b9",
+  "archive_bytes": 269682688,
+  "receiver_checks": 19,
+  "runtime_artifact": "swingset-runtime@sha256:4fc7e472f794ee6378e84351d6e0d78d5a9ee0dc7ea068a0052fc39d744d7493",
+  "runtime_config": "sha256:c54b150faa47b830e3206a5c95b42892b86b2583fe49ba742a39b67078bb38f8",
+  "operator_config": "sha256:824e5ac0bc1ec5e13193141522a3550eac38830847aa4a6ae14eafb2144aab68",
+  "platform": "linux/amd64",
+  "source_sha256": "421c7f94b4db770ef04918c56cc055f2188656a4f7cf9ed918e390ed27cda8cd",
+  "source_binding_sha256": "cd12b90d0cc2d67ddec6982340f1205b0ca2ddc300af2d6efe0ec191e37594d3",
+  "authoritative_receipt_sha256": {
+    "/var/tmp/swingset-stage2-netproof-0e0ba9f0a719/raw/images.json": "8191a8257459d47dcbe3e9123ca4e7634f7af0b516746228722e1bfd79ef7e16",
+    "/var/tmp/swingset-stage2-netproof-0e0ba9f0a719/raw/phase1-cache-metadata.json": "2c714c538c09286cd12fa9cdeba18f71467d913543b3f335c6a80e0c16b72620"
+  },
+  "receipt_transport": "maintained SFTP; local/remote SHA matched",
+  "all15_old_objects_preserved": true,
+  "existing7_services_unchanged": true,
+  "obsolete_partial_preserved": true,
+  "created_services_or_networks": false,
+  "scope": "Early kernel viability image only; final source image validation remains required."
+}

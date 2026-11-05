@@ -1,0 +1,81 @@
+{
+  "at": "2026-11-06T02:55:37.683634+00:00",
+  "balance_projection": [
+    {
+      "actual_file_phase_loads": [
+        783.9904537349939,
+        784.0395526157226,
+        754.7093164282851,
+        667.1592207525391
+      ],
+      "estimated_four_worker_lpt_span": [
+        196.04039208148606,
+        196.04461464844644,
+        188.72262372542173,
+        166.92655147006735
+      ],
+      "weights": "old"
+    },
+    {
+      "actual_file_phase_loads": [
+        747.4743076181039,
+        747.4749512400012,
+        747.4756957869977,
+        747.4735888864379
+      ],
+      "estimated_four_worker_lpt_span": [
+        186.87570564891212,
+        186.88252755627036,
+        186.91320681851357,
+        186.87020180537365
+      ],
+      "weights": "refreshed"
+    }
+  ],
+  "command": "PYTHONPATH=/tmp:src mise run test -- tests/publish/test_safety.py -q -p swingset_stage2_profile -o tmp_path_retention_policy=failed",
+  "core_aggregate_worker_seconds": 2989.7226819084026,
+  "core_measurement": "developer-fixtures.json",
+  "exit_code": 0,
+  "finding": "Refreshed weights improve projected balance, but measured phase work alone exceeds 180 seconds at sixteen workers. The focused file performs fourteen real publication backups and thirteen restore checks. No cache, audit, SQL batching, concurrency, assertion, cap or deadline change follows from this profile.",
+  "ideal_phase_lower_bound_seconds": 186.85766761927516,
+  "limits": "Focused timings include cProfile overhead on native macOS; they are not Linux core timings or a causal comparison.",
+  "operation": "Core budget diagnostic, no implementation change",
+  "phase_seconds": {
+    "call": 62.9743,
+    "collection": 0.8645,
+    "setup": 10.3938,
+    "teardown": 0.6587,
+    "wall": 75.2024
+  },
+  "profile_sha256": "8391318ab6b63d59143ea07aad2bb6b5091f93b83d4e57313a4adf6380d18b68",
+  "profile_total_calls": 151777938,
+  "profile_total_seconds": 76.1940721870013,
+  "selected_profile": [
+    {
+      "calls": 66,
+      "cumulative_seconds": 19.057665084,
+      "file": "swingset/state/postgres_backup.py",
+      "function": "verify",
+      "line": 429,
+      "own_seconds": 0.24482376300000003
+    },
+    {
+      "calls": 123810,
+      "cumulative_seconds": 19.683289662,
+      "file": "psycopg/connection.py",
+      "function": "wait",
+      "line": 479,
+      "own_seconds": 16.805559409
+    },
+    {
+      "calls": 15,
+      "cumulative_seconds": 54.02145171,
+      "file": "swingset/backup/segments.py",
+      "function": "create_set",
+      "line": 254,
+      "own_seconds": 0.001557161
+    }
+  ],
+  "tests": 18,
+  "workers": 16
+}

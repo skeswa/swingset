@@ -1,8 +1,10 @@
 """H12 restores exact historical bytes from actual offline PostgreSQL history checkpoints."""
 
+import copy
 import gzip
 import json
 import os
+import shutil
 
 import pytest
 from test_admission import BODY, Corpus
@@ -13,7 +15,7 @@ from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.state.db import SCHEMA_VERSION, open_database
 
 
-def saved_state(state, *, nested_manifest=False):
+def _saved_source(state, *, nested_manifest=False):
     with open_database(state) as db:
         corpus = Corpus(db)
         ctx = corpus.snapshot("historical")
@@ -47,16 +49,57 @@ def saved_state(state, *, nested_manifest=False):
     )
 
 
-def test_nested_manifest_does_not_disqualify_exact_artifact_recovery(tmp_path):
-    archive, _, _, body_sha, _, _ = saved_state(tmp_path, nested_manifest=True)
+@pytest.fixture(scope="module")
+def archived_sources(tmp_path_factory):
+    """Real checkpoints are immutable sources; every case mutates its own copy."""
+    from swingset.dev import testing
+
+    sources = {}
+
+    def source(nested):
+        if nested not in sources:
+            state = tmp_path_factory.mktemp("artifact-recovery-source") / "state"
+            try:
+                _, _, _, body_sha, extract_sha, value = _saved_source(state, nested_manifest=nested)
+            finally:
+                testing.retire_state(state)
+            sources[nested] = state, body_sha, extract_sha, value
+        return sources[nested]
+
+    return source
+
+
+def saved_state(state, archived_sources, *, nested_manifest=False):
+    source, body_sha, extract_sha, value = archived_sources(nested_manifest)
+    # Recovery only reads checkpoint bytes; no live source database or DSN
+    # is needed or copied. Each test gets its own qualification cache too.
+    for name in ("blobs", "extracts", "checkpoints"):
+        shutil.copytree(source / name, state / name)
+    recovery = LocalCheckpointRecovery(state / "checkpoints", maximum_schema_version=SCHEMA_VERSION)
+    return (
+        Archive(state, recovery=recovery),
+        recovery,
+        state / "checkpoints/backup",
+        body_sha,
+        extract_sha,
+        copy.deepcopy(value),
+    )
+
+
+def test_nested_manifest_does_not_disqualify_exact_artifact_recovery(tmp_path, archived_sources):
+    archive, _, _, body_sha, _, _ = saved_state(tmp_path, archived_sources, nested_manifest=True)
     archive.blob_path(body_sha).unlink()
     assert archive.read_body(body_sha) == BODY
 
 
 @pytest.mark.parametrize("kind", ["body", "extract"])
 @pytest.mark.parametrize("damage", ["missing", "corrupt", "wrong_content"])
-def test_exact_artifact_restored_from_valid_private_checkpoint(tmp_path, kind, damage):
-    archive, recovery, checkpoint, body_sha, extract_sha, value = saved_state(tmp_path)
+def test_exact_artifact_restored_from_valid_private_checkpoint(
+    tmp_path, kind, damage, archived_sources
+):
+    archive, recovery, checkpoint, body_sha, extract_sha, value = saved_state(
+        tmp_path, archived_sources
+    )
     sha = body_sha if kind == "body" else extract_sha
     path = archive.blob_path(sha) if kind == "body" else archive.extract_path(sha)
     before = {
@@ -106,8 +149,8 @@ def test_no_matching_backup_retains_typed_historical_digest(tmp_path, kind):
     assert not archive.extract_path(missing).exists()
 
 
-def test_checkpoint_physical_and_logical_digests_are_both_required(tmp_path):
-    archive, recovery, checkpoint, sha, _, _ = saved_state(tmp_path)
+def test_checkpoint_physical_and_logical_digests_are_both_required(tmp_path, archived_sources):
+    archive, recovery, checkpoint, sha, _, _ = saved_state(tmp_path, archived_sources)
     archive.blob_path(sha).unlink()
     saved_blob = Archive(checkpoint / "database/files").blob_path(sha)
     replacement = gzip.compress(b"this page is from the present")
@@ -139,9 +182,9 @@ def test_checkpoint_physical_and_logical_digests_are_both_required(tmp_path):
 
 
 def test_target_bytes_are_reverified_after_cached_qualification_even_with_same_mtime(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, archived_sources
 ):
-    archive, recovery, checkpoint, sha, extract_sha, _ = saved_state(tmp_path)
+    archive, recovery, checkpoint, sha, extract_sha, _ = saved_state(tmp_path, archived_sources)
     calls = []
     original = recovery._qualify
 
@@ -167,9 +210,9 @@ def test_target_bytes_are_reverified_after_cached_qualification_even_with_same_m
 
 
 def test_unrelated_corrupt_checkpoint_file_blocks_first_qualification_and_repair_is_not_cached(
-    tmp_path,
+    tmp_path, archived_sources
 ):
-    archive, recovery, checkpoint, sha, extract_sha, _ = saved_state(tmp_path)
+    archive, recovery, checkpoint, sha, extract_sha, _ = saved_state(tmp_path, archived_sources)
     archive.blob_path(sha).unlink()
     path = Archive(checkpoint / "database/files").extract_path(extract_sha)
     original = path.read_bytes()
@@ -181,8 +224,8 @@ def test_unrelated_corrupt_checkpoint_file_blocks_first_qualification_and_repair
     assert len(recovery.restored) == 1
 
 
-def test_checkpoint_declared_schema_cannot_hide_newer_database(tmp_path):
-    archive, _, checkpoint, sha, _, _ = saved_state(tmp_path)
+def test_checkpoint_declared_schema_cannot_hide_newer_database(tmp_path, archived_sources):
+    archive, _, checkpoint, sha, _, _ = saved_state(tmp_path, archived_sources)
     archive.blob_path(sha).unlink()
     # The outer declaration cannot disguise a newer native history schema.
     history_path = checkpoint / "database/history.json"
@@ -223,15 +266,17 @@ def test_default_archive_read_contract_is_unchanged(tmp_path):
     assert not isinstance(error.value, ArtifactUnavailable)
 
 
-def test_corrupt_deflate_payload_recovers_exact_bytes(tmp_path):
-    archive, _, _, sha, _, _ = saved_state(tmp_path)
+def test_corrupt_deflate_payload_recovers_exact_bytes(tmp_path, archived_sources):
+    archive, _, _, sha, _, _ = saved_state(tmp_path, archived_sources)
     compressed = gzip.compress(b"content")
     archive.blob_path(sha).write_bytes(compressed[:10] + b"\xff" * 20 + compressed[-8:])
     assert archive.read_body(sha) == BODY
 
 
-def test_manifest_omitting_required_backup_artifact_is_not_a_valid_backup(tmp_path):
-    archive, _, checkpoint, sha, extract_sha, _ = saved_state(tmp_path)
+def test_manifest_omitting_required_backup_artifact_is_not_a_valid_backup(
+    tmp_path, archived_sources
+):
+    archive, _, checkpoint, sha, extract_sha, _ = saved_state(tmp_path, archived_sources)
     archive.blob_path(sha).unlink()
     required = Archive(checkpoint / "database/files").extract_path(extract_sha)
     required.unlink()
@@ -247,8 +292,8 @@ def test_manifest_omitting_required_backup_artifact_is_not_a_valid_backup(tmp_pa
     )
 
 
-def test_recovery_refuses_to_write_into_an_immutable_checkpoint(tmp_path):
-    _, recovery, checkpoint, sha, _, _ = saved_state(tmp_path)
+def test_recovery_refuses_to_write_into_an_immutable_checkpoint(tmp_path, archived_sources):
+    _, recovery, checkpoint, sha, _, _ = saved_state(tmp_path, archived_sources)
     target = Archive(checkpoint / "database/files").blob_path(sha)
     original = target.read_bytes()
     with pytest.raises(ArtifactUnavailable, match="immutable_checkpoint"):

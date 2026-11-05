@@ -116,6 +116,8 @@ EXCLUDED: dict[str, str] = {
     "state/postgres_sample.py": "read-only bounded legacy sampler",
     "state/postgres_import.py": "operator import of frozen SQLite checkpoints",
     "state/legacy_checkpoint.py": "read-only validation of legacy import files",
+    "state/legacy_restore.py": "offline extraction and validation of frozen SQLite transport",
+    "deploy/": "service scheduling, network policy and external rehearsal adapters; no derivation output",
     "admission/activation.py": "operator command that activates or pauses a reviewed contract",
     "admission/corpus.py": "offline admission corpus export",
     "admission/enumeration_evidence.py": _EVENTS,

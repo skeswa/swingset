@@ -1,0 +1,123 @@
+{
+  "at": "2026-11-06T20:17:49.142442+00:00",
+  "commands": [
+    "dokploy compose create --composeType docker-compose --sourceType raw",
+    "dokploy compose deploy",
+    "dokploy compose update; deploy (exact private mock alias)",
+    "trusted read-only SQL probe through private relay",
+    "owned DNS/proxy probes; SSH tunnel SCRAM challenge; external ingress denial"
+  ],
+  "compose": {
+    "appName": "swingset-stage2-obeodd",
+    "composeId": "XeKMlhSKH9FokoDJ8B4eL",
+    "composeStatus": "idle",
+    "composeType": "docker-compose",
+    "environmentId": "hzhoMM-BENikIjGuqOB-f",
+    "name": "swingset-stage2",
+    "sourceType": "raw"
+  },
+  "credential_values_emitted_or_hashed": false,
+  "final_compose_sha256": "4062d47c165e2330c522f9cc1d1886664ca90840c0b6f1dd8b8e7a7893dfe1ea",
+  "gateway": [
+    {
+      "id": "5bb60b91632e9f596d15ebe03ae7dd704b72b8b1b469192af28b82d9abdaffe5",
+      "image": "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4",
+      "name": "/swingset-stage2-obeodd-owned-mock-1",
+      "networks": {
+        "swingset-stage2-app-cc89f18f5c31-private": "172.30.240.5"
+      },
+      "oom": false,
+      "restart": 0,
+      "role": "owned-mock",
+      "running": true
+    },
+    {
+      "id": "7e224cba2d246d1598833030ee0916f3c90f6e70b8f19926132072d2c707ecca",
+      "image": "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4",
+      "name": "/swingset-stage2-obeodd-database-relay-1",
+      "networks": {
+        "dokploy-network": "10.0.1.14",
+        "swingset-stage2-app-cc89f18f5c31-private": "172.30.240.3"
+      },
+      "oom": false,
+      "restart": 0,
+      "role": "database-relay",
+      "running": true
+    },
+    {
+      "id": "a899b1a9d3ac340b38a8a890418a046b709b2222ff1c8b06015fa560e9875c2b",
+      "image": "sha256:f49c57d208193ab0d5468e8daedf2eb48d78b3a842bd1d9f8849db13d566b024",
+      "name": "/swingset-stage2-obeodd-proxy-1",
+      "networks": {
+        "dokploy-network": "10.0.1.15",
+        "swingset-stage2-app-cc89f18f5c31-private": "172.30.240.2"
+      },
+      "oom": false,
+      "restart": 0,
+      "role": "proxy",
+      "running": true
+    },
+    {
+      "id": "f1d371964f9c000cecd1ab2110e37bad052f0bbf38cd085407ea40106a935754",
+      "image": "sha256:881cbdacb8c168aaba50f10b1458f36d1b976c5a856e72d3589bc9cd262f3442",
+      "name": "/swingset-stage2-obeodd-resolver-1",
+      "networks": {
+        "swingset-stage2-app-cc89f18f5c31-private": "172.30.240.4"
+      },
+      "oom": false,
+      "restart": 0,
+      "role": "resolver",
+      "running": true
+    }
+  ],
+  "gateway_probe": {
+    "allowed_status": 200,
+    "complete": true,
+    "literal_ip_status": 403,
+    "namespace_firewall_proof": false,
+    "operation": "actual gateway owned endpoint and resolver checks",
+    "owned_dns": [
+      "172.30.240.5"
+    ],
+    "unknown_dns_denied": true,
+    "unlisted_name_status": 403
+  },
+  "initial_compose_sha256": "9669fd6baf4b0e79912e4b5a3bc007b0c2671aaa2c9ebe141813de59c263fbaa",
+  "limits": "Four support services only, no pipeline, import or environment UUID. SQL proof used trusted server job; tunnel observed SCRAM challenge without authenticating or copying credentials to Mac. Final guarded application topology and post-recreation checks remain open.",
+  "nonloopback_ingress": {
+    "denied": true,
+    "error_type": "ConnectionRefusedError",
+    "outside_host": "173.208.189.162",
+    "port": 15435
+  },
+  "operation": "Dokploy credential-free gateway deployment and SQL relay proof",
+  "original7_apps_unchanged": true,
+  "postcheck_passed": true,
+  "preflight": {
+    "host_free_bytes": 754476224512,
+    "passed": true,
+    "port_and_subnet_free": true,
+    "receipt_sha256": "8f2b9b3ff382dbb5ccead7a5e0ba4b3abe32671b18455a1e8dafc5add6d18a59"
+  },
+  "sql": {
+    "all3_authenticated": true,
+    "all_read_only": true,
+    "cluster_admin": false,
+    "database_oid": 16398,
+    "exit_code": 0,
+    "only_migrate_can_set_owner": true,
+    "receipt_sha256": "0de832a4797f9be2078a55dee2ebeaf112122724473b6ef3cdd1e3e625502319",
+    "seconds": 0.157,
+    "stable_SFTP": true
+  },
+  "tunnel": {
+    "authenticated_login": false,
+    "complete": true,
+    "credential_values_sent_to_Mac": false,
+    "local": "127.0.0.1:15436",
+    "operation": "loopback SSH tunnel PostgreSQL SCRAM challenge",
+    "remote": "127.0.0.1:15435",
+    "scram_sha256_challenge": true,
+    "tunnel_process_reaped": true
+  }
+}

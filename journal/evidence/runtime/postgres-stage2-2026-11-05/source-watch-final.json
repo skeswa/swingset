@@ -1,0 +1,110 @@
+{
+  "alert_followup": "source-watch-0248.json explains the single repeated expired Wayback failure; no new active host pause was observed.",
+  "alerts_during_reconnected_observation": [
+    {
+      "at": "2026-11-06T02:39:12.138218+00:00",
+      "fires": [
+        {
+          "bytes": 127,
+          "classes": [
+            "host-failing"
+          ],
+          "kind": "new_alert_lines",
+          "sha256": "e4d2ef5b47edf7740e1d0d305e3b015837364d49138810cb75d5856b9493c3ad"
+        }
+      ]
+    }
+  ],
+  "at": "2026-11-06T03:25:47.007617+00:00",
+  "captured_stream_bytes": 17600,
+  "captured_stream_sha256": "1fbe70a6ee862b195e999c15f1235c657e0d70ca7e8b8d908c7c1932f3408b7f",
+  "exit_code": 0,
+  "last_pulse": {
+    "active_admissions": [],
+    "alert_bytes": 164430,
+    "at": "2026-11-06T03:24:12.714825+00:00",
+    "fires": [],
+    "last_actual_age_seconds": 1670.90603,
+    "last_actual_fetch": {
+      "bytes_by_host": {
+        "scoring.dance": 405245
+      },
+      "checked": 2,
+      "failed": false,
+      "finished_at": "2026-11-06T02:56:21.808795+00:00",
+      "run_id": "run_20261106T025600Z"
+    },
+    "loops": [
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T03:23:39.563279+00:00",
+        "last_progress_at": "2026-11-06T02:06:03.473801+00:00",
+        "loop": "derive",
+        "run_id": "run_20261106T032300Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T03:20:15.616390+00:00",
+        "last_progress_at": "2026-11-06T02:56:21.808795+00:00",
+        "loop": "acquire",
+        "run_id": "run_20261106T032001Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T03:11:22.020355+00:00",
+        "last_progress_at": "2026-11-06T03:11:22.020355+00:00",
+        "loop": "plan",
+        "run_id": "run_20261106T031000Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-06T03:20:01.461046+00:00",
+        "last_progress_at": "2026-11-05T19:31:34.977095+00:00",
+        "loop": "release",
+        "run_id": "run_20261106T032000Z"
+      },
+      {
+        "error": null,
+        "failed": 0,
+        "finished_at": "2026-11-05T05:32:46.359640+00:00",
+        "last_progress_at": "2026-11-05T05:32:46.359640+00:00",
+        "loop": "maintain",
+        "run_id": "run_20261105T053000Z"
+      }
+    ],
+    "operator_hold": false,
+    "read_only": true
+  },
+  "limits": "Production timers and services continue normally; the temporary read-only observer and task-owned caffeinate ended. This is the final observation of this session.",
+  "observer_source_sha256": "caf7e2a2a0e5071358380fba31de7782ce78b593881e189493eb5c301bb232ad",
+  "operation": "Final read-only production observation and owned watcher shutdown",
+  "production_changes": false,
+  "watcher_stop": {
+    "at": "2026-11-06T03:25:19.547220+00:00",
+    "caffeinate": {
+      "gone": true,
+      "pid": 63306,
+      "signal": "SIGTERM",
+      "started": "Thu Nov 5 15:43:05 2026"
+    },
+    "local_ssh": {
+      "gone": true,
+      "natural_exit": true,
+      "pid": 42950
+    },
+    "production_services_changed": false,
+    "source_observer": {
+      "at": "2026-11-06T03:25:19.524416+00:00",
+      "boot_id": "b568ce9e-1e15-4f10-b45a-0830d94380ac",
+      "pid": 330430,
+      "process_start": "108011314",
+      "signal": "SIGTERM",
+      "terminated": true
+    }
+  },
+  "watcher_stop_sha256": "302da3a0754a03e8731baa75baf76c45bdc26a9b35ded7f047d74f3492ed7889"
+}
