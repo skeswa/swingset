@@ -1,0 +1,1 @@
+{"at":"2026-11-11T09:18:36.354203+00:00","op":"verify preflight","plan":"f65e6b654eae0867e16ea1acb6ee73c96654e42d374a74d6701beac131ef925a","review":"b4e614559bc7a91360992cca70e8370587e41a9425f8dd8401b6e76554075faf","command":"verify-derivations --processes 2","owned_max":3,"base_cleanup":false,"exit":0}

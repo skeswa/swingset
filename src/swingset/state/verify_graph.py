@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import concurrent.futures
 import dataclasses
-import hashlib
 import json
 import multiprocessing
 import os
@@ -29,6 +28,13 @@ from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive, canonical, digest, durable_write
 from swingset.state import engine
 
+from .checkpoint_binding import (
+    UnsupportedCheckpointTransition,
+    input_acceptance_binding,
+)
+from .checkpoint_binding import (
+    checkpoint_identity as checkpoint_identity,
+)
 from .db import Database, open_database
 from .work import WorkUnit
 
@@ -54,55 +60,6 @@ def context(conn: engine.Connection) -> dict[str, Any]:
         },
         "inputs": inputs,
     }
-
-
-def checkpoint_identity(conn: engine.Connection) -> str:
-    """Stable across re-key batches; changed domain inputs or pointers invalidate it.
-
-    Queue, generation recipes and equivalences are intentionally omitted. Canonical
-    domain tables are included so an untracked input edit cannot reuse a proof.
-    """
-    from .read_sets import CANONICAL
-
-    queries = {
-        "derivations": (
-            "SELECT stage, unit_kind, unit_id, materialized_generation_id FROM derivation_scopes ORDER "
-            "BY stage NULLS FIRST, unit_kind NULLS FIRST, unit_id NULLS FIRST"
-        ),
-        "sources": (
-            "SELECT unit_key, watch_id, accepted_generation_id, legacy_snapshot_id FROM source_units "
-            "ORDER BY unit_key NULLS FIRST"
-        ),
-    }
-    checksum = hashlib.sha256()
-    tables = {
-        str(row[0])
-        for row in conn.execute(
-            "SELECT relname AS name FROM pg_catalog.pg_class WHERE relkind = 'r' AND (PG_TABLE_IS_VISIBLE(oid) AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace))"
-        )
-    }
-    for table in sorted(
-        (CANONICAL | {"watches", "admission_policies"}) - {"identity_journal_acceptances"}
-    ):
-        if table in tables:
-            # ORDER BY all columns avoids dependence on row insertion order.
-            from .schema_catalog import columns as column_names
-
-            columns = list(column_names(conn, table))
-            # The same immutable decision bundle can be accepted independently
-            # on the proof copy and import at different instants. Its hashes
-            # bind content; ingestion timestamps do not define another input.
-            if table in {"identity_decisions", "identity_source_refs"}:
-                columns = [name for name in columns if name not in {"accepted_at", "created_at"}]
-            projection = ",".join(f'"{column}"' for column in columns)
-            queries[table] = f'SELECT {projection} FROM "{table}" ORDER BY ' + ",".join(
-                str(i + 1) for i in range(len(columns))
-            )
-    for name, query in sorted(queries.items()):
-        checksum.update(canonical(name))
-        for row in conn.execute(query):
-            checksum.update(canonical(tuple(row)))
-    return checksum.hexdigest()
 
 
 def _source_units(conn: engine.Connection) -> dict[str, engine.Row]:
@@ -177,6 +134,16 @@ def validate_receipt(
         ):
             return False
         if not all(isinstance(receipt[k], dict) for k in ("audit", "versions", "inputs")):
+            return False
+        binding = receipt.get("input_acceptance_binding")
+        if binding is not None and (
+            not isinstance(binding, dict)
+            or binding.get("format") != "swingset-input-checkpoint-binding-v1"
+            or binding.get("source_checkpoint") != receipt.get("source_checkpoint")
+            or binding.get("checkpoint") != receipt["checkpoint"]
+            or binding.get("inputs") != receipt["inputs"]
+            or receipt.get("input_acceptance_binding_unavailable") is not None
+        ):
             return False
         if audit is not None and receipt["audit"] != dict(audit):
             return False
@@ -533,22 +500,51 @@ def run(
     ):
         root = Path(temporary)
         frozen = root / "frozen"
-        with open_database(checkpoint, read_only=True, lock=False) as source:
+        with open_database(
+            checkpoint, read_only=True, lock=False, allow_checkpoint_schema=True
+        ) as source:
             copies.freeze(source.connection, frozen)
             archive_root = source.state_dir
         with open_database(frozen, lock=False) as database:
             expected = enumerate_units(database.connection, scopes)
+            binding = None
+            binding_unavailable = None
             # Capture current candidate code/policies only on the scratch copy.
             if hasattr(bundle, "digest"):
                 from .inputs import accept
 
+                with database.connection.read_snapshot():
+                    try:
+                        binding = input_acceptance_binding(
+                            database.connection, bundle, FakeClock(datetime.fromisoformat(now))
+                        )
+                    except UnsupportedCheckpointTransition as error:
+                        # Ordinary verification also permits deliberate data changes.
+                        # A migration caller must require the stronger binding.
+                        binding_unavailable = str(error)
+                    source_identity = (
+                        binding["source_checkpoint"]
+                        if binding is not None
+                        else checkpoint_identity(database.connection)
+                    )
                 accept(database, bundle, FakeClock(datetime.fromisoformat(now)))
+            else:
+                source_identity = checkpoint_identity(database.connection)
             identity = checkpoint_identity(database.connection)
-            binding = context(database.connection)
+            accepted = context(database.connection)
+            if binding is not None and (
+                binding["checkpoint"] != identity or binding["inputs"] != accepted["inputs"]
+            ):
+                raise RuntimeError(
+                    "input acceptance differs from its read-only checkpoint projection"
+                )
         receipt: dict[str, Any] = {
             "format": FORMAT,
             "checkpoint": identity,
-            **binding,
+            "source_checkpoint": source_identity,
+            "input_acceptance_binding": binding,
+            "input_acceptance_binding_unavailable": binding_unavailable,
+            **accepted,
             "expected_units": expected,
             "unit_set_digest": digest(canonical(expected)),
             "bumped_transforms": sorted(set(bumped_transforms)),

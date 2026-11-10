@@ -305,6 +305,16 @@ that links the old one.
 | [D-0280](0280-allow-only-the-resolvers-bind-capability.md)                                   | Give the pinned resolver only its required bind capability; application workers keep all capabilities dropped                                  | Server network policy                             |
 
 | [D-0281](0281-resolve-controls-from-the-selected-state-directory.md) | Resolve worker and controller URLs from the selected state before falling back to the process environment | Database connection identity |
+| [D-0282](0282-report-status-blindness-without-stopping-network-authorization.md) | Report status observation failures without stopping network authorization; authorization and publication failures remain fatal | Namespace guard failures |
+| [D-0283](0283-use-separate-healthchecks-alert-and-liveness-checks.md) | Use separate Healthchecks.io owner-alert and watchdog checks; keep the management key outside application services | Rehearsal monitoring |
+| [D-0284](0284-count-bulk-history-fence-changes-per-statement.md) | Count transition rows for four bulk history-fence triggers while preserving their exact revision deltas | Native fence updates |
+| [D-0285](0285-read-verified-native38-checkpoints-without-migrating-them.md) | Admit verified native-38 checkpoints only through an explicit read-only copy-source path; keep ordinary opens strict | Checkpoint compatibility |
+| [D-0286](0286-batch-pending-work-generation-updates.md) | Batch pending-work generation callbacks while keeping one generation increment per changed unit and exact history deltas | Native work generations |
+| [D-0287](0287-bound-owned-physical-clones-separately.md) | Give owned physical template clones a finite 600-second I/O allowance; retain short lock and empty-create limits | Private clone deadlines |
+| [D-0288](0288-bind-source-and-accepted-checkpoints-separately.md) | Preserve raw source identity and independently predict supported post-acceptance checkpoints without dropping fields | Graph checkpoint binding |
+| [D-0289](0289-copy-owned-templates-without-per-block-wal.md) | Use FILE_COPY for owned physical templates within the existing bounds | Private Postgres clone strategy |
+| [D-0290](0290-allow-twenty-minutes-for-owned-physical-clones.md) | Allow 1,200 seconds for owned physical clones after measured FILE_COPY timeout; keep short lock and empty-create limits | Private clone deadlines |
+| [D-0291](0291-size-test-lock-tables-for-concurrent-imports.md) | Size only the disposable test primary lock table for sixteen workers, within the existing memory cap | Test PostgreSQL settings |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

@@ -1,0 +1,52 @@
+{
+  "actor_state": {
+    "Dead": false,
+    "Error": "",
+    "ExitCode": 1,
+    "FinishedAt": "2026-11-10T18:57:58.042101683Z",
+    "OOMKilled": false,
+    "Paused": false,
+    "Pid": 0,
+    "Restarting": false,
+    "Running": false,
+    "StartedAt": "2026-11-10T18:32:54.669008654Z",
+    "Status": "exited"
+  },
+  "catalog_packet_sha256": "421faa66be34485666d4a6489bdce96332cdad100297d51cf3c3eb2433ecb3e7",
+  "catalog_stdout_sha256": "b4693dc0bceae2859872ad3ea310b4851149a43d0d62ecaa84b15aa64282b6c6",
+  "container_id": "e79eee46774dedbf34e233fdca831800c938f9cfa0f6cdb1604e557ef9fa35c2",
+  "error": "WriteDeadlineExceeded: atomic write exceeded 60 seconds; output rolled back",
+  "execution_review_sha256": "808ffef2b5aea10a28a3323d4480f3913c106e0346d3279f7b999fdfdd402dfc",
+  "hold_review_at": "2026-11-10T19:56:14.950865+00:00",
+  "hold_sha256": "683405f491b3162bb1ec21208a8a7d0694fa1511688e75198cbfd8f0e8d34a0f",
+  "independent_review": {
+    "bytes": 10627,
+    "path": "/tmp/swingset-stage2-batched-graph-72d8810f205e/after-imagepin/failure-independent-20261110-e79/independent-boundary-review.json",
+    "sha256": "3d8af23ddfe8f4c26140eb2cd1b481c5d743482ee2b33da76fc721d5bf342b8a"
+  },
+  "limitations": [
+    "Parent catalog metadata, not typed/checkpoint proof.",
+    "Queued is not committed; last input observed18.45s, shared60s budget.",
+    "Full running and core timing fail."
+  ],
+  "log_sha256": "259907b9f9d50990851ade3561245c6d7a455b401eff26ed55ce3b93e19fe5bf",
+  "native87_exit": 0,
+  "no_retry_cleanup_or_pass_authorized": true,
+  "observed_at": "2026-11-10T19:05:38.841838+00:00",
+  "operation": "72d8810f205e",
+  "ownership_registry_empty": true,
+  "plan_sha256": "95e8b90f31f0c61a64d657aca07060772a9da8c48abcb27284fd02e09db0677a",
+  "platform_id": "e6ef74633cc491efc6a82d1bb33c6d373632ee5e64cb3e74de36acc36dac077f",
+  "policy_sha256": "db505e0a5697295893709757c2c3fce926af73fdf83994a2585407f0d15aabf2",
+  "protected12_match": true,
+  "receipt_absent": true,
+  "registry_tar_sha256": "d780e97afd63dd1d2707db14c8d6fb28c7fb5b34c167576867df5373f9dac82d",
+  "retained_databases": [
+    "C696/OID16396/comment c696",
+    "69/OID465992/comment 69"
+  ],
+  "retained_sessions": 0,
+  "security_sha256": "8d69abded373fc616daded255967be50dabb275101825c56e28e703d91e593d4",
+  "supervisor_complete": false,
+  "verdict": "FAILED_ACCEPTANCE_BOUNDARY_CONFIRMED"
+}

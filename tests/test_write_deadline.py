@@ -250,6 +250,8 @@ def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch, request):
 
 
 def test_a_year_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatch):
+    import signal
+
     import swingset.project
     from swingset.clock import FakeClock
     from swingset.config import Config
@@ -263,14 +265,17 @@ def test_a_year_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatch):
     history = WorkUnit("project", "year", "2026")
 
     def project(db, unit, *_args, selection=None):
-        while True:
-            pass
+        # Deliver the real deadline signal only after admission. A tiny wall
+        # timer can interrupt libpq setup first under parallel load, closing the
+        # connection instead of exercising the year body's deadline handling.
+        assert db.connection._write_deadline is not None
+        signal.raise_signal(signal.SIGALRM)
+        pytest.fail("the write deadline did not interrupt the year body")
 
     monkeypatch.setattr(swingset.project, "process_unit", project)
     with open_database(tmp_path) as db:
         run = db.start_run(clock.now())
         enqueue(db.connection, [history], enqueued_at=clock.now().isoformat())
-        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
         before = write_deadline.fired()
         outcome = derive_one(db, Archive(tmp_path), history, bundle, clock, run)
         assert outcome.failed and outcome.reason == "write_deadline_exceeded"

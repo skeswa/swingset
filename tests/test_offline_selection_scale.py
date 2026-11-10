@@ -15,6 +15,44 @@ from swingset.state.work import WorkUnit
 NOW = datetime(2026, 9, 13, tzinfo=UTC)
 
 
+def test_refresh_registers_large_catalog_once_without_replacing_timestamps(
+    tmp_path, record_property
+):
+    import time
+
+    from swingset.state import derivations
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        with db.transaction():
+            conn.execute(
+                "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) "
+                "SELECT 'project', 'dancer', value::text, %s FROM generate_series(1,4097) AS value",
+                (NOW.isoformat(),),
+            )
+        expected = set(dependencies.scopes(conn, "project"))
+        statements = []
+        started = time.monotonic()
+        with conn.observing(lambda query, params: statements.append(str(query))), db.transaction():
+            inserted = derivations.refresh(conn, NOW)
+        record_property("registration_seconds", time.monotonic() - started)
+        record_property("registration_statements", len(statements))
+        assert len(statements) < 100
+        assert inserted == len(expected)
+        assert (
+            set(
+                WorkUnit(*row)
+                for row in conn.execute("SELECT stage, unit_kind, unit_id FROM derivation_scopes")
+            )
+            == expected
+        )
+        with db.transaction():
+            assert derivations.refresh(conn, "2026-11-10T00:00:00+00:00") == 0
+        assert {row[0] for row in conn.execute("SELECT registered_at FROM derivation_scopes")} == {
+            NOW.isoformat()
+        }
+
+
 def test_blocked_event_catalog_is_read_once_before_ready_registry_work(tmp_path, monkeypatch):
     with open_database(tmp_path) as db:
         conn = db.connection

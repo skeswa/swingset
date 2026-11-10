@@ -15,7 +15,16 @@ from pathlib import Path
 from typing import Any, cast
 
 SOURCE_SCHEMA_VERSION = 37
-SCHEMA_VERSION = 38
+SCHEMA_VERSION = 40
+STATEMENT_HISTORY_TRIGGERS = frozenset(
+    {
+        "history_timing_watches_update",
+        "history_timing_work_generations_update",
+        "history_timing_pending_work_insert",
+        "history_timing_pending_work_update",
+    }
+)
+STATEMENT_WORK_TRIGGERS = frozenset({"work_enqueued", "work_invalidated"})
 SEARCH_PATH = 'pg_catalog,"fetch",plan,evidence,derive,project,release,ops,pg_temp'
 ROOT = Path(__file__).with_name("postgres_migrations")
 TABLE_NAMESPACES: dict[str, str] = {
@@ -226,8 +235,12 @@ def migration_sql() -> str:
 
 
 def migration_checksum() -> str:
+    return _migration_checksum(migration_files())
+
+
+def _migration_checksum(files: tuple[Path, ...]) -> str:
     checksum = hashlib.sha256()
-    for path in migration_files():
+    for path in files:
         checksum.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
     checksum.update(_GRANTS_FINGERPRINT)
     return checksum.hexdigest()
@@ -444,6 +457,31 @@ def validate_schema(conn: Any, *, full: bool = False) -> dict[str, Any]:
             "full": False,
         }
     )
+
+
+def validate_checkpoint_schema(conn: Any) -> dict[str, Any]:
+    """Read one known row-compatible checkpoint; never migrate or admit a worker."""
+    if (
+        conn.execute("SHOW default_transaction_read_only").fetchone()[0] != "on"
+        or conn.execute("SHOW transaction_read_only").fetchone()[0] != "on"
+    ):
+        raise ValueError("checkpoint compatibility requires a read-only connection")
+    found = dict(conn.execute("SELECT key,value FROM ops.schema_identity()"))
+    if found.get("schema_version") == str(SCHEMA_VERSION):
+        return validate_schema(conn)
+    # Migrations 39/40 change only trigger bodies/levels. Their source tables
+    # retain the exact native-38 shape. Future versions need a separate choice.
+    if SCHEMA_VERSION not in {39, 40}:
+        raise RuntimeError("checkpoint schema version or migration checksum differs")
+    files = tuple(path for path in migration_files() if int(path.name[:4]) <= 38)
+    checksum = _migration_checksum(files)
+    if (
+        found.get("schema_version") != "38"
+        or found.get("source_schema_version") != str(SOURCE_SCHEMA_VERSION)
+        or found.get("postgres_migration_checksum") != checksum
+    ):
+        raise RuntimeError("checkpoint schema version or migration checksum differs")
+    return {"schema_version": 38, "migration_checksum": checksum, "full": False}
 
 
 def migrate(conn: Any, *, environment: str | None = None) -> dict[str, Any]:
@@ -743,7 +781,7 @@ def verify(conn: Any) -> dict[str, Any]:
                 errors.append(f"{table}.{item['name']}: index ordering differs")
     trigger_rows = list(
         conn.execute(
-            "SELECT t.tgname,c.relname,n.nspname,p.proname,p.prosrc,t.tgtype,t.tgattr::smallint[] FROM pg_trigger t "
+            "SELECT t.tgname,c.relname,n.nspname,p.proname,p.prosrc,t.tgtype,t.tgattr::smallint[],t.tgnewtable,t.tgoldtable FROM pg_trigger t "
             "JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_proc p ON p.oid=t.tgfoid "
             "WHERE NOT t.tgisinternal AND n.nspname=ANY(%s)",
             (sorted(set(TABLE_NAMESPACES.values())),),
@@ -760,7 +798,7 @@ def verify(conn: Any) -> dict[str, Any]:
     function_bodies = {
         match[0]: match[1]
         for match in re.findall(
-            r'CREATE FUNCTION "[^"]+"\."([^"]+)"\(\) RETURNS trigger.*?AS \$fn\$(.*?)\$fn\$;',
+            r'CREATE(?: OR REPLACE)? FUNCTION "[^"]+"\."([^"]+)"\(\) RETURNS trigger.*?AS \$fn\$(.*?)\$fn\$;',
             migration_sql(),
             re.S,
         )
@@ -782,6 +820,29 @@ def verify(conn: Any) -> dict[str, Any]:
             or str(actual_trigger[4]).strip() != function_bodies[function_name].strip()
         ):
             errors.append(f"{trigger['name']}: trigger owner/function body differs")
+        transition = None
+        if SCHEMA_VERSION >= 39 and trigger["name"] in STATEMENT_HISTORY_TRIGGERS:
+            transition = "swingset_changed_rows"
+        elif SCHEMA_VERSION >= 40 and trigger["name"] in STATEMENT_WORK_TRIGGERS:
+            transition = "swingset_pending_rows"
+        statement = transition is not None
+        if bool(int(actual_trigger[5]) & 1) != (not statement) or tuple(actual_trigger[7:]) != (
+            transition,
+            None,
+        ):
+            errors.append(f"{trigger['name']}: trigger level or transition tables differ")
+        if statement:
+            event = re.search(
+                r"\b(AFTER|BEFORE|INSTEAD\s+OF)\s+(INSERT|UPDATE|DELETE)\b",
+                trigger["sql"],
+                re.I,
+            )
+            if event is None:
+                raise RuntimeError("frozen statement-trigger event is missing")
+            timing = {"AFTER": 0, "BEFORE": 2, "INSTEAD OF": 64}[event[1].upper()]
+            kind = {"INSERT": 4, "DELETE": 8, "UPDATE": 16}[event[2].upper()]
+            if int(actual_trigger[5]) != timing | kind:
+                errors.append(f"{trigger['name']}: trigger event or timing differs")
     views = list(
         conn.execute(
             "SELECT schemaname,viewname FROM pg_views WHERE schemaname=ANY(%s)",

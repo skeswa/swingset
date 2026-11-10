@@ -4,6 +4,7 @@ import argparse
 import copy
 import hashlib
 import json
+import signal
 import subprocess
 
 import pytest
@@ -108,6 +109,7 @@ class Backend:
                 running = self.started and not self.stopped and self.loops < self.finish_after
                 value["State"] = {
                     "Running": running,
+                    "Pid": 90 if running else 0,
                     "Status": "running" if running else "exited" if self.started else "created",
                     "ExitCode": self.exit_code,
                     "OOMKilled": self.oom,
@@ -267,6 +269,10 @@ def test_failed_native_exit_never_becomes_success(job, exit_code, oom):
     result = instance.run()
     assert not result["complete"] and result["no_automatic_retry"]
     assert sum(x[1] == "start" for x in backend.calls) == 1
+    assert result["terminal_state"] == "confirmed"
+    assert not result["state"]["Running"] and result["state"]["Pid"] == 0
+    assert result["state"]["ExitCode"] == exit_code
+    assert not any(x[1] == "stop" for x in backend.calls)
 
 
 def test_existing_reservation_preserves_previous_receipt_and_never_repeats(job):
@@ -381,3 +387,109 @@ def test_policy_bytes_hash_and_private_mode_are_checked_together(job):
     path.chmod(0o644)
     with pytest.raises(ValueError):
         import_job.private_json(path, hashlib.sha256(path.read_bytes()).hexdigest())
+
+
+def test_termination_stops_owned_utility_and_restores_signal_handler(job, monkeypatch):
+    instance, backend = job
+    backend.finish_after = 10000
+    original = instance.runner
+    previous = signal.getsignal(signal.SIGTERM)
+
+    def interrupted(argv, timeout):
+        response = original(argv, timeout)
+        if argv[1] == "start":
+            signal.raise_signal(signal.SIGTERM)
+        return response
+
+    instance.runner = interrupted
+    monkeypatch.setattr(import_job, "ImportJob", lambda *args: instance)
+    assert (
+        import_job.execute(
+            argparse.Namespace(plan=None, plan_sha256=None, container=None, platform=None)
+        )
+        == 1
+    )
+    assert backend.stopped
+    assert [x[-1] for x in backend.calls if x[1] == "stop"] == [APP]
+    assert signal.getsignal(signal.SIGTERM) == previous
+
+
+@pytest.mark.parametrize("stop_exit", [0, 1])
+def test_unconfirmed_stop_is_escalated_without_repeating_it(job, stop_exit):
+    instance, backend = job
+    backend.finish_after = 10000
+    backend.peer_failure = True
+    original = instance.runner
+
+    def unconfirmed(argv, timeout):
+        if argv[1] == "stop":
+            backend.calls.append(argv)
+            return subprocess.CompletedProcess(argv, stop_exit, "acknowledged", "")
+        return original(argv, timeout)
+
+    instance.runner = unconfirmed
+    result = instance.run()
+    assert not result["complete"] and result["requires_attended_escalation"]
+    assert not backend.stopped
+    assert len([call for call in backend.calls if call[1] == "stop"]) == 1
+
+
+def test_progress_timeout_retains_safe_action_and_current_terminal_state(job):
+    instance, backend = job
+    backend.finish_after = 10000
+    original = instance.runner
+
+    def timeout(argv, bound):
+        if argv[1] == "exec":
+            raise subprocess.TimeoutExpired(
+                [*argv, "PRIVATE_ARGUMENT"], bound, output="PRIVATE_OUTPUT"
+            )
+        return original(argv, bound)
+
+    instance.runner = timeout
+    result = instance.run()
+    assert not result["complete"] and result["no_automatic_retry"]
+    assert result["docker_command_failure"] == {
+        "action": "exec",
+        "target": APP,
+        "timeout_seconds": 20,
+        "error_type": "TimeoutExpired",
+    }
+    assert not result["state"]["Running"] and result["state"]["Pid"] == 0
+    assert result["stop_confirmed"] and result["state"] == result["stopped_state"]
+    assert sum(argv[1] == "start" for argv in backend.calls) == 1
+    assert sum(argv[1] == "stop" for argv in backend.calls) == 1
+    assert "PRIVATE" not in json.dumps(result)
+
+
+def test_stop_inspection_failure_keeps_last_observation_and_terminal_unknown(job):
+    instance, backend = job
+    backend.finish_after = 10000
+    original = instance.runner
+    progress_failed = False
+
+    def timeout(argv, bound):
+        nonlocal progress_failed
+        if argv[1] == "exec":
+            progress_failed = True
+            raise subprocess.TimeoutExpired([*argv, "PRIVATE_PROGRESS"], bound)
+        if progress_failed and argv[1] == "inspect" and argv[2] == APP:
+            raise subprocess.TimeoutExpired([*argv, "PRIVATE_STOP"], bound)
+        return original(argv, bound)
+
+    instance.runner = timeout
+    result = instance.run()
+    assert not result["complete"] and result["requires_attended_escalation"]
+    assert result["terminal_state"] == "unknown" and "state" not in result
+    assert result["last_observed_state"]["Running"]
+    assert result["last_observed_at"]
+    assert result["stop_error_type"] == "TimeoutExpired"
+    assert result["docker_command_failure"] == {
+        "action": "exec",
+        "target": APP,
+        "timeout_seconds": 20,
+        "error_type": "TimeoutExpired",
+    }
+    assert sum(argv[1] == "start" for argv in backend.calls) == 1
+    assert not any(argv[1] == "stop" for argv in backend.calls)
+    assert "PRIVATE" not in json.dumps(result)

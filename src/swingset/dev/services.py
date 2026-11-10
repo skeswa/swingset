@@ -31,7 +31,13 @@ SETTINGS = {
     "log_parameter_max_length": "0",
     "log_parameter_max_length_on_error": "0",
 }
-TEST_SETTINGS = {**SETTINGS, "fsync": "off", "full_page_writes": "off", "synchronous_commit": "off"}
+TEST_SETTINGS = {
+    **SETTINGS,
+    "fsync": "off",
+    "full_page_writes": "off",
+    "synchronous_commit": "off",
+    "max_locks_per_transaction": "512",
+}
 LIFECYCLE_SETTINGS = {
     **SETTINGS,
     "fsync": "on",

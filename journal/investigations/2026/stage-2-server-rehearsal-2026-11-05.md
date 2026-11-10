@@ -806,6 +806,25 @@ hashes while the rehearsal continues.
 | 2026-11-10 01:51 | 2026-11-10 02:51 | cc75e10a06777796b14206f3c423db3b373c59bd0b7b4770d68811754acad27c |
 | 2026-11-10 02:36 | 2026-11-10 03:36 | 7a55a41a1f3986ec072b022cb1ae22af58b9f878e79faa4d99d52a7d23390519 |
 | 2026-11-10 03:26 | 2026-11-10 04:26 | fe7107255e639257448cb160d2c04d3f1c768d1e6344eb4d3194105ab9aeac6a |
+| 2026-11-10 04:39 | 2026-11-10 05:39 | aa36dd1bfe64b55dec9eeadb9d44015ed757259f158a7c1f5e1b74cd48a70a84 |
+| 2026-11-10 05:29 | 2026-11-10 06:29 | 63bcf8f640834b018c3045f9031d6fac34f09bd2ed0efdc88f8ff9885d2a3848 |
+| 2026-11-10 06:16 | 2026-11-10 07:16 | 08f1d16ba1db819bf6a013ce9f2252de87806836ebe37024512bd38f97236ded |
+| 2026-11-10 07:05 | 2026-11-10 08:05 | 47f9d1d87130c41d47ae23270824daaf664188ddbe410e3ee16f6ea53007d02d |
+| 2026-11-10 07:55 | 2026-11-10 08:55 | 9b9bbe23cb73690f0c7d82a2ea713b9081244bc05481bbde0c0366a692a912b3 |
+| 2026-11-10 08:43 | 2026-11-10 09:43 | 4956b4e8ba82201de2d742b980006e982aadabe2b7afb14895a99538177e95ea |
+| 2026-11-10 09:30 | 2026-11-10 10:30 | fac92bc9e62232b83ec69bd234cadcc0d24772d8eaa21feb18bf3fa4d4369686 |
+| 2026-11-10 10:08 | 2026-11-10 11:08 | 3e16e0b7afca81488a865048c49ca54ff952da22c456bed522147a4e068cdaf0 |
+| 2026-11-10 10:50 | 2026-11-10 11:50 | 7f8f1cf92fc545a2e4910cc52839934fccc1d5087ce573772aec11a2fd2855e9 |
+| 2026-11-10 11:40 | 2026-11-10 12:40 | 1fdd273feb1d51b86a466f6a6070a596a9bb30eb8917db843b26cdb18c1bdea1 |
+| 2026-11-10 12:32 | 2026-11-10 13:32 | ba3c1658b732b5ef932ce58604c9e96d6792305f83fac5de47cb830ad4a02a1e |
+| 2026-11-10 13:15 | 2026-11-10 14:15 | 6c65c6d6c8a9b549a1827fb1b0fc4ee0fabf57e0a2baab714d812c20b8f7b5f9 |
+| 2026-11-10 13:56 | 2026-11-10 14:56 | d50e967d801e7a95e8bad24cf3a17f174a497d596ffab712d1751a1a19e4035c |
+| 2026-11-10 14:38 | 2026-11-10 15:38 | 21d93b4bf9ae5a3abc05563d7d629beb0fc310bc1fa4ab29f1ed82c2bf85dfad |
+| 2026-11-10 15:16 | 2026-11-10 16:16 | 01f02a7576535deda5fc695246ff8bd79ff7743284ac6ace399bbc3ee59d2297 |
+| 2026-11-10 15:53 | 2026-11-10 16:53 | 713443a93a0e410829bd3d1d3afc83e2f389156c61295c1c76bfaa923f6a04a6 |
+| 2026-11-10 16:38 | 2026-11-10 17:38 | 9a8531298ee46a54c835047fceffa5a4d6107b3e67df92f314cd5696f3684c58 |
+| 2026-11-10 17:25 | 2026-11-10 18:25 | f3e6387850f5053cf32a412d3bf5e4aaabb77450acecd244d62c35b04973b0c4 |
+| 2026-11-10 18:10 | 2026-11-10 19:10 | b41d18a1c7c0feac4c22e566d37d05b278d18598c4ec0b8e033c97d459362ef0 |
 
 ## Writable verifier scratch and current import
 
@@ -1354,3 +1373,2155 @@ and retained preflight/postcheck capacity remain required. This revision still
 has only 344 evidence bytes available; closing preparation and opening a new
 receipts revision needs the requested explicit commit permission. Nothing was
 committed or pushed.
+
+## Preparation closed and native resume staged
+
+The owner authorized closing preparation and continuing on November 10.
+Revision `tvwqxuul` closed as `6db1ca53`; new receipts change `xkotoozx`
+continues stage 2. Nothing was pushed. The exact tested source and image remain
+unchanged. The 04:39 hold review preserves owner, reason and original creation
+time, with next review at 05:39 UTC. All seven original apps and five support
+services still match their protected state.
+
+A fresh independent run of the tested `inspect-import` command again verifies
+UUID `9bccc2d4-73b4-4ef3-894d-861213ef9831`, finalized schema 38/source 37,
+all 141 counts and 23,433,486 rows, 809 triggers and no other clients. Its
+result is byte-identical to the earlier read-only result. The new helper is
+retained stopped. This still does not accept the incomplete typed audit.
+Verdict SHA-256:
+`61bc107322d0d6f19c83c00eb1b1bc586742efdd9fbe597febc574519773e3b7`.
+Packet: `/tmp/swingset-stage2-import-refresh-20261110-33020a6ce0a1/`.
+
+Five configuration files are now sealed as root-owned mode 0444 files in a
+mode-0555 directory on the server. They include the exact old all-loaded receipt
+and fixed UUID. A fresh runtime volume has an empty private operator directory
+owned by UID 10001. Native container
+`87c80de753d301e52c0211c6ba7879b291e643dcb0a66e74d1f0be8341c63a03`
+and namespace operator
+`eda9d63d6805b3f6fe5361f5f35da9e7bfa771ff7a332a0a1fe7f3d7a4993118`
+are created with PID zero. Neither has started, and the old global policy and
+namespace operator remain in place. Final independent execution review is
+pending. The plan SHA-256 is
+`d57e25eaff456d4c94d60ae641ffa9f25c4af4cc589c819c8b6685929373ad77`.
+
+## Source collection pulse at 04:54 UTC
+
+The saved 04:46 and 04:51 acquire ticks report no requests or progress, with no
+failure, error, stage error or paused host. Derive completes one unit at 04:43;
+its later two ticks are empty. The 04:35 idle alarm says acquire made no
+progress since 03:31. The last page request directly verified here remains the
+03:10 EEPro request. Keep this alarm visible and investigate eligibility in
+maintenance item 40; the expired Wayback alarm remains item 39. Production was
+not changed. The scheduled local backup set `set_20261110T040000Z` is present,
+schema 37, with 48 segments and no missing items. Its manifest SHA-256 is
+`a5292d666ab825fabf6a1744be9ac1dabb06333c69735d1b065763b333b766f0`.
+This read-only capture does not repeat a restore drill. Raw records remain in
+`/tmp/swingset-stage2-source-pulse-20261110-0454/`.
+
+The source backup service reports `Result=success`, `ExecMainStatus=0` and
+`ActiveState=inactive`. Its actual next timer is November 11 at 04:00 UTC; the
+older dashboard claim of a noon backup was stale. The timer and service capture
+is retained in the same scratch pulse packet.
+
+## Reviewed native resume started at 05:15 UTC
+
+The independent execution review accepted the exact sealed plan at 05:11 UTC.
+The compact [preflight](../../evidence/runtime/postgres-stage2-2026-11-10/import-resume-preflight.json)
+was retained and hash-verified on the server before changing the operator or
+policy. Its SHA-256 is
+`209f7b8029af6cf0e5e87e286456111cb95c6add031ef12b78a34dbddf0c4527`.
+The exact old policy is retained. Only the runtime image changed in the new
+global policy; the old operator is stopped and retained.
+
+The maintained supervisor started native container `87c80de753d3` at
+05:15:33 UTC, with the reviewed namespace operator `eda9d63d6805` running.
+The fixed six-hour ceiling ends at 11:15:33 UTC, followed by at most 120 seconds
+of stop grace. There is no automatic retry. At 05:22 UTC the job is checking
+source integrity. Its fresh output receipt does not yet exist: the sealed old
+receipt still binds all 141 loaded tables and 23,433,486 rows. The destination
+load session opens after full source validation. No table reload or identity reseed is
+allowed.
+
+All twelve protected services match their baseline after activation. The native
+container has no OOM event or restart. Its cgroup peak reaches the 8 GiB limit
+during source integrity checking; this includes file cache and is not a process
+RSS measurement. Kernel OOM counters remain zero. The attended checks continue
+alongside the maintained 20-second supervisor. The 04:39 hold review remains due
+at 05:39 UTC. The immutable source, core timing result and open Gate 2 are
+unchanged. Transition, supervisor, authorization and resource observations stay
+in `/tmp/swingset-stage2-import-resume-20261110/`.
+
+The follow-on private verification templates were refreshed for this exact
+source, image, native container and new receipt volume. Their independent
+static review accepts the files, without authorizing execution or cleanup.
+The verifier now reuses the exact active namespace operator and checks its
+profile and process birth; it no longer replaces an already matching policy
+or operator. Nine public helper/configuration files are staged mode 0444 on
+the server, with old bytes retained. No private copy or graph job has started.
+Final actual native success, receipt hash, identity and capacity checks remain
+required. The static verdict SHA-256 is
+`768523d88d47c8ff7ddfed44b37e280a6524bf2d28c71ac3dbed37ee942ea1ce`;
+its manifest is
+`c3c28cb1f3939ecd0e34ffabda6f5f2ad176f73787128f10e191daf2e03c754a`.
+Both stay in `/tmp/swingset-stage2-private-verification-refresh-20261110/`.
+
+## Source collection pulse at 05:39 UTC
+
+The 05:36 acquire record has zero requests or progress. The 05:33 and 05:38
+derive records also have no completed units. All three report no failure,
+error or stage error; acquire has no paused host. The 04:35 idle alarm remains
+the latest alert, alongside the earlier expired Wayback alarm. The last real
+page request directly verified here remains the 03:10 EEPro request. Empty
+ticks are not evidence that fetching works; maintenance items 39/40 remain
+open. Production code, settings and processes were unchanged. The captured
+records stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-run-pulse-0539.jsonl`.
+
+## Source collection pulse at 06:25 UTC
+
+A search of today's saved run records identifies 03:31 as the latest actual
+fetch: two `scoring.dance` requests, 408,180 bytes, two checked pages and one
+changed page. That record has no failure, error, stage error or paused host.
+This supersedes the earlier directly verified 03:10 request. The 06:21 acquire
+and 06:23 derive ticks are empty and report no failure or error. The expired
+Wayback alarm repeats at 06:05; the 04:35 idle alert remains present. These
+remain maintenance items 39/40, without a production change in this session.
+The captured records and alert tail stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-run-pulse-0625.jsonl`
+and `source-alerts-0625.txt` beside it.
+
+## Native source validation passed
+
+At 07:06 UTC the reviewed resume completes full frozen-source validation in
+6,643.358 seconds. All 141 table digests and 23,433,486 rows match the retained
+source matrix. The file proof verifies 173,592 files and 2,166,067,811 bytes,
+including thirteen input bundles and all 192 legacy code scopes, with no
+missing finding declaration. The destination factory then accepts the exact
+finalized schema, stored UUID and absence of other target clients.
+
+The fresh runtime receipt is byte-identical to the sealed all-loaded receipt:
+31,846 bytes, SHA-256
+`a624157288706104cb97f34f245252434cd8d1649b87a3dab44567dcc536aafc`.
+It still says `complete=false` and `audit=null`; this checkpoint does not accept
+the target audit. The native process is rechecking every loaded target table.
+At 07:08 UTC its network counter has received 549,195,061 bytes, with zero
+network errors or drops. This observes activity, without claiming how many
+target tables have passed. Native OOM counters remain zero. The exact
+six-hour deadline is unchanged. Raw receipt, source-complete supervisor sample
+and counter baseline stay in `/tmp/swingset-stage2-import-resume-20261110/`.
+
+## Source collection pulse at 07:38 UTC
+
+The 07:36 acquire and 07:33 derive ticks complete with zero requests or units,
+and no failure, error or stage error. Today's saved records contain no
+`failed=true` result or nonempty error string. Their latest real fetch remains
+the 03:31 `scoring.dance` run. The idle alert repeats at 07:05; the expired
+Wayback alarm's latest repeat is 06:05. Maintenance items 39/40 remain open;
+production code, settings and processes are unchanged. The captured records
+and alert tail stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-run-pulse-0738.jsonl`
+and `source-alerts-0738.txt` beside it.
+
+## Native progress alarm review
+
+At 08:08 UTC the maintained supervisor raises its 60-minute progress alarm.
+Its signature uses the loaded-table count and source phase. Both remain at
+141/validated during already-loaded target checks and the independent audit;
+those paths emit no intermediate progress record. The alarm is retained.
+
+The independent reviewer observes the same native incarnation at
+08:11:32 through 08:11:40. Over that interval, CPU time advances 4.961 seconds,
+disk reads advance 1,113,014,272 bytes and writes advance 196,571,136 bytes.
+All twelve protected services, the namespace operator, policy and current
+hold match. OOM counters remain zero and about 660.5 GB is free. Most charged
+memory is file cache. These counters show activity, without excluding cache
+churn or repeated scans and without proving any audit phase complete.
+
+The written verdict is `CONTINUE_EXISTING_BOUNDED_RUN`: keep attended short
+interval checks, the raised alarm, the 21,600-second ceiling and 120-second
+stop grace. It authorizes no private operation or completion claim. Verdict
+SHA-256 is
+`1bb6c2736ac794257280ae99296c55d88221742c8de338578239aea5fb01d479`;
+the filtered observation SHA-256 is
+`87b2f107832dc90f860d0d7dd0ff86c877b56def156f90b2844d5d5cce592f40`.
+Both remain in `/tmp/swingset-stage2-import-resume-20261110/`.
+
+## Source collection pulse at 08:39 UTC
+
+The 08:36 acquire and 08:33 derive ticks complete with zero requests or units,
+and no failure, error or stage error. Today's saved records still contain no
+`failed=true` result or nonempty error string; their latest real fetch is the
+03:31 run. The expired Wayback alarm repeats at 08:35, and the idle alarm's
+latest repeat is 07:05. Maintenance items 39/40 remain open. Production code,
+settings and processes are unchanged. Raw records and alerts stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-run-pulse-0839.jsonl`
+and `source-alerts-0839.txt` beside it.
+
+## Source collection pulse at 09:39 UTC
+
+The 09:36 acquire tick makes two real `scoring.dance` requests, receives
+408,182 bytes and checks two pages. Neither page changes; one response is
+reported not modified. There is no failure, error, stage error or paused
+host. These requests supersede the 07:05 point-in-time idle alarm. The 09:33
+derive tick is empty. Today's saved records contain no `failed=true` result
+or nonempty error string. The expired Wayback alarm's latest repeat remains
+08:35; maintenance items 39/40 remain open. Production code, settings and
+processes are unchanged. Raw records and alerts stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-run-pulse-0939.jsonl`
+and `source-alerts-0939.txt` beside it.
+
+## Native audit passed at 09:40 UTC
+
+The reviewed resume exits zero at 09:40:11 UTC, with PID zero and no OOM
+kill. Its final native receipt reports `complete=true` and `audit.equal=true`.
+All 141 loaded tables, 23,433,486 rows and typed digests match the frozen
+source and independent final audit. The source hash and migration checksum
+are unchanged. Native time is 15,869.686 seconds, about four hours and
+24 minutes. The final receipt is 47,608 bytes, SHA-256
+`56aa88e85d2c4d35d605bb51196fcf59ef8d922f9158a8834f00e2b0f07b1d6a`;
+the typed matrix hash is
+`b9b109cbb91fc914ca43a9230bdd5e17112e70130d40e8d664a4a76654316301`.
+
+The supervisor also completes successfully and preserves its raised progress
+alarm. Its cached `import_progress.complete=false` predates the terminal
+receipt; acceptance uses the actual final receipt and process exit. The
+independent alarm review above and original fixed bounds remain recorded.
+Minimum observed server free space is 657,380,659,200 bytes; all twelve
+protected services remain unchanged. The largest observed native cgroup
+charge is 8,589,938,688 bytes, including file cache and one accounting page
+above the configured eight GiB limit; this is not process RSS. Observed
+OOM counters stay zero. Raw terminal and resource records remain in
+`/tmp/swingset-stage2-import-resume-20261110/`.
+
+Independent terminal identity inspection passes and closes its reader at
+09:51 UTC. The stored dry-run UUID, OID 16398, C locale, UTF-8 encoding,
+finalized schema 38, 809 triggers, all 141 row counts and absence of other
+target clients match. Its maintained command exits zero and makes no
+persistent write. This is a stored-identity/count check, separate from the
+native typed audit. The inert reader is deliberately stopped with its
+30-second grace; its sleep process exits 137 without an OOM kill.
+
+The [compact postcheck](../../evidence/runtime/postgres-stage2-2026-11-10/import-resume-postcheck.json)
+binds both results and their actual receipt hashes. The separate working-file
+and capacity postcheck remains open. No private copy, whole-graph run, re-key,
+publication or recovery step has started. Gate 2 remains open.
+
+## Read-only working-file postcheck
+
+The independently reviewed watcher starts once at 09:56:31 UTC, with its
+process identity retained. The file postcheck starts once at 09:56:53 UTC
+after the watcher acknowledges its recorded pending exec and the SQL-only
+firewall is verified. Its helper is
+`51ca782b52b85574701c83c364d00370e49dfefd8722ff4373f0cc69dc79155a`;
+its exec is
+`e4b37ce8c9034b4c98ed76eb9373b9840c4a996f8e2592a4fcdcfa983489efc6`.
+
+The check receives only shared/private worker credentials, six read-only
+mounts and one fresh output volume. The native receipt, frozen source and
+working state are read-only. It checks stored identity/schema, separate
+working-file closure and capacity for nine database copies above the 200 GB
+floor. Its unchanged bound is 7,200 seconds plus 120 seconds stop grace,
+eight GiB, six CPUs and 256 processes. No private copy or graph has started.
+
+The final watcher plan hash is
+`8a1094775c478492f2bbb887174ca5683c3e6684b4fc17a652fbfc3bafb42656`;
+the postcheck plan hash is
+`8161e1155c1a368fdbd470f8cb9c235d3ba59ce2f34fd68cb25f45fdde11f880`.
+The independent execution verdict hash is
+`66ee3fc6868b602df0d038261932011a9cf98ae36bb00d0475b6a498d4b26aeb`.
+Plans, scripts and tracking output stay under server scratch
+`/var/tmp/swingset-stage2-private-verification-e79c5fb48d30/` and local
+`/tmp/swingset-stage2-private-verification-refresh-20261110/`.
+
+## Source collection pulse at 10:14 UTC
+
+The 10:06 acquire and 10:13 derive ticks are empty and finish without a
+failure, error or stage error. Today's saved records still contain no
+`failed=true` result or nonempty error string. The latest actual fetch
+remains the 09:36 run: two scoring.dance requests and 408,182 bytes. The
+alert tail is unchanged, ending with the expired Wayback warning at 08:35.
+Maintenance items 39/40 remain open; no production change was made. Raw
+records and alerts stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-run-pulse-1014.jsonl`
+and `source-alerts-1014.txt` beside it.
+
+## Existing core timing analysis at 10:25 UTC
+
+A read of the completed 3,039-case report finds 2,757.076 seconds across the parallel cases: call 2,191.909, setup 487.116 and teardown 78.051. Ideal division
+across sixteen workers uses 172.317 seconds. Adding mean client collection
+and the serial prologue gives 180.858 seconds before other startup and
+cleanup costs. This holds observed case costs fixed; a different schedule
+can change contention, so it is not a new causal experiment or a proof of
+a specific fix. The controller's observed total remains 187.506 seconds.
+
+The [compact analysis](../../evidence/runtime/postgres-stage2-2026-11-10/core-existing-timings.json)
+binds the existing report and source. No test, repair, source edit, selection
+change or timing retry ran. The 180-second gate remains open.
+
+## Working-file postcheck passed
+
+The bounded reader exits zero after 1,632.956 seconds, about 27 minutes.
+Its result matches the exact dry-run UUID, schema, native receipt and typed
+matrix. Every working-file count matches the native proof: 173,592 files,
+2,166,067,811 bytes, thirteen input bundles, 192 legacy code scopes and no
+missing finding declaration. No persistent database write occurs.
+
+Capacity at the start of this check is 660,826,558,464 available bytes,
+above the 546,546,203,723-byte requirement for nine database copies plus
+the 200 GB floor. The copy launcher must recheck current free space before
+starting. Shared database size is 38,505,133,747 bytes; private Postgres
+still contains only its three default databases. The maximum observed
+reader cgroup charge is 3,418,066,944 bytes, with OOM counters zero.
+The watcher keeps all twelve protected services unchanged.
+
+The [compact receipt](../../evidence/runtime/postgres-stage2-2026-11-10/working-files-postcheck.json)
+binds the actual exec, completion witness and result hash
+`fdd5907979b37945bae8470e6bb19f4290a6d9978ff457f683b410f46a0cb9d1`.
+The inert helper stays running to preserve later phase witnesses. The
+concrete copy plan is frozen and awaits independent execution review;
+no private copy, graph, cleanup or external publication has started.
+
+## Private copy started at 10:30 UTC
+
+The independently reviewed launcher starts once at 10:30:10 UTC. Its
+trusted holder is
+`cf365df6596dfed30113dc5b022497c969e54232e3a54fffc29e6faac5ae6596`;
+the recorded exec is
+`2c83652df26c79be3c0c88db08405f4d6919339c2df1b8b720945379aba72309`.
+The watcher acknowledges the pending exec before its one start. The
+SQL-only firewall, empty destination volumes and exact shared dry-run UUID
+are checked first. Source access is forced read-only.
+
+The [compact start receipt](../../evidence/runtime/postgres-stage2-2026-11-10/private-copy-start.json)
+binds plan `a9fbe2e492ce590c2e2832de90039f5705539067467f47fe77e476698a122152`
+and independent verdict
+`964dc15f0be579bc572b63ef3914c5737a4a4c61b7681674c3c4ab196eac0845`.
+The scope is fresh private dev base creation, all 141 typed-table audits and
+a ready/wait state. No graph, finish marker or database deletion is
+authorized yet. The 86,400-second bound includes the later wait, with
+120-second stop grace, eight GiB, six CPUs and 256 processes. Failures keep
+the private base and ownership registry.
+
+The Mac's old owned keep-awake process is replaced after an exact PID,
+birth and command check. The new system-sleep assertion is bounded through
+November 11 at 16:30 UTC; the display may sleep. No permanent power setting
+changes. Its ownership metadata stays beside the local private-copy packet.
+
+## Source fetch idle at 10:41 UTC
+
+The latest actual fetch remains 09:36, over an hour earlier. The 10:36 and
+10:40 acquire ticks make no request and finish without a failure, error,
+stage error or paused host. The latest completed derive tick starts at
+10:37:10 and also does no work, without an error. The 10:40 plan tick does
+report progress 6,677; this is planning progress, not fetched pages.
+Today's saved records still contain no `failed=true` or nonempty error
+string. The alert tail is unchanged, ending with the expired Wayback
+warning at 08:35 rather than a new idle line.
+
+The owner is informed of the observed fetch inactivity; maintenance items
+39/40 remain open. The production code freeze remains in place. This
+session changes no source setting or process. Captured records stay in
+`/tmp/swingset-stage2-import-resume-20261110/source-idle-pulse-1040.txt`
+and `source-runs-1041.jsonl` beside it.
+
+At the 12:34 and 13:18 checks the latest actual fetch still starts at 09:36. The
+watchdog records acquire idle at 11:05 and repeats the expired Wayback
+warning. Today's saved run files still contain no failed flag or nonempty
+error string. No production setting or process changes.
+
+## Private copy audit boundary and wait failure
+
+The E414 copy audits all 141 tables successfully and writes its complete
+ready receipt, SHA-256
+`29f5b81706f4015c939791c7a09f26bffd4aa1c6f9688f0d559cdee392acf892`.
+It covers 108,390 units with set digest
+`d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228`.
+The private dev UUID is `2f58b861-ebd6-4fd6-a9aa-44a020589439`.
+It then fails with `ValueError` in the wait phase. The statistics query
+returns duplicate `coalesce` column labels; the row adapter rejects
+duplicate labels. The scratch executor is retained unchanged and never
+replayed.
+
+The supervisor records the main exec's exit 1 and stops only its two owned
+helpers. Their sleep processes exit 137 after their stop grace, with PID
+zero and no OOM kill: holder at 11:30:41, postcheck reader at 11:32:42.
+There is no database cleanup or automatic retry. Its cached live job
+fields predate the stop; actual terminal Docker metadata is authoritative.
+Independent failure verdict SHA-256 is
+`ecf8522fc9cf04e06fc60765ec7f9258dce383d72abd6d3bfbd271177522b83b`.
+
+A fresh private-only read-only reader then verifies base
+`sst_copy_c696fead2daf4d3c83adfbbe_0`, OID 16396, 38,409,934,515 bytes,
+C locale, UTF-8, the expected dev UUID and exact ownership comment. The
+catalog contains defaults plus this base only; the worker has no owner
+or administrator privilege and two NULL-safe probes find no other base
+client. One bounded SQL exec exits zero in 1.48 seconds. Its output SHA is
+`6fa290d39a8066ce5779fd0724c35f7c6fca22308984b017a7c892618ad245f9`;
+its independent verdict SHA is
+`ae5022a6298c3fd3ed7c324d9214ab2afa9584267eb5577d47b2ef3a1f38bd50`.
+The new reader is stopped at 11:40:34, PID zero, no OOM kill. All twelve
+protected services are unchanged. No source SQL, registry edit, base
+adoption, graph or drop occurs.
+
+The [compact boundary receipt](../../evidence/runtime/postgres-stage2-2026-11-10/private-copy-boundary.json)
+binds these outcomes. Raw boundary and metadata packets stay in
+`/tmp/swingset-stage2-private-verification-refresh-20261110/copy-boundary-failure-independent/`
+and `/tmp/swingset-stage2-private-base-metadata-20261110-544ce0ab1cdb/`.
+
+## Operator release dispatch and final graph candidate
+
+The operator wrapper allows obsolete `loop`, absent from the CLI, and
+rejects the actual `release` command. An independent review confirms no
+supported one-shot publication through E414's guard. The local fix
+replaces that allowlist entry. Three regressions reproduce the mismatch;
+all eleven focused utility tests then pass. The new tests dispatch through
+the real CLI, preserve dry-run by default, require explicit publish and
+keep direct verifier publication refused before authorization.
+
+The [completed check](../../evidence/runtime/postgres-stage2-2026-11-10/developer-release-dispatch.json)
+passes all 3,042 cases in 178.72 seconds with unchanged limits, plus Ruff
+and mypy. This does not isolate a timing cause. Its source predates the
+subsequent verifier-supervisor adaptation, whose checks remain pending.
+
+A new immutable candidate changes `version/repository`, so its final graph
+proof must use that candidate. The completed base audit is retained as a
+boundary. A maintained verifier supervisor reuses the existing import
+supervisor's start/stop rules and adds private-role, mount, namespace,
+capacity and memory guards. Full validation, immutable image proof and an
+independent lifecycle/image/ownership transition review must pass before
+any graph starts. No receipt is rewritten and no old revision is spoofed.
+
+The final static review accepts all eight frozen implementation/test inputs;
+57 focused cases pass, including the real PostgreSQL statistics query. The
+core job `d3342f3f52724cbcb4393630` passes all 3,066 selected cases in
+173.15 seconds, within the unchanged 180-second bound. Ruff and mypy pass
+for 365 source files. This run does not isolate a timing cause. Native full
+validation starts at 12:20:25 UTC with all 935 inputs frozen; its result is
+recorded below. Source revision is
+`source-sha256:9b9a92e0ab2ff8b491cc9f3b8323434c17b01ccccc058c5459d3b5de8d70223c`.
+
+The [final validation](../../evidence/runtime/postgres-stage2-2026-11-10/developer-verifier-supervisor.json)
+passes all 4,638 full-suite cases in 3,508.20 seconds, with zero failures,
+errors or skips. Two existing JUnit property warnings remain. The command
+exits zero; all 935 inputs are unchanged after the run and formatting.
+This proves the final source, not a server image or graph transition.
+
+## Retained private base data seal
+
+The [read-only preseal](../../evidence/runtime/postgres-stage2-2026-11-10/retained-base-preseal.json)
+exits zero in 258.756 seconds. It confirms OID 16396, the private dev UUID,
+ownership comment, schema, defaults-plus-base catalog, no other base client,
+and all 108,390 units with the ready receipt's digest. Its checkpoint is
+`00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37`.
+The historical context is 16,118 bytes, SHA-256
+`fb1ec09c8836089ca46f7b04f98d887c1ddeb970c980e3ac033dcb16226cbfdf`.
+
+E414 supplies 542 unchanged library files for this data-only observation.
+It does not prove the new candidate's accepted versions or inputs. A fresh
+worker-only reader receives SQL-only access to private Postgres after its
+actual PID, birth and network namespace are checked. No database write,
+input acceptance, registry adoption or graph occurs.
+
+Docker archive and copy cannot see the live output tmpfs. Bounded,
+nofollow file transport instead preserves both outputs locally and on the
+server; the result matches the captured business stdout and stderr is empty.
+Only after both copies are durable is the owned sleep reader stopped at
+13:08:52 UTC, exit 137, PID zero, without an OOM kill. The business exec's
+exit zero is separate. All twelve protected containers remain unchanged.
+
+Independent review accepts the data seal with a monitoring limitation:
+checks are periodic, with a largest reported parent gap of about 88 seconds,
+rather than the planned uninterrupted 20-second cadence. The record cannot
+exclude every transient peer or resource change. The graph still requires
+the maintained supervisor and its own concrete execution review; no replay
+is proposed. At this preseal, the existing security script and network
+policy are UID 1000/mode 0644 with unchanged hashes. The later image
+transition must seal them root-owned and mode 0444 before the new supervisor starts.
+
+## Verified runtime and namespace transition
+
+The [immutable image proof](../../evidence/runtime/postgres-stage2-2026-11-10/image-verifier-supervisor.json)
+binds config `2a8fddd0`, OCI manifest `dcee56f5` and the truthful final
+source revision. The 248,771,584-byte archive passes its SHA-256 check and
+loads on Rhuidean. An unstarted proof container supplies all 546 installed
+package files, including 365 Python modules, and all ten config/override
+files. Every byte matches the completed 935-input validation binding.
+
+The [transition preflight](../../evidence/runtime/postgres-stage2-2026-11-10/runtime-transition-preflight.json)
+and [postcheck](../../evidence/runtime/postgres-stage2-2026-11-10/runtime-transition-postcheck.json)
+record the independently reviewed image-only policy change. Old EDA stops
+at 13:38:11 UTC, exit 143, PID zero, without an OOM kill. One helper with
+CHOWN only and two writable public-file binds seals the security script
+and new policy to root ownership and mode 0444; their contents stay fixed.
+The host atomically installs the new policy before creating the replacement
+operator. No credential or app directory is mounted into the sealing helper.
+
+New operator `20443b3c` starts at 13:45:35 UTC, PID 1513012, birth 971477399,
+on the unchanged boot. Its image, code, four mounts, three capabilities,
+limits and effective profile match the old operator. Docker reports the
+OOM-disable default as null, false while cold, then null while running;
+only these enabled-OOM-killer forms are accepted. The old operator and
+sealing helper remain stopped. All three control files are regular,
+root-owned, mode 0444 and single-link. The twelve protected containers
+and hold identity remain unchanged.
+
+Independent postcheck accepts this transition. It does not authorize a
+graph, base cleanup, registry adoption, re-key or publication. The verifier
+is prepared separately in a stopped container, with the original private
+base retained and a fresh empty graph ownership registry.
+
+## First graph startup fails before copying
+
+The [failed attempt](../../evidence/runtime/postgres-stage2-2026-11-10/graph-startup-permission-failure.json)
+starts once under the maintained supervisor at 14:01:48 UTC. Its database
+identity log names the expected private dev UUID. The process then fails
+reading `/app/overrides/series_aliases.csv`: Docker COPY kept its host mode
+0600 while assigning root ownership, so UID 10001 cannot read it. The
+byte-only image proof did not catch this permission defect.
+
+Actual Docker state is exit 1, PID zero, no OOM kill, finished 14:02:01 UTC.
+The supervisor records failure after 22 seconds; its cached running-state
+field predates that terminal observation and is not authoritative. No
+graph database, receipt or ownership claim is created. Independent read-only
+checks find the retained base alone beside the defaults, with its exact
+OID and ownership comment and no client session. The twelve protected
+containers, namespace operator, root files and hold remain unchanged. The
+failed container and supervisor are not restarted.
+
+## Public input permissions and current validation
+
+The [packaging fix and smoke](../../evidence/runtime/postgres-stage2-2026-11-10/runtime-public-input-permissions.json)
+change only the Dockerfile. Public source, config and override trees gain
+read/traverse permission before installation. A build step under UID 10001
+opens every public source and installed input file. The new immutable image
+has config `d0450245` and OCI manifest `123e4fef`; source identity `9b9a92e0`
+is unchanged because no package Python file changed.
+
+An isolated UID-10001 process then opens all 1,102 public files and runs the
+complete maintained input capture. It captures 562 files and 23,113,476
+bytes, bundle `c107f5aa`, with root read-only, no capabilities, no network
+and no database or storage credential. It exits zero without an OOM kill;
+the formerly unreadable CSV is root-owned mode 0644. Installed package and
+config bytes still match all 934 unchanged non-Dockerfile inputs.
+
+The current binding is `c9704d91`, not the earlier full run's `2bb650dc`.
+Those 4,638 passes remain unchanged application-code evidence. A fresh full
+run starts at 14:45 UTC against the new binding. It is later interrupted before
+the necessary guard fix; the partial result is recorded below.
+The [completed fixture cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/completed-full-fixture-cleanup.json)
+removes only the independently reviewed, finished pytest-3269 tree, after
+fresh owner, process, open-file, mount and catalog checks under both test
+locks. Unlinking reclaims about 29.7 GiB; no chmod or database cleanup occurs.
+All full-run results and reference copies remain outside that tree.
+
+Current core job `951f1837ec444e719ec07afb` passes all 3,066 cases, Ruff and
+mypy, but takes 205.58 seconds and misses the 180-second budget. Its case
+membership and resource limits match the 173-second run; measured scheduling
+weights and assignments differ. The timing gate remains open. The trigger
+for further investigation is this measured miss with unchanged application
+code: inspect existing per-case reports and weight provenance before any
+controlled fix or retiming. No automatic timing retry is authorized. Keep
+the case selection, assertions, four clients, sixteen workers and limits fixed.
+
+## Replacement graph stops on a supervisor timeout
+
+The [policy preflight](../../evidence/runtime/postgres-stage2-2026-11-10/readable-policy-preflight.json)
+and [postcheck](../../evidence/runtime/postgres-stage2-2026-11-10/readable-policy-postcheck.json)
+bind image D045 and the root-owned read-only policy to new namespace operator
+`e7a1402f`. All twelve monitored container states remain unchanged. Independent
+review permits the whole graph and cleanup of its own new copies; retained-base
+cleanup stays excluded.
+
+The [new graph](../../evidence/runtime/postgres-stage2-2026-11-10/readable-graph-start.json)
+starts once at 15:03:52 UTC. The maintained supervisor verifies its private UUID,
+authorization and network namespace, then samples resources and SQL progress.
+At the last successful sample, 15:18:36 UTC, the private catalog has two scratch
+databases and all kernel OOM-kill counters remain zero. The supervisor then
+records `TimeoutExpired`, stops the owned actor and confirms exit 137, PID zero,
+no OOM kill at 15:21:18 UTC. Its cached running-state field predates that stop.
+This is a failed operation, not a graph acceptance. Preserve the attempt and
+inspect the timeout and remaining ownership before any separate operation.
+
+## Current core cold-preparation measurement
+
+The [existing-report analysis](../../evidence/runtime/postgres-stage2-2026-11-10/core-cold-preparation-analysis.json)
+finds that 29.3 seconds of the 32.4-second increase precede the first client
+sample. Changing the Dockerfile invalidates the native Linux core image cache;
+its new build accounts for about 29 seconds. The longest complete client grows
+by 3.0 seconds. The scheduling weights come from prior Linux core runs; the
+native full run does not train them. These observations leave the actual
+205.58-second failure intact.
+
+One matched warm-cache comparison may run only after the current full suite
+finishes successfully, resources are idle and binding `c9704d91` is unchanged.
+It must use the exact failed run's input weights, membership and caps through
+the normal check command. Preserve the prior cache before a temporary atomic
+pin under the core lock; release that lock before the normal command acquires
+it. Validate the actual job's inputs and absence of another launcher, then
+preserve its output and compare-and-restore the prior cache under the lock.
+A changed input, unexpected build, competing job or ambiguous result invalidates
+the comparison. No second timing attempt or timing subtraction is authorized.
+The separate graph timeout may require a source change, which would invalidate
+this frozen-binding comparison before it starts.
+
+## Guard failure boundary and source fix
+
+The [independent boundary](../../evidence/runtime/postgres-stage2-2026-11-10/graph-supervisor-timeout-boundary.json)
+confirms the namespace exits one after its status export times out inspecting
+the completed hold-install helper. The host supervisor's own timed-out command
+was not logged and cannot be identified. Event-emission delays do not establish
+a daemon-wide cause. A partial copy `69e883f3` and its registry survive; there
+is no graph receipt, shard proof, acceptance or cleanup authorization. The
+original retained base keeps OID 16396. Fresh checks find all twelve protected
+container states unchanged; the guard itself is stopped.
+
+The [interrupted full run](../../evidence/runtime/postgres-stage2-2026-11-10/developer-full-interrupted.json)
+ends by a deliberate SIGINT before the necessary source fix. It reports 2,734
+passes, no failures, and exit two after 2,906.22 seconds. Its complete 935-input
+binding stays unchanged; its processes and test owners are gone. This is partial
+validation, not a full pass. The proposed C970 warm-cache comparison is canceled
+without execution or cache changes because the fix changes the source.
+
+The guard now separates status collection from publication. A collection error
+publishes fresh incomplete inventory and observer failure with a sanitized error
+class; critical authorization and publication failures still propagate. The
+supervisor retains the first failed Docker action, its pinned target and timeout,
+without arguments or output. Failed jobs distinguish last observed running state
+from a confirmed terminal state or an explicit unknown requiring escalation.
+These changes do not establish that a later host Docker request cannot time out.
+
+## Healthchecks.io selected
+
+The owner selects Healthchecks.io on November 10, replacing the earlier provider
+exclusion. Slack stays excluded. A project-only API key is requested in the
+private server template; no key or private ping URL is requested in chat.
+Separate alert and liveness checks must preserve an alarm when heartbeat pings
+succeed. Provisioning, owner delivery and missed-heartbeat tests remain open.
+
+## Source fetch resumes at 15:40 UTC
+
+The 15:43 read-only source check finds `run_20261110T154007Z`: two requests
+and two checked pages from scoring.dance, 13,423,440 bytes, two progress events,
+`failed=false`, no error, no stage errors and no paused host. This proves actual
+fetching after the earlier 09:36-to-15:40 gap. No source deploy or repair occurred.
+At 15:35 the watchdog reports 77.8 GB state above its 50 GB cap, paused remote
+backup upload with the successful 04:00 local set, and 629 partitions withheld
+for unavailable source support. These remain production limits, not rehearsal
+successes or fixes.
+
+## Current guard candidate validation
+
+The [guard candidate](../../evidence/runtime/postgres-stage2-2026-11-10/developer-guard-status-isolation.json)
+passes 108 focused checks, all 3,074 core cases, Ruff and mypy. The normal core
+takes 231.14 seconds, so the 180-second gate remains open. Its source is
+`94c8cb77`, binding `4c7b6dbe`. Independent static review accepts the guard
+failure separation and privacy/terminal-state regressions. A fresh required
+full suite starts at 15:49 UTC on that frozen binding with 120.09 GB free;
+its result is pending.
+
+The [existing-report analysis](../../evidence/runtime/postgres-stage2-2026-11-10/core-guard-shared-work-analysis.json)
+finds warm startup, but shared-case work rises 31.17 percent. The eight new
+regressions add only 0.018 aggregate seconds. Better assignment balance cannot
+fit the measured work into 180 seconds; the existing reports lack CPU, I/O and
+SQL-wait observations needed to identify the underlying cause. No timing retry,
+weight pin, cache rewrite, resource change or optimization follows.
+
+The [current image proof](../../evidence/runtime/postgres-stage2-2026-11-10/image-guard-status-isolation.json)
+binds OCI manifest `8190b606`, configuration `2cc3f9d1`, AMD64 and source
+`94c8cb77`. Mac containerd identifies the image by manifest; the server identifies
+it by configuration. Their hash chain is checked. All 546 installed package
+files and ten config/override files match the frozen validation inputs. The
+proof container remains created with PID zero; no process, namespace transition
+or new graph has run from this image yet.
+
+The independently reviewed pytest-3275 tree is already absent when the manual
+cleanup's first fresh guard runs. No manual move, removal, chmod or reservation
+occurs. Its removal by ordinary focused-test retention is inferred. All retained
+interrupted-run receipts still match their hashes; actual free space exceeds
+the next full run's 110 GiB admission requirement.
+
+## Healthchecks.io provider drill
+
+The project key authenticates to an empty project with one email integration.
+Two check creations return HTTP 201. The event-alarm check has a 365-day period
+for this bounded rehearsal and receives failure signals; it is not a heartbeat.
+The separate watchdog check expects a ping every five minutes, plus two minutes
+of grace. Both require POST. Their private URLs stay in mode-0600 server files;
+the management key is not mounted into application containers.
+
+At 15:48:26 UTC the controlled event failure receives the provider's exact `OK`
+response. At 15:48:28 the watchdog receives one successful ping, then no further
+ping. At 15:56:14 both check statuses are down, with exactly one ping each and
+the configured email integration attached. This proves provider acceptance and
+its missing-heartbeat transition, not receipt in the owner's inbox or guarded
+application transport. Owner confirmation is requested separately.
+
+At 15:57 the test event alarm is cleared by its own success signal, and the
+watchdog check is paused until the application's first authorized ping. The
+original down observations remain durable on the server. No rehearsal pipeline
+or scheduler is claimed to be monitored while it remains unstarted.
+
+The owner confirms both test emails arrived. The
+[provider drill](../../evidence/runtime/postgres-stage2-2026-11-10/healthchecks-provider-drill.json)
+therefore proves the configured provider's explicit alert and missing-heartbeat
+notification. Delivery from the guarded application topology remains open.
+
+## Guard transition and fresh graph
+
+The [preflight](../../evidence/runtime/postgres-stage2-2026-11-10/guard-transition-preflight.json)
+and [postcheck](../../evidence/runtime/postgres-stage2-2026-11-10/guard-transition-postcheck.json)
+record installation of source `8d69abde` and policy `ea8efe99` as root-owned,
+mode-0444 single-link files. New operator `420954b2` starts once at 16:19:15 UTC,
+PID 1863060, birth 972399397, on the unchanged boot. Its complete profile and
+mount objects match the previous operator. Sorting Docker's unordered mount
+array changes no object or permission; the initial order-sensitive guard
+refused before any reservation or start. The CHOWN-only public-file helper exits
+zero, PID zero, without an OOM kill. All twelve protected states stay unchanged.
+Host access to the operator's network inode is denied; no privilege is added.
+The graph must verify its own actual inode through the trusted operator.
+
+The [fresh attempt](../../evidence/runtime/postgres-stage2-2026-11-10/fresh-graph-start.json)
+starts once at 16:47:03 UTC, container `ee9d5a67`, under the maintained server
+supervisor. Its three new writable volumes and empty ownership registry exclude
+the failed attempt's registry, spill and checker volumes. Only this new job's
+three owner/comment-bound databases and scratch may be cleaned. C696 and failed
+copy 69 remain excluded. Startup verifies dev UUID `2f58b861`, authorization,
+actual network inode and process birth before database work.
+
+At 16:50 this job's writer has copied 4.2 GB of its current table; by 16:59 its
+owned database reports 17,254,343 inserted rows and COPY advances to a different
+relation. These are copy observations, not verified semantic units. Attendance
+uses this actor's IP and owned databases; aggregate scratch-cluster counters
+cannot dismiss a stall. The supervisor checks protected states, hold, disk and
+kernel OOM counters every twenty seconds, with an unchanged 24-hour bound and
+120-second stop grace. At the latest sample all twelve protected states remain
+unchanged, no OOM kill is observed and over 555 GB remains free.
+
+## Final guard-source full validation
+
+The [completed full suite](../../evidence/runtime/postgres-stage2-2026-11-10/developer-guard-full-passed.json)
+passes 4,646 tests, zero failures, errors or skips, in 3,756.83 seconds. Its two
+warnings are the existing record-property/xunit2 warnings. All 935 input hashes
+and source `94c8cb77` remain unchanged; no test owner remains active. The graph
+started while this validation was pending under the explicit 544-unchanged-file
+bridge; this later result completes the current full proof. It does not change
+the actual 231.14-second core timing failure.
+
+## Source lock failure and later fetch at 16:10 UTC
+
+The source's 16:00 acquire tick fails with `OperationalError: database is locked`,
+one write-lock timeout, no request and no progress. The frozen code is unchanged.
+The 16:43 read-only check then finds `run_20261110T161020Z`: five successful
+requests and five checked pages, 3,980 bytes from EEPro and 256,991 from
+scoring.dance, five progress events, no error, stage error or paused host.
+The later success does not erase the failed tick. Maintenance item 37 owns the
+lock behavior; items 30, 39 and 40 keep the state-size, expired-host and idle
+findings. The 629 withheld partitions remain a separate maintenance finding.
+
+## Input acceptance exceeds its atomic-write budget
+
+The fresh graph starts once at 16:47 UTC and exits naturally at 17:11 UTC,
+with exit 1, PID zero and no OOM kill. Its frozen copy finishes, then normal
+candidate input acceptance exceeds the unchanged 60-second atomic-write
+budget. No graph receipt or shard proof is produced. Approved cleanup removes
+this job’s new copies and empties its registry. The independent boundary finds
+exactly the default databases, C696 OID 16396 and retained69 OID 465992, with
+no sessions; it does not repeat the base’s typed audit. The guard and all
+twelve protected container states are unchanged
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-10/graph-input-accept-deadline.json)).
+
+The measured failure triggers bounded batching in normal queue invalidation
+and scope registration. A real Postgres regression measures 12,310 SQL calls
+and 4.271 seconds for three overlapping invalidations of 4,097 units; registering
+4,097 scopes takes 4,111 calls and 1.048 seconds. The initial registration
+probe has an invalid test timestamp; its corrected run passes before any
+implementation change. The first batched run reduces those counts to 31 and
+19 calls, taking 2.218 and 0.410 seconds. Eighty-eight focused cases pass.
+These local measurements do not establish a full-size server pass.
+
+Repeated invalidations advance work generations and the history fence. Each
+batch therefore ends before a repeated key; no invalidation is discarded.
+Callbacks still observe earlier accepted digests and complete queues, and a
+later failure rolls back the entire acceptance. Registration keeps its first
+timestamp and reports only inserted rows. The same 60-second budget applies.
+Per-input start and queued logs distinguish unfinished invalidations from
+committed acceptance; queued output is not a commit receipt.
+
+The proposed controlled core probe for source 94c8cb77 is canceled without
+execution or cache changes because this necessary fix changes the source.
+The earlier 4,646-case full pass remains evidence for the preceding source.
+Its completed pytest-3282 tree is independently reviewed, renamed with exact
+inode checks and removed without chmod or regular-file writes. Cleanup frees
+31,869,349,888 bytes; raw full results remain outside the tree
+([cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/completed-full-3282-fixture-cleanup.json)).
+
+## Source collection idle at 17:34 UTC
+
+The latest acquire tick, 17:31 UTC, finishes without error but fetches no pages.
+The last real fetch finishes at 16:11 UTC: five scoring.dance/EEPro requests.
+About 82 minutes have passed without fetching. The existing 16:00 SQLite
+write-lock failure remains a failure; later successful ticks do not erase it.
+The latest watchdog lines still report state size, paused remote upload,
+629 withheld partitions and the expired Wayback failure. This observation
+fires the unattended-work idle signal. It does not establish the cause or
+justify a production repair during the isolated migration rehearsal.
+Maintenance item 40 owns the empty ticks
+([read-only pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-idle-1734.json)).
+
+## Batched input acceptance validation
+
+The final focused run passes 88 cases. Its overlapping invalidation uses
+31 SQL calls in 2.242 seconds; registration uses 19 in 0.420 seconds. The
+new history-fence expectation initially omitted secondary increments from
+work generations and accepted digests. The corrected regression checks all
+24,597 increments, unchanged callback visibility, complete duplicate work
+generations and rollback. The independent reviewer adds a correction without
+changing the earlier failed result.
+
+The normal check then passes all 3,075 core cases, Ruff and mypy across 365
+source files, but takes 209.04 seconds. The unchanged 180-second timing gate
+remains open. The package source is 94a24e6c; all 935 bound inputs have hash
+bc222965. Only queue and scope registration source and their two existing
+test files differ from the preceding full pass. No full pass is claimed for
+this source
+([checks](../../evidence/runtime/postgres-stage2-2026-11-10/developer-batched-input-acceptance.json)).
+
+The new AMD64 image builds once, is transferred to Rhuidean and passes exact
+installed-byte checks for 546 package files and ten config/override files.
+Its proof container is created but never started. Image configuration 2fd1e17e
+and OCI manifest 6b49b7f9 bind the current source
+([image](../../evidence/runtime/postgres-stage2-2026-11-10/image-batched-input-acceptance.json)).
+
+A new full run waits on scratch space. The independently reviewed cleanup
+removes four exact local transport archives, each with an unchanged,
+byte-identical server copy. It recovers 998,301,696 bytes and leaves
+116,733,825,024 bytes free, below the 118,111,600,640-byte full-run admission.
+No fixture, reference, profile, cache, image, container or volume is removed.
+The owner is asked to free four GiB; the 80 GiB floor and full admission stay
+unchanged
+([cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/local-duplicate-image-archives-cleanup.json)).
+
+Healthchecks.io’s watchdog description is corrected to the actual 300-second
+application interval. Its existing 300-second period, 120-second grace,
+identity, email integration, paused status and ping count remain unchanged;
+no ping is sent. The API key and private URLs stay server-only. Guarded
+application delivery and the missing-heartbeat drill remain open.
+
+## Image-only guard transition for the batching fix
+
+The first concrete plan for the batching image is refused before start: its
+new image 2fd1e17e does not match the current guard’s 2cc3f9d1 pin. The frozen
+plan and refusal remain unchanged, and the verifier remains created with PID
+zero. No data job ran under the mismatched policy.
+
+A separately reviewed transition changes only network.json’s image_id. The
+one-file, networkless CHOWN helper exits zero; the old guard is deliberately
+stopped once with exit 143 and PID zero. The new root-owned policy is installed
+by exact atomic rename and directory fsync. The guard code and inode remain
+unchanged. The new namespace’s complete Config, HostConfig and four mounts
+match the prior profile, allowing only its generated hostname and the enabled
+OOM default representation
+([preflight](../../evidence/runtime/postgres-stage2-2026-11-10/image-pin-transition-preflight.json)).
+
+The replacement guard starts at 18:08 UTC with ID e6ef7463, PID 2307333 and
+birth 973055595 on the same host boot. Its independent post-check confirms
+policy db505e0a, canonical digest 62f01071, unchanged security code 8d69abde,
+fresh resource status without observation error and all twelve protected
+container states unchanged. Incomplete application inventory is expected while
+schedulers remain unstarted. This transition starts no graph and proves no
+application health
+([post-check](../../evidence/runtime/postgres-stage2-2026-11-10/image-pin-transition-postcheck.json)).
+
+The current guard pointer is updated only after that post-check. A distinct
+corrected graph plan binds the actual new guard and matching image policy;
+it needs a new independent execution verdict. Current full validation and
+the 180-second core timing gate remain open. The hold receives its ordinary
+18:10 review, preserving owner, reason and creation time, with review due
+19:10 UTC.
+
+## Approved build-cache cleanup and new full run
+
+The owner asks for safe deletion candidates, then explicitly approves one
+reviewed inactive Xcode build-intermediates directory. It is about 27 days old,
+with no active build, open reference, link, mounted subtree, immutable flag or
+foreign owner. Fresh guards match the independent check before ordinary
+same-parent rename and exact quarantine removal. No source package, build
+product or index sibling changes. No chmod or file-content rewrite is used.
+The measured free-space increase is 4,687,261,696 bytes; actual available
+space reaches 122,609,491,968 bytes. Exact unrelated-project paths and commands
+remain in private scratch
+([cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/approved-build-cache-cleanup.json)).
+
+At 18:25 UTC the current source’s full suite starts once through `mise run test
+-- --full-suite`. All 935 bound inputs still match bc222965, package source
+94a24e6c. Its 20-second disk watch preserves the 80 GiB floor. This is a running
+check, not a full pass; the core timing gate remains open
+([start](../../evidence/runtime/postgres-stage2-2026-11-10/developer-batched-full-start.json)).
+
+## Batched graph starts under the matching image policy
+
+The corrected plan 95e8b90f receives a distinct execution verdict. The frozen
+4a1b plan and its refusal remain unchanged. The maintained supervisor starts
+once at 18:32 UTC; actor e79eee46 starts at 18:32:54 UTC, PID 2401195 and birth 973201320. Its authorization matches the actual network namespace, host boot
+and process incarnation, and precedes credential loading. The startup identity
+is the expected private dev database C696, UUID 2f58b861. The new image is
+2fd1e17e under guard e6ef7463 and policy db505e0a
+([start](../../evidence/runtime/postgres-stage2-2026-11-10/batched-graph-start.json)).
+
+The independent startup check binds only new owner token
+21ee0a208fbc4a87821d7ab8. Its registry contains public ownership metadata,
+not DSNs. All twelve protected containers, the native import result, current
+root files and hold are unchanged. IPv4 permits the private database, bounded
+proxy, private resolver, loopback and established flows before rejecting other
+traffic; IPv6 permits loopback and established flows before rejection. No OOM
+kill is observed. These checks prove startup and ownership, not a graph pass
+([ownership](../../evidence/runtime/postgres-stage2-2026-11-10/batched-graph-startup-ownership.json)).
+
+Progress attendance is scoped to that token and the current actor’s address;
+retained69’s activity does not count. The COPY stream advances through tables
+while its byte/tuple counters reset per table. Database insertion statistics
+include internal work and are not the typed-row audit. The full suite runs in
+parallel on unchanged source; its result and the core timing gate remain open.
+
+The later Healthchecks transport draft adds only the exact proxy origin
+https://hc-ping.com. The existing CoreDNS configuration remains unchanged:
+workers use the proxy for external HTTPS, and the proxy resolves CONNECT
+hosts. Private worker DNS intentionally resolves only internal hosts. No proxy
+or DNS change is applied during guarded verification or inspection. Actual
+application alert delivery and the withheld-heartbeat proof remain open.
+
+### Batched acceptance still exceeds sixty seconds
+
+At 18:57 UTC on November 10 the batched graph exits 1 naturally, with no OOM.
+Its frozen copy completes, but normal input acceptance exceeds the unchanged
+shared sixty-second transaction budget. The source checkpoint and retained
+failed copy remain protected; ownership cleanup removes the new copy. No graph
+receipt exists. The independent boundary check is retained
+([failure](../../evidence/runtime/postgres-stage2-2026-11-10/batched-graph-acceptance-deadline.json)).
+
+The per-input logs show scoringdance.round taking 39.538 seconds. The last
+observed wsdc_registry.dancer input has only 18.451 seconds left. These timings
+include watch updates, snapshot selection and work enqueueing; they do not
+isolate the slow phase. Read-only source counts are 5,710 watches and 7,069
+snapshots for scoringdance.round, and 29,305 watches and 33,023 snapshots for
+wsdc_registry.dancer. Only zero and twenty-two matching watches, respectively,
+already have a NULL extract version. Skipping those writes would change trigger
+and history-fence behavior and is not selected.
+
+The freeze path omits an explicit ANALYZE after bulk loading; import and restore
+already perform it after committing DDL and grants. Missing statistics are a
+hypothesis, not an established cause. One new owned full copy will measure the
+exact acceptance order before and after ANALYZE, keeping the shared sixty-second
+limit and rolling back each trial. Execution completion and materialization
+will be timed separately. No retained database will be analyzed or changed.
+
+At 19:25 UTC all 4,648 full-suite cases pass with zero failures, errors or skips,
+on the unchanged 935-input source binding. The core correctness result remains
+3,075 passing cases in 209.04 seconds, above its unchanged 180-second gate
+([full validation](../../evidence/runtime/postgres-stage2-2026-11-10/developer-batched-full-passed.json)).
+
+The source pulse at 18:57 still shows empty acquire ticks; its last real fetch
+finished at 16:11. No production repair was deployed
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-idle-1857.json)).
+The rehearsal hold was reviewed at 19:45, with its next review at 20:45 UTC;
+its owner, original creation time and reason remain unchanged. Schedulers remain
+unstarted.
+
+### Completed full-suite fixture cleanup
+
+The independent review identifies pytest-3293 as the completed 4,648-case run;
+pytest-current points at a later empty root. After fresh ownership, process,
+mount, open-file, ledger and lock checks, only that exact generated fixture tree
+is renamed and unlinked. No file contents or permissions are changed. The
+external logs and JUnit report retain their exact hashes. Actual free space rises
+by 31,876,349,952 bytes to 124,097,069,056 bytes, above the 110 GiB admission
+floor for another full run. Other roots, reference R, physical profiles, caches
+and databases are unchanged
+([cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/completed-full-3293-fixture-cleanup.json)).
+
+The two Healthchecks runtime endpoint files are staged server-only, UID 10001,
+mode 0400 and single-linked. The project management key is not copied; this
+step changes no application mount or proxy and sends no ping
+([staging](../../evidence/runtime/postgres-stage2-2026-11-10/healthchecks-runtime-endpoint-staging.json)).
+
+### Rollback-only acceptance profile starts at 1959 UTC
+
+The independently reviewed diagnostic starts once at 19:59 UTC with the
+already-tested immutable image. Startup checks confirm authorization before
+credential loading, the exact private dev source, actual process incarnation,
+and a new owner with one database claim. Fresh spill, runtime and checker
+volumes exclude every older registry. The source state mount is read-only.
+Only the newly owned database may be analyzed and removed. The attended
+supervisor retains the twelve protected services, current namespace, root
+policy files, unexpired hold, OOM checks and 200 GB free-space floor. The
+actor has 8 GiB, six CPUs, 256 processes and a 3,500-second internal ceiling;
+the supervisor bounds it at 3,600 seconds plus its existing stop grace.
+The normal acceptance transaction retains its sixty-second limit
+([startup](../../evidence/runtime/postgres-stage2-2026-11-10/acceptance-profile-startup.json)).
+
+The diagnostic buffers at most 10,000 measurement events during each trial,
+then flushes after rollback. It records watch-update completion, snapshot
+selection, affected-unit materialization, enqueue batches and digest writes.
+EXPLAIN uses the exact application predicates for updates and snapshot
+semijoins. Selected mutation tables receive before/after rollback fingerprints.
+Baseline fingerprint reads warm data; the second trial shares caches and
+aborted tuples. Unexpected exceptions stop the experiment; only the expected
+write deadline or deliberate rollback permits its next phase. Completion
+proves a diagnostic finished, not a graph pass or a causal speedup.
+
+The source correction developed while this old-image diagnostic runs adds
+ANALYZE after freeze's final catalog/ACL transaction and before publishing
+settings. Three targeted regressions and all 35 graph/copy-area cases pass.
+They assert an idle transaction, destination ownership, actual column
+statistics, unchanged source/copy semantics and failure cleanup without a
+success settings file. New core and full validation are pending; the earlier
+4,648-pass report covers the preceding batched version.
+
+### Source collection pulse at 2015 UTC
+
+At 20:15 UTC, the 20:10 acquire tick finishes without an error but makes no
+request. The last real fetch still finishes at 16:11, 244 minutes earlier.
+The bounded scan skips no large file and retains the earlier SQLite lock
+failure. ALERTS.log adds a 19:05 request-budget guard alarm. No production
+state or code is changed; the maintenance queue retains the empty-tick work
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-idle-2015.json)).
+
+### Explicit statistics do not resolve the acceptance deadline
+
+The disposable freeze completes at 20:22:37 UTC. Both rollback-only normal
+acceptance trials reach the sixty-second limit. All selected mutation-table
+fingerprints match before and after each trial, including the same digest
+across trials. ANALYZE completes in 49.4977 seconds; it is insufficient to make
+acceptance fit. Before ANALYZE the observed SQL totals are 18.9745 seconds for
+watch updates, 37.5163 for enqueueing and 2.1361 for snapshot selection. After
+it the totals are 33.7619, 24.7155 and 0.3896 seconds. Both prefixes stop during
+wsdc_registry.dancer's watch update. The second prefix leaves that update more
+time, not proof of a slower completed update. Baseline fingerprint reads warm
+data, and caches and aborted tuples remain confounds.
+
+The actor exits naturally at 20:25:57, status zero, without OOM. The independent
+20:32 boundary check confirms its process, cgroup and supervisor are gone, the
+new ownership registry is empty, and the exact defaults plus C696 and retained69
+remain with their original OIDs and comments and no sessions. The twelve
+protected services, native audit actor, namespace and root files match. No
+acceptance or graph pass follows from diagnostic exit zero
+([result](../../evidence/runtime/postgres-stage2-2026-11-10/acceptance-profile-result.json)).
+
+The source readiness correction remains useful for explicit post-copy planner
+statistics, but it is not presented as the deadline fix. Core and full checks
+wait for a settled candidate. A separate synthetic singleton-counter experiment
+will test whether the repeated row-trigger pattern has increasing cost before
+any counter or trigger change is selected. Its scope is one fresh local bare
+test database, generated tables and exact owned cleanup.
+
+The hold is reviewed at 20:36 UTC; its owner, creation time and reason are
+unchanged. Its next review is 21:36 UTC. The checkout session lock is refreshed
+at 20:36 UTC as well.
+
+### Healthchecks proxy origin applied
+
+The reviewed proxy-only Compose recreation runs once at 20:37 UTC. Only the
+public gateways input and Squid output change, adding `https://hc-ping.com`.
+CoreDNS, the namespace policy and all internal addresses remain unchanged.
+Both original anonymous proxy volumes retain their names, destinations and
+read/write modes. The other eleven protected services remain exact, including
+the seven unrelated applications. Compose removes the replaced proxy container;
+it deletes no volume.
+
+The adapter records a conservative post-check failure because its expected
+replacement label was the old container ID. The installed Compose 5.0.0 writes
+`proxy-1`; the earlier controller used 5.5.1. It also makes reused anonymous
+volume mounts explicit and reports mount mode `z` on this host with SELinux
+disabled. The original failure stays sealed. No deployment is repeated.
+An independent read-only post-check validates those narrow bookkeeping
+changes, the actual resource and security profile, exact volume mappings,
+pinned image defaults and a TCP listener reached from the owned mock. The
+same PID and birth remain stable after two seconds, without OOM or restart.
+Native import status, root policy files, namespace, hold and retained private
+catalog all match. Raw inspection credentials are neither retained nor hashed
+([post-check](../../evidence/runtime/postgres-stage2-2026-11-10/healthchecks-proxy-postcheck.json)).
+
+The current proxy is `298bc1f45189`; later job baselines and the ordinary hold
+review protocol must use this observed container. Provider ping URLs are still
+server-only. No application notification or liveness ping has yet been sent
+by this proxy operation.
+
+### Counter model and maintained acceptance profiler
+
+The one local synthetic counter experiment completes in 1.4005 seconds. All
+nine cases preserve the exact changed-row count and final counter value, then
+roll back. At 8,192 rows, the row-trigger SQL takes 186.346 ms and splitting
+it into 1,024-row updates takes 186.447 ms. The statement-count model takes
+6.796 ms. The independent result confirms its one bare generated database is
+gone, the owner registry is empty, the process group is absent and the original
+local test service is unchanged. The result does not establish application
+causality, semantic equivalence or an accepted trigger change
+([result](../../evidence/runtime/postgres-stage2-2026-11-10/synthetic-counter-result.json)).
+
+A separate bounded read-only source observation reports 444,178 estimated
+execution-admission rows, 78,414 work-generation rows, 4,198 pending rows and
+one history-dispatch fence row. Plain EXPLAIN selects the fence primary key.
+The publication-guard SELECT uses the state index and returns no row in
+0.801 ms on a cold read. It executes no UPDATE and does not reproduce a trigger
+inside the failed frozen copy. Captured inputs and query plans remain in
+`/tmp/swingset-stage2-postprofile-readonly-20261110/`.
+
+The next diagnostic is the maintained `profile-input-acceptance` command,
+with one owned copy, one normal acceptance and mandatory rollback. It records
+statement categories without SQL parameters and PostgreSQL function self and
+total times. Function tracking is session-local; acceptance runs with both
+session and current user changed to the worker login and its capabilities
+checked. No role grant or cluster setting changes. The source must be dev,
+the external registry fresh, the capture path separate, and the output unused.
+Twenty focused cases pass, including normal acceptance, an injected atomic
+deadline, unexpected failure, real rollback after the measurement bound,
+production-source refusal, connection isolation and parameter privacy.
+
+The health entrypoint now waits for its namespace grant before reading
+credentials, as the other daemons already do. Its new delayed-grant regression
+fails on the old entrypoint and passes after the change; all 61 deployment and
+health-area cases pass. These additions await broad validation and a matching
+immutable image before server use. They change no running actor.
+
+At 20:47 the ordinary hold review adopts only the independently verified new
+proxy ID in its expected twelve-service snapshot. All other fields match.
+The hold identity and reason remain unchanged; next review is 21:47 UTC.
+
+The first broad check of the maintained profiler selects 3,086 core cases.
+It finds one missing recipe-scope classification; mypy also finds a missing
+worker-name type check. Both are corrected. The core takes 228.50 seconds,
+so the unchanged 180-second timing gate remains failed. The later path and
+area run passes all 91 cases, including legacy `.db` and `.sqlite` aliases
+and admission before any capture or database work
+([focused checks](../../evidence/runtime/postgres-stage2-2026-11-10/developer-input-profile-paths.json)).
+Review then finds a usability gap when the normal scratch parent is an
+ancestor of the checkpoint; that correction is pending, alongside promotion
+of the one-use diagnostic supervisor into the maintained command.
+
+At 21:39 the hold review confirms all twelve services unchanged and extends
+the review to 22:39 UTC. At 21:41 a read-only production pulse finds one
+successful EEPro fetch at 21:15, 29,738 bytes. The 21:40 tick makes no request.
+The expired Wayback and earlier stale-fetch alarms remain recorded. No
+production change was made
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-progress-2141.json)).
+
+The corrected broad run passes all 3,106 selected cases, Ruff and mypy.
+Its 234.44 seconds still exceeds 180; source binding is unchanged during
+the run
+([check](../../evidence/runtime/postgres-stage2-2026-11-10/developer-input-profile-core-correctness.json)).
+The remaining scratch admission now allows a normal `/tmp` ancestor while
+refusing scratch inside the retained source. Its real native success case
+uses `/tmp` and leaves no new scratch directory.
+
+The maintained supervisor now has a fixed `verification-job --input-profile`
+mode: one owned copy, a 3,600-second ceiling, a separate diagnostic review
+and a read-only retained state mount. It keeps the graph supervisor's exact
+namespace, endpoint, protected-service, startup identity and one-start checks.
+The final focused run passes 85 cases, including source-mount and command
+refusal, review scope, a boolean copy-limit refusal and the bounded stop.
+Final broad validation and matching image are pending.
+
+The final source review accepts the maintained profiler and supervisor
+([review](../../evidence/runtime/postgres-stage2-2026-11-10/input-profiler-source-review.json)).
+All 3,114 core cases, Ruff and mypy pass on the unchanged binding. Its
+219.95 seconds still fails the 180-second timing gate
+([check](../../evidence/runtime/postgres-stage2-2026-11-10/developer-input-profile-final-core.json)).
+The corrected passive sampler captures CPU and I/O counters. The earlier
+sampler discarded its output because pressure files were absent; no cause
+is inferred from that failed observation. The successful samples also do
+not establish a root cause.
+
+The AMD64 image contains all 557 exact public files, including 366 Python
+modules. Its proof container remains created and never started
+([installed bytes](../../evidence/runtime/postgres-stage2-2026-11-10/image-input-profiler-installed.json)).
+A final full suite starts at 21:54 with the 110 GiB admission and 80 GiB
+floor. Image-policy transition and profiler execution still need separate
+review. Two initializers fail on permission ordering in the three new owned
+volumes. Neither mounts a retained state, credentials or database; no
+diagnostic actor is created and no active policy changes. Their failed
+containers are preserved while the ordering is corrected.
+
+The corrected initializer passes after a separate ordering review. It
+reclaims the three fresh mount roots before traversal, sets modes while
+root-owned, then transfers children before parents. A read-only helper
+running as UID 10001 confirms all five paths are mode 0700, with only the
+two expected empty spill directories. The diagnostic actor is created
+and never started. Its image-only policy transition remains staged for
+independent review; the active E6 guard and root policy are unchanged.
+The transition adapter keeps full environment and command comparisons in
+memory and records public namespace fields only.
+
+The image-only transition completes once at 22:12. Its independent
+post-check accepts the new namespace, exact full profile comparisons,
+root policy and protected state. The old E6 guard exits 143 without OOM
+and its process is absent; the profiler remains unstarted
+([preflight](../../evidence/runtime/postgres-stage2-2026-11-10/input-profile-image-pin-preflight.json),
+[post-check](../../evidence/runtime/postgres-stage2-2026-11-10/input-profile-image-pin-postcheck.json)).
+The current pointer adopts only that observed guard. At 22:17 the hold
+review confirms the same twelve-service snapshot and extends the review
+to 23:17 UTC. The final maintained-profile plan is staged for a separate
+execution and one-copy cleanup review.
+
+The separate execution review accepts one maintained diagnostic and only
+its new owned database cleanup. The corrected launcher compares all
+eleven complete mount objects after sorting by destination; Docker had
+reordered the same objects before launch. It starts the maintained host
+supervisor once at 22:30:23 and the actor at 22:30:24. The supervisor verifies
+the dev UUID, namespace grant, process birth and network namespace. At
+22:31 the actor is freezing one copy, with no reported error or OOM
+([startup](../../evidence/runtime/postgres-stage2-2026-11-10/input-profile-start.json)).
+Acceptance and function timing remain pending.
+
+At 22:29 the production pulse finds two successful scoring.dance requests
+at 21:46, 408,179 bytes. The 22:26 tick makes no request and the checked
+alert tail has no new line. Production is unchanged
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-progress-2229.json)).
+
+The independent 22:33 startup observation confirms the actor's full
+profile, both firewall families, authorization and exact process identity.
+The private catalog adds only owner `8517b274abbe42429560e856` and its one
+new database; retained C696/69 and their owner records are unchanged.
+The observation is sealed in scratch, SHA256
+`31b8e0898474d02cf0a549205bace20fae59119eff1bf330ab50c66671e122ae`.
+It proves startup and freeze isolation, not diagnostic completion.
+
+The maintained diagnostic finishes naturally at 22:55:52 with all 108,390
+units, matching rollback fingerprints and removal of its sole owned
+database. Normal acceptance still expires at 60.015 seconds. Four
+history-timing functions account for 47.528 seconds of self time. The
+independent terminal audit confirms exact retained state, empty registry
+and no remaining actor or supervisor processes. It separately records
+the namespace exit 1 and supervisor refusal: the guard tries to authorize
+a stopped actor's PID 0 as a new incarnation
+([result](../../evidence/runtime/postgres-stage2-2026-11-10/input-profile-result.json)).
+
+The same diagnostic source passes all 4,687 full-suite cases in 3,588.19
+seconds. Its binding is unchanged and minimum free space stays above
+80 GiB
+([full suite](../../evidence/runtime/postgres-stage2-2026-11-10/developer-input-profiler-full-passed.json)).
+The independently reviewed completed `pytest-3310` scratch is removed with
+ordinary unlink, reclaiming 31.95 GB; external full-suite proofs and other
+roots remain unchanged
+([cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/completed-full-3310-fixture-cleanup.json)).
+At 23:04 the ordinary hold review preserves the twelve-service snapshot
+and extends the review to November 11 at 00:04 UTC.
+
+The local guard fix retires only confirmed stopped or removed actors.
+It preserves fatal live-profile and unknown-state failures, with 53
+deployment-area cases passing. The measured native-39 candidate counts
+transition rows for four history-fence statements and retains exact deltas.
+Its upgrade test preserves all 141 tables, identity, function grants,
+observer visibility and rollback, with publication row fencing intact.
+Real native-38 profiler and two-process source replay pass through the
+explicit read-only checksum gate. All 234 combined area cases and the
+separate explicit forward-upgrade CLI case pass. Settled source review,
+core/full validation and a new reviewed runtime/guard remain required.
+No server schema or retained source was changed.
+
+The first native-39 core check exposes a duplicate version constant: backup
+manifests still declare 38 while the schema is 39. The failed fixtures fill
+one client scratch cap; this incomplete run is not a timing pass
+([failure](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native39-core-backup-failure.json)).
+The version now has one canonical source. The exact AFTER/event trigger
+audit and its wrong-event regression are also fixed. All 94 schema,
+backup and publication cases pass after both corrections. At 23:50 the
+hold review preserves the twelve-service snapshot and extends to
+November 11 at 00:50 UTC. At 23:43 production has fetched nothing since
+21:46; the 23:05 Wayback alert repeats an expired deadline. No production
+repair is made
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-idle-2343.json)).
+
+The corrected native-39 source passes independent source review and all
+3,130 core cases, Ruff and mypy. Its unchanged-budget run takes 185.48
+seconds, so the 180-second gate remains open
+([core](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native39-corrected-core.json)).
+A new AMD64 image matches all 558 installed public files. Current full
+validation starts at 23:55 with more than 110 GiB free and an 80 GiB
+stop floor. Its packet is `/tmp/swingset-stage2-native39-full-20261110`;
+no source edits occur during the bound run. A new cold verifier and
+three fresh scratch volumes are prepared; no business actor is started.
+The failed guard is retained pending a separate code-and-image transition
+review. Shared native-38 data and the retained C696/69 copies are unchanged.
+
+The separately reviewed transition installs the fixed root security source
+and a policy differing only in its runtime image. A new namespace starts
+once at November 11 00:03:41. The failed previous guard is retained
+without stop or restart. Independent observed post-check accepts both
+files, full operator profile, process identity, fresh status, protected
+services, retained catalog, source files and native import. The platform
+pointer adopts only that observed guard; no business actor is started
+([preflight](../../evidence/runtime/postgres-stage2-2026-11-10/native39-guard-preflight.json),
+[post-check](../../evidence/runtime/postgres-stage2-2026-11-10/native39-guard-postcheck.json)).
+The fresh maintained diagnostic remains cold pending its own execution
+and one-owned-copy cleanup review.
+
+A separate independent preflight accepts one new maintained diagnostic
+and cleanup only of its own new database. The supervisor starts once at
+00:15:58, followed by the actor at 00:15:58.841 UTC. At 00:16 it is freezing
+the owned native-39 copy through the verified read-only native-38 source
+path, with one ownership record and no reported error or OOM. Acceptance,
+cleanup and the healthy-guard terminal check remain pending
+([startup](../../evidence/runtime/postgres-stage2-2026-11-10/native39-input-profile-start.json)).
+
+Independent 00:17:57 startup observation verifies the actor birth, exact
+namespace grant, both firewall families and first OUTPUT jump, full
+profile and eleven mounts, protected services and retained catalog. The
+only added database belongs to owner `e29bd58a71c14532aeb0bc66`. The
+startup verdict is sealed in scratch, SHA256
+`e44458b167b156ddcebafa5dc72d2acfd461bb7aa8796bf648662861747fdaf3`.
+It proves startup and freeze isolation; target validation, acceptance and
+cleanup still await the terminal receipt.
+
+At 00:21, production collection has resumed after UTC midnight: the
+00:15–00:19 tick fetches 58 points.worldsdc.com pages, 776,313 bytes, with no
+reported error, failed flag or paused host. Its stopped flag follows a
+248-second run with a configured four-minute budget, consistent with
+normal deadline completion; this does not prove which stop cause fired.
+The service reports success. A new 00:05 derive-idle alert says no progress
+since 16:25; maintenance item 42 owns that investigation. No production
+repair is made
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-progress-0021.json)).
+
+Read-only analysis of the existing corrected core report decomposes its
+185.439 seconds into a 3.343-second prologue, 178.067-second critical client
+and 4.029 seconds of other runner time. Available counters do not establish
+a safe performance correction. The report remains a timing failure; no
+extra timing run, scheduling change or cache adjustment is selected while
+the current full run and diagnostic are active. The scratch assessment
+is sealed, SHA256
+`eef22413b83219f53544e0f1ea626b784101768971d77ef3bf17185f6a4869df`.
+
+At 00:34:59 the ordinary hold review confirms the same twelve protected
+services and extends the review to 01:34:59 UTC. Its identity and reason
+are unchanged; the running diagnostic sees the renewed out-of-band hold.
+The root file is sealed, SHA256
+`e3f0868dd70cf4563e22cd11f50b7726671350b9dfcb823a2e1f54b6f87579d2`.
+
+The native-39 diagnostic exits naturally at 00:40:55, and its supervisor
+completes successfully with a healthy guard. The independent terminal audit
+confirms no owned database, registry, cgroup or child processes remain and
+all protected state is unchanged. Acceptance still expires at 60.023 seconds
+with the same rollback fingerprint. Its work-generation history function
+now accounts for 41.526 self-seconds across 30,629 statements, nested under
+27,268 row-level enqueue callbacks. The plan selects a native-40 batch
+follow-up; the current full run stays bound to native-39 source
+([result](../../evidence/runtime/postgres-stage2-2026-11-10/native39-input-profile-result.json)).
+
+The bound native-39 full suite finishes at 00:55:44 with all 4,703 cases
+passing, no failures/errors/skips, unchanged source binding and minimum
+free space above 80 GiB. Its 3,643.82-second pytest run is complete before
+any native-40 source edit. Core and acceptance timing remain failures
+([full suite](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native39-full-passed.json)).
+
+The native-40 candidate batches the two pending-work callbacks and keeps
+separate transition aliases for pending rows and history counts. All three
+38→39, 39→40 and 38→40 worker upgrade comparisons pass, including all 141
+table contents, retry fields, generation defaults, missing-generation
+updates, exact fence deltas, observer visibility, commit and publication
+refusal. The initial watch wrapper reports EPERM on shutdown after its three
+cases pass; that failure is kept separate from the test result and is under
+read-only investigation. Ordinary pytest pruning removes completed full
+scratch `pytest-3326`; external full XML and log hashes remain unchanged.
+The prepared manual cleanup adapter is never executed.
+
+### Native watch shutdown permission error
+
+A separate read-only audit finds the old watch PIDs and groups gone, both
+local lifecycle locks available, no live test ledger owner and no leftover
+client database. The exact EPERM syscall is unconfirmed; `_stop` process-group
+signaling is the likely source. No cleanup or source fix is performed. The
+subsequent ordinary native test command passes all 164 selected native-40
+cases and exits zero. Maintenance item 43 owns the watch shutdown finding.
+The independent scratch audit is sealed, SHA256
+`a4e0e5740272f09a726bbc250f984e5cee01ec250e74fb2de6d907bedbfb4d39`
+([native-40 area](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native40-area.json)).
+
+The settled native-40 source passes all 164 selected area cases and all
+3,141 core cases, Ruff and mypy. Its normal core run takes 204.06 seconds,
+so timing still fails; no extra timing retry is selected
+([area](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native40-area.json),
+[core](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native40-core.json)).
+The new AMD64 image is built from that binding. Its bound full suite starts
+at 01:26:21 with 119.124 GB free, above the 110 GiB admission threshold,
+and keeps the 80 GiB stop floor. The 01:25 hold review preserves all twelve
+protected services and extends review to 02:25 UTC; root hold SHA256 is
+`998600ecf60853ebba8c0aa704d6e76b1e170a3d163462ab0e2624fc7d53178d`.
+
+At 01:38, the latest completed production cycle fetches 57 registry pages,
+752,767 bytes, at 01:30–01:34, with no failed flag, error or paused host.
+The 01:35 Wayback alert repeats the expired November 6 failure already
+owned by maintenance item 39. No production repair is made
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-progress-0138.json)).
+
+The source-reviewed native-40 image matches all 559 installed public files
+([image](../../evidence/runtime/postgres-stage2-2026-11-10/image-native40-installed.json)).
+Its separately reviewed image-only transition stops healthy 6ebbc once
+and starts the equivalent 1a4f guard. The failed older guards remain
+unchanged; independent observed post-check accepts the protected boundary
+and the platform pointer adopts only the observed guard
+([preflight](../../evidence/runtime/postgres-stage2-2026-11-10/native40-image-pin-preflight.json),
+[post-check](../../evidence/runtime/postgres-stage2-2026-11-10/native40-image-pin-postcheck.json)).
+
+A separate execution review authorizes one fresh native-40 diagnostic and
+cleanup only of its owned copy. The supervisor starts at 01:46:23.851 and
+the actor at 01:46:24.620 UTC. At 01:47 the actor is freezing its one owned
+copy with no reported error or OOM. Acceptance and terminal inspection
+remain pending
+([startup](../../evidence/runtime/postgres-stage2-2026-11-10/native40-input-profile-start.json)).
+
+The independent native-40 startup observation verifies actor PID 4016982,
+its birth and boot identity, exact namespace grant, both firewall families
+and the first OUTPUT jump. Full profile and all eleven mounts match, with
+source and three private SQL files read-only. The only added database is
+`sst_copy_35969bfc62314211b4e4c63a_0`; retained C696/69 and protected state
+remain exact. The sealed startup verdict has SHA256
+`64e8b3d3d72f07adf832e3bf61d1f030f39f870f68f4173a6301830f8e4ea19d`.
+At 01:49 the phase remains freeze; readiness and acceptance are not claimed.
+
+The native-40 diagnostic finishes naturally at 02:13:03 with acceptance
+complete in 58.9197 seconds under the unchanged sixty-second budget. All
+108,390 units have the expected `d58f3f45…` digest, rollback fingerprints
+match and owned cleanup completes. The supervisor also succeeds with 79
+samples and no stop attempt. Independent terminal review remains pending.
+At 02:14:37 the ordinary hold review preserves the twelve-service snapshot
+and extends to 03:14:37 UTC; root hold SHA256 is
+`e352ec60ff50d3b83d3caca9e5938ae5e108f47a5ecf076bfeb98311a0330e91`.
+
+Independent terminal audit accepts the native-40 diagnostic and retained
+boundary. Acceptance has 1.0803 seconds of headroom; the guard remains
+healthy, and the owned database, registry, cgroup and child groups are
+absent. Source, private catalog and all protected services are unchanged.
+This single complete trial is not a whole-graph proof or a causal timing
+comparison with earlier aborted trials. Full validation and core timing
+remain open
+([result](../../evidence/runtime/postgres-stage2-2026-11-10/native40-input-profile-result.json)).
+
+### Native-40 full validation and developer call profile
+
+The unchanged native-40 binding finishes its full suite at 02:27:25 UTC:
+4,714 pass, no failures/errors/skips, in 3,662.27 pytest seconds. The
+minimum observed free space is 89,591,783,424 bytes, above the 80 GiB floor
+([full](../../evidence/runtime/postgres-stage2-2026-11-10/developer-native40-full-passed.json)).
+
+The selected native call profile passes its one existing scoring.dance
+end-to-end case, leaving source unchanged. The call takes 22.53 seconds.
+Its connection wrapper executes 89,897 calls and accounts for 14.79
+cumulative seconds; psycopg wait has 10.74 seconds of self time. The largest
+direct callers are derivation storage and projection writes, followed by
+signature and recipe reads. This locates many database round trips, not a
+proven cache or scheduling fix. The native-host profile is not a Linux core
+timing comparison; the 180-second core gate remains failed and no source
+optimization or default-core timing retry is selected
+([profile](../../evidence/runtime/postgres-stage2-2026-11-10/developer-core-call-profile.json)).
+
+The first cold whole-graph profile is refused before start because its
+filesystem state was read-only. The maintained graph captures current
+inputs there. A new cold profile copies only metadata and input files into
+a fresh private writable state volume, internally compares private values
+without printing or hashing them, and keeps retained checkpoint SQL
+read-only. Its separate graph execution review is pending. The refused
+actor remains unstarted; neither attempt changes the retained base.
+
+### Corrected whole-graph startup
+
+The separate execution review accepts plan `9b942f75…` and only its three
+new owned databases. Review SHA256 is
+`6f4d9b8641383116d3c7c01ef55171ad615695e3b5908c95e24b34d4fe20812c`.
+The exact one-use launcher starts the maintained supervisor at 02:57:15 and
+actor `3f48e55…` at 02:57:16 UTC, PID 175667. The first observation has
+one ownership record, no error, no OOM and no restart. Independent startup
+inspection and the complete graph result remain pending. No authoritative
+migration, re-key, publication or retained-base cleanup is authorized by
+this start
+([startup](../../evidence/runtime/postgres-stage2-2026-11-10/native40-whole-graph-start.json)).
+
+The independent startup review accepts actual PID/birth/boot/network inode,
+root grant, both firewall families and first OUTPUT jumps. Full configuration
+and eleven mounts match in memory; protected services, root files and the
+retained C696/69 identities remain exact. Only owner `190daa522f4c40e3827d6495`
+has a new database. Startup verdict SHA256 is
+`7df7c4728263bd029f0d96d55713f9d883a0693f8a83ba1df31671a8ab90df4c`.
+At 03:00 the owned COPY has processed 5.37 GB and 162,000 tuples; its
+database is 8.06 GB. These are in-progress counters, not graph acceptance.
+
+The 03:02:31 hold renewal preserves all twelve protected services and extends
+review to 04:02:31 UTC. Root hold SHA256 is
+`5b3279c240fdc947e6e2c8081faaebac003cff7fd927972a3fe87c077369910a`.
+A static review accepts the post-graph reader draft and its explicit
+read-only native-38 compatibility check. Its execution remains gated on the
+actual complete graph receipt, terminal inspection and a fresh SQL-only
+reader perimeter. No reader, migration or re-key is started by this draft.
+
+### Source idle alarm at 03:08 UTC
+
+The read-only pulse finds no new acquire request for 3,652.99 seconds. The
+last actual fetch is 02:05–02:07: 35 registry pages and 346,006 bytes. Later
+ticks complete empty, without failed/error/stage errors or paused hosts.
+The required sixty-minute alarm is raised under existing maintenance item 40. The previous Wayback and derive-idle findings remain items 39/42.
+Production is unchanged
+([pulse](../../evidence/runtime/postgres-stage2-2026-11-10/source-idle-0308.json)).
+
+At 03:10:35 UTC, a fresh read-only pass verifies all 59 retained reference R
+files, 381,686,344 bytes, against their original hashes and file sizes. The
+verification manifest still hashes to
+`2fc7d83fb37a07796d368ebd4b48ec08471a573dd5a144e1c044531371c1512f`.
+No reference file, receipt or physical workspace is changed. B/C/R comparison
+still awaits the two new releases.
+
+### Whole graph fails before its first shard
+
+The actor exits 1 naturally at 03:29:31 UTC, PID zero, no OOM or restart.
+Its incomplete receipt has the exact 108,390/D58 unit set and current
+accepted context, but zero results and zero completed clones. The receipt
+is persisted at 03:29:17.255; Postgres cancels a statement at 03:29:27.540.
+The public error is scratch SQLSTATE 57014. Code order and this ten-second
+interval strongly indicate the first owned template clone timed out; the
+SQL text was deliberately not logged, so this attribution is an inference.
+
+Independent terminal review accepts all owned cleanup and the retained
+boundary: no owner190daa database, registry, process group or cgroup remains;
+C696/69, protected services, guard, root files and hold remain exact. The
+review SHA256 is
+`76df9d775f2951cb769641522844aa9bbeb1ceb55b78fceb0eb21aa50db8a829`.
+The graph remains unproved. Its candidate checkpoint `5039effb…` also
+differs from the source preseal `00c831a4…` after input acceptance. This
+supersedes the draft inspector’s equality assumption; explain and bind the
+transition before another run, without dropping the retained-source check
+([failure](../../evidence/runtime/postgres-stage2-2026-11-10/native40-whole-graph-failed.json)).
+
+### Clone and checkpoint follow-up
+
+The clone fix retains empty creation at ten seconds, permits 600 seconds
+only for owned physical templates, and adds a separate ten-second lock
+limit. The real scaled timeout regression and all 16 copy cases pass.
+The new checkpoint module preserves ordinary hash bytes and predicts exact
+watch invalidation plus NULL-scope registration without writes. Four real
+acceptance cases and the graph-receipt/tampering case pass; all 72 focused
+copy, graph and input-profile cases pass in 43.55 seconds. Mypy passes the
+three changed source modules. Current core/full validation and the actual
+retained-source projection remain pending; no new image or graph is started.
+
+The 03:47:34 hold renewal preserves the twelve-service snapshot and extends
+review to 04:47:34 UTC. Root hold SHA256 is
+`783241db31c9dac953ccc4a75c273b2af03fcac8d08e669b7622eb7af1121a84`.
+The repository session lock is refreshed at 03:43:47 UTC.
+
+The first normal follow-up check passes all 3,147 core cases in 192.79 seconds
+but fails import-order lint and timing. After import sorting, a second run
+exposes the missing offline-module scope exclusion and a 30 ms year-body
+test alarm that can instead interrupt libpq admission. The scope exclusion
+now names its reason. That test delivers real SIGALRM only after entering
+the year body; other real-time deadline tests and runtime bounds remain
+unchanged. All 142 focused cases pass. The required normal check on the
+corrected exact binding passes all 3,147 cases, Ruff and mypy for 367 source
+files. Its 182.89 seconds still fails timing; earlier failures remain
+recorded. The bound full suite starts at 04:20:46 with the 110 GiB admission
+and 80 GiB stop floor. No source edit follows that start
+([validation](../../evidence/runtime/postgres-stage2-2026-11-10/developer-checkpoint-binding-validation.json)).
+
+The 04:15:48 hold review preserves the twelve protected services and extends
+to 05:15:48 UTC; root hold SHA256 is
+`33db4709e26398de7b6cf2c314bc9ce9ccc2f7666c628204fc8cb7f156129561`.
+The guarded read-only projection observer starts once at 04:21:59, supervised
+by PID 613656. Exact pending exec, watcher and actual SQL6-only namespace
+are independently accepted. No database write, graph replay or credential
+export is performed by this diagnostic; result and terminal review remain
+pending. Its retained-source and candidate hashes must both match their pins.
+
+### Source-to-candidate checkpoint change explained
+
+The read-only diagnostic completes in 318.987 seconds. It reproduces exact
+fdb capture, raw source `00c831…` and candidate `5039effb…`. Only watches
+change: all 36,066 rows remain, and the exact extraction-version projection
+explains the complete hash. No NULL scopes are added; the other 32 of 33
+checkpoint components are unchanged. The original observer exits zero and
+the twenty-second watcher succeeds without a guard failure or OOM.
+
+Docker file copy does not collect the tmpfs result. A separate recorded
+bounded read-back exec reads only that existing result with stable-file
+checks and exits zero; no SQL or diagnostic is replayed. Its body matches
+the original observer’s SHA, `e58a83b0…`, 19,435 bytes. Server and local
+outputs and directories are fsynced. Independent terminal review accepts
+the proof and authorizes only a controlled stop of the inert reader.
+The stop ends at 04:39:30 with PID zero, exit 137 and no OOM; this deliberate
+sleep-process stop is separate from observer success. Guard and protected
+services remain exact after the stop. The graph remains unproved
+([result](../../evidence/runtime/postgres-stage2-2026-11-10/accepted-checkpoint-projection.json)).
+
+### Recipe query validation
+
+The 04:49:50 interruption ends the previous full run with 1,156 passes,
+zero failures/errors and actual exit 130. Its source binding is unchanged
+and the process group is gone. This is an incomplete validation, preserved
+in the interruption receipt; no completed full proof is claimed.
+
+The measured recipe lookup now combines global audit/code presence and
+selected pipeline inputs in one SQL snapshot. Four parameterized regressions
+check empty inputs, audit-only presence, an unselected case-insensitive code
+scope, legacy input selection, selected values among unrelated inputs, and
+missing-scope refusal. Their red run observes the old two statements. The
+first implementation run fails on an unescaped percent in parameterized SQL;
+after escaping it, all 36 recipe/retention-input cases pass in 3.58 seconds.
+This proves behavior and statement count, not a core timing improvement.
+Normal core and full validation on the changed source remain required.
+
+The 04:58:53 hold review preserves the twelve protected services and extends
+review to 05:58:53 UTC. Root hold SHA256 is
+`5f00c61b5fa18ce261b2283be21f32aa53d95318ad79ee2490c52cd4665e2674`.
+
+### Source idle and backup pulse at 05:01 UTC
+
+At 04:59:23 UTC, acquire has made no request for 4,077.77 seconds
+(68.0 minutes). Its last actual fetch at 03:50–03:51 checks two scoring.dance
+pages, 408,181 bytes. Later ticks finish empty without errors or paused hosts.
+The required idle alarm is raised under existing maintenance item 40;
+Wayback and derive-idle findings remain items 39/42. Production is unchanged.
+
+The 04:00 backup succeeds at 04:09:28, service result success and exit zero.
+Its new local set `set_20261111T040000Z` names schema 37, 49 segments and
+zero missing items. Manifest SHA256 is
+`71a77325b5acd8e245cf0ebd2a22f583fc0e15e7e81b0e6bd29444335a83463c`.
+The next timer is November 12 at 04:00 UTC. This checks a local backup;
+it does not prove a new restore or remote upload.
+
+### Remaining core timing and streamed writes
+
+Both recipe-query core runs pass all 3,147 cases. The first takes 180.58
+seconds and fails Ruff's unused loop-variable rule. After making scope
+presence explicit, Ruff and mypy pass; core still takes 181.90 seconds.
+Both source bindings remain fixed, and neither timing failure is waived
+([validation](../../evidence/runtime/postgres-stage2-2026-11-10/developer-recipe-query-validation.json)).
+
+Existing profile evidence identifies `_store` as the largest connection
+caller: 8,120 calls and 1.750 cumulative seconds in one end-to-end case.
+The four latest core clients finish within 173.6–175.8 seconds, so the
+remaining gate is broad work rather than one long case. The plan selects
+one SQL statement for each interned payload/reference pair, preserving
+streamed consumption and the enclosing transaction. The strengthened
+streaming regression first fails with 400 statements for 200 rows.
+Candidate focused validation remains pending; no new full/image/graph runs.
+
+The revised post-graph inspector receives independent static acceptance,
+SHA256 `07e55125abcfb1a6514949bf42f8d72428e77050d63f23e871d057170cd9eec3`.
+It retains source/preseal equality, reconstructs the entire maintained
+acceptance binding at the graph clock, and checks the candidate hash,
+inputs, audit and versions. This approves the draft only, with no execution.
+
+All 55 focused payload, read-set and publication-control cases pass in
+165.66 seconds. The streaming regression now observes 200 write statements
+for 200 rows, with the first reference still written after the first row.
+Existing duplicate-payload, rollback, label and publication-fence coverage
+passes. Formatting and targeted Ruff pass. The required normal core check
+starts on this changed binding; no timing improvement is claimed yet.
+
+The first streamed-write core run ends with 3,146 passes and one failure,
+186.006 seconds. The build-completion SQL observer only recognized a leading
+reference INSERT; it misses the same INSERT inside the combined statement.
+Both observers now match the inner INSERT while retaining their original
+ordering and no-write assertions. All nine build-completion cases pass in
+28.18 seconds. The complete required normal check follows formatting on the
+new test binding; the earlier failed run is preserved in scratch.
+
+The corrected streamed-write binding passes all 3,147 core cases, Ruff
+and mypy but still misses timing at 181.14 seconds. Its unchanged-binding
+summary and log remain in scratch. The next measured target is scope
+ownership: the original boundary fixture issues 1,025 claims and advances
+the history fence by 5,128. Bounded batches reduce those claims to two while
+preserving that exact fence delta. All 63 projection/materialization cases
+pass in 10.18 seconds, including unchanged rows, shared ownership, rollback
+and deletion. The next normal check follows formatting on this changed source.
+
+The independently checked completed pytest3357 scratch is removed under
+both validation locks after the preceding core ends. Exact root/tree and
+no-reference checks pass; ordinary same-parent rename and unlink both exit
+zero. Actual free space rises by 2,017,841,152 bytes to 119,799,144,448.
+Sibling roots, the current link, external XML/log, databases and caches are
+unchanged. Both locks are released before testing resumes
+([cleanup](../../evidence/runtime/postgres-stage2-2026-11-10/completed-focused3357-fixture-cleanup.json)).
+
+### Source pulse at 05:25 UTC
+
+The 05:25:30 pulse still finds no request since 03:51:25, about 94 minutes.
+The source watchdog independently logs acquire idle at 05:05:09. The sampled
+history also exposes failed run `run_20261111T032014Z`: 03:20:14–03:22:01,
+`OperationalError: database is locked`, one write-lock timeout and zero
+requests. The later 03:50 fetch succeeds; it does not erase that failure.
+Maintenance item 37 owns lock behavior; item 40 retains the collection-idle
+finding. No production repair or deploy is performed.
+
+### Current core passes the development budget
+
+The ownership-claim batch binding passes all 3,148 core cases in 174.80
+seconds. Ruff and mypy for 367 source files pass; the complete binding
+remains unchanged. Earlier failures remain recorded, and no caps, timeouts,
+test selection or placement rules change. This is a passing normal core
+check, not a controlled causal timing comparison. The current full suite
+starts at 05:28 UTC with the 110 GiB admission and 80 GiB stop floor. Source
+and tests remain fixed for that run; graph proof is still pending.
+
+### Current runtime prepared without activation
+
+The AMD64 image binds source `d6bee16f…` and passes all 560 installed public
+file hashes, including 367 Python files. Config digest is `ba677233…` and
+OCI manifest `e8d04c54…`; the archive is 248,811,008 bytes. The source-proof
+container remains unstarted. A fresh graph actor `ec9747e6…` and four new
+writable volumes are prepared but unstarted; its private metadata comes
+from the exact frozen read-only e79 source, including 1,689 input files and
+three server-only SQL key files. No database is created by preparation.
+
+The image-only policy transition is prepared with an unstarted sealing
+helper. Its executor requires the completed current full-suite receipt,
+exact source binding and a matching final independent verdict before any
+transfer or server mutation. Static readiness review accepts the seven
+changed public source files and the transition logic, with execution denied
+while full validation is pending. Review SHA256 is
+`3ab6ec2d92b702e80518dd7844fb75c246b286fc1afe310b80838df2b904a15c`.
+
+The 05:44:13 hold review preserves all twelve protected services and extends
+review to 06:44:13 UTC. Root hold SHA256 is
+`a37af60b2134288ea5bcb6a7b07d3bc4309e4d1b40cec2c07ee851e114326739`.
+The later migration-plus-audit helper is only a draft, unexecuted and
+unreviewed. It uses the maintained typed encoder around the maintained
+migration command. Graph completion, exact import hashes and a separate
+execution verdict remain prerequisites.
+
+### Later migration audit draft reviewed
+
+Static review finds and closes a same-host owner-target gap before any
+execution: all worker/control/owner DSNs and both required state settings
+now bind the same database, UUID, OID, locale and exact restricted roles.
+The helper checks the three SQL filenames before loading secrets and pins
+the target migration checksum before calling the maintained command.
+Because admission recovery commits before DDL, it writes a durable attempt
+marker first and records unknown mutation outcome on any failed call or
+unparseable result. The full post-audit and exact admission normalization
+share one read-only snapshot; recovered nonpublication rows must have one
+common bounded timestamp. Eleven offline encoder checks pass, including nine
+negative cases, with no database access. The corrected helper receives
+static acceptance, SHA256
+`b573819b1dbfba8b65cdadfebe5f2daeb466501789c2d38807b9cebf3f085b32`.
+It remains unexecuted. Actual graph proof, a concrete bounded SQL-only
+operator envelope, fresh target checks and an execution verdict are still
+required; this review grants no database mutation.
+
+### Source pulse at 06:09 UTC
+
+The 06:09:39 read-only pulse still finds the 03:50–03:51 scoring.dance fetch
+as the newest request: about 138 minutes idle. There is no newer failed
+acquire tick; the earlier 03:20 lock failure remains recorded. At 06:05:01
+the watchdog repeats the expired Wayback `ServerError x7` warning with its
+November 6 expiry. Maintenance items 37/39/40 retain these findings. The
+backup and production deployment are unchanged.
+
+### Current full suite passes
+
+At 06:26:41 UTC, the current full suite finishes naturally with actual exit
+zero: 4,725 pass, zero failures/errors/skips, 3,497.484 seconds. Source
+`d6bee16f…` and complete binding `096a6a5b…` remain unchanged. The sampled
+minimum is 87,993,528,320 free bytes; after completion it is 87,908,605,952,
+both above the 80 GiB floor. Core, Ruff, mypy and current full gates now
+pass ([validation](../../evidence/runtime/postgres-stage2-2026-11-10/developer-clone-checkpoint-roundtrip-passed.json)).
+
+The read-only obsolete-archive review identifies four old archives with
+exact retained server byte copies. The full run finishes above its floor,
+so no archive deletion is authorized or performed. The prepared image-only
+transition now binds actual full validation SHA256
+`31e43d4a6653944e3d5c2096469867d1e4e2ce09824a68e4b1530167e12734be`.
+Its final dynamic preflight and execution verdict remain pending; no guard
+transition, graph or shared-import migration has started.
+
+### Current image-only transition accepted
+
+The final preflight accepts the current full proof and exact image-only
+plan. The executor seals the new public policy, stops the healthy old guard
+once, installs only `image_id`, and starts one fresh guard at 06:36:52 UTC.
+The old guard ends deliberately with exit 143, PID zero and no OOM. All
+twelve protected services, retained databases and native import remain
+unchanged. The new guard `1ddfa37a…`, PID 1272374 and birth 977545098, has
+the exact expected configuration, host settings and four mounts. Root policy
+SHA256 is `fd2d2146…`, canonical `f07b64f5…`; security bytes remain exact.
+
+Independent post-check SHA256
+`225e94824537f0130a81c7ea573e01189fa67b50bdb136f2479bd3cedc91abe3`
+authorizes adoption of only that exact new guard pointer. The parent adopts
+it after the verdict. The metadata-only verifier permission helper exits
+zero, opening no credential contents and changing no files. The verifier
+remains created and unstarted; the final whole-graph execution preflight is
+pending ([post-check](../../evidence/runtime/postgres-stage2-2026-11-10/clone-checkpoint-image-pin-postcheck.json)).
+
+The 06:41:09 ordinary hold review preserves the protected services and
+extends review to 07:41:09 UTC. Root hold SHA256 is
+`21f5509f5fa65459fcbd233ce818029ada84e62ba1f6f0f8494b96944b796f62`.
+The independent post-check verifies that renewed hold and the new guard.
+
+### Current whole graph is running
+
+Fresh independent preflight accepts one graph launch and cleanup of at most
+three new registry/comment-bound databases; C696/69 cleanup remains forbidden.
+The execution verdict SHA256 is
+`ee09a766a48b115e050ad84b031ebaf54050f5f5fbfa8ff6a7e12c4d04e7095c`.
+A first local invocation stops on a staged-package import shadow before any
+remote transfer/reservation. The parent verifies no remote reservation and
+that the actor is still unstarted, then uses Python safe-path mode to import
+the tested checkout. Launcher bytes are unchanged; only one remote launch
+occurs, at 07:00:53 UTC.
+
+The maintained supervisor is PID/group 1389092, birth 977689165. Actor
+`ec9747e6…` starts once at 07:00:53.954 UTC, PID 1389577, birth 977689249,
+network namespace 4026533551. Independent startup review accepts actual
+firewall/first-OUTPUT rules, authorization, UID, caps, limits, complete
+configuration/host/mount conformance and protected boundary. Review SHA256
+is `38c28c9a69a3cff75429d12208594f534e0a3afdab7c94ea2ae8748e7ead1881`.
+
+New owner token `b0ebb1c1dbd24a639d93dfa5` owns only its database suffix 0.
+Logical freeze is active; no shard result or complete graph proof exists.
+The retained databases, shared import and schedulers remain unchanged.
+The parent continues supervision and renews the hold before its review time.
+
+### Hold and graph progress at 07:26 UTC
+
+The hold was reviewed at 07:26 UTC and renewed through 08:26 UTC. All twelve protected containers remain unchanged. The current verifier is running without a supervisor error or OOM; its first owned copy reached 39,960,966,835 bytes and no COPY remained active. This is progress, not a completed graph proof. The source binding still matches all 940 full-suite inputs.
+
+A legacy local `.venv` interpreter path disappeared after validation. Monitoring now uses Mise Python with an explicit source path when needed; no project environment, source, lockfile or completed result was changed.
+
+### Completed full-suite scratch cleanup
+
+The independently reviewed exact `pytest-3361` root was quarantined and unlinked under both validation locks at 07:30 UTC. Both commands exited zero; target and quarantine are absent. Free space increased by 32,164,048,896 bytes to 121,475,850,240 bytes. External full-suite proof, sibling roots and current link remain unchanged. Both locks are released. No database, server object, personal cache or permissions changed. The scratch execution receipt is `/tmp/swingset-stage2-completed-full3361-cleanup-20261111/cleanup-result.json`, SHA `ae4eb1cd9a5e8022ff80552c41293f556f9593ddecfec238e9dc8d80f286cde9`.
+
+### Physical clone reaches the 600-second limit
+
+The current actor ends naturally at 07:47:46 UTC, exit one, PID zero, no OOM or restart. Its supervisor confirms terminal state at 07:47:54, with no stop attempt. Input acceptance and ordinary checkpoint hashing pass: source `00c831a4…` maps to candidate `5039effb…`, with all 108,390 expected units and unit digest D58. The unchanged initial receipt is 4,375,764 bytes, SHA `3044916632517111595dfbe989cdf13e9501f65f7d12f998cc5b0d4f2bc77aea`; it has no clone methods or unit results and is neither complete nor clean. This is not a graph proof.
+
+At 07:47:04, the first `CREATE DATABASE` backend has run for 561 seconds and is waiting on data-file I/O. Earlier observations also show WAL writes. The actor reports SQLSTATE 57014. Minimum observed free server space is 517,709,287,424 bytes and all observed OOM counters remain zero. The selected 600-second physical-copy allowance is insufficient for this default copy strategy. The independent terminal ownership and cleanup check is required before any new operation.
+
+PostgreSQL 17 documents that default `WAL_LOG` writes each copied block into WAL. `FILE_COPY` reduces WAL for large templates but forces checkpoints before and after creation ([official documentation](https://www.postgresql.org/docs/17/sql-createdatabase.html)). No new clone operation or deadline increase has been selected. The read-only postgraph and authoritative migration drafts remain unexecuted.
+
+The database log independently confirms backend 39882 cancellation at 07:47:43.509 UTC. The second agent accepts the failed terminal boundary: owned registry and databases are gone, source C696 and retained 69 catalog identities remain, no scratch clients or actor/supervisor groups remain, and protected services, root policy, guard and current hold are unchanged. Server free space returns to about 580.75 GB. This accepts cleanup, not graph success. See the [compact measurement receipt](../../evidence/runtime/postgres-stage2-2026-11-10/physical-clone-600s-failed.json).
+
+### FILE_COPY candidate validation
+
+Source `702328d6…`, binding `81dd552b…`, passes all 16 Postgres copy cases and the normal 3,148-case core in 178.50 seconds, plus Ruff and mypy over 367 source files. The second agent accepts the single public source-file change and D-0289. The full suite starts at 07:58:32 UTC on the fixed 940-input binding, using Mise Python 3.12.16 in a new scratch environment; the broken legacy environment remains untouched. Its 110 GiB admission and 80 GiB stop floor remain unchanged.
+
+Candidate config `d746c7f0…`, OCI manifest `3c182315…`, passes all 560 installed public-file hashes; only `postgres_copy.py` differs from the previous image. The source-proof container remains created with PID zero. The guard remains on the previous image; the new transition is only a draft and requires actual current full success and fresh independent preflight.
+
+### Source idle pulse at 08:06 UTC
+
+The 08:05:43 UTC production pulse finds the newest tick at 08:05:03–08:05:17, with no error, requests or progress. The last actual request remains the 03:50–03:51 scoring.dance fetch: two pages and 408,181 bytes, about 254.3 minutes before this pulse. The 07:35:01 ALERTS line repeats acquire-idle. Maintenance item 40 remains open. The older 03:20 database-lock failure remains visible, with one write-lock timeout (item 37); no newer failed tick is observed. No production repair is made. The bounded pulse is in scratch at `/tmp/swingset-stage2-source-pulse-20261111-0806.json`.
+
+The rehearsal hold is reviewed at 08:09:56 UTC and renewed through 09:09:56 UTC. Owner and reason are unchanged; all twelve protected containers pass. The staged public policy and CHOWN-only sealing helper are prepared, but the helper remains unstarted and the active policy/guard remain unchanged. Preparation-only verdict SHA `7701c4b79d4aba333f621a970cd6796cef193f3855c65e065b16ad116a5d9343` binds this step.
+
+The fresh FILE_COPY verifier preparation is independently accepted at 08:21 UTC. Four new `72140b0c03f4` volumes hold an exact internal copy of the retained metadata, 1,689 input files (69,548,306 bytes), three SQL files and the read-only blob link. The verifier `80137f45…` remains created with PID zero. Its separately reviewed UID-10001, no-capability, no-network permissions probe exits zero and reads no credential contents. The proof has SHA `b7537731…`; its fresh reservation and transport bind the new nonce and image. The full-suite and image-transition gates remain open. No SQL, clone, migration or verifier start follows from preparation.
+
+### FILE_COPY full-suite pass
+
+At 08:55:46 UTC the current source completes all 4,725 full-suite cases, zero failures, errors or skips, exit zero, in 3,434.05 seconds (printed 57 minutes 13 seconds). All 940 bound inputs remain exact; the observed minimum free space is 89,029,599,232 bytes, above the 80 GiB floor. Four existing record_property/xunit2 warnings remain. The full proof SHA is `f27d52ead7d9d2addeea5caacff5bb18690ab5331987f2fdd494daa4f2a9f90f` ([compact validation](../../evidence/runtime/postgres-stage2-2026-11-10/developer-file-copy-passed.json)). The [candidate image](../../evidence/runtime/postgres-stage2-2026-11-10/image-file-copy-installed.json) remains inactive.
+
+The hold is reviewed at 08:57:39 UTC and renewed through 09:57:39 UTC, with all twelve protected containers unchanged. Final transition preflight is requested against plan `e63a78f1…` and executor `ccad86d3…`; no seal start, guard stop or policy replacement has occurred. Whole-graph and shared-import migration proofs remain open.
+
+### Source idle pulse at 09:06 UTC
+
+The 09:06 UTC source pulse still finds no new request after 03:51 UTC. Empty ticks continue, and the older 03:20 lock failure remains in the bounded scan. The acquire-idle alarm and maintenance item 40 remain open; no production repair is made. The bounded input is `/tmp/swingset-stage2-source-pulse-20261111-0906.json`.
+
+### FILE_COPY graph startup
+
+The image-only policy transition completes at 09:04 UTC; independent postcheck `06788769…` accepts the exact new guard `417b8ad4…`. The prior guard ends deliberately with exit 143 and no OOM; its PID, process group and cgroup are gone. All twelve protected services, native import, retained catalog and public pins remain unchanged. The exact new guard pointer is adopted after that verdict ([preflight](../../evidence/runtime/postgres-stage2-2026-11-10/file-copy-image-pin-preflight.json), [postcheck](../../evidence/runtime/postgres-stage2-2026-11-10/file-copy-image-pin-postcheck.json)).
+
+The fresh graph starts once at 09:18:39 UTC after independent execution review `b4e61455…`. Its actor `80137f45…` runs as UID 10001 with no capabilities, NNP and a private PID namespace; the complete configuration, eleven mounts, authorization, exact IPv4/IPv6 chains and first OUTPUT jumps pass independent actual-startup review `a8db4204…`. Egress allows the private SQL endpoint plus designated proxy/DNS routes, then rejects; this guarded actor is not the separate SQL-only postgraph reader.
+
+New owner `d685bf2d7bf2413aaa024fbc` initially owns only its `_0` database. At 09:25 it holds 15,603,816,115 bytes and COPY FROM PIPE is active. No freeze, clone or unit-result completion is claimed. The three-new-database cleanup limit, retained C696/69 protections, 24-hour operation ceiling and resource caps are unchanged. Shared migration, re-key and publication remain unstarted. The session is refreshed at 09:26 UTC.
+
+At 09:34 UTC the current owner’s first database holds 31,789,504,179 bytes and COPY FROM PIPE remains active. The hold is reviewed at 09:38:18 UTC and renewed through 10:38:18 UTC, with all twelve protected containers unchanged. The 09:39 observer still shows the same actor incarnation, one claimed database, no supervisor error and no OOM. No graph unit result is available yet.
+
+### Completed FILE_COPY full-suite scratch cleanup
+
+The exact completed `pytest-3368` root is independently reviewed and removed at 09:51 UTC. Fresh metadata and reference checks pass under both local validation locks; exact same-parent quarantine and ordinary unlink both exit zero. Both locks are released. Free space increases by 32,159,965,184 bytes to 121,155,272,704 bytes. External full-suite proofs, siblings 3371/3372/3373 and current link remain unchanged; source, profiles, reference R and active server work are untouched. The compact scratch execution result is `/tmp/swingset-stage2-completed-file-copy-full-cleanup-20261111/cleanup-result.json`, SHA `11d2a23192a0b76916810bb63ab505fa3bd6d8d2e946464017892243ad2291a3`.
+
+At 09:56 UTC the current graph has its initial 4,375,764-byte receipt: all 108,390 expected units, source checkpoint `00c831a4…`, candidate checkpoint `5039effb…` and a strong binding. It has no unit results and is incomplete, not clean. The first physical CREATE DATABASE starts at 09:55:32.442 UTC. At 09:56:41 its elapsed query time is 69 seconds and PostgreSQL reports CopyFileWrite. The template holds 40,033,130,163 bytes. The 600-second statement and ten-second lock limits remain unchanged; clone completion is not yet claimed.
+
+### FILE_COPY reaches the 600-second limit
+
+The actor ends naturally at 10:05:36.883 UTC, exit one, PID zero, no OOM or restart. PostgreSQL logs cancellation of backend 42798 at 10:05:34.695; its physical CREATE DATABASE began at 09:55:32.442. The initial receipt remains incomplete with no clone methods or unit results: 4,375,764 bytes, SHA `96bd2859d9be3bb2264f52391955d1b2856892a7924a2da9a8dcec0133a6c96c`, 108,390 expected units and source `00c831a4…` bound to candidate `5039effb…`. The supervisor confirms natural terminal failure with no stop attempt, SHA `6ebf30e4…`.
+
+Independent terminal review `c798d97f…` confirms empty owned registry and no owned databases, clients, processes or cgroup. Retained C696/69 catalog identities, native import, all twelve protected services and guard remain unchanged; authorization is retired. Server space returns to about 580.33 GB. This accepts the failure boundary, not graph success. The raw packet is `/tmp/swingset-stage2-file-copy-whole-graph-20261111`; no retained receipt is added beyond the current change's evidence budget.
+
+The private PostgreSQL cgroup writes 31,892,938,752 bytes on device 8:0 over 481.882 seconds while this clone is active, about 66.18 MB/s. Reads total 29,642,420,224 bytes, about 61.51 MB/s. At the observed write rate, the 40,033,130,163-byte template alone takes about 605 seconds. Checkpoints and other overhead need additional time. This is not a measured successful clone time or proof of a specific host cause. D-0290 selects a finite 1,200-second physical clone ceiling; fresh validation and a new independently reviewed graph are required. No failed job is replayed.
+
+### Source requests resume at 09:21 UTC
+
+The 10:05:53 UTC source pulse finds actual requests at 09:21 (one eepro.com page, 29,738 bytes) and 09:56 (two scoring.dance pages, 408,181 bytes). The latest tick at 10:01:00–10:01:12 is empty with no error. The bounded scan starts at 04:10, so the previously observed 03:20 lock failure is outside this window; this does not erase it. Maintenance items 37/39/40 remain open. The scratch input is `/tmp/swingset-stage2-source-pulse-20261111-1006.json`. No production repair is made.
+
+The rehearsal hold is reviewed at 10:13:46 UTC and renewed through 11:13:46 UTC. All twelve protected services remain unchanged; schedulers remain unstarted. Session `codex-stage2-resume` is refreshed at 10:13 UTC.
+
+### Twenty-minute clone candidate misses the first core timing gate
+
+The existing sixteen copy cases pass in 3.66 seconds, including real cancellation, source isolation, ownership refusal and cleanup. Independent source review `2e8227bc…` accepts the constant-only implementation and partial D-0287/D-0289 replacement. Source `41a0adf0…`, binding `0d6ab288…`, then passes every one of 3,148 core cases, Ruff and mypy, but takes 181.576 seconds against the unchanged 180-second gate. This is a failed normal check, not a validation pass. Its scratch result is `/tmp/swingset-stage2-clone-1200-check-20261111/validated.json`, job `cb604e8fc5dd4c17a5172c26`.
+
+The prior source's core took 178.466 seconds. All four clients are close together in both reports; there is no demonstrated single-case bottleneck or regression from changing a scalar that the focused timeout test replaces. Membership, execution image and caps match. The ordinary runner's measured partition weights differ naturally and are preserved. The comparison is `/tmp/swingset-stage2-clone-1200-check-20261111/prior-current-timing-comparison.json`, SHA `67646a0ba7417c52bc37ab37cfc40e641f0be44f4c0c06d9cfb1ac35809cbf3f`. No weight, cache, resource or selection manipulation occurs. Full validation and image promotion remain unstarted pending a decision on this near-budget result.
+
+### Confirmation exposes shared lock table exhaustion
+
+The single permitted unchanged confirmation ends at 10:24:36 UTC, exit one. It takes 194.192 seconds and reports seven failed cases plus one error across all four clients, all observed with PostgreSQL SQLSTATE 53200. Its source binding remains exact. The PostgreSQL log independently records nine shared-memory exhaustion errors from 10:23:59 to 10:24:03, with the hint to increase max_locks_per_transaction. All observed cgroup OOM counters remain zero; the maximum sampled primary working memory is 1,160,470,528 bytes. The failed report remains `/tmp/swingset-stage2-clone-1200-confirm-check-20261111/validated.json`, job `6dfcb54d7f79447e9f680553`. No further unchanged timing retry follows.
+
+The actual primary has max_locks_per_transaction 64, max_connections 100 and no prepared transactions. A separate normal native import case passes in 1.53 seconds while a scratch observer samples only its own backend's pg_locks after successful DDL. Its peak is 1,503 locks, including 1,486 outside the fast path. Sixteen simultaneous transactions of that size can require 23,776 entries before other connections, beyond the nominal 6,400 allocation. This is not a direct failed-run peak occupancy measurement or a timing improvement claim. PostgreSQL documents the shared-table sizing behavior and startup-only setting in its [version 17 lock management reference](https://www.postgresql.org/docs/17/runtime-config-locks.html).
+
+The compact scratch measurement has SHA `a4744d2af8f635fae4d2d319eb95af23c17c3600fd80d737543b3367d08b4f4f`, at `/tmp/swingset-stage2-lock-table-measurement-20261111/measurement.json`. D-0291 selects 512 for the disposable test/CI primary within its existing memory cap. The exact old owned primary awaits independent idle/inventory review before the maintained reconciler replaces it. Physical lifecycle, persistent development and rehearsal server settings remain unchanged. Focused, core, full, image and runtime gates remain open.
+
+### Disposable test lock capacity reconciled
+
+Independent preflight `b3c149cf…` accepts the exact idle owned primary replacement through the maintained services.ensure_service(test) path. The guarded call runs once under core-executor.lock at 10:38 UTC; the reconciler acquires services.lock internally. Old container `1f9a123f…` is absent. New `4555d664…` reports max_locks_per_transaction 512 and retains the 2 GiB RAM cap, actual 4 GiB Docker memory-plus-swap setting, six CPUs and 1,536 MiB data tmpfs. Persistent development and durable physical containers remain exact. No credential value is emitted or hashed. Result SHA `5ac0a7d52a8147aedc6b0c5e10e2886f0cae11aaf587e1d4364cdcf38c8164a6`, at `/tmp/swingset-stage2-test-lock-capacity-reconcile-20261111/result.json`. Affected service, import and copy tests start next. This is local test capacity, not a production or rehearsal-server change.
+
+All 86 affected service, import and Postgres copy cases pass in 18.34 seconds after reconciliation. The normal combined check begins at 10:39:11 UTC on source `385838ce…`, binding `8ceecb48…`, with all 940 inputs fixed. Both earlier failed core reports remain; no cache or measured-weight manipulation occurs. All memory/CPU, concurrency, selection and timing bounds remain unchanged.
+
+### Bounded projection and certificate lookups
+
+The test-capacity source passes all 3,148 core cases, Ruff and mypy but misses timing at 199.652 seconds, job `07b584826a464cf981ba9418`; no unchanged retry follows. Its current selected scoring.dance cProfile passes in 20.43 seconds, recording 77,651 SQL calls and 12.987 cumulative seconds in connection.execute. `_upsert` accounts for 8,616 calls/1.481 seconds and certificate token reads for 7,064 calls/0.838 seconds. The scratch measurement SHA is `340552c7a91430fdbde1dbe8b465f269eec8f72bb36e088436f3d7199c22b10d` at `/tmp/swingset-stage2-current-core-profile-20261111/measurement.json`. This is not a core speed comparison.
+
+Projection now reads current rows for at most 1,024 desired keys at a time, retaining Python comparison and the original individual write order. All 39 projection/read-set/publication-fence/materialization cases pass in 117.53 seconds. The existing 1,025-row case verifies bounded reads, unchanged no-op behavior, the exact 5,128 trigger delta, shared ownership and rollback. An initial selector names a nonexistent test file and runs no cases; the corrected run is separate.
+
+Certificate construction collects token positions and fills them from bounded 1,024-pair reads, preserving basis order, duplicate positions and zero defaults. The calendar/dancer fast path and group-selected generation overrides remain unchanged. All 72 certificate/currentness/equivalence cases pass in 20.84 seconds, including the new manual inventory digest and one-read assertion. A scratch comparison against the prior function passes 36 comparisons across eleven unit types, baseline/mutated/rollback states, SHA `b62aa10c4781cfb262f117ea47e37339ff60663143ff044d03154606a3d8676e`. Its first external test lacks the repository's autouse ownership fixtures and fails setup before opening a database; the corrected test imports those fixtures and passes.
+
+Independent review `86794d97…` accepts both bounded lookups and their trigger/transaction assumptions. Source `3c7dd010…`, binding `c81f50ff…`, starts its normal check at 10:58:46 UTC. The added regression follows its file’s existing extended classification: core remains 3,148 cases and the full suite becomes 4,726. Full validation, installed image and new graph remain unstarted.
+
+### Source idle pulse at 11:00 UTC
+
+The 11:00:22 UTC production pulse finds the latest tick at 10:56:00–10:56:13, empty with no error. The last actual fetch remains 09:56:20, two scoring.dance pages and 408,181 bytes, about 64 minutes earlier. No newer failed tick is seen in this bounded scan; the older 03:20 lock failure is outside it, not erased. Maintenance item 40 remains open. No production repair is made. The scratch input is `/tmp/swingset-stage2-source-pulse-20261111-1100.json`.
+
+The rehearsal hold is reviewed at 11:00:14 UTC and renewed through 12:00:14 UTC, with all twelve protected services unchanged. Schedulers remain unstarted.
+
+The combined lookup source passes all 3,148 core cases in 177.919 seconds, within the unchanged timing gate, plus Ruff. Its normal check still exits one because mypy requires an explicit type for the token-version dictionary. The failed check is retained at `/tmp/swingset-stage2-read-lookups-check-20261111/validated.json`, job `b4594b14a0204da08886a0d2`. Add only that annotation, then run the required normal check on the resulting source binding; this is not an unchanged timing retry. No full or image run starts from the failed check.
+
+The annotation-only source `409fecf5…`, binding `eae855be…`, passes all 3,148 core cases, Ruff and mypy but takes 181.582 seconds, so the normal check fails its unchanged timing gate. Its result remains `/tmp/swingset-stage2-read-lookups-final-check-20261111/validated.json`, job `c5633786e22d452e8217b196`. Independent final source review `625cc971…` accepts the type-only difference. A normalized executable comparison confirms the sole bound-file difference is that annotation and that code instructions/constants/names/exception tables match, ignoring debug positions; source bytes and inspect.getsource still differ. Measurement SHA `770009af…` is in the same scratch packet and does not replace validation or prove timing variance.
+
+Independent direction `ac9eb10c…` accepts one unchanged normal confirmation, preserving both results, resources, selection and the ordinary measured-weight lifecycle, with no cache/reset/warmup/tuning. It starts at 11:11 UTC. If it also fails, no further timing retry follows without measurement and a new fix. No full or image run is started from the failed normal check.
+
+### Batched canonical writes after the failed timing confirmation
+
+The single unchanged confirmation passes all 3,148 core cases, Ruff and mypy but still takes 183.269 seconds, so it fails. Its result is `/tmp/swingset-stage2-read-lookups-confirm-check-20261111/validated.json`, job `839566590b2a49f2a5f1040c`. No further unchanged core retry follows. A current scoring.dance cProfile passes in 19.49 seconds, with 66,434 execute calls. Canonical inserts remain second at 2,879 calls and 0.580 cumulative seconds; scratch measurement SHA `012098b3118f67bc47fd0655f916b2924dc0c018fbb6e6b110a2928329996347`, `/tmp/swingset-stage2-current-writes-profile-20261111/measurement.json`. This is not a core timing comparison.
+
+Changed canonical rows now use bounded multi-VALUES inserts within the already bounded 1,024-key groups. The original Python comparison, NULL/NaN handling and owner/seen preservation remain; unchanged groups send no canonical insert. Table order, native row triggers, writer lock and deadlines remain. The independent static audit finds no trigger blocker; AFTER-row scheduling moves to statement end, so operational registered_at times are not claimed identical.
+
+The existing 1,025-row regression retains the exact 5,128 history delta and now checks two canonical writes as well as two bounded reads and no unchanged-row write. Its mixed 1,026-row phase compares first/last updates plus a final insertion against individual one-row statements inside a rolled-back reference transaction. Full canonical/ownership/history-fence/input-version/work-generation/pending-work/revision snapshots match. The initial focused run fails only because the later shared-ownership assertion reuses the pre-update event name; its armed subprocess repeats that test failure. The corrected test shares the current row. All 39 focused cases then pass in 113.71 seconds, including armed read-set, publication-fence and materialization coverage. Direct mypy over 367 files and formatting pass. The new normal check is next; no full or image is started yet.
+
+### Scope pointer and staging-presence snapshot
+
+The batched-write source passes every one of 3,148 core cases, Ruff and mypy but takes 182.246 seconds, job `60a62ecbac8c4594bb95e3f0`, source `856209d2…`, binding `40c510f3…`. This fails timing; it is not retried unchanged. The retained profile's unchanged currentness bodies separately issue a scope-pointer query, a visible-table check and a staged-row check. The follow-up reads pointer and presence together, using the exact existing pg_class/PG_TABLE_IS_VISIBLE predicate, then reads a staged row only when present. Public building behavior, proofs, restore guard and missing/old-schema refusal remain; no presence cache is added.
+
+The new visibility regression initially assumes the temporary namespace comes first, but the managed role puts it last. Its corrected transaction-local search path puts the temporary shadow view first; currentness bypasses that view and rollback restores ordinary behavior. Application source is unchanged between those focused attempts. All 73 currentness/certificate/equivalence cases pass in 21.86 seconds. Direct mypy over 367 files and formatting pass. Independent source review `473f0322…` accepts the metadata consolidation. Its normal check starts at 11:37:34 UTC, with core membership still 3,148; the new extended case makes the full suite 4,727. Full/image/graph remain unstarted on this source.
+
+### Bounded selected-generation reads
+
+The pointer/presence source passes all 3,148 core cases, Ruff and mypy but misses timing at 183.167 seconds, job `b26af7660deb4ede8212e32c`, source `29bd8024…`, binding `e8939105…`. That failure remains and no unchanged retry follows. The retained profile measures the still-unchanged selected_generation helper at 4,166 calls/0.515 seconds. Certificate construction now gathers selected-pointer positions, performs bounded reads and fills each position with the same scalar/group rule. No cache is added; singleton requests retain the unchanged scalar lookup, group effective overrides preserve explicit NULL, and unknown units remain NULL.
+
+The new extended boundary test compares the bulk helper to scalar behavior across ordinary, selected, effective, NULL and foreign-connection group contexts, including duplicate requests and 1,025 distinct units. All 74 currentness/certificate/equivalence cases pass in 23.19 seconds; direct mypy over 367 files and formatting pass. A fresh comparison against the original certificate implementation passes all 36 baseline/mutation/rollback comparisons over eleven kinds, SHA `a958f5516cda1850b3393366c0c790cb31c0501e9bd63f448517324941ece6ca`, `/tmp/swingset-stage2-selected-generation-equivalence-20261111/equivalence-result.json`.
+
+Independent source review `186e2738…` accepts the selected-pointer change. The next fixed-source normal check begins at 11:45:25 UTC. Core membership stays 3,148; full membership becomes 4,728. No full, candidate image or new server actor has started from the latest failed checks.
+
+### Combined normal check passes; full suite starts
+
+The selected-generation application source passes core timing at 178.485 seconds, but that first normal check fails Ruff on the new extended test's loop callback. Binding its local reads list fixes the warning; application bytes are unchanged. Direct Ruff, mypy and the boundary/group case pass, and independent final addendum `f8f797e7…` accepts the test-only fix. The required final-binding check passes every case and static check but takes 180.300 seconds. It remains a timing failure.
+
+Independent direction `2e3474f2…` permits one unchanged final-binding confirmation with no tuning or cache reset. That confirmation passes at 11:58:43 UTC: all 3,148 core cases in 179.054 seconds, Ruff and mypy, exit zero. Job `f73694d3e84043c9b025a440`, source `8aae03bf…`, complete 940-input binding `d45094e6…`; all inputs remain exact. The source is accepted for the required full check. This pass does not erase earlier failures or establish timing robustness.
+
+The 4,728-case full suite starts at 11:59:06 UTC on that same binding, PID/group 67405. Initial free space is 119,751,311,360 bytes, above 110 GiB; the 80 GiB stop floor remains. Source stays fixed through completion. Candidate config `346f30a4…`, OCI manifest `5f9b83c5…`, is built from those inputs with an exact hash chain, linux/amd64, unchanged dependencies. Its 248,813,568-byte archive has SHA `29afe5a1fcde3eb0f802c29f2be398fbb0ee064d9aaa7a4b5fe3d93f92778606`. Installed-byte proof and all runtime operations remain pending.
+
+The rehearsal hold is reviewed at 11:49:41 UTC and renewed through 12:49:41 UTC; all twelve protected services remain unchanged. The 11:50 production pulse still finds the last actual request at 09:56:20 UTC. Empty ticks continue with no newer failure in the bounded scan; the 11:05 alert repeats the old Wayback failure. Maintenance items remain open; no production repair is made. Scratch pulse: `/tmp/swingset-stage2-source-pulse-20261111-1150.json`.
+
+### Current image and inert rehearsal preparation
+
+The server's installed-byte proof passes all 560 public files, including 367 Python modules, SHA `d13c0e3f4688c6bbcc51a8339266487cda96a86d20cc9f441c3d5ca92180cd74`. Proof container `48f2972b…` remains created, PID zero. The full suite remains active on source `8aae03bf…` and binding `d45094e6…`.
+
+Independent preparation-only reviews `bc3714d6…` and `44168a9d…` accept fresh verifier metadata and image-policy staging. New nonce `53eb8583ff2c` owns four new volumes. Its state-copy proof matches the immutable 1,689-file/69,548,306-byte input closure and internally copies exactly three SQL files, with no private values emitted or hashed. New verifier `62f14044…` remains created, PID zero; cold metadata SHA `9e9e9962…`. No SQL, copy, graph or migration starts.
+
+The image-only new public policy has SHA `b4d8e22e…`, canonical `a4ebe3e9…`, and remains staged as owner 1000, mode 0600, one link, inode 17726198. Its CHOWN-only sealing helper `66800fe1…` is created and unstarted. Existing guard `417b8ad4…` and root policy/security remain unchanged. Full success and a fresh execution review are still required before sealing, guard replacement or graph launch.
+
+Independent prepared-boundary/probe review `9d804d0e…` accepts only the fresh net-none permissions probe. It runs once as UID 10001, without capabilities, exits zero and opens private SQL files without reading their contents. Generic metadata proof SHA `b7537731…` matches earlier metadata, while this fresh reservation/transport binds nonce 53eb and image 346f. It neither starts the verifier nor changes files.
+
+Later read-only postgraph and authoritative-migration drafts are cloned to current pins, with execution false and missing full/graph/postgraph proofs left NULL. Inspector `6d6f576f…` and migration helper `fedf56e8…` remain byte-identical. Independent static pin reviews `2544b7ef…` and `95503e5f…` accept their consistency only; no preparation or execution follows. Scratch packets use the `swingset-stage2-selected-generation-` prefix. Gate 2 remains open.
+
+## Source idle pulse at 12:49 UTC
+
+The read-only pulse at 2026-11-11 12:49:45 UTC finds the latest acquire tick
+at 12:46:00–12:46:13 UTC empty, with no error. The last actual requests
+remain the two scoring.dance requests at 09:56 UTC, about 173 minutes ago.
+Maintenance item 40 remains open. The bounded scan finds no new failed tick;
+it does not erase the earlier recorded SQLite write-lock failure. The
+latest alert lines remain the 11:05 acquire-idle and stale Wayback warnings.
+Scratch pulse SHA-256: `e4d41aeb5a52cbc13657c54039322de7ac9ad917f4637a50aa868663d964debb`.
+
+The existing rehearsal hold was reviewed at 12:28:05 UTC, with next review
+at 13:28:05 UTC; its owner, reason and unstarted schedulers are unchanged.
+Hold SHA-256: `487fe229736a32b0de8122978321de5c9737606964a8528e807a38e3de2c38de`.
+
+## Final selected-generation full suite passes
+
+The fixed `8aae03bf` application source and `d45094e6` complete input binding
+pass all 4,728 full-suite cases at 2026-11-11 12:54:54 UTC: actual exit zero,
+zero failures, errors or skips, and no source-binding change. Wall time is
+3,347.78 seconds; sampled minimum free space is 87,894,138,880 bytes, above
+the 80 GiB floor, with no stop reason. Four pytest warnings remain. This
+completes the current local validation alongside the 179.05-second core,
+Ruff and mypy checks. Earlier timing and lock-table failures stay recorded.
+
+Scratch validation SHA-256: `a1a796ef96dc9f99196a087a008ede2466dcef2b044d41e5df86522908e266d3`; JUnit SHA-256:
+`222d693dcdcb1585b9fd04f2b2241e8af4a871748650d6fc2e7bd1b2a137dbfa`; log SHA-256:
+`4c5a72322258623c19c9baef35a792dc74e6fc09ebf296f9a87d3d56d2e61c37`. The new image and graph remain unstarted
+at this result. The image-only transition now has a final plan; execution
+awaits its fresh independent preflight. Gate 2 remains open.
+
+## Selected-generation image update completes
+
+After full-suite success, the independent transition preflight accepts the
+final plan and exact executor. The one-time operation completes with exit
+zero: the seal completes, the exact old `417b8ad4` guard stops, and the
+replacement `cbcb3ef8` guard starts at 2026-11-11 12:57:27 UTC. The public
+policy changes only its runtime image pin to `346f30a4`; root security
+bytes remain unchanged. All twelve protected containers are unchanged,
+and the source-proof and graph containers remain unstarted. Independent
+postcheck and pointer adoption are still pending at this result.
+
+Scratch plan SHA-256: `29a9b404f380c813f60bb81285a988d88811083b85853dab10df865fb62d2fc6`;
+preflight verdict: `d558ff6d4d2c269ed26499f470d8141f2b58307ede71f4a4f7814cb1cc46f98e`;
+execution result: `bccab436a8bc06dfe1eb3be966b58d42ab7bb79f426a0566b9634b18b5d6a60a`.
+This does not establish whole-graph equivalence or authorize a migration.
+
+The independent observed-transition postcheck passes, bound to the final
+plan, full-suite result and actual transition result. Its SHA-256 is
+`a321b32c4637f71c02c5294950c605b3560bf42ec3d15529886cd849f307b32c`.
+Only then was the current-platform pointer updated to the exact observed
+`cbcb3ef8` identity. The whole-graph plan is finalized with SHA-256
+`1d8086082a1c994ae2618806603d1f2d0b10efcf6b53d872a0a63b82c462c24a`;
+its separate execution preflight is pending. The verifier remains unstarted.
+
+## Selected-generation whole graph starts
+
+After the accepted guard postcheck and final preflight, the exact fresh
+`62f14044` verifier starts at 2026-11-11 13:02:51 UTC. Its maintained
+supervisor acknowledges PID/group 3338705, birth 979860879, on the
+unchanged server boot. The run covers all 108,390 units, two shards, with
+no scopes or version bumps. Its reviewed cleanup applies only to its own
+three new registry-bound databases. The retained C696/69 databases, source
+import and shared native-38 database remain protected. Independent actual
+startup review follows; this launch is not a graph result.
+
+Scratch execution verdict SHA-256:
+`5987995069fd033b603d9967f63759cfc1ee5484fde8ee11c924374cf28ae10b`;
+launch acknowledgment SHA-256: `7aba2bd20d735261463a7106f3819df56fac4e6282cfbe7003eb92ffd50d4265`.
+
+The independent startup review passes for actor PID 3338970, birth
+979860966, network inode 4026533551, matching authorization and both IP
+firewalls. It verifies the fresh owner token `a51a754add8443d2855045f7`,
+with only its `_0` database claimed so far, and unchanged retained
+boundaries. The logical freeze is active; there is no whole-graph result.
+Review SHA-256: `efbdf93056a4b29744c46577aa3e0ef7f523fd56930286eb1c9f44348ce77dfa`.
+The reviewer preserved two observer-only failures before the final passing
+metadata capture; neither replayed or changed the business operation.
+
+The existing hold is reviewed at 13:09:19 UTC, next review 14:09:19 UTC,
+with unchanged owner, reason and creation time. All twelve protected apps
+are unchanged. Hold SHA-256:
+`ba22ba8049d65288a12b68dfe54b373ce855e016f226b081e4d673319f8a3150`.
+
+## Fresh graph candidate binding and first clone
+
+The initial receipt is present at 13:44 UTC. It reports the expected
+108,390-unit D58 set, strong input-acceptance binding, raw source
+`00c831a4` and candidate checkpoint `5039effb`, with no scopes, version
+bumps, errors or unit results. This is an initial binding, not a clean
+whole-graph result. The first owned physical clone starts at
+2026-11-11 13:41:26 UTC; its backend is 47239 and its observed wait is
+`CopyFileRead`. Preparation before that clone took about 38 minutes
+35 seconds from the actor start, including the logical copy and candidate
+acceptance; no separate copy-only duration is claimed. The reviewed
+1,200-second statement and ten-second lock limits remain unchanged.
+
+Scratch initial-field snapshot SHA-256: `523337b0b8d4291b1a5bf8d63b2b3c90f86b7a163492e12a45af5185e4a04263`;
+clone observation SHA-256: `5583458932c4d0d260e1eb84914d2cb9b75b7cf74e12f55fe154334cb1a84953`.
+The latest supervisor sample still reports all twelve protected apps
+unchanged and no OOM event.
+
+## Source idle pulse at 13:49 UTC
+
+The read-only pulse at 2026-11-11 13:49:18 UTC finds the latest acquire
+tick at 13:46:00–13:46:12 UTC empty, with no error. The last actual
+requests remain the two scoring.dance requests at 09:56 UTC, about
+233 minutes ago. The 13:35 UTC alerts report the same acquire-idle
+condition and stale Wayback warning. Maintenance items 40 and 39 remain
+open; this session deploys no production repair. The bounded scan finds
+no new failed tick and does not erase the earlier SQLite write-lock
+failure. Scratch pulse SHA-256:
+`ffc465e5f2e4f9bc5c1e973af73414963566d9ba8e2ecedcc538e6ad3a9ea1e0`.
+
+The existing rehearsal hold is reviewed at 13:49:30 UTC, next review
+14:49:30 UTC. Owner, reason, creation time and unstarted pipeline
+schedulers remain unchanged; all twelve protected apps are unchanged.
+Hold SHA-256: `ced2bac7db115c49801bc07066d43ccf9ed88d9cff381d3cdd35b3a6c597d2d1`.
+
+## First bounded physical clone passes
+
+The 13:53:13 UTC owner-scoped catalog/activity snapshot finds completed
+`a51a754add8443d2855045f7_0` and `_1` databases with exact owner comments,
+and the second FILE_COPY clone into `_2` active on backend 47433. The
+second starts at 13:52:01.503015 UTC. From the first start at
+13:41:26.033138 UTC, the first clone and handoff take at most 635.47
+seconds, about 10 minutes 35 seconds. That exceeds the old 600-second
+limit and fits the reviewed 1,200-second limit. The separate SQL duration
+is not available from this snapshot. No unit comparisons have completed
+at this observation.
+
+Scratch snapshot SHA-256: `11782c3164894f68536e5f4ca84bc34ecea2b67c297416bcc91dd30871a72e96`.
+This is a successful first clone, not whole-graph acceptance.
+
+## Both bounded clones pass and workers start
+
+At 2026-11-11 14:03:16 UTC, all three new `a51a754add8443d2855045f7`
+databases have the exact owner comment, and no CREATE DATABASE is active.
+The second clone completed within 674.53 seconds of its 13:52:01 start,
+including observation delay, below the 1,200-second limit. Docker process
+metadata shows two active children, host PIDs 3700645 and 3700648, under
+the unchanged verifier parent 3338970.
+
+The 14:05 and 14:10 owner-scoped SQL samples show both shards connected
+as `swingset_verify_worker` and advancing their own transaction/read
+counters. Retained C696/69 activity is excluded from these samples. These
+counters establish activity, not completed-unit counts or matches. The
+14:10:54 supervisor sample reports no error or OOM, unchanged protected
+apps and 459.75 GB minimum free space. The final graph receipt remains
+pending; shared native-38 migration and re-key remain unstarted.
+
+Scratch clone snapshot SHA-256: `9d74164611504574688e31c1c90d0dbc7a70123e7ba6c1956747759c0036d307`;
+owner-progress snapshot SHA-256: `6b0ac082678468252f00bb3dfbec6fe663bd09fa6bc52fe79163eeba67f0e188`.
+
+The existing rehearsal hold is reviewed at 14:29:42 UTC, next review
+15:29:42 UTC, with stable owner, reason and creation time. All twelve
+protected apps remain unchanged. Hold SHA-256:
+`44fbda99cd6292ab7f09c2ee9cc0f375ab2720038fc9e7340fd8aa12b16d0f1e`.
+
+A project-scoped provider GET at 14:37:26 UTC confirms exactly the two
+expected checks, both with channels assigned. Alerts are up, with two
+prior pings; the watchdog remains paused, with one prior ping and its
+300-second period and 120-second grace intact. This sends no ping or
+mutation. The key, private response and private URLs stay server-only
+and are not hashed. A parallel guarded-health test remains a proposal,
+not an executed application-delivery proof.
+
+## Source idle pulse at 14:51 UTC
+
+The read-only pulse at 2026-11-11 14:51:36 UTC finds the latest acquire
+tick at 14:51:00–14:51:12 UTC empty, with no error. The last actual
+requests remain the two scoring.dance requests at 09:56 UTC, about
+295 minutes ago. No new failed tick appears in the bounded scan; the
+earlier write-lock failure remains recorded. Maintenance items 40 and 39
+remain open, and production code is unchanged. Scratch pulse SHA-256:
+`8baba7c9af9a5be4eca4ff6bc4c8af007d3478360654964e42f5b200cdc9cb0b`.
+
+The rehearsal hold is reviewed at 14:59:24 UTC, next review 15:59:24 UTC,
+with stable owner, reason and creation time; protected apps are unchanged.
+Hold SHA-256: `269daaa63462252f72ee8936ff85e0dcbb4113558f689bcd739297ef21876c21`.
+
+The guarded-health proposal now has an exact cold container, `3eef417a`,
+with PID zero and no start. It has read-only state, fresh monitoring
+volumes and only a worker SQL file plus the two sealed notification files.
+Preparation sent no ping and changed no pipeline data. Its bounded
+normal-watchdog test controller is awaiting independent action review.
+The graph workers remain active; neither application delivery nor Gate 2
+is claimed by this preparation.

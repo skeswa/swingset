@@ -27,6 +27,9 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from . import postgres_schema as schema
 from .engine import Connection, resolve_control_dsn, resolve_dsn, write_settings
 
+EMPTY_CREATE_SECONDS = 10
+TEMPLATE_CLONE_SECONDS = 1200
+
 
 def _alive(pid: int) -> bool:
     try:
@@ -415,15 +418,24 @@ class Copies:
         _sync_directory(self.path.parent)
 
     def _create(self, *, template: str = "template0") -> str:
+        if template != "template0" and template not in self.record["databases"]:
+            raise ValueError("Scratch template is not owned by this verification")
         name = f"sst_copy_{self.identifier}_{len(self.record['databases'])}"
         self.record["databases"].append(name)
         _write(self.path, self.record)
         with self._admin() as admin:
-            admin.execute("SET statement_timeout='10s'")
+            # Copying an owned multi-GB template is physical I/O, outside an
+            # application write transaction. Lock waits retain their short bound.
+            seconds = EMPTY_CREATE_SECONDS if template == "template0" else TEMPLATE_CLONE_SECONDS
+            admin.execute(f"SET statement_timeout='{seconds}s'")
+            admin.execute("SET lock_timeout='10s'")
+            # WAL_LOG copies every block into WAL. Owned templates are full
+            # checkpoints, so use file copying within the same finite bound.
+            strategy = sql.SQL(" STRATEGY FILE_COPY" if template != "template0" else "")
             admin.execute(
                 sql.SQL(
-                    "CREATE DATABASE {} TEMPLATE {} ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C'"
-                ).format(sql.Identifier(name), sql.Identifier(template))
+                    "CREATE DATABASE {} TEMPLATE {}{} ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C'"
+                ).format(sql.Identifier(name), sql.Identifier(template), strategy)
             )
             admin.execute(
                 sql.SQL("COMMENT ON DATABASE {} IS {}").format(
@@ -513,6 +525,9 @@ class Copies:
                     destination.execute(
                         "SELECT setval(%s,%s,%s)", (sequence, max(1, floor), floor > 0)
                     )
+            # Publish a bulk-loaded copy with planner statistics, after its
+            # catalog ACLs commit, as import and restore already do.
+            destination.execute("ANALYZE")
         self._settings(state, name)
 
     def clone(self, source: Path, state: Path) -> None:

@@ -5,7 +5,10 @@ Read [6. Stage 1](6-stage-1.md) first; next is [8. Stage 3](8-stage-3.md).
 Status: started 2026-11-05 on `postgres-migration`, following the tested
 stages 0/1 revision `5f5e52447963`. Gate 2 is open. Infrastructure onboarding,
 persistent backup exclusions and enforced network isolation are prepared;
-the full import must establish the stored rehearsal identity. Final-runtime isolated
+the native import passes all 141 tables and 23,433,486 typed rows. Native-40 input acceptance passes in 58.920 seconds under the unchanged
+60-second limit. Whole-graph verification remains open; the fresh bounded run starts at 2026-11-11 13:02 UTC. The final source passes all 3,148
+core cases in 179.054 seconds, Ruff and mypy; its 4,728-case full suite passes
+in 55 minutes 47 seconds on unchanged inputs. Final-runtime isolated
 network, worker recreation/restart and loopback relay/tunnel checks passed
 against owned endpoints; that initial receipt proves HTTP relay behavior.
 SQL authentication is recorded separately below; the credentialed application topology remains open
@@ -13,7 +16,8 @@ SQL authentication is recorded separately below; the credentialed application to
 Frozen-code reference R passed and is SHA-verified on the server. The two private R2 buckets
 and dev expiry are verified. Both scoped S3 keys pass write, read-back and
 guarded deletion checks; the Hub token now grants only the private rehearsal
-repository. Alert delivery remains unresolved. All 45 immutable checkpoint transport files
+repository. Healthchecks.io provider alarms reach the owner and the proxy route
+is verified; guarded application delivery remains open. All 45 immutable checkpoint transport files
 are verified on the server. Production continues on
 its current SQLite image; no cutover or source-site request from the new host
 is authorized by this stage.
@@ -130,11 +134,121 @@ namespace operator verified its new incarnation and private firewall. It loaded 
 ceiling during the independent audit. All state is retained; audit and stored identity remain open
 ([preflight](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/import-third-preflight.json)).
 
-The owner declined Slack and Healthchecks.io on 2026-11-06. Neither provider
-is required. The storage and Hub credentials are ready; leave the notification
-URL fields blank while their delivery method is unresolved.
-Keep the owner-alert and outside liveness proofs open; blank fields do not
-establish those proofs or disable the existing monitoring checks.
+The owner closed the tested preparation as revision `6db1ca53` on November 10.
+A fresh independent read-only inspection confirms the retained finalized
+schema, all 141 counts and stored dry-run UUID. The reviewed resume started
+at 05:15 UTC with the exact 4,611-test runtime and a new private receipt volume.
+It repeats full source validation, checks every loaded table, then repeats the
+independent audit; it cannot reload tables or reseed the UUID. The six-hour
+ceiling, resource limits and hold remain. Its final audit, separate file and capacity checks now pass
+([preflight](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/import-resume-preflight.json)).
+
+Full frozen-source validation passed at 07:06 UTC in 6,643 seconds. Its 141-table
+matrix and separate file proof match the retained receipt exactly. The native resume then exits zero at 09:40 UTC in 15,869.686 seconds.
+Its final audit matches all 141 tables and 23,433,486 rows, with no OOM kill.
+Independent terminal identity, working-file and capacity checks pass. Gate 2 stays open
+([checkpoint](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#working-file-postcheck-passed)).
+
+The private copy passes all 141 typed-table audits, then its coordinator
+fails in the statistics wait. Its owned helpers are stopped; the complete
+108,390-unit base and ownership record are retained. Do not replay that
+executor or adopt its base implicitly
+([boundary](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/private-copy-boundary.json)).
+An independent read-only data seal now confirms its checkpoint, complete
+unit set, historical context and identity. The reader is stopped and the
+base remains intact. This proves data only; it does not replace the new
+candidate's input/version proof
+([preseal](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/retained-base-preseal.json)).
+The graph uses the corrected operator release wrapper and maintained
+`verification-job` supervisor. That candidate's core passes 3,066 cases in 173.15
+seconds; focused checks pass 57 cases. All 4,638 full-suite cases now pass
+in 3,508.20 seconds with an unchanged 935-input binding
+([validation](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/developer-verifier-supervisor.json)). Require
+an immutable image proof and an independent retained-base, namespace and
+graph lifecycle review before starting it. The graph may clean its three
+new copies, but cannot remove the retained base
+([candidate](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#operator-release-dispatch-and-final-graph-candidate)).
+
+Its first start fails on a root-owned mode-0600 override before any graph
+copy or ownership claim is created; keep that attempt stopped
+([failure](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/graph-startup-permission-failure.json)).
+The Dockerfile-only public-input permission fix passes complete input capture
+as UID 10001 with root read-only, no capabilities, no network and no credentials.
+All 934 other inputs and package source identity remain unchanged. Require
+a new immutable image/policy and independent execution review for a separate
+private attempt. That full run is later interrupted for the guard fix below;
+the historical 4,638 passes are application-code evidence, not the new binding
+([packaging proof](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/runtime-public-input-permissions.json)).
+
+Current developer-gate trigger: all 3,066 cases, Ruff and mypy pass, but the
+new core takes 205.58 seconds against the fixed 180-second budget. Case
+membership and caps match the 173-second run; measured weights and assignments
+differ. Inspect existing timing reports and weight provenance before a
+controlled fix or retiming. Do not automatically repeat the run or change
+selection, assertions, four clients, sixteen workers or resource limits.
+Existing-report analysis now attributes the dominant increase to about 29 seconds
+of cold image preparation after the Dockerfile changed. The actual failure
+stands. Permit one matched warm-cache comparison only after the current full
+passes, resources are idle and its source binding is unchanged. Use the failed
+run's exact input weights through the normal check command, preserve and restore
+the prior cache under the core lock, and reject competing jobs or an unexpected
+build. Do not hold the lock across the normal command or repeat the comparison
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/core-cold-preparation-analysis.json)).
+
+The reviewed replacement graph starts once, then its supervisor stops it on a
+command timeout at 15:21 UTC. Preserve its terminal state, copy registry and any
+partial outputs; inspect the failure before a separate operation. No graph pass
+or retained-base cleanup follows from this attempt
+([boundary](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#replacement-graph-stops-on-a-supervisor-timeout)).
+
+The subsequent guard fix passes 108 focused and 3,074 core cases, Ruff and mypy,
+but the normal core takes 231.14 seconds. Its startup is warm; existing reports
+show shared-case work up 31.17 percent and cannot identify the underlying cause.
+The eight regressions add only 0.018 aggregate seconds. Keep the timing gate
+open; no weight change or blind timing retry follows. The C970 matched probe
+is canceled without execution because the source changed. The required new
+full run now passes 4,646 cases in 3,756.83 seconds on unchanged binding
+`4c7b6dbe`, source `94c8cb77`
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/core-guard-shared-work-analysis.json)).
+
+A separately reviewed fresh graph starts at 16:47 UTC under the fixed guard.
+Its new registry and three new volumes exclude the failed copy's ownership
+records. C696 and failed copy 69 remain untouched; only this job's new copies
+may be cleaned. Final inspection must find exactly the defaults, C696 and
+retained69, and bind their identities. Attendance uses current-job COPY/index
+progress and activity, not aggregate counters that include retained databases
+([start](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/fresh-graph-start.json)).
+
+That attempt exits naturally at 17:11 UTC: candidate input acceptance exceeds
+the unchanged 60-second atomic-write budget, after the frozen copy finishes.
+No graph receipt or shard pass is produced; approved cleanup removes its new
+copies. Preserve C696 and retained69. This measured failure triggers work on
+input acceptance's per-row queue and scope registration writes. Measure those
+writes before changing them, then batch them while preserving callback order,
+complete invalidation, rollback and the same write budget. Do not bypass normal
+input acceptance in verification or re-key. The proposed matched core probe
+for source `94c8cb77` is canceled without execution because this necessary
+source change invalidates its binding.
+The independent [failure boundary](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/graph-input-accept-deadline.json)
+confirms natural exit 1, no OOM, absent receipt, empty new registry and no
+remaining new databases. This attempt supplies no graph acceptance proof.
+
+The batching fix preserves repeated invalidations and their generation/fence
+increments, callback visibility and rollback. It passes 88 focused and all
+3,075 core cases, Ruff and mypy, but takes 209.04 seconds against 180. Its
+source `94a24e6c`, complete binding `bc222965`, later passes all 4,648 full-suite
+cases at 19:25 UTC. Its separate full-size graph attempt still exceeds sixty
+seconds during input acceptance. The 80 GiB free-space floor and 110 GiB
+full-suite admission remain unchanged
+([validation](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/developer-batched-full-passed.json)).
+
+The owner chooses Healthchecks.io on 2026-11-10, replacing the earlier provider
+exclusion; Slack remains excluded. The dedicated project's two controlled
+provider alarms reach the owner. Private ping URLs are staged server-only;
+guarded application delivery remains open. The project management key stays
+outside application services. Separate owner-alert and watchdog checks prevent
+normal heartbeats from erasing an explicit alarm
+([D-0283](../../../journal/decisions/0283-use-separate-healthchecks-alert-and-liveness-checks.md)).
 
 Developer-gate trigger: the corrected 2,729-case core passes functionally but
 takes 200.48 seconds, above its unchanged 180-second limit
@@ -481,7 +595,7 @@ That fix passes all 4,600 full-suite cases with an unchanged complete input
 binding. Its core before the catalog probe passes correctness, Ruff and mypy in 207.85 seconds;
 the 180-second timing gate remains open. A new cached runtime matches all
 545 installed package files. The now-stopped import retained its prior runtime;
-private verification still awaits the completed native audit and identity
+private verification at that point still awaited the native audit and identity
 ([validation and image proof](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#writable-verifier-scratch-and-current-import)).
 
 ### Controlled warm catalog probe
@@ -548,7 +662,7 @@ loads but no final audit. No reset or automatic retry occurred
 ([stop receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/import-budget-stop.json)).
 The 1 MiB transfer fix and maintained `inspect-import` command pass all
 33 focused import/utility cases and all 4,611 full-suite cases. Core correctness
-passes all 3,039 cases in 187.54 seconds; its 180-second timing gate stays open.
+passes all 3,039 cases in 187.54 seconds; that runtime misses the 180-second gate.
 The matching immutable runtime is cached and all installed inputs match the
 completed validation. The large Unicode regression loads at 64 KiB, resumes at
 1 MiB and audits at 4 MiB without changing typed digests.
@@ -556,6 +670,546 @@ completed validation. The large Unicode regression loads at 64 KiB, resumes at
 The first scratch adoption helper refused on an incorrect role name. Its
 replacement is the tested read-only command, with a NULL-safe guard for hidden
 cross-role sessions. Independent read-only adoption now passes for the exact retained UUID, schema
-and all 141 row counts. Final resume review and capacity for new receipts
-remain required before another native attempt
+and all 141 row counts. These checks precede the separately reviewed resume
+and its successful audit recorded above
 ([current validation](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#full-validation-passed-at-0310-utc)).
+
+The earlier 3,039-case report contains 2,757.076 seconds across the parallel cases.
+Ideal division across sixteen workers, mean client collection and the
+serial prologue total 180.858 seconds before other overhead, holding
+observed case costs fixed. This supports investigating work costs; it
+does not prove a cause or authorize another timing retry. The unchanged
+180-second gate remains open for that earlier runtime
+([existing-run analysis](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/core-existing-timings.json)).
+
+### Profile the full-size acceptance deadline
+
+The second graph attempt exits 1 at 18:57 UTC on November 10 after the unchanged
+sixty-second acceptance budget. Batched enqueueing preserves correctness, but
+per-input timings still reach 39.538 seconds for scoringdance.round before the
+later dancer input. Current full validation passes all 4,648 cases; core timing
+remains above 180 seconds.
+
+The measured imported state remains above the 20 GB optimization trigger.
+One diagnostic will freeze a new owned copy, profile the normal acceptance
+order inside a rollback-only sixty-second transaction, run ANALYZE only on that
+copy after the DDL/ACL transaction, and repeat the rollback-only acceptance once.
+Measure SQL completion and result materialization separately. Preserve all
+invalidations, triggers, history fences, resource caps and production state.
+The trials share cache and aborted-tuple effects, so elapsed time alone cannot
+establish causality. A concrete independent review precedes execution and owns
+cleanup only of that job's new database; no retained copy may be adopted or
+removed. No further graph retry is selected until the diagnostic is assessed
+([investigation](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#batched-acceptance-still-exceeds-sixty-seconds)).
+
+The existing 3,075-case batched core report has warm startup, but 3,068.929
+aggregate phase seconds across parallel cases. Shared case work is 24.02
+percent above the earlier 173-second passing run. At those fixed observed
+costs, ideal division across sixteen workers already needs 191.81 seconds.
+This does not identify CPU, I/O or database waits, and supports no assignment
+change or retry. During the next required check of a settled candidate, collect
+read-only cgroup CPU, throttling, I/O and pressure counters for Postgres and
+its four clients. Keep selection, assertions, caps, scheduling inputs and the
+180-second budget unchanged. Do not run an extra timing experiment or pin the
+cache for this observation
+([analysis](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/core-batched-existing-work-analysis.json)).
+
+### Isolate the mutation counter cost
+
+The reviewed full-size diagnostic finishes at 20:25 UTC. Both normal acceptance
+trials exceed sixty seconds and roll back with equal selected-table fingerprints.
+Explicit ANALYZE takes 49.50 seconds but does not resolve the deadline. Before
+it, watch updates consume 18.97 seconds and enqueueing 37.52 seconds; after it,
+they consume 33.76 and 24.72 seconds. The last watch update is interrupted, so
+these are observed prefixes, not completed-work comparisons. Source and caches
+remain confounds. Its new database is removed and the retained catalog is exact
+([result](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/acceptance-profile-result.json)).
+
+This measured failure and the existing over-20-GB state trigger a narrow local
+synthetic counter measurement before selecting a fix. In one newly owned bare
+test database, compare the same singleton revision counter under row triggers,
+row triggers with 1,024-row UPDATE statements, and a statement trigger that adds
+the exact changed-row count. Use 1,024, 4,096 and 8,192 generated rows, keep a
+sixty-second SQL bound and a 180-second total bound, verify exact final counter
+and row values, then roll back each case. Reset only those generated probe
+tables between cases. No application schema or trigger changes, retained data,
+reference state, resource-cap changes or new core timing run are included.
+Independent review precedes this one measurement and its owned cleanup. The
+synthetic result cannot establish actual application causality or the semantic
+equivalence of a proposed trigger change. No further graph retry is selected.
+
+The synthetic measurement completes all nine cases in 1.40 seconds, with exact
+counter values and rollback, owned cleanup and no remaining process group.
+At 8,192 rows the row trigger takes 186.346 ms; splitting that update into
+1,024-row statements takes 186.447 ms; the statement-count model takes 6.796 ms.
+This is a local model, not a server latency explanation. It selects no trigger
+or schema change
+([result](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/synthetic-counter-result.json)).
+
+The next full-size diagnostic uses the maintained `profile-input-acceptance`
+command instead of replaying a frozen helper. Freeze a fresh owned dev copy,
+keep schema 38 and every application trigger unchanged, enumerate the normal
+whole-graph prefix, and profile one rollback-only normal acceptance. Enable
+`track_functions=pl` only on its scratch-admin session, then change session and
+current user to the actual unprivileged worker before the trial. Restore the
+scratch identity only after rollback to flush this backend's statistics. Do
+not change role grants, cluster settings, applied migration checksums, data
+semantics or the sixty-second limit. Record function self time separately from
+nested total time and collect read-only cgroup CPU/I/O/pressure observations.
+The explicit isolated dev source and fresh ownership registry remain mandatory.
+A new immutable image, focused/core validation and independent execution review
+precede this private operation. The final complete suite remains required for
+the settled migration change; no graph retry or acceptance pass is selected.
+
+### Measured history-fence follow-up
+
+The maintained diagnostic completes its one owned copy, enumerates all
+108,390 units with digest `d58f3f45…`, and rolls back normal worker acceptance
+after 60.015 seconds. Its four dominant history-timing functions consume
+47.528 seconds of self time: watch updates 25.486, work-generation updates
+11.035, pending-work inserts 9.195 and pending-work updates 1.812. Cleanup
+removes only its owned database. Source and protected boundaries pass the
+independent terminal audit
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/input-profile-result.json)).
+
+The same operation exposes a separate guard lifecycle bug: a stopped actor's
+PID 0 is treated as a new incarnation and reauthorized. The guard exits 1;
+the supervisor correctly refuses a completion pass. Fix confirmed stopped or
+removed actors while keeping live and ambiguous authorization failures fatal.
+Do not restart the failed guard or profiler. A new guard needs source tests,
+an immutable image and a separately reviewed transition.
+
+The measurement now selects a narrow native migration 39: replace only those
+four row-level history-counter triggers with counted transition-table
+statement triggers ([D-0284](../../../journal/decisions/0284-count-bulk-history-fence-changes-per-statement.md)).
+Preserve exact row-count deltas, no-op/zero-row behavior, callback visibility,
+generation values, publication row fences, rollback and the sixty-second
+write bound. Keep applied 37/38 SQL unchanged. The retained native-38 source
+uses an explicit, read-only, prefix-checksummed checkpoint path; ordinary
+worker opens stay strict
+([D-0285](../../../journal/decisions/0285-read-verified-native38-checkpoints-without-migrating-them.md)).
+
+Before server use, prove native-38-to-39 upgrade preservation, worker grants,
+mixed insert/update conflicts, zero and unchanged-row updates, observer fence
+visibility and rollback. Repeat core and the final full suite on settled
+source, keeping the 180-second budget and every existing resource cap.
+Then build and byte-check a new image, review its guard transition and run a
+fresh owned diagnostic. No graph retry or authoritative re-key precedes those
+checks. A later successful acceptance still requires the whole graph proof.
+
+### Batch the measured nested generation updates
+
+The native-39 diagnostic enumerates all 108,390 units and preserves rollback
+and the protected boundary, with a healthy guard and complete owned cleanup.
+Acceptance still expires after 60.023 seconds. The work-generation history
+function runs 30,629 times and consumes 41.526 seconds of self time;
+`work_enqueued` runs 27,268 times and its 44.208-second total includes nested
+functions. Do not add those totals. The counted history triggers now run
+once per SQL statement, but these pending-work row callbacks still issue
+one generation statement per row
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/native39-input-profile-result.json)).
+
+This measurement and the imported state above 20 GB select a narrow native
+migration 40: batch `work_enqueued` and `work_invalidated` over their changed
+pending rows. The pending-work primary key makes each changed unit unique.
+Keep exactly one generation increment per inserted or updated pending row,
+new-generation defaults, missing-generation update behavior, retry fields,
+per-row history deltas, publication row fences, grants and rollback. Retain
+applied 37/38/39 SQL unchanged. Continue to admit only the verified native-38
+checkpoint through an explicit read-only path; ordinary opens stay strict.
+
+Prove 38-to-39, 39-to-40 and direct 38-to-40 behavior against the earlier row
+callbacks, including mixed conflicts, empty statements, unchanged rows,
+missing or pre-existing generation records, observer visibility, committed
+values and publication refusal. Audit exact function bodies, trigger event,
+timing and transition aliases. Finish the currently bound native-39 full run
+before editing its source; draft the follow-up only in scratch meanwhile.
+Then run focused/core/final full validation of settled native-40 source,
+keeping 180-second core and sixty-second write limits and every resource cap.
+A new image, byte proof, separately reviewed healthy-guard image transition
+and fresh owned diagnostic precede any whole-graph retry. No authoritative
+migration, re-key or publication is selected before the private proofs pass.
+
+### Locate the remaining developer-gate cost
+
+Native 40 passes all 3,141 core cases, Ruff and mypy, but the existing normal
+run takes 204.02 seconds against 180. Its recorded parallel phases total
+2,979.13 seconds; even ideal division across sixteen workers exceeds the
+budget before startup. Selection, caps and normal scheduling were not
+manually changed
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/developer-native40-core.json)).
+
+This unmet developer limit selects one call profile of the existing
+`test_archived_scoringdance_event_runs_end_to_end`, whose core call takes
+24.04 seconds. Use an external one-use pytest hook through the normal native
+selector command, preserving assertions, source, SQL settings and all limits.
+The call uses an owned HTTP mock and private test database. Its native-host
+profile differs from the Linux core clients: use function counts and cost
+locations to select further investigation, not a causal core-speedup claim.
+No complete-core timing retry, cache adjustment, assignment change or source
+optimization is selected before this profile is assessed.
+
+The selected call profile passes with unchanged source: 89,897 connection
+execute calls account for 14.79 cumulative seconds of a 22.53-second call;
+psycopg wait accounts for 10.74 seconds of self time. Derivation storage
+and projection writes are the largest direct callers. This points to
+database round trips and does not prove a specific optimization. Preserve
+the bound native-40 source during the reviewed whole-graph run. Core timing
+remains failed; no further default-core timing retry or source change is
+selected from this native-host profile alone
+([profile](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/developer-core-call-profile.json)).
+
+### Bound physical cloning separately from empty creation
+
+The native-40 graph accepts current inputs and persists its complete
+108,390/D58 expected set at 03:29:17.255 UTC. Postgres cancels a statement
+at 03:29:27.540; the actor exits before any shard clone completes. Together
+with `_create` code order, this strongly indicates the first owned physical
+template clone hit the ten-second statement timeout. The private database
+is about 39 GB, above the existing 20 GB measurement trigger
+([failure](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/native40-whole-graph-failed.json)).
+
+Keep ten seconds for empty `template0` creation. Allow up to 600 seconds
+for physical cloning only of this owner's quiescent scratch template, with
+a separate ten-second lock timeout. Keep the sixty-second application write
+limit, all resource caps, ownership fencing, cleanup and 24-hour graph ceiling.
+Prove real timeout/cancellation behavior and owned clone contents with scaled
+test limits before focused/core/final full validation and a reviewed new image.
+No failed actor is restarted.
+
+Before another graph attempt, explain the candidate checkpoint change from
+source `00c831…` to `5039effb…`. Input acceptance may register known NULL
+scopes and clear watch extraction versions. Preserve the original source
+identity and exact candidate checkpoint binding; do not drop equality or
+exclude whole operational tables to make the inspector pass.
+
+### Prove the accepted checkpoint without weakening source identity
+
+The independent trace identifies exact extraction-version clearing and
+NULL-scope registration as possible canonical checkpoint changes during
+code-input acceptance. Preserve the ordinary identity algorithm. Compute
+raw source and predicted candidate hashes in a read-only snapshot, keeping
+all other fields and table hashes exact. Compare actual acceptance against
+the prediction before cloning. A migration receipt and its final inspector
+must check both source/preseal equality and predicted/actual candidate
+equality. Unsupported input changes cannot supply this proof.
+
+Regression cases cover declared extractor changes, extractor-code changes,
+legacy runtime invalidation, its combination with a manual-crosscheck
+extractor change, and project-to-link scope registration. Unrelated watch
+fields, changed policy files, stale identity journals and receipt tampering
+must refuse or change the proof. Before another whole graph, use one fresh
+SQL-only read-only worker diagnostic on C696 to reconstruct the failed fdb
+image’s exact capture and measure whether the projections explain the full
+`5039effb…` hash. Load the tested projection outside `/app`, so installed
+fdb source bytes and captured inputs remain unchanged.
+
+The first clone/projection normal check executes all 3,147 core cases
+successfully but fails the 180-second gate at 192.79 seconds and finds an
+import-order lint error. Correct that lint error, then run the required
+normal check on the new exact binding. Preserve the first timing failure;
+this validation is required by the lint/source change and is not a timing
+waiver or a change to caps, selection or scheduling.
+
+### Check the remaining recipe-lookup round trips
+
+The corrected binding passes all 3,147 core cases but takes 182.89 seconds
+against the unchanged 180-second gate. The earlier selected call profile
+records 4,976 SQL calls from recipe lookup, 0.727 cumulative seconds. Scoped
+project/link/build lookups currently fetch pipeline inputs and then query
+whether an audit/code scope exists.
+
+Prototype one combined SQL snapshot in scratch. Compare the existing
+function’s answers and missing-scope errors on a fresh owned synthetic
+Postgres table, including empty pipeline, audit-only, case-insensitive scope
+presence, complete and missing recipes, and unaffected parse/extract paths.
+Record statement counts, not a claimed core speedup. Keep source fixed during
+the bound full suite. No optimization is promoted or extra core timing retry
+is selected until this equivalence measurement is assessed.
+
+The scratch probe reaches its unsupported `extract` selector after the
+four scoped stages’ 32 comparisons, which implies their answers/errors and
+2-to-1 statement checks passed. It has no completed summary and is retained
+as an incomplete probe; do not claim all 48 cases passed. Its owned database
+and registry are cleaned. Promote the scoped lookup with regression coverage
+in `test_recipes.py`, retaining unsupported-stage errors and parse behavior.
+Use one SQL snapshot with global audit/code presence and only selected
+pipeline names; preserve audit-only and unselected-code missing-scope refusal.
+
+The previous bound full suite is deliberately interrupted at 04:49:50 before
+source edits: 1,156 pass, no failures/errors, exit130, unchanged binding and
+no process-group members. It is not a completed full proof. A fresh normal
+core check and full suite must bind the changed source; no time/resource
+limit or test selection is relaxed.
+
+The scoped one-statement implementation passes all 36 recipe/retention-input
+cases after correcting parameterized SQL percent escaping. The regressions
+observe one statement while preserving the global missing-scope guard.
+Run the normal core check on this binding before selecting the final full
+validation. Preserve earlier timing failures; the 180-second limit is unchanged.
+
+### Reduce streamed output-write round trips
+
+The final recipe-query binding passes every core case and lint/type check but
+still takes 181.90 seconds. Its four clients take 173.6–175.8 seconds, so a
+single long case does not explain the gate. Preserve this timing failure.
+The retained call profile names output `_store` as the largest connection
+caller: 8,120 calls and 1.750 cumulative seconds in the selected end-to-end
+case ([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/developer-core-call-profile.json)).
+
+Combine only the interned payload insert and its row-reference insert into
+one SQL statement per streamed row. Keep row-by-row consumption, canonical
+bytes, ordering, duplicate-payload handling, transaction rollback, generation
+labels and all publication fences. Do not buffer outputs or alter legacy
+uninterned storage. Extend the existing streaming regression to measure one
+write statement per produced row, then run payload, read-set and publication
+fence coverage before the required normal core check. No timeout, resource,
+selection or placement rule changes. A full suite must bind the final source.
+
+### Batch scope ownership claims
+
+The streamed-write follow-up passes all 3,147 core cases, Ruff and mypy but
+still takes 181.14 seconds. Preserve that timing failure. The existing
+selected profile measures `replace_scope` at 5,782 connection calls and
+0.976 cumulative seconds; it issues one ownership claim per projected row.
+Projection rows are already materialized and deduplicated by table/key.
+
+Keep canonical upserts and table order unchanged. After each table's upserts,
+insert ownership claims in bounded groups of 1,024 with `ON CONFLICT DO
+NOTHING`. Keep per-row trigger effects, exact ownership, unchanged-row
+behavior, rollback, shared ownership and deletion. Add a regression across
+the group boundary and confirm trigger/ownership counts before another
+normal core check. No migration, timeout, resource or test-selection change.
+
+The combined clone/projection/round-trip source now passes the unchanged
+normal core gate: 3,148 cases in 174.80 seconds, plus Ruff and mypy. The
+current full suite binds source `d6bee16f…`; source and tests remain fixed.
+The separate SQL-only projection diagnostic has already explained the full
+fdb source/candidate hash difference, so no replay is selected. The candidate
+AMD64 image passes all 560 installed public-file hashes and remains inactive.
+Its prepared image transition and graph launcher both require an actual
+passing current full receipt before execution, followed by their independent
+preflight. The later migration audit helper is only statically accepted.
+
+During full validation, free disk falls below 100 GB and reaches about
+82.7 GiB, with the 80 GiB stop floor still enforced. This triggers a narrow
+review of obsolete generated runtime archives for possible headroom. Keep
+the current runtime archive and every reference R/frozen-source artifact.
+No user-cache or active test-root cleanup is selected.
+
+The current full run completes at 06:26:41 UTC: all 4,725 cases pass in
+58 minutes, fixed complete source binding, exit zero and the free-space
+floor preserved. No obsolete runtime archive is deleted. The next selected
+action is the prepared image-only transition's fresh independent preflight;
+then the normal whole graph on three new owned scratch databases.
+
+The completed current full suite left generated root `/private/tmp/pytest-of-skeswa/pytest-3361` while Mac free space remained just above the 80 GiB floor. Independent review finds 31,667,224,576 allocated bytes eligible for exact unlink-only cleanup after fresh checks under both validation locks. External full-suite results, siblings, reference R, runtime images, databases and server work remain outside this cleanup. The measured low disk margin is the trigger; no extra validation run is selected.
+
+### Measure the large physical clone strategy
+
+The 40,033,506,995-byte owned template exceeds the 20 GB state-size trigger. Its default first physical clone is still active at 561 seconds and PostgreSQL cancels it at the unchanged 600-second ceiling. The actor exits one with SQLSTATE 57014; independent terminal checks confirm owned cleanup, unchanged protected services and retained bases ([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/physical-clone-600s-failed.json)). No unit result is produced.
+
+Select a narrow strategy change for owned physical templates: PostgreSQL 17 `FILE_COPY` instead of the default `WAL_LOG`, which logs each copied block. Keep empty template creation on its default strategy, exact ownership refusal, the 600-second statement limit, ten-second lock limit, resource caps and two-shard verification unchanged. FILE_COPY forces cluster checkpoints before and after creation; apply it only to this private scratch-copy path. Check clone data/identity, refusal and cleanup with the existing Postgres copy cases; then bind the normal core/full checks, installed image and a fresh independently reviewed graph. No automatic replay or change to application write deadlines.
+
+### Bound the measured FILE_COPY clone
+
+The FILE_COPY candidate passes all 16 copy cases, 3,148 core cases within
+180 seconds and all 4,725 full-suite cases. Its fresh graph still fails:
+PostgreSQL cancels its first physical clone at 10:05:34 UTC on November 11,
+after 600 seconds. The actor exits one naturally with no OOM and no unit
+results. Independent terminal review confirms exact owned cleanup and no
+change to retained state, the shared import or protected services.
+
+The 40,033,130,163-byte template exceeds the 20 GB measurement trigger.
+Private PostgreSQL cgroup device 8:0 writes 31,892,938,752 bytes and reads
+29,642,420,224 bytes over 481.882 seconds of active copying: about 66.18 MB/s
+written and 61.51 MB/s read. At that write rate, template bytes alone take
+about 605 seconds, before checkpoint and other overhead. This is observed
+I/O, not a completed copy time or proof of a host bottleneck. The raw
+observations and independent failure review remain in the scratch packet
+`/tmp/swingset-stage2-file-copy-whole-graph-20261111`; retained evidence is
+at this change's 200 KiB limit.
+
+Select a fixed 1,200-second physical clone limit under D-0290. Keep FILE_COPY,
+empty creation and lock limits, application deadlines, resources, exact
+ownership fences, two shards and the whole-job ceiling. Run the existing
+real cancellation/content/refusal/cleanup cases, normal core and full suite,
+then verify installed image bytes and independently review a new graph.
+The failed graph and its receipt remain terminal; do not replay it or adopt
+its partial databases. All subsequent gates remain open.
+
+The first 1,200-second candidate check passes all 3,148 core cases, Ruff and
+mypy but misses timing at 181.576 seconds. The previous source took 178.466
+seconds; both client sets are balanced, with identical membership, image and
+caps. The source delta is one scalar replaced by the focused timeout test.
+This does not prove variance or a regression. Preserve the failed result and
+allow exactly one unchanged normal confirmation to resolve that uncertainty.
+Keep the runner's naturally updated measured weights; do not reset, pin,
+warm up, tune resources or change selection. Preserve both reports. If the
+confirmation also fails, stop timing retries and measure before another fix.
+
+### Size the disposable test lock table for concurrent imports
+
+The one unchanged confirmation also fails: 194.192 seconds, seven failed
+cases and one error. All four clients report SQLSTATE 53200. The primary
+PostgreSQL log records nine shared-memory exhaustion errors at 10:23:59–10:24:03
+UTC; cgroup OOM counters stay zero. Its settings are
+`max_locks_per_transaction=64`, `max_connections=100` and no prepared
+transactions. No further unchanged core retry is selected.
+
+A separate real native import case passes in 1.53 seconds while read-only
+sampling after successful DDL observes 1,503 backend locks, 1,486 outside the
+fast path. Sixteen simultaneous transactions of that size would need 23,776
+entries before other connections, above the nominal 6,400 shared allocation.
+The diagnostic does not sample the failed run's peak lock occupancy or prove
+a timing improvement. Its compact scratch measurement is
+`/tmp/swingset-stage2-lock-table-measurement-20261111/measurement.json`, SHA
+`a4744d2af8f635fae4d2d319eb95af23c17c3600fd80d737543b3367d08b4f4f`.
+
+Select `max_locks_per_transaction=512` for the disposable test/CI primary
+only. This sizes a finite internal lock table for sixteen workers while
+keeping the 2 GiB container cap, six CPUs, data tmpfs, all test membership,
+parallelism and 180-second gate. Leave the physical lifecycle profile,
+persistent development database and server rehearsal settings unchanged.
+Record D-0291 and update the local profile reference. Before its maintained
+configuration reconciliation replaces the exact owned disposable primary,
+require an independent ownership/idle/inventory check. Preserve both failed
+core reports and their ordinary measured weights. Then run affected service
+and native import tests, normal core and the required full suite on fixed
+new inputs. No failed graph is replayed and no runtime image is promoted
+before its gates pass.
+
+### Profile the remaining core latency
+
+The combined source passes all 3,148 core cases, Ruff and mypy, with no
+shared-lock failure, but still takes 199.652 seconds. All four clients take
+187.8–193.2 seconds. This preserves the correctness fix and leaves timing
+failed; no unchanged retry follows. The scratch report is
+`/tmp/swingset-stage2-clone-1200-locks-check-20261111/validated.json`, source
+`385838ce…`, job `07b584826a464cf981ba9418`.
+
+Measure one current scoring.dance end-to-end case with Python's standard
+cProfile and the normal pytest service/ownership plugin. Its current core
+phase total is 26.007 seconds, up from 19.192 in the earlier passing report;
+its old profile cannot establish this source's bottleneck. Preserve all
+caps, fixtures and selection rules. Capture SQL callers and cumulative work,
+not a claimed core timing improvement. Select no further optimization until
+that measurement supports a narrow implementation. Do not change core
+placement, measured weights, timeouts, resource limits or the 180-second gate.
+
+The current profile passes its one selected case in 20.43 seconds. It
+records 77,651 connection execute calls and 12.987 cumulative seconds;
+canonical `_upsert` is the largest caller with 8,616 calls and 1.481 seconds.
+This is a diagnostic, not a core speed comparison. The scratch measurement
+is `/tmp/swingset-stage2-current-core-profile-20261111/measurement.json`.
+
+Select bounded old-row lookup for the already materialized, deduplicated
+projection records: read current rows for at most 1,024 desired keys at a
+time, then keep the existing Python semantic comparison, owner/seen-time
+preservation and individual upserts in their original order. No pipeline,
+SQL comparison rewrite or output buffering is introduced. Known canonical
+row triggers do not modify another desired canonical row during these
+upserts; review that assumption. Keep table order, per-row writes and
+triggers, exact ownership claims, publication fences, rollback and NULL/NaN
+behavior. Extend the existing 1,025-record projection regression to check
+bounded reads and unchanged-row behavior, then run projection/read-set/fence
+coverage and the normal core. No other optimization or extra unchanged
+core retry is selected; full validation must bind the final source.
+
+The same current profile also measures 7,064 individual certificate-token
+lookups, 0.838 cumulative seconds. Before the next normal check, select one
+additional narrow read consolidation in the same source: collect token
+positions in the certificate basis, fetch their versions in bounded groups
+of 1,024, then fill those positions without changing ordering, duplicates,
+zero defaults or selected-generation group overrides. Keep the separate
+calendar/dancer fast path. Certificate construction reads within its caller's
+serialized transaction and performs no writes between token reads; preserve
+that assumption and review it. Add a manual expected-digest/query-count
+regression and exercise mutation/rollback tests. Compare the prior and new
+function on representative owned fixture units in scratch. No new time,
+resource, selection, cache or version exception follows from this change.
+
+The type-only correction passes all 3,148 core cases, Ruff and mypy but takes
+181.582 seconds. The prior source's identical executable instructions passed
+core timing at 177.919 seconds and failed only typing. Preserve both results;
+this does not prove variance or robustness. The sole bound-file difference
+is the local annotation, and exact reversal restores the reviewed source.
+Allow one unchanged normal confirmation under the same resources, selection
+and natural measured-weight lifecycle, with no cache reset, warmup, pinning
+or tuning. Keep every failed result. If it also fails, stop timing retries
+and measure before any further fix; the 180-second gate stays unchanged.
+
+The one unchanged confirmation passes all 3,148 cases, Ruff and mypy but
+takes 183.269 seconds. Preserve that failure; no further unchanged timing
+retry follows. Profile the current source's remaining writes in the same
+scoring.dance case with standard cProfile and normal ownership fixtures.
+Use the result to assess bounded multi-row canonical inserts that preserve
+Python comparison and row values. Select no write consolidation before
+that measurement and an audit of the native statement/row trigger effects.
+
+The current profile passes its selected case in 19.49 seconds. It records
+66,434 connection calls; individual canonical inserts remain the second
+largest caller at 2,879 calls and 0.580 cumulative seconds. The compact
+scratch measurement is
+`/tmp/swingset-stage2-current-writes-profile-20261111/measurement.json`.
+The row-trigger audit finds no static blocker: canonical insert/update
+triggers are row-level; native 39/40 statement triggers attach to other
+tables. AFTER row triggers run at statement end, so registered_at remains an
+operational timestamp, not an exact replay comparison.
+
+Select at most 1,024 already prepared changed canonical records per
+multi-VALUES insert, preserving original Python comparison, NULL/NaN handling,
+old owner/seen values, deduplication and table order. Keep all native row
+triggers, publication fences, caller writer locks and sixty-second deadline.
+Never issue an insert for unchanged rows. Compare mixed insert/update batches
+across the 1,024 boundary against individual writes in a rolled-back
+transaction, including canonical contents, ownership, exact history and
+work-generation/input-version deltas. Retain the 5,128-delta pure-insert case,
+publication refusal and rollback checks. Run affected coverage and then the
+normal check/full suite on the final source. No unchanged core retry or
+other optimization is selected.
+
+The batched-write source passes all 3,148 core cases, Ruff and mypy but takes
+182.246 seconds. Preserve the timing failure; do not repeat it unchanged.
+The retained current-writes profile also measures the unchanged currentness
+functions: 2,554 SQL calls from `_current`, 1,862 from `building_available`
+and 1,442 from `building`. The function bodies still match that profile;
+these are caller counts, not a timing comparison for the later write batch.
+
+Select one metadata-read consolidation: return visible staging-table
+presence with the existing scope-pointer query, then query its staged row
+only when present. Reuse the exact existing pg_class/visibility predicate;
+keep the public building helper's behavior and missing/old-schema guard.
+Do not cache presence, parse an absent staging table, alter proofs or move
+writes. Check current/unfinished scopes and a temporary view shadowing the
+staging table, then run affected currentness/recovery tests and the normal
+check. The full suite must bind the final source. No extra unchanged retry,
+time, resource or selection exception is selected.
+
+The pointer/presence source passes core correctness, Ruff and mypy but takes
+183.167 seconds. No unchanged retry follows. The retained current profile
+measures 4,166 selected-generation SQL calls and 0.515 cumulative seconds;
+that helper's body is unchanged by the intervening work.
+
+Select bounded selected-generation reads inside certificate construction,
+with at most 1,024 distinct requested units per statement and the original
+single-unit path for singleton groups. Preserve each certificate position,
+including duplicates, missing NULL values and consistency-group selected or
+effective overrides (including an explicit NULL). Keep the existing public
+single lookup unchanged; add a bulk helper with identical per-unit rules.
+Construction performs no writes and its caller supplies the stable input
+transaction. Test the group override/mismatched-connection cases and 1,025
+units across the boundary, and compare old/new certificate digests before
+normal core/full validation. No cache, time, resource or test-selection
+exception is introduced.
+
+The selected-pointer application source passes core timing at 178.485 seconds
+and typing but the normal check fails Ruff on an unbound loop variable in
+its new extended test. Fix that test callback's local binding; direct Ruff,
+mypy and the boundary/group test pass. The application source revision stays
+identical. The required final-binding check passes correctness and static
+checks but takes 180.300 seconds, so it fails timing. Preserve both results.
+Allow one unchanged confirmation for this final binding, under the same
+conditions and normal measured-weight lifecycle. No cache, warmup, resource,
+selection or time change is allowed. If it also fails, stop timing retries
+and measure before another fix. This is not a pass or a robustness claim.

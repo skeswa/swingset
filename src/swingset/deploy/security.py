@@ -15,6 +15,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -316,7 +317,7 @@ def require_authorization(policy_path: Path, directory: Path) -> dict[str, Any]:
     return value  # type: ignore[no-any-return]
 
 
-def export_status(directory: Path, policy: dict[str, Any]) -> None:
+def _status(policy: dict[str, Any]) -> dict[str, Any]:
     """Only the platform operator reads peer container state and memory."""
     identifiers = _run(["docker", "ps", "-aq", "--no-trunc"]).stdout.splitlines()
     containers = []
@@ -357,11 +358,86 @@ def export_status(directory: Path, policy: dict[str, Any]) -> None:
         "resources": [json.loads(line) for line in samples.stdout.splitlines() if line.strip()],
         "resource_exit": samples.returncode,
     }
+    return value
+
+
+def export_status(directory: Path, policy: dict[str, Any]) -> None:
+    """Report observation failures without terminating network authorization."""
+    try:
+        value = _status(policy)
+    except (
+        OSError,
+        subprocess.SubprocessError,
+        RuntimeError,
+        ValueError,
+        KeyError,
+        TypeError,
+    ) as error:
+        value = {
+            "utc": time.time(),
+            "deployment": policy["deployment"],
+            "policy_sha256": digest(policy),
+            "complete_inventory": False,
+            "expected_roles": sorted(
+                role for role, member in policy["workers"].items() if member.get("required", True)
+            ),
+            "containers": [],
+            "other_containers": [],
+            "resources": [],
+            "resource_exit": 1,
+            "observation_error": type(error).__name__,
+        }
+        print(
+            json.dumps({"platform_observation_failed": type(error).__name__}),
+            file=sys.stderr,
+            flush=True,
+        )
     directory.mkdir(parents=True, exist_ok=True, mode=0o755)
     temporary = directory / "containers.tmp"
     temporary.write_text(json.dumps(value, sort_keys=True))
     temporary.chmod(0o444)
     temporary.replace(directory / "containers.json")
+
+
+def _current_worker(identifier: str) -> dict[str, Any] | None:
+    """An inspection error means removal only after a successful inventory confirms it."""
+    try:
+        container = _inspect(identifier)
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        found = _run(
+            ["docker", "ps", "-aq", "--no-trunc", "--filter", "id=" + identifier]
+        ).stdout.splitlines()
+        if identifier in found:
+            raise
+        return None
+    if container["Id"] != identifier:
+        raise ValueError("worker inspection identity differs")
+    return container
+
+
+def _reconcile_worker(
+    identifier: str,
+    policy: dict[str, Any],
+    directory: Path,
+    known: tuple[int, str] | None,
+) -> tuple[tuple[int, str] | None, dict[str, Any] | None]:
+    current = _current_worker(identifier)
+    if current is not None and current["State"]["Running"]:
+        incarnation = int(current["State"]["Pid"]), str(current["State"]["StartedAt"])
+        if known == incarnation:
+            return incarnation, None
+        try:
+            return incarnation, authorize(identifier, policy, directory)
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
+            after = _current_worker(identifier)
+            if after is not None and (after["State"]["Running"] or after["State"]["Pid"] != 0):
+                raise
+    elif current is not None and current["State"]["Pid"] != 0:
+        raise RuntimeError("stopped worker still has a process")
+    # Both successful and failed exits retire the old incarnation. A restart
+    # must obtain a fresh proof before reading credentials or starting work.
+    (directory / (identifier + ".json")).unlink(missing_ok=True)
+    return None, None
 
 
 def main() -> None:
@@ -386,12 +462,15 @@ def main() -> None:
                 "label=io.swingset.guarded=true",
             ]
         ).stdout.splitlines()
-        for identifier in identifiers:
-            current = _inspect(identifier)
-            incarnation = int(current["State"]["Pid"]), str(current["State"]["StartedAt"])
-            if seen.get(identifier) != incarnation:
-                value = authorize(identifier, policy, args.authorization_directory)
+        for identifier in sorted(set(identifiers) | set(seen)):
+            incarnation, value = _reconcile_worker(
+                identifier, policy, args.authorization_directory, seen.get(identifier)
+            )
+            if incarnation is None:
+                seen.pop(identifier, None)
+            else:
                 seen[identifier] = incarnation
+            if value is not None:
                 print(json.dumps(value), flush=True)
         if time.monotonic() - last_status >= 30:
             export_status(args.authorization_directory, policy)

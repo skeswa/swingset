@@ -286,21 +286,31 @@ def recipe_inputs(conn: engine.Connection, stage: str, kind: str | None = None) 
     Offline selection skips that kind and reports it (`schedule/fairness`).
     """
     selected = recipe_names(stage, kind)
-    result = {
-        str(name): str(value)
-        for name, value in conn.execute(
-            "SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'pipeline' ORDER BY "
-            "input_name NULLS FIRST"
-        )
-        if name in selected
-    }
-    if (
-        stage in {"project", "link", "build"}
-        and conn.execute(
-            "SELECT 1 AS _value_0 FROM accepted_inputs WHERE consumer = 'audit' OR (consumer = 'pipeline' AND input_name ILIKE 'recipe/code/%') LIMIT 1"
-        ).fetchone()
-        is not None
+    if stage not in {"project", "link", "build"}:
+        return {
+            str(name): str(value)
+            for name, value in conn.execute(
+                "SELECT input_name, digest FROM accepted_inputs WHERE consumer = 'pipeline' ORDER BY "
+                "input_name NULLS FIRST"
+            )
+            if name in selected
+        }
+    result = {}
+    scoped = False
+    # The singleton keeps global scope presence even if no selected pipeline
+    # input exists. Both facts must come from the same statement snapshot.
+    for name, value, scope_present in conn.execute(
+        "SELECT p.input_name,p.digest,guard.scoped "
+        "FROM (SELECT EXISTS(SELECT 1 FROM accepted_inputs WHERE consumer='audit' "
+        "OR (consumer='pipeline' AND input_name ILIKE 'recipe/code/%%') LIMIT 1) AS scoped) AS guard "
+        "LEFT JOIN accepted_inputs AS p ON p.consumer='pipeline' AND p.input_name=ANY(%s) "
+        "ORDER BY p.input_name NULLS FIRST",
+        (sorted(selected),),
     ):
+        scoped = bool(scope_present)
+        if name in selected:
+            result[str(name)] = str(value)
+    if scoped:
         missing = sorted(
             name
             for name in selected

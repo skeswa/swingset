@@ -72,6 +72,13 @@ def parser() -> argparse.ArgumentParser:
     import_job_arguments(
         commands.add_parser("import-job", help="Supervise one reviewed held server import")
     )
+    from swingset.deploy.verification_job import arguments as verification_job_arguments
+
+    verification_job_arguments(
+        commands.add_parser(
+            "verification-job", help="Supervise one reviewed private graph or input profile"
+        )
+    )
     reference = commands.add_parser(
         "reference-build", help="Build the frozen offline reference in a bounded private workspace"
     )
@@ -400,6 +407,13 @@ def parser() -> argparse.ArgumentParser:
         "--scopes", help="Comma-separated audit scopes; omitted verifies the whole graph"
     )
     verify.add_argument("--receipt", type=Path, help="Write a graph verification receipt")
+    profile = commands.add_parser(
+        "profile-input-acceptance",
+        parents=[shared],
+        help="Measure normal input acceptance on one private copy and roll it back",
+    )
+    profile.add_argument("--checkpoint", type=Path, required=True)
+    profile.add_argument("--receipt", type=Path, required=True)
     rekey = commands.add_parser(
         "rekey", parents=[shared], help="Re-key clean verified units without transforming"
     )
@@ -2015,6 +2029,19 @@ def _verify_derivations(args: argparse.Namespace) -> int:
     return 1 if summary["mismatches"] else 0
 
 
+def _profile_input_acceptance(args: argparse.Namespace) -> int:
+    from swingset.state import input_profile
+    from swingset.state.inputs import capture
+    from swingset.versions import versions
+
+    input_profile.validate_paths(args.checkpoint, args.receipt, capture_state=args.state)
+    capture_state = engine.state_directory(args.state)
+    bundle = capture(args.config, args.overrides, capture_state, versions())
+    summary = input_profile.run(args.checkpoint, bundle, SystemClock(), receipt_path=args.receipt)
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
 def _rekey(args: argparse.Namespace) -> int:
     from swingset.fetch.archive import canonical, digest, durable_write
     from swingset.state import rekey
@@ -2285,6 +2312,10 @@ def main(argv: list[str] | None = None) -> int:
         from swingset.deploy.import_job import execute as import_job
 
         return import_job(args)
+    if args.command == "verification-job":
+        from swingset.deploy.verification_job import execute as verification_job
+
+        return verification_job(args)
     if args.command == "mirror-bootstrap":
         from swingset.deploy.mirror import main as mirror_main
 
@@ -2436,6 +2467,12 @@ def main(argv: list[str] | None = None) -> int:
             return _verify_derivations(args)
         except (OSError, ValueError, RuntimeError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+    if args.command == "profile-input-acceptance":
+        try:
+            return _profile_input_acceptance(args)
+        except (OSError, ValueError, RuntimeError, engine.Error, DatabaseLockedError) as exc:
+            log("input_profile_failed", error_type=type(exc).__name__)
             return 1
     if args.command == "contract":
         try:

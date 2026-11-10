@@ -244,3 +244,82 @@ def test_load_rejects_corrupt_retained_member_before_using_configuration(tmp_pat
         output.write(b"\n# corrupt retained input\n")
     with pytest.raises(ValueError, match="member digest"):
         load(state, original.digest)
+
+
+def test_large_overlapping_invalidation_keeps_callback_order_and_rolls_back(
+    tmp_path, record_property
+):
+    import time
+
+    import pytest
+
+    from swingset.state.work import WorkUnit, accept_inputs
+
+    units = [WorkUnit("parse", "snapshot", str(index)) for index in range(4097)]
+    with open_database(tmp_path / "state") as database:
+        conn = database.connection
+        calls = []
+        statements = []
+        fence_before = conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0]
+
+        def affected(name, old, new, connection):
+            assert connection is conn
+            assert old is None
+            assert new == "v1"
+            # Later callbacks must see the earlier digest and its entire queue.
+            if calls:
+                assert conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == len(units)
+                assert (
+                    conn.execute(
+                        "SELECT digest FROM accepted_inputs WHERE consumer='bulk-test' AND input_name=%s",
+                        (calls[-1],),
+                    ).fetchone()[0]
+                    == "v1"
+                )
+            calls.append(name)
+            return [*units, units[0], units[-1]]
+
+        started = time.monotonic()
+        with conn.observing(lambda query, params: statements.append(str(query))):
+            changed = accept_inputs(
+                database,
+                "bulk-test",
+                dict.fromkeys(("a", "b", "c"), "v1"),
+                affected,
+                accepted_at="2026-11-10T00:00:00Z",
+            )
+        record_property("invalidation_seconds", time.monotonic() - started)
+        record_property("invalidation_statements", len(statements))
+        assert len(statements) < 100
+        assert calls == ["a", "b", "c"]
+        assert changed == {"a", "b", "c"}
+        assert conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == len(units)
+        generations = dict(conn.execute("SELECT unit_id, generation FROM work_generations"))
+        assert generations == {
+            unit.unit_id: 6 if unit in (units[0], units[-1]) else 3 for unit in units
+        }
+        # Each queue write and its work-generation trigger advance the fence;
+        # accepting each of the three digests advances it once more.
+        assert conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0] == (
+            fence_before + 2 * 3 * (len(units) + 2) + 3
+        )
+
+        def fail_after_first(name, old, new, connection):
+            if name == "e":
+                raise RuntimeError("failed invalidation")
+            return [WorkUnit("parse", "snapshot", "must-roll-back")]
+
+        with pytest.raises(RuntimeError, match="failed invalidation"):
+            accept_inputs(database, "bulk-test", {"d": "v2", "e": "v2"}, fail_after_first)
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM accepted_inputs WHERE consumer='bulk-test' AND input_name IN ('d','e')"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM pending_work WHERE unit_id='must-roll-back'"
+            ).fetchone()[0]
+            == 0
+        )

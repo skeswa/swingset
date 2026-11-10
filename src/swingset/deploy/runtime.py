@@ -127,7 +127,9 @@ def main() -> None:
     args = parser.parse_args()
     os.umask(0o077)
     proof = authorized(
-        args.network_policy, args.authorization, wait=args.command in {"scheduler", "checker"}
+        args.network_policy,
+        args.authorization,
+        wait=args.command in {"scheduler", "checker", "health"},
     )
     role = str(proof["role"])
     if os.environ.get("SWINGSET_ENV") != "dryrun":

@@ -50,6 +50,61 @@ def test_owned_database_and_expanded_files_cleanup_on_success_or_failure(tmp_pat
         )
 
 
+def test_owned_template_clone_has_separate_bounded_time_and_cleans_canceled_creation(monkeypatch):
+    import psycopg
+
+    from swingset.state import postgres_copy
+
+    service = ensure_service()
+    # Exercise actual server cancellation without a large physical test fixture.
+    monkeypatch.setattr(postgres_copy, "EMPTY_CREATE_SECONDS", 1)
+    monkeypatch.setattr(postgres_copy, "TEMPLATE_CLONE_SECONDS", 3)
+    execute = psycopg.Connection.execute
+    delay = False
+    lock_timeouts = []
+
+    def slow_create(connection, statement, *args, **kwargs):
+        text = statement.as_string(connection) if hasattr(statement, "as_string") else statement
+        if delay and text.startswith("CREATE DATABASE "):
+            lock_timeouts.append(execute(connection, "SHOW lock_timeout").fetchone()[0])
+            execute(connection, "SELECT pg_sleep(1.1)")
+        return execute(connection, statement, *args, **kwargs)
+
+    monkeypatch.setattr(psycopg.Connection, "execute", slow_create)
+    with Copies.for_admin(service.dsn()) as copies:
+        original = copies._create()
+        with copies._admin(original) as source:
+            source.execute("CREATE TABLE public.clone_proof(id INTEGER PRIMARY KEY, value TEXT)")
+            source.execute("INSERT INTO public.clone_proof VALUES(1,'retained'),(2,'雪')")
+        delay = True
+        with pytest.raises(RuntimeError, match="SQLSTATE 57014"):
+            copies._create()
+        canceled = copies.record["databases"][-1]
+        cloned = copies._create(template=original)
+        with copies._admin(cloned) as connection:
+            assert connection.execute("TABLE public.clone_proof ORDER BY id").fetchall() == [
+                (1, "retained"),
+                (2, "雪"),
+            ]
+            connection.execute("UPDATE public.clone_proof SET value='clone only' WHERE id=1")
+        with copies._admin(original) as source:
+            assert source.execute("TABLE public.clone_proof ORDER BY id").fetchall() == [
+                (1, "retained"),
+                (2, "雪"),
+            ]
+        assert lock_timeouts == ["10s", "10s"]
+        claimed = list(copies.record["databases"])
+        with pytest.raises(ValueError, match="not owned"):
+            copies._create(template="template1")
+        assert copies.record["databases"] == claimed
+    with service.connect() as admin:
+        assert not admin.execute(
+            "SELECT datname FROM pg_database WHERE datname=ANY(%s)",
+            ([original, canceled, cloned],),
+        ).fetchall()
+    assert not copies.path.exists()
+
+
 def test_directory_ownership_refuses_root_escape_symlink_and_foreign_marker(tmp_path):
     root = tmp_path / "check"
     work = staging(root)

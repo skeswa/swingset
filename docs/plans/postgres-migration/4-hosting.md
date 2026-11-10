@@ -557,6 +557,11 @@ So:
 
 ### Health and alerts
 
+Peer-status observation errors produce a fresh incomplete snapshot and an
+observer-blind alert while namespace authorization continues. Authorization,
+firewall and status-publication errors remain fatal
+([D-0282](../../../journal/decisions/0282-report-status-blindness-without-stopping-network-authorization.md)).
+
 - **Probes never change state.** None runs a loop, a dry run, a restore or a
   publish; none fetches or accepts inputs. Liveness is a cheap heartbeat;
   readiness checks the database, the schema version and restore state.
@@ -592,16 +597,16 @@ run as verified or unavailable:
 - whether its login has two-factor login, an address allowlist and current
   updates.
 
-Stage 2 checks, 2026-11-06:
+Stage 2 checks, updated 2026-11-10:
 
-| Fact                                       | Result                                                                                                                                                                                                                                                                                   |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Swingset project and database              | Verified: project `swingset`, C-locale `swingset_dryrun`, three scoped logins and 142 empty tables; no environment row or pipeline start yet ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/dryrun-provision.json)).                                            |
-| Compose type, private relay and logins     | Verified: actual `docker-compose` service runs four support services; loopback-only relay, three read-only login checks and owner-role separation pass. Final guarded workers remain pending ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/gateway-sql.json)). |
-| Persistent full-dump exclusion             | Verified by rediscovery: no enabled `swingset*` dump; the existing Postgres backup stays unchanged ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/dryrun-provision.json)).                                                                                      |
-| Threshold and failed-job notifications     | Unavailable: owner endpoints are not provisioned yet; delivery and dead-man tests remain open ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                                |
-| Twice-weekly backup time and size          | Unavailable: scoped R2 credentials are verified, but import and real backup runs remain pending ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                              |
-| Dokploy login protections and update state | Unavailable: not verified by these platform operations ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                                                                       |
+| Fact                                       | Result                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Swingset project and database              | Verified: project `swingset`, C-locale `swingset_dryrun` and three scoped logins. Native import audits all 141 tables and 23,433,486 typed rows; pipeline schedulers remain unstarted ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-10/import-resume-postcheck.json)). |
+| Compose type, private relay and logins     | Verified: actual `docker-compose` service runs four support services; loopback-only relay, three read-only login checks and owner-role separation pass. Final guarded workers remain pending ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/gateway-sql.json)).      |
+| Persistent full-dump exclusion             | Verified by rediscovery: no enabled `swingset*` dump; the existing Postgres backup stays unchanged ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-05/dryrun-provision.json)).                                                                                           |
+| Threshold and failed-job notifications     | Provider transport verified: two Healthchecks.io checks deliver the explicit failure and missed-heartbeat test emails to the owner; guarded application delivery remains open ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                     |
+| Twice-weekly backup time and size          | Unavailable: native import and scoped R2 credentials are verified; real backup runs remain pending ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                                |
+| Dokploy login protections and update state | Unavailable: not verified by these platform operations ([rehearsal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md)).                                                                                                                                            |
 
 Rhuidean drives Dokploy through its CLI and `curl` (Rhuidean D-0009,
 D-0020). Its rules carry over: never send `freshVolumes`; a queued

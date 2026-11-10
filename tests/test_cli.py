@@ -587,5 +587,7 @@ def test_prod_operator_guard_allows_explicit_forward_upgrade_without_current_sch
     assert (
         owner.execute("SELECT database_id FROM ops.environment_identity").fetchone()[0] == original
     )
-    assert postgres_schema.validate_schema(owner)["schema_version"] == 38
+    assert (
+        postgres_schema.validate_schema(owner)["schema_version"] == postgres_schema.SCHEMA_VERSION
+    )
     assert "operator_target" in capsys.readouterr().err

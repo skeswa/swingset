@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Mapping
+from itertools import batched
 from typing import Any
 
 from swingset.state import engine
@@ -68,16 +69,15 @@ def certificate(
     reads: Iterable[str] | None = None,
 ) -> str:
     """``reads`` is a link's read set, else its recorded one (plan F20)."""
-    from .derivations import selected_generation
+    from .derivations import selected_generations
 
     basis = _basis(unit, recipe, context)
+    tokens: list[tuple[int, str, str]] = []
+    selections: list[tuple[int, WorkUnit]] = []
 
     def token(namespace: str, key: str) -> None:
-        row = conn.execute(
-            "SELECT version FROM derivation_input_versions WHERE namespace = %s AND input_key = %s",
-            (namespace, key),
-        ).fetchone()
-        basis.append((namespace, key, int(row[0]) if row else 0))
+        tokens.append((len(basis), namespace, key))
+        basis.append((namespace, key, 0))
 
     replayed: set[tuple[str, str]] = set()
 
@@ -90,14 +90,8 @@ def certificate(
 
     def selected(kind: str, identifier: str = "all") -> None:
         replay(kind)
-        basis.append(
-            (
-                "selected",
-                kind,
-                identifier,
-                selected_generation(conn, WorkUnit("project", kind, identifier)),
-            )
-        )
+        selections.append((len(basis), WorkUnit("project", kind, identifier)))
+        basis.append(("selected", kind, identifier, None))
 
     def epoch(kind: str, stage: str = "project") -> None:
         token("selected", _json((stage, kind)))
@@ -248,4 +242,27 @@ def certificate(
         # Build validity includes filesystem evidence, so it deliberately has no
         # fast certificate path. Return a stable value for receipt bookkeeping.
         basis.append("full-build-comparison-required")
+    # Construction above performs no writes; the caller serializes input writes.
+    # Keep every basis position (including duplicates), with zero for absent tokens.
+    versions: dict[tuple[str, str], int] = {}
+    for group in batched(sorted({(namespace, key) for _, namespace, key in tokens}), 1024):
+        versions.update(
+            ((row[0], row[1]), int(row[2]))
+            for row in conn.execute(
+                "SELECT v.namespace,v.input_key,v.version FROM derivation_input_versions v "
+                "JOIN unnest(%s::text[],%s::text[]) AS wanted(namespace,input_key) "
+                "ON v.namespace=wanted.namespace AND v.input_key=wanted.input_key",
+                ([namespace for namespace, _ in group], [key for _, key in group]),
+            )
+        )
+    for index, namespace, key in tokens:
+        basis[index] = (namespace, key, versions.get((namespace, key), 0))
+    selected_values = selected_generations(conn, (unit for _, unit in selections))
+    for index, selected_unit in selections:
+        basis[index] = (
+            "selected",
+            selected_unit.unit_kind,
+            selected_unit.unit_id,
+            selected_values[selected_unit],
+        )
     return _digest(basis)

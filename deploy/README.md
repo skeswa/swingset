@@ -86,6 +86,11 @@ must receive a fresh authorization before opening Postgres. Application code
 cannot edit the kernel policy. The operator also exports peer container state
 and memory for the watchdog; workers never receive the Docker socket.
 
+A failed status observation publishes a fresh incomplete inventory and observer
+failure. The watchdog reports blindness while the guard continues checking
+worker authorization. Authorization, firewall and status-publication failures
+remain fatal ([D-0282](../journal/decisions/0282-report-status-blindness-without-stopping-network-authorization.md)).
+
 Initial shared-database table creation uses
 `postgres_bootstrap.prepare(admin_connection)` in a trusted host job. It executes
 only the exact frozen SQLite-37 table phase, assigns the application owner and
@@ -156,6 +161,43 @@ other clients. Add `--database-id UUID` when the UUID is already known. The
 command changes no application data or receipt and does not resume an import.
 Its success does not replace the independent typed audit. The guarded operator
 utility permits this command; no third-party credentials are needed.
+
+### Supervise a private whole-graph run
+
+For an already-created verifier and a reviewed private base, use:
+
+```sh
+swingset verification-job --plan graph-plan.json --plan-sha256 PLAN_SHA256 \
+  --container FULL_VERIFIER_ID --platform FULL_NAMESPACE_OPERATOR_ID \
+  --review graph-review.json --review-sha256 REVIEW_SHA256
+```
+
+The plan and review are private, single-link files owned by the operator,
+mode 0600, under a private operation directory. The review binds the exact
+plan and cold container and allows the graph's own database cleanup while
+leaving base cleanup refused. Source modules and the runtime image must
+match completed validation before this command starts the verifier once.
+
+The verifier receives private database keys only, the base state, fresh
+scratch volumes and read-only source blobs. The supervisor checks the full
+mount map, current namespace operator, boot and process birth, actual
+network namespace, stored dev UUID at startup, protected applications and
+kernel OOM counters. Initial free space must cover eight database copies
+above the 200 GB floor. That floor, eight GiB, six CPUs, 256 processes,
+the 86,400-second ceiling and 120-second stop grace stay fixed.
+
+The supervisor records checked live incarnation and cgroup identities,
+reports a sixty-minute progress alarm and confirms terminal state after
+one stop. An uncertain stop requires attended escalation; it never starts
+again. Its progress query stays on private Postgres and excludes its own
+monitoring database. Progress counters do not establish graph completion.
+
+Keep the retained base and ownership ledger on every failure. Exit zero
+still needs independent inspection of the complete receipt, exact whole
+unit set, inputs, checkpoint and unchanged base. Cleanup of that base
+requires a separate explicit review. A new runtime revision requires its
+own matching graph proof; do not rewrite a receipt or preserve an old
+revision label to reuse one.
 
 ## Credentials, holds and scheduling
 
@@ -241,6 +283,49 @@ its entrypoint explicitly changes its process mode to dev after authorization.
 The final shared recovery database keeps its required dryrun identity. Initialize
 `runtime/verifier/copies` as UID 10001, mode 0700. This durable copy-owner ledger
 survives container replacement; inspect older namespace owners before cleanup.
+
+## Profile a stalled input acceptance
+
+The private verifier also supports `profile-input-acceptance`. Use a fresh,
+empty `SWINGSET_COPY_ROOT` outside temporary files, a writable `TMPDIR`, and a
+separate writable capture state. Keep the retained checkpoint read-only:
+
+```sh
+profile-input-acceptance --checkpoint /var/lib/swingset \
+  --state /var/lib/swingset-runtime/capture \
+  --receipt /var/lib/swingset-runtime/input-profile.json
+```
+
+Run this through the same authorized verifier utility. It receives only the
+private SQL credentials. The command freezes one new dev copy and enumerates
+the whole expected unit set. The isolated scratch administrator enables
+function tracking only for its session, then switches both session and current
+user to the worker login before normal input acceptance. It changes no role
+grants or cluster settings. Acceptance keeps its sixty-second budget and
+always rolls back. Unexpected errors stop the diagnostic.
+
+The receipt records buffered statement categories and elapsed time, selected
+table rollback fingerprints, and function counts and time. It retains no SQL
+parameters, DSNs or credential values. Function total time includes nested
+calls; use self time to compare functions. Exit zero means the diagnostic and
+its owned cleanup finished. `acceptance_complete` is separate, and this receipt
+never proves graph equivalence. No existing receipt or nonempty ownership
+registry is reused.
+
+A native-38 checkpoint may be read through the checked copy-source path;
+its 37/38 migration-prefix checksum must match. The owned copy receives the
+current schema. The retained source is never upgraded by this command.
+
+For a cold, independently reviewed server container, use `verification-job
+--input-profile` with the same plan, container, platform and review arguments
+shown above. Its plan format is `swingset-attended-input-profile-v1`, with a
+3,600-second `verification_deadline_seconds`, `diagnostic_only: true` and
+`owned_database_limit: 1`. The separate review verdict is
+`ACCEPT_PROFILE_AND_OWNED_CLEANUP`; it binds the plan and container, allows
+one owned database and refuses base cleanup. The retained state mount must
+be read-only. The supervisor admits only the exact diagnostic command and
+separate runtime capture path shown here. Its other namespace, resource,
+protected-service and one-start checks remain the same as the graph job.
 
 ## Prove the boundaries
 

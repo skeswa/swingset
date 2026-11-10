@@ -256,6 +256,57 @@ def test_a_unit_without_an_accepted_code_scope_fails_closed(tmp_path):
         assert "recipe/env" not in recipes.recipe_inputs(conn, "project")
 
 
+@pytest.mark.parametrize(
+    "stage,kind,scope",
+    [
+        ("project", "event", "recipe/code/project/event"),
+        ("project", "year", "recipe/code/project/year"),
+        ("link", None, "recipe/code/link"),
+        ("build", None, "recipe/code/build"),
+    ],
+)
+def test_scoped_recipe_lookup_uses_one_snapshot_and_preserves_missing_scope_guards(
+    tmp_path, stage, kind, scope
+):
+    with open_database(tmp_path) as db:
+        conn = db.connection
+
+        def lookup():
+            statements = []
+            with conn.observing(lambda sql, params: statements.append(str(sql))):
+                try:
+                    result = recipes.recipe_inputs(conn, stage, kind)
+                finally:
+                    assert len(statements) == 1
+            return result
+
+        assert lookup() == {}  # No accepted runtime yet.
+        conn.execute("INSERT INTO accepted_inputs VALUES('audit','recipe/env','environment')")
+        with pytest.raises(recipes.RecipeScopeMissing, match=scope):
+            lookup()  # Audit presence matters even without a pipeline row.
+        conn.execute("DELETE FROM accepted_inputs")
+        conn.execute(
+            "INSERT INTO accepted_inputs VALUES('pipeline','RECIPE/CODE/unrelated','other')"
+        )
+        with pytest.raises(recipes.RecipeScopeMissing, match=scope):
+            lookup()  # A global code scope cannot disappear through selection.
+        conn.execute("DELETE FROM accepted_inputs")
+        conn.execute(
+            "INSERT INTO accepted_inputs VALUES('pipeline','policy/history_start','start')"
+        )
+        assert lookup() == {"policy/history_start": "start"}  # Legacy unscoped runtime.
+        conn.execute("INSERT INTO accepted_inputs VALUES('pipeline',%s,'code')", (scope,))
+        conn.executemany(
+            "INSERT INTO accepted_inputs VALUES('pipeline',%s,'unselected')",
+            [(f"unselected/{index}",) for index in range(100)],
+        )
+        assert lookup() == {"policy/history_start": "start", scope: "code"}
+        conn.execute("DELETE FROM accepted_inputs WHERE input_name=%s", (scope,))
+        conn.execute("INSERT INTO accepted_inputs VALUES('audit','recipe/env','environment')")
+        with pytest.raises(recipes.RecipeScopeMissing, match=scope):
+            lookup()
+
+
 def test_every_project_unit_kind_has_a_projector_scope():
     from swingset.state.derivation_dependencies import BASE
     from swingset.state.recipe_scope import PROJECTORS

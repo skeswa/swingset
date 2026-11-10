@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
-from itertools import islice
+from itertools import batched, islice
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -168,6 +168,37 @@ def selected_generation(conn: engine.Connection, unit: WorkUnit) -> str | None:
         _key(unit),
     ).fetchone()
     return None if row is None else row[0]
+
+
+def selected_generations(
+    conn: engine.Connection, units: Iterable[WorkUnit]
+) -> dict[WorkUnit, str | None]:
+    """Bounded pointer reads with the same group overrides as the single lookup."""
+    result: dict[WorkUnit, str | None] = dict.fromkeys(units)
+    pending = []
+    active = _group.get()
+    for unit in result:
+        if active is not None and active.connection is conn and unit in active.selected:
+            result[unit] = active.effective.get(unit, active.selected[unit].generation_id)
+        else:
+            pending.append(unit)
+    for group in batched(pending, 1024):
+        if len(group) == 1:
+            result[group[0]] = selected_generation(conn, group[0])
+            continue
+        for row in conn.execute(
+            "SELECT s.stage,s.unit_kind,s.unit_id,s.materialized_generation_id "
+            "FROM derivation_scopes s JOIN unnest(%s::text[],%s::text[],%s::text[]) "
+            "AS wanted(stage,unit_kind,unit_id) ON s.stage=wanted.stage "
+            "AND s.unit_kind=wanted.unit_kind AND s.unit_id=wanted.unit_id",
+            (
+                [unit.stage for unit in group],
+                [unit.unit_kind for unit in group],
+                [unit.unit_id for unit in group],
+            ),
+        ):
+            result[WorkUnit(row[0], row[1], row[2])] = row[3]
+    return result
 
 
 def _restore_cache_scope(conn: engine.Connection, scope: tuple[str, str, str]) -> bool:
@@ -830,16 +861,16 @@ def _store(
             yield row.table, row.key, payload
             continue
         payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
-        conn.execute(
-            "INSERT INTO derivation_payloads (payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
-            (payload_sha256, payload),
-        )
+        # Both writes complete before yielding this row, without another
+        # round trip or buffering the next row of the output stream.
         conn.execute(
             (
+                "WITH stored_payload AS (INSERT INTO derivation_payloads "
+                "(payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING) "
                 "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
                 "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
             ),
-            (generation_id, ordinal, row.table, row.key, payload_sha256),
+            (payload_sha256, payload, generation_id, ordinal, row.table, row.key, payload_sha256),
         )
         yield row.table, row.key, payload
 
@@ -1381,13 +1412,16 @@ def chunking(conn: engine.Connection, unit: WorkUnit) -> Iterator[Chunking]:
         _chunking.reset(token)
 
 
+_BUILDING_TABLE_QUERY = (
+    "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' "
+    "AND relname = 'derivation_building') AND (PG_TABLE_IS_VISIBLE(oid) "
+    "AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), "
+    "CAST('information_schema' AS REGNAMESPACE)))"
+)
+
+
 def building_available(conn: engine.Connection) -> bool:
-    return (
-        conn.execute(
-            "SELECT 1 AS _value_0 FROM pg_catalog.pg_class WHERE (relkind = 'r' AND relname = 'derivation_building') AND (PG_TABLE_IS_VISIBLE(oid) AND NOT relnamespace IN (CAST('pg_catalog' AS REGNAMESPACE), CAST('information_schema' AS REGNAMESPACE)))"
-        ).fetchone()
-        is not None
-    )
+    return conn.execute(_BUILDING_TABLE_QUERY).fetchone() is not None
 
 
 def stageable(conn: engine.Connection, unit: WorkUnit) -> bool:
@@ -1640,9 +1674,12 @@ def building_moved(conn: engine.Connection, unit: WorkUnit, generation_id: str) 
 
 def building(conn: engine.Connection, unit: WorkUnit) -> bool:
     """Whether a staged completion of ``unit`` committed its live rows and has not finished."""
+    return building_available(conn) and _building(conn, unit)
+
+
+def _building(conn: engine.Connection, unit: WorkUnit) -> bool:
     return (
-        building_available(conn)
-        and conn.execute(
+        conn.execute(
             "SELECT 1 AS _value_0 FROM derivation_building WHERE stage = %s AND unit_kind = %s AND unit_id = %s LIMIT 1",
             _key(unit),
         ).fetchone()
@@ -2029,9 +2066,11 @@ def current(
 def _current(
     conn: engine.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
 ) -> bool:
+    presence = f"EXISTS({_BUILDING_TABLE_QUERY})" if unit.stage in {"project", "link"} else "false"
     pointer = conn.execute(
         (
-            "SELECT materialized_generation_id, materialized_signature FROM derivation_scopes WHERE "
+            "SELECT materialized_generation_id, materialized_signature, "
+            f"{presence} AS building_available FROM derivation_scopes WHERE "
             "stage = %s AND unit_kind = %s AND unit_id = %s"
         ),
         _key(unit),
@@ -2040,7 +2079,7 @@ def _current(
         return False
     if pointer[1] is None and _restore_cache_scope(conn, _key(unit)):
         return False
-    if unit.stage in {"project", "link"} and building(conn, unit):
+    if pointer[2] and _building(conn, unit):
         # A staged A committed live rows its pointer does not stand for,
         # possibly for inputs since reverted: the unit runs until a C (and
         # `collect_orphans`) settles them (F8, I6).
@@ -2398,12 +2437,17 @@ def refresh(conn: engine.Connection, now: datetime | str | None = None) -> int:
     """Register retained scopes without making queues or cached desires authoritative."""
     count = 0
     for stage in ("project", "link"):
-        for unit in known_units(conn, stage):
+        for batch in batched(known_units(conn, stage), 1024):
             count += conn.execute(
+                "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) "
+                "SELECT stage, unit_kind, unit_id, %s FROM "
+                "unnest(%s::text[], %s::text[], %s::text[]) AS units(stage, unit_kind, unit_id) "
+                "ON CONFLICT DO NOTHING",
                 (
-                    "INSERT INTO derivation_scopes (stage, unit_kind, unit_id, registered_at) VALUES (%s, %s, "
-                    "%s, %s) ON CONFLICT DO NOTHING"
+                    _at(now),
+                    [unit.stage for unit in batch],
+                    [unit.unit_kind for unit in batch],
+                    [unit.unit_id for unit in batch],
                 ),
-                (*_key(unit), _at(now)),
             ).rowcount
     return count

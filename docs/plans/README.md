@@ -408,7 +408,9 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     `schedule/discover.py` (about 15 s of lock wait while link writes ran up to
     14 s). Nothing was lost, since backpressure held requests anyway, but each
     failure fires `OnFailure`. Treat a lock timeout before any request as a
-    skip, as derive does with a busy lease.
+    skip, as derive does with a busy lease. It recurs at 2026-11-11 03:20 UTC
+    with one write-lock timeout and no requests; later fetching does not erase
+    the failure ([pulse](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#source-pulse-at-0525-utc)).
 38. Re-run the inventory when another unit deletes an event row. A
     resolution or map that deletes a row after the inventory captured it
     leaves `project/inventory/all` listing the row until some other input
@@ -421,7 +423,7 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     `ServerError` pause that expired at 00:47 UTC. The acquire summary had
     no active pause or error. Keep real current failure alerts; add a check
     that expired host rows do not produce a fresh failure
-    ([receipt](../journal/evidence/runtime/postgres-stage2-2026-11-05/source-watch-0248.json)).
+    ([receipt](../../journal/evidence/runtime/postgres-stage2-2026-11-05/source-watch-0248.json)).
 
 40. Explain empty acquire ticks and their progress accounting after the registry
     daily cap. A saved history fetch checked one EEPro page at 21:10 UTC on
@@ -430,3 +432,22 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     and whether history fetches update the right progress marker. Preserve real
     idle alerts and source budgets
     ([pulse](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#source-collection-pulse-at-2217-utc)).
+
+41. Explain the 629 partitions withheld for `source_support_unavailable` in the
+    source watchdog at 2026-11-10 15:35 UTC. Establish which support evidence is
+    missing before changing the gate; do not force publication or change the
+    frozen production code during the migration rehearsal
+    ([observation](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#source-lock-failure-and-later-fetch-at-1610-utc)).
+
+42. Explain the derive-idle alert at 2026-11-11 00:05 UTC: the watchdog
+    reports no progress since November 10 16:25 while unheld. Check whether
+    ready work exists and why ticks do nothing; preserve real idle alerts
+    and leave production changes outside the migration rehearsal
+    ([pulse](../../journal/evidence/runtime/postgres-stage2-2026-11-10/source-progress-0021.json)).
+
+43. Explain `test-watch` shutdown EPERM after completed passing selectors on
+    macOS. The stopped watcher and child groups were absent, and the
+    independent read-only audit found no live test lease or leftover client
+    database. Capture the exact failed syscall before changing process-group
+    signaling or cleanup; ordinary `mise run test` still exits cleanly
+    ([audit](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#native-watch-shutdown-permission-error)).

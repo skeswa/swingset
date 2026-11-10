@@ -119,7 +119,9 @@ not silent deselection. Extra parallel workers are not the initial remedy.
 - **Reuse the local test server, isolate each run's data.** A dedicated
   localhost-only test container stays warm across runs, separate from
   the dev-data container, under the existing 2 GiB limit. Its disposable
-  data uses tmpfs with fsync and full-page writes off. A restart simply
+  data uses tmpfs with fsync and full-page writes off. Its shared lock table
+  uses `max_locks_per_transaction=512` for concurrent imports and restores,
+  within the existing memory cap (D-0291). A restart simply
   rebuilds its template. Cache migrated templates by image digest,
   migration checksums, role definitions and database settings; seeded
   templates also include fixture hashes. Never reuse a mismatched cache.

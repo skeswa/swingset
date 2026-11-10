@@ -1,0 +1,107 @@
+{
+  "actor": {
+    "birth": "973721083",
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "id": "2c3cee6ba19b03bd6bc52197f7403e6f432a0c6966a89d5c3cac6f2cfc5b3f46",
+    "net_inode": 4026533551,
+    "oom": false,
+    "pid": 2756650,
+    "pid_namespace": "pid:[4026533549]",
+    "restart": 0,
+    "running": true,
+    "started_at": "2026-11-10T19:59:32.29385997Z"
+  },
+  "at": "2026-11-10T20:00:40.041885+00:00",
+  "authorization": {
+    "mode": "0444",
+    "mtime_ns": 1794340773917133763,
+    "ordering": "Rootauthorization timestamp precedes sourceidentity log; reviewedcodewaits forauthorization beforesecretconfigure. Actualcurrentnetinode/birth/boot matchauth.",
+    "policy_sha256": "62f01071bdb2a84f2a1f81baf65750151a9da1daae19ddd5efb3cca6ad0c76c1",
+    "sha256": "5fa076c4947e8fd009bb6fd2c06e81478e4dbacfdc6881449dfb7460255689ba",
+    "singlelink": true,
+    "source_dev_identity": {
+      "database": "sst_copy_c696fead2daf4d3c83adfbbe_0",
+      "database_id": "2f58b861-ebd6-4fd6-a9aa-44a020589439",
+      "environment": "dev"
+    },
+    "source_dev_identity_at": "2026-11-10T19:59:34.882265648Z",
+    "uid": 0
+  },
+  "execution_review_sha256": "4ba7ff4867ff2f47e78b208353e56e7307b80d8dc9ee646366e568acc58aac1f",
+  "firewall": "ActualIPv4/IPv6 SWINGSET_OUT andfirstOUTPUTjump captured; private6SQL plus policy-designated proxy2/DNS4 only, loopback/established, terminalreject. This is exactverifierpolicy, not an assertion that proxy/DNSallowances are absent.",
+  "free_bytes": 579706634240,
+  "inputs": {
+    "observed.json": "f48f84f97bbeb1ac41c9aa5c6fba6737e1bde9ec5a1b74f38431fad5c7818b34",
+    "ownership-record.json": "13ed2d142b97b309c483600495cc4eaa9038f0e8fde32e3b79e761855ac70304",
+    "profile-events.jsonl": "30b527b17360298d561bc875910a6fd552c85ce89d4da3038ed0a76fe505d36d",
+    "registry.tar": "4fcb3a71352e545b4e191e603763beebaede8da0b24d8cbc3f7969d96a194180",
+    "supervisor-incarnation.json": "a66cf38d92efb5fb1b55a772cc3d8861588e1eed09f412a3def9457ec42497b8"
+  },
+  "limitations": [
+    "Point-in-time startupmetadata; frozen copy/trials/ANALYZE/cleanup have not completed, no passclaim.",
+    "No reviewerSQL, business replay, credentialbodyread, lifecycle/mutation orcleanup. Priorparentreadonlycatalog/keymetadata bound byexecutionreview; this observation does not redo typedbase/catalogproof.",
+    "AggregatePGcounters cannot establish ownjobsemanticprogress. PrivatePGmaxevents nonzerohistorical; OOM/kill0.",
+    "Full4648pass is currentsourceproof; core209.04>180timingFAIL remains. Two rollbacktrials are deliberateoneexperiment, not graphretry.",
+    "Maintain existing20sguards/3600+120/3500alarm/200GBfloor/holdrenewal; no changedlimits/retry/base69cleanup/publication approval."
+  ],
+  "memory_events": {
+    "actor": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "private": {
+      "high": 0,
+      "low": 0,
+      "max": 339514,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "shared": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    }
+  },
+  "owner": {
+    "claimed_databases": [
+      "sst_copy_e7ce0d2402e34cc5b99c7199_0"
+    ],
+    "directory_claims": [],
+    "record_scope": "Exactlyone freshownerrecord, UID10001/0600; publicschema includes endpointfingerprint/identity/claims only, noDSN/passwordvalues. Record is a claim, not independent SQLexistence/content proof.",
+    "record_sha256": "13ed2d142b97b309c483600495cc4eaa9038f0e8fde32e3b79e761855ac70304",
+    "registry_tar_sha256": "4fcb3a71352e545b4e191e603763beebaede8da0b24d8cbc3f7969d96a194180",
+    "token": "e7ce0d2402e34cc5b99c7199"
+  },
+  "phase": "freeze_start",
+  "plan_sha256": "5fe4c49fb70ec3e247e35bd174da62fef3df7a72e9c5f6a4e9973825117b72be",
+  "protected": {
+    "base_and69_cleanup_authorized": false,
+    "hold_review_at": "2026-11-10T20:45:25.474620+00:00",
+    "hold_sha256": "7545b5ef064691896fd8628afd198bac58d2e13300e405699c8b344325fba60e",
+    "native87_exit0_pid0": true,
+    "network_sha256": "db505e0a5697295893709757c2c3fce926af73fdf83994a2585407f0d15aabf2",
+    "platform_birth": "973055595",
+    "platform_id": "e6ef74633cc491efc6a82d1bb33c6d373632ee5e64cb3e74de36acc36dac077f",
+    "platform_pid": 2307333,
+    "protected12_match": true,
+    "security_sha256": "8d69abded373fc616daded255967be50dabb275101825c56e28e703d91e593d4"
+  },
+  "scope": "Existing one reviewed profiling execution only; not graph retry or another execution authorization.",
+  "supervisor": {
+    "birth": "973720997",
+    "command_matches_reviewed_adapter": true,
+    "group": 2756399,
+    "pid": 2756399,
+    "state": "S"
+  },
+  "supervisor_samples": 5,
+  "verdict": "OBSERVED_PROFILE_STARTUP_CONFIRMED"
+}

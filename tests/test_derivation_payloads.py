@@ -398,6 +398,7 @@ def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
     unit = WorkUnit("project", "event", "stream")
     produced: list[int] = []
     stored_after: list[int] = []
+    write_statements: list[str] = []
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
 
@@ -412,8 +413,14 @@ def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
             from postgres_statements import observing
 
             def store_statement(sql, parameters):
-                if sql.startswith(
+                if (
+                    "INSERT INTO derivation_payloads" in sql
+                    or "INSERT INTO derivation_row_refs" in sql
+                ):
+                    write_statements.append(sql)
+                if (
                     "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, payload_sha256)"
+                    in sql
                 ):
                     stored_after.append(len(produced))
 
@@ -424,6 +431,7 @@ def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
         # The first reference is written after the first row is produced, not
         # after the last one.
         assert stored_after[0] == 1
+        assert len(write_statements) == len(produced) == 200
         assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 200
         # The label is written from what was stored, so it cannot be written twice.
         with pytest.raises(SupersededWorkError, match="cannot relabel"):

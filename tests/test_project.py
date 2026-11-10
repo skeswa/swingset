@@ -1,3 +1,7 @@
+from dataclasses import replace
+
+import pytest
+
 from swingset.model.canonical import Event
 from swingset.project.writer import Projection, replace_scope
 from swingset.state.db import open_database
@@ -78,6 +82,133 @@ def test_empty_scope_removes_owned_rows(tmp_path) -> None:
                 projected_at="2026-09-08T01:00:00Z",
             )
         assert conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0
+
+
+def test_scope_claims_are_bounded_idempotent_shared_and_transactional(tmp_path, monkeypatch):
+    from swingset.project import writer
+
+    records = tuple(
+        replace(event("run_a", "2026-09-08T00:00:00Z"), event_id=f"event-{index}")
+        for index in range(1025)
+    )
+    with open_database(tmp_path, lock=False) as database:
+        conn = database.connection
+        conn.execute("INSERT INTO runs (run_id,started_at,dry_run) VALUES ('run_a','now',0)")
+
+        def project(scope, rows):
+            return replace_scope(
+                conn,
+                scope_kind="calendar",
+                scope_id=scope,
+                projection=Projection(rows),
+                run_id="run_a",
+                projected_at="2026-09-08T00:00:00Z",
+                enqueue_links=False,
+            )
+
+        def owners():
+            return [
+                tuple(row)
+                for row in conn.execute(
+                    "SELECT scope_kind,scope_id,table_name,record_key FROM canonical_scope_rows "
+                    "ORDER BY scope_kind,scope_id,table_name,record_key"
+                )
+            ]
+
+        writes = []
+        reads = []
+        canonical_writes = []
+
+        def observe(sql, params):
+            if str(sql).startswith("INSERT INTO canonical_scope_rows"):
+                writes.append(sql)
+            if str(sql).startswith("SELECT * FROM events WHERE "):
+                reads.append(tuple(params))
+            if str(sql).startswith("INSERT INTO events "):
+                canonical_writes.append(sql)
+
+        fence = conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0]
+        with (
+            database.transaction(),
+            conn.observing(observe),
+        ):
+            assert project("primary", records)
+        after = conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0]
+        assert len(writes) == 2, {"statements": len(writes), "fence_delta": after - fence}
+        assert len(reads) == 2 and sum(map(len, reads)) == len(records)
+        assert max(map(len, reads)) <= 1024
+        assert len(canonical_writes) == 2
+        # Preserve the original per-row path's measured trigger effects.
+        assert after - fence == 5128
+        assert len(owners()) == len(records)
+        reads.clear()
+        canonical_writes.clear()
+        with database.transaction(), conn.observing(observe):
+            assert not project("primary", records)
+        assert len(reads) == 2 and sum(map(len, reads)) == len(records)
+        assert not canonical_writes
+        assert conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0] == after
+
+        mixed = (
+            replace(records[0], name="Changed first", first_seen_at="ignored"),
+            *records[1:1024],
+            replace(records[1024], name="Changed last", first_seen_at="ignored"),
+            replace(records[0], event_id="event-1025"),
+        )
+
+        def snapshot():
+            return {
+                table: [
+                    tuple(row) for row in conn.execute(f"SELECT * FROM {table} ORDER BY {order}")
+                ]
+                for table, order in (
+                    ("events", "event_id"),
+                    ("canonical_scope_rows", "scope_kind,scope_id,table_name,record_key"),
+                    ("history_dispatch_fence", "singleton"),
+                    ("derivation_input_versions", "namespace,input_key"),
+                    ("work_generations", "stage,unit_kind,unit_id"),
+                    ("pending_work", "stage,unit_kind,unit_id"),
+                    ("revisions", "name"),
+                )
+            }
+
+        batch = writer._upsert_batch
+
+        def individual(conn, table, rows):
+            changed = False
+            for row in rows:
+                changed |= batch(conn, table, (row,))
+            return changed
+
+        with pytest.raises(RuntimeError, match="reference rollback"):
+            with database.transaction(), monkeypatch.context() as patch:
+                patch.setattr(writer, "_upsert_batch", individual)
+                assert project("primary", mixed)
+                expected = snapshot()
+                raise RuntimeError("reference rollback")
+        canonical_writes.clear()
+        with database.transaction(), conn.observing(observe):
+            assert project("primary", mixed)
+        assert snapshot() == expected
+        assert len(canonical_writes) == 2
+
+        with database.transaction():
+            assert not project("secondary", mixed[:1])
+        before_owners = owners()
+        before_fence = conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0]
+        with pytest.raises(RuntimeError, match="rollback"):
+            with database.transaction():
+                assert project("primary", ())
+                raise RuntimeError("rollback")
+        assert owners() == before_owners
+        assert (
+            conn.execute("SELECT revision FROM history_dispatch_fence").fetchone()[0]
+            == before_fence
+        )
+        with database.transaction():
+            assert project("primary", ())
+        assert [row[0] for row in conn.execute("SELECT event_id FROM events")] == ["event-0"]
+        assert owners() == [("calendar", "secondary", "events", '["event-0"]')]
 
 
 def test_dropped_calendar_event_detaches_its_registry_placements(tmp_path) -> None:

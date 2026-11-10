@@ -131,6 +131,8 @@ EXCLUDED: dict[str, str] = {
     "state/history_catalog.py": "filtered backup classification and exact restore audit",
     "state/postgres_backup.py": "operator history COPY backup and restore",
     "state/postgres_copy.py": "isolated verification database copies",
+    "state/checkpoint_binding.py": "read-only checkpoint identity and input-acceptance proof; not a derivation",
+    "state/input_profile.py": "rollback-only diagnostics on an isolated private copy",
     "state/postgres_copy_codec.py": "offline validation of retained binary COPY streams",
     "state/postgres_files.py": "backup file closure qualification",
     "backup/": "backups copy state and do not derive it",

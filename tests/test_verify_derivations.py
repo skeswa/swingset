@@ -24,6 +24,153 @@ from swingset.state.work import WorkUnit
 NOW = linked.NOW
 
 
+@pytest.mark.parametrize("transition", ["version", "code", "runtime", "runtime-and-manual"])
+def test_input_checkpoint_projection_matches_real_acceptance_without_writing_source(
+    tmp_path, transition
+):
+    from dataclasses import replace
+
+    from swingset.fetch.archive import canonical
+    from swingset.state import checkpoint_binding, inputs, verify_graph, work
+
+    overrides = tmp_path / "overrides"
+    overrides.mkdir()
+    clock = FakeClock(NOW)
+    baseline = inputs.capture(
+        Path("config"), overrides, tmp_path / "capture", {"extract/eepro.round": "1"}
+    )
+    with open_database(tmp_path / "state", lock=False) as db:
+        inputs.accept(db, baseline, clock)
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state,extract_version) "
+            "VALUES('target','eepro','round','GET','https://example.test/target','eepro.round','live','old'),"
+            "('other','wdr','round','GET','https://example.test/other','wdr.rounds','live','old'),"
+            "('manual','crosscheck','registry_dump','MANUAL','https://example.test/manual',"
+            "'registry_crosscheck','live','old')"
+        )
+        work.enqueue(
+            conn, [WorkUnit("project", "event", "not-registered")], enqueued_at=NOW.isoformat()
+        )
+        files = dict(baseline.files)
+        if transition == "version":
+            files["versions.json"] = canonical({"extract/eepro.round": "2"})
+        else:
+            name = (
+                "recipe/runtime"
+                if transition.startswith("runtime")
+                else "recipe/code/extract/eepro.round"
+            )
+            conn.execute(
+                "INSERT INTO accepted_inputs(consumer,input_name,digest) VALUES('pipeline',%s,'previous-code') ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+                (name,),
+            )
+            if transition == "runtime-and-manual":
+                files["versions.json"] = canonical(
+                    {"extract/eepro.round": "1", "extract/registry_crosscheck": "2"}
+                )
+        candidate = replace(baseline, files=files)
+        before = verify_graph.checkpoint_identity(conn)
+        with pytest.raises(ValueError, match="read-only snapshot"):
+            checkpoint_binding.input_acceptance_binding(conn, candidate, clock)
+        with conn.read_snapshot():
+            projected = checkpoint_binding.input_acceptance_binding(conn, candidate, clock)
+        assert projected["source_checkpoint"] == before == verify_graph.checkpoint_identity(conn)
+        assert projected["checkpoint"] != before
+        assert ["project", "event", "not-registered"] in projected["registered_null_scopes"]
+        assert ["link", "event", "not-registered"] in projected["registered_null_scopes"]
+        assert (
+            conn.execute("SELECT extract_version FROM watches WHERE watch_id='target'").fetchone()[
+                0
+            ]
+            == "old"
+        )
+        assert {
+            name
+            for name, value in projected["components"].items()
+            if value["source"] != value["candidate"]
+        } == {"watches", "derivations"}
+        inputs.accept(db, candidate, clock)
+        assert verify_graph.checkpoint_identity(conn) == projected["checkpoint"]
+        assert verify_graph.context(conn)["inputs"] == projected["inputs"]
+        assert (
+            conn.execute("SELECT extract_version FROM watches WHERE watch_id='target'").fetchone()[
+                0
+            ]
+            is None
+        )
+        assert conn.execute(
+            "SELECT extract_version FROM watches WHERE watch_id='manual'"
+        ).fetchone()[0] == (None if transition == "runtime-and-manual" else "old")
+        assert conn.execute(
+            "SELECT extract_version FROM watches WHERE watch_id='other'"
+        ).fetchone()[0] == (None if transition.startswith("runtime") else "old")
+        # An unrelated field remains in both identities; it is never excluded.
+        with conn.read_snapshot():
+            settled = checkpoint_binding.input_acceptance_binding(conn, candidate, clock)
+        conn.execute(
+            "UPDATE watches SET url='https://example.test/changed' WHERE watch_id='target'"
+        )
+        with conn.read_snapshot():
+            changed = checkpoint_binding.input_acceptance_binding(conn, candidate, clock)
+        assert changed["source_checkpoint"] != settled["source_checkpoint"]
+        assert changed["checkpoint"] != settled["checkpoint"]
+        bad = replace(candidate, files={**files, "overrides/suppressions.csv": b"different"})
+        with (
+            conn.read_snapshot(),
+            pytest.raises(checkpoint_binding.UnsupportedCheckpointTransition, match="code-input"),
+        ):
+            checkpoint_binding.input_acceptance_binding(conn, bad, clock)
+        conn.execute("UPDATE meta SET value='not-current' WHERE key='identity_journal_digest'")
+        with (
+            conn.read_snapshot(),
+            pytest.raises(
+                checkpoint_binding.UnsupportedCheckpointTransition, match="identity journal"
+            ),
+        ):
+            checkpoint_binding.input_acceptance_binding(conn, candidate, clock)
+
+
+def test_graph_receipt_binds_unchanged_source_and_predicted_accepted_checkpoint(tmp_path):
+    from copy import deepcopy
+    from dataclasses import replace
+
+    from swingset.fetch.archive import canonical
+    from swingset.state import inputs, verify_graph
+
+    overrides = tmp_path / "overrides"
+    overrides.mkdir()
+    baseline = inputs.capture(
+        Path("config"), overrides, tmp_path / "capture", {"extract/eepro.round": "1"}
+    )
+    candidate = replace(
+        baseline, files={**baseline.files, "versions.json": canonical({"extract/eepro.round": "2"})}
+    )
+    with open_database(tmp_path / "state", lock=False) as source:
+        inputs.accept(source, baseline, FakeClock(NOW))
+        source.connection.execute(
+            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state,extract_version) "
+            "VALUES('proof','eepro','round','GET','https://example.test/','eepro.round','live','old')"
+        )
+        before = verify_graph.checkpoint_identity(source.connection)
+        receipt = verify_graph.run(source.state_dir, candidate)
+        assert receipt["clean"] and verify_graph.validate_receipt(receipt)
+        assert (
+            receipt["source_checkpoint"]
+            == before
+            == verify_graph.checkpoint_identity(source.connection)
+        )
+        assert receipt["checkpoint"] != before
+        proof = receipt["input_acceptance_binding"]
+        assert proof["source_checkpoint"] == before
+        assert proof["checkpoint"] == receipt["checkpoint"]
+        assert proof["inputs"] == receipt["inputs"]
+        for field in ("source_checkpoint", "checkpoint", "inputs", "format"):
+            tampered = deepcopy(receipt)
+            tampered["input_acceptance_binding"][field] = "unbound"
+            assert not verify_graph.validate_receipt(tampered)
+
+
 @pytest.fixture
 def world(tmp_path):
     with open_database(tmp_path / "state", lock=False) as db:
@@ -368,12 +515,19 @@ def test_graph_verification_runs_on_copies_and_binds_dependencies(world, tmp_pat
     assert json.loads((tmp_path / "receipt.json").read_text()) == receipt
 
 
-def test_graph_source_replay_compares_extract_and_parse_and_shards(tmp_path):
+@pytest.mark.parametrize("source_version", [None, 38])
+def test_graph_source_replay_compares_extract_and_parse_and_shards(
+    tmp_path, monkeypatch, source_version
+):
     from test_admission import Corpus
 
-    from swingset.state import verify_graph
+    from swingset.state import postgres_schema, verify_graph
 
-    with open_database(tmp_path / "source", lock=False) as db:
+    with monkeypatch.context() as legacy:
+        if source_version is not None:
+            legacy.setattr(postgres_schema, "SCHEMA_VERSION", source_version)
+        db = open_database(tmp_path / "source", lock=False)
+    with db:
         corpus = Corpus(db)
         generation, _ = corpus.stage(corpus.snapshot("one"))
         corpus.review(generation)
@@ -425,10 +579,27 @@ def test_postgres_frozen_copy_pins_all_tables_and_preserves_sequence_floors(tmp_
             return original(cursor, statement, *args, **kwargs)
 
         monkeypatch.setattr(psycopg.Cursor, "copy", concurrent_change)
+        original_execute = psycopg.Connection.execute
+        analyzed = []
+        state = tmp_path / "frozen"
+
+        def analyze_copy(connection, statement, *args, **kwargs):
+            if statement == "ANALYZE":
+                assert connection.info.transaction_status == psycopg.pq.TransactionStatus.IDLE
+                assert connection.info.dbname in copies.record["databases"]
+                assert not (state / "database.json").exists()
+                analyzed.append(connection.info.dbname)
+            return original_execute(connection, statement, *args, **kwargs)
+
+        monkeypatch.setattr(psycopg.Connection, "execute", analyze_copy)
         with Copies(source.state_dir) as copies:
-            state = tmp_path / "frozen"
             copies.freeze(source.connection, state)
             with open_database(state, lock=False) as frozen:
+                assert analyzed == [frozen.connection.info.dbname]
+                assert frozen.connection.execute(
+                    "SELECT 1 FROM pg_stats WHERE schemaname='ops' AND tablename='meta' "
+                    "AND attname='value'"
+                ).fetchone()
                 assert frozen.environment == "dev"
                 assert (
                     frozen.connection.execute(
@@ -457,7 +628,8 @@ def test_postgres_frozen_copy_pins_all_tables_and_preserves_sequence_floors(tmp_
         ] == ["new", "new"]
 
 
-def test_failed_postgres_copy_removes_only_its_owned_database(tmp_path, monkeypatch):
+@pytest.mark.parametrize("failure_phase", ["copy", "analyze"])
+def test_failed_postgres_copy_removes_only_its_owned_database(tmp_path, monkeypatch, failure_phase):
     import psycopg
 
     from swingset.dev.services import ensure_service
@@ -467,13 +639,25 @@ def test_failed_postgres_copy_removes_only_its_owned_database(tmp_path, monkeypa
     with open_database(tmp_path / "source", lock=False) as source:
         identifier = source.connection.info.dbname
 
-        def fail(*args, **kwargs):
-            raise RuntimeError("interrupted binary stream")
+        original_execute = psycopg.Connection.execute
 
-        monkeypatch.setattr(psycopg.Cursor, "copy", fail)
-        with pytest.raises(RuntimeError, match="interrupted binary stream"):
+        def fail_copy(*args, **kwargs):
+            raise RuntimeError("interrupted copy")
+
+        def fail_analyze(connection, statement, *args, **kwargs):
+            if statement == "ANALYZE":
+                raise RuntimeError("interrupted analyze")
+            return original_execute(connection, statement, *args, **kwargs)
+
+        if failure_phase == "copy":
+            monkeypatch.setattr(psycopg.Cursor, "copy", fail_copy)
+        else:
+            monkeypatch.setattr(psycopg.Connection, "execute", fail_analyze)
+        state = tmp_path / "failed-copy"
+        with pytest.raises(RuntimeError, match=f"interrupted {failure_phase}"):
             with Copies(source.state_dir) as copies:
-                copies.freeze(source.connection, tmp_path / "failed-copy")
+                copies.freeze(source.connection, state)
+        assert not (state / "database.json").exists()
         with service.connect() as admin:
             names = {row[0] for row in admin.execute("SELECT datname FROM pg_database")}
         assert identifier in names

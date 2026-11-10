@@ -23,6 +23,20 @@ native metadata never rewrites the imported source version or migration 37.
 A worker refuses a mismatched native version; only the explicit owner job
 migrates it ([D-0276](../../journal/decisions/0276-version-native-schema-without-changing-imported-history.md)).
 
+Native migration 39 changes four bulk history-fence triggers to counted
+statement transitions. It preserves their per-row revision deltas and all
+table contents. Native 38 remains readable through the explicit, read-only
+verification checkpoint path with its exact prefix checksum; it remains
+ineligible for an ordinary worker open
+([D-0284](../../journal/decisions/0284-count-bulk-history-fence-changes-per-statement.md),
+[D-0285](../../journal/decisions/0285-read-verified-native38-checkpoints-without-migrating-them.md)).
+
+Native migration 40 batches pending-work enqueue and invalidation callbacks.
+Each changed unit still advances its generation once, with retry fields,
+missing-generation update behavior and exact history deltas preserved.
+Publication and generation-insert fences remain per row
+([D-0286](../../journal/decisions/0286-batch-pending-work-generation-updates.md)).
+
 The SQLite schema version is the migration number recorded in both
 `PRAGMA user_version` and the `schema_version` row in `meta`. A writable
 `open_database()` call applies each intervening numbered migration in order,

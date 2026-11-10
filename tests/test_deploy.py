@@ -321,6 +321,37 @@ def test_deployment_preserves_artifact_for_backup_metadata_independently_of_conf
     assert os.environ["SWINGSET_IMAGE"] != artifact
 
 
+def test_health_start_waits_for_namespace_grant_before_reading_credentials(monkeypatch):
+    import sys
+
+    from swingset.deploy import health, runtime
+
+    observed = []
+
+    def grant(policy, directory):
+        observed.append("grant")
+        if observed.count("grant") < 3:
+            raise RuntimeError("namespace grant is not ready")
+        return {"role": "health"}
+
+    def credentials(directory, role):
+        assert observed.count("grant") == 3
+        assert role == "health"
+        observed.append("credentials")
+
+    monkeypatch.setenv("SWINGSET_ENV", "dryrun")
+    monkeypatch.setenv("SWINGSET_RUNTIME_IMAGE", "fixture/swingset@sha256:" + "a" * 64)
+    monkeypatch.setattr(runtime.security, "require_authorization", grant)
+    monkeypatch.setattr(runtime.time, "sleep", lambda seconds: observed.append("wait"))
+    monkeypatch.setattr(runtime, "secrets", credentials)
+    monkeypatch.setattr(health, "main", lambda args: observed.append("watchdog"))
+    monkeypatch.setattr(sys, "argv", ["runtime", "health"])
+
+    runtime.main()
+
+    assert observed == ["grant", "wait", "grant", "wait", "grant", "credentials", "watchdog"]
+
+
 @pytest.fixture
 def network_policy():
     return {
@@ -553,3 +584,280 @@ def test_background_rehearsal_release_does_not_advance_hub_during_long_drill(tmp
     release = tasks("release-maintain", tmp_path)[0]
     assert "--dry-run" in release.arguments and "--publish" not in release.arguments
     assert "--prod" in release.arguments
+
+
+@pytest.mark.parametrize("failure", ["timeout", "os", "command", "invalid"])
+def test_status_observation_failure_is_fresh_blind_and_can_recover(
+    tmp_path, monkeypatch, network_policy, capsys, failure
+):
+    import subprocess
+    import time
+
+    from swingset.deploy import health, security
+
+    errors = {
+        "timeout": subprocess.TimeoutExpired(
+            ["docker", "PRIVATE_ARGUMENT"], 30, output="PRIVATE_OUTPUT"
+        ),
+        "os": OSError("PRIVATE_DIAGNOSTIC"),
+        "command": RuntimeError("PRIVATE_DIAGNOSTIC"),
+        "invalid": ValueError("PRIVATE_DIAGNOSTIC"),
+    }
+
+    def unavailable(*args, **kwargs):
+        raise errors[failure]
+
+    status = tmp_path / "containers.json"
+    status.write_text(
+        json.dumps({"utc": 1, "complete_inventory": True, "containers": [{"role": "derive"}]})
+    )
+    monkeypatch.setattr(security, "_run", unavailable)
+    security.export_status(tmp_path, network_policy)
+    record = json.loads(status.read_text())
+    assert record["utc"] > 1 and not record["complete_inventory"]
+    assert record["containers"] == record["resources"] == []
+    assert record["resource_exit"] == 1
+    assert record["observation_error"] == type(errors[failure]).__name__
+    assert status.stat().st_mode & 0o777 == 0o444
+    monkeypatch.setenv("SWINGSET_CONTAINER_STATUS", str(status))
+    monkeypatch.setenv("SWINGSET_HOLDS_DIR", str(tmp_path / "no-holds"))
+    signals = health._platform_signals(tmp_path / "runtime" / "health", time.time())
+    assert {"platform-incomplete", "platform-observer-blind"} <= signals
+    assert "platform-status-stale" not in signals
+    assert "PRIVATE" not in json.dumps(record) + capsys.readouterr().err
+
+    def recovered(arguments, **kwargs):
+        if arguments[:3] == ["docker", "ps", "-aq"]:
+            output = "derive\n"
+        elif arguments[:2] == ["docker", "inspect"]:
+            output = json.dumps(
+                {"deployment": network_policy["deployment"], "role": "derive", "running": True}
+            )
+        else:
+            output = ""
+        return subprocess.CompletedProcess(arguments, 0, output, "")
+
+    monkeypatch.setattr(security, "_run", recovered)
+    security.export_status(tmp_path, network_policy)
+    recovered_record = json.loads(status.read_text())
+    assert recovered_record["complete_inventory"] and recovered_record["resource_exit"] == 0
+    assert "observation_error" not in recovered_record
+    assert not health._platform_signals(tmp_path / "runtime" / "health", time.time())
+
+
+def test_namespace_watch_continues_after_status_timeout_but_authorization_stays_fatal(
+    tmp_path, monkeypatch, network_policy
+):
+    import subprocess
+    import sys
+
+    from swingset.deploy import security
+
+    class EndWatch(Exception):
+        pass
+
+    iterations = [0]
+    authorized = []
+
+    def command(arguments, **kwargs):
+        if arguments[:3] == ["docker", "ps", "-aq"]:
+            raise subprocess.TimeoutExpired(arguments, 30)
+        return subprocess.CompletedProcess(arguments, 0, "worker\n", "")
+
+    def sleep(seconds):
+        iterations[0] += 1
+        if iterations[0] == 2:
+            raise EndWatch
+
+    def authorize(*args):
+        authorized.append(iterations[0])
+        return {"authorized": True}
+
+    monkeypatch.setattr(sys, "argv", ["security", "policy", str(tmp_path), "--watch"])
+    monkeypatch.setattr(security, "load", lambda path: network_policy)
+    monkeypatch.setattr(security, "_run", command)
+    monkeypatch.setattr(
+        security,
+        "_inspect",
+        lambda identifier: {
+            "Id": identifier,
+            "State": {
+                "Running": True,
+                "Pid": iterations[0] + 1,
+                "StartedAt": str(iterations[0]),
+            },
+        },
+    )
+    monkeypatch.setattr(security, "authorize", authorize)
+    monkeypatch.setattr(security.time, "monotonic", lambda: 100 + 31 * iterations[0])
+    monkeypatch.setattr(security.time, "sleep", sleep)
+    with pytest.raises(EndWatch):
+        security.main()
+    assert authorized == [0, 1]
+    assert not json.loads((tmp_path / "containers.json").read_text())["complete_inventory"]
+
+    def denied(*args):
+        raise ValueError("authorization denied")
+
+    iterations[0] = 0
+    monkeypatch.setattr(security, "authorize", denied)
+    with pytest.raises(ValueError, match="authorization denied"):
+        security.main()
+
+
+def test_status_publication_failure_still_stops_the_guard(tmp_path, monkeypatch, network_policy):
+    from swingset.deploy import security
+
+    destination = tmp_path / "not-a-directory"
+    destination.write_text("preserved")
+    monkeypatch.setattr(security, "_status", lambda policy: {"complete_inventory": False})
+    with pytest.raises(FileExistsError):
+        security.export_status(destination, network_policy)
+    assert destination.read_text() == "preserved"
+
+
+@pytest.mark.parametrize("retirement", ["exit0", "exit1", "removed"])
+def test_namespace_watch_retires_old_actor_and_keeps_authorizing(
+    tmp_path, monkeypatch, network_policy, retirement
+):
+    import subprocess
+    import sys
+
+    from swingset.deploy import security
+
+    class EndWatch(Exception):
+        pass
+
+    old, new = "1" * 64, "2" * 64
+    iteration = [0]
+    authorized = []
+    marker = tmp_path / "unrelated.json"
+    marker.write_text("preserved")
+
+    def command(arguments, **kwargs):
+        if arguments[:3] == ["docker", "ps", "-q"]:
+            identifiers = [old] if not iteration[0] else [new]
+            if iteration[0] and retirement != "removed":
+                identifiers.insert(0, old)  # The inventory raced with ordinary exit.
+            return subprocess.CompletedProcess(arguments, 0, "\n".join(identifiers), "")
+        assert arguments[:3] == ["docker", "ps", "-aq"]
+        assert arguments[-1] == "id=" + old and retirement == "removed"
+        return subprocess.CompletedProcess(arguments, 0, "", "")
+
+    def inspect(identifier):
+        retired = identifier == old and iteration[0] > 0
+        if retired and retirement == "removed":
+            raise RuntimeError("container inspection failed")
+        return {
+            "Id": identifier,
+            "State": {
+                "Running": not retired,
+                "Pid": 0 if retired else 111 if identifier == old else 222,
+                "StartedAt": identifier,
+                "ExitCode": 1 if retirement == "exit1" else 0,
+            },
+        }
+
+    def authorize(identifier, policy, directory):
+        if not inspect(identifier)["State"]["Running"]:
+            raise ValueError("container is not running the proved image")
+        authorized.append(identifier)
+        value = {"container_id": identifier}
+        (directory / (identifier + ".json")).write_text(json.dumps(value))
+        return value
+
+    def sleep(seconds):
+        iteration[0] += 1
+        if iteration[0] == 2:
+            raise EndWatch
+
+    monkeypatch.setattr(sys, "argv", ["security", "policy", str(tmp_path), "--watch"])
+    monkeypatch.setattr(security, "load", lambda path: network_policy)
+    monkeypatch.setattr(security, "_run", command)
+    monkeypatch.setattr(security, "_inspect", inspect)
+    monkeypatch.setattr(security, "authorize", authorize)
+    monkeypatch.setattr(security, "export_status", lambda *args: None)
+    monkeypatch.setattr(security.time, "sleep", sleep)
+    with pytest.raises(EndWatch):
+        security.main()
+    assert authorized == [old, new]
+    assert not (tmp_path / (old + ".json")).exists()
+    assert (tmp_path / (new + ".json")).exists()
+    assert marker.read_text() == "preserved"
+
+
+@pytest.mark.parametrize("retired,terminal_pid", [(True, 0), (False, 123), (True, 123)])
+def test_namespace_authorization_race_is_ignored_only_after_confirmed_exit(
+    tmp_path, monkeypatch, network_policy, retired, terminal_pid
+):
+    import subprocess
+    import sys
+
+    from swingset.deploy import security
+
+    identifier = "3" * 64
+    inspected = [False]
+    proof = tmp_path / (identifier + ".json")
+    proof.write_text("old proof")
+
+    def inspect(_):
+        stopped = inspected[0] and retired
+        return {
+            "Id": identifier,
+            "State": {
+                "Running": not stopped,
+                "Pid": terminal_pid if stopped else 123,
+                "StartedAt": "old",
+            },
+        }
+
+    def authorize(*args):
+        inspected[0] = True
+        raise ValueError("authorization failed")
+
+    monkeypatch.setattr(sys, "argv", ["security", "policy", str(tmp_path)])
+    monkeypatch.setattr(security, "load", lambda path: network_policy)
+    monkeypatch.setattr(
+        security,
+        "_run",
+        lambda arguments, **kwargs: subprocess.CompletedProcess(arguments, 0, identifier, ""),
+    )
+    monkeypatch.setattr(security, "_inspect", inspect)
+    monkeypatch.setattr(security, "authorize", authorize)
+    monkeypatch.setattr(security, "export_status", lambda *args: None)
+    if retired and terminal_pid == 0:
+        security.main()
+        assert not proof.exists()
+    else:
+        with pytest.raises(ValueError, match="authorization failed"):
+            security.main()
+        assert proof.read_text() == "old proof"
+
+
+def test_namespace_inventory_failure_cannot_turn_an_inspection_error_into_removal(
+    tmp_path, monkeypatch, network_policy
+):
+    import subprocess
+    import sys
+
+    from swingset.deploy import security
+
+    identifier = "4" * 64
+    proof = tmp_path / (identifier + ".json")
+    proof.write_text("preserved while state is unknown")
+
+    def command(arguments, **kwargs):
+        if arguments[:3] == ["docker", "ps", "-q"]:
+            return subprocess.CompletedProcess(arguments, 0, identifier, "")
+        raise subprocess.TimeoutExpired(arguments, 30)
+
+    def inspect(_):
+        raise RuntimeError("inspection failed")
+
+    monkeypatch.setattr(sys, "argv", ["security", "policy", str(tmp_path)])
+    monkeypatch.setattr(security, "load", lambda path: network_policy)
+    monkeypatch.setattr(security, "_run", command)
+    monkeypatch.setattr(security, "_inspect", inspect)
+    with pytest.raises(subprocess.TimeoutExpired):
+        security.main()
+    assert proof.read_text() == "preserved while state is unknown"

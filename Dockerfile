@@ -16,8 +16,9 @@ LABEL org.opencontainers.image.revision=$SOURCE_REVISION io.swingset.dependency-
 COPY src ./src
 COPY config ./config
 COPY overrides ./overrides
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable && useradd --create-home --uid 10001 swingset && mkdir -p /run/swingset /var/lib/swingset/checkpoints && chown swingset:swingset /run/swingset /var/lib/swingset /var/lib/swingset/checkpoints
+RUN --mount=type=cache,target=/root/.cache/uv chmod -R a+rX /app/src /app/config /app/overrides && uv sync --frozen --no-dev --no-editable && useradd --create-home --uid 10001 swingset && mkdir -p /run/swingset /var/lib/swingset/checkpoints && chown swingset:swingset /run/swingset /var/lib/swingset/checkpoints
 USER swingset
+RUN python -c "from pathlib import Path; import os, swingset; assert os.getuid() == 10001; roots = (Path('/app/src'), Path('/app/config'), Path('/app/overrides'), Path(swingset.__file__).parent); [path.open('rb').close() for root in roots for path in root.rglob('*') if path.is_file()]"
 CMD ["swingset", "--help"]
 
 FROM dependencies AS test

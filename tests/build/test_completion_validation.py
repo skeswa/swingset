@@ -29,8 +29,9 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
             f.conn,
             lambda sql: (
                 events.append("artifact")
-                if sql.startswith(
+                if (
                     "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, payload_sha256)"
+                    in sql
                 )
                 else events.append("generation")
                 if sql.startswith(
@@ -54,10 +55,9 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
     # then rechecked at the three write boundaries (D-0179).
     assert events.count("proof") == 1
     assert events.count("validate") == 3
-    # SQLite traces an INSERT again while entering its triggers. The rows stream
-    # in first and the label is written from what was stored, so the generation
-    # follows them; the re-check after the rows still rolls everything back
-    # together.
+    # The rows stream in first and the label is written from what was stored,
+    # so the generation follows them; the re-check after the rows still rolls
+    # everything back together.
     assert [kind for kind, _ in groupby(events)] == [
         "proof",
         "validate",
@@ -122,8 +122,9 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
             f.conn,
             lambda sql: (
                 writes.append(sql)
-                if sql.startswith(
+                if (
                     "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, payload_sha256)"
+                    in sql
                 )
                 else None
             ),

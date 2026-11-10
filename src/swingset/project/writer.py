@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import json
 from dataclasses import dataclass
+from itertools import batched
 from typing import Any
 
 from swingset.model.canonical import CanonicalRecord
@@ -105,14 +106,17 @@ def replace_scope(
             conn.execute(f"DELETE FROM {table} WHERE {where}", tuple(key))
             changed = True
     for table in _INSERT_ORDER:
-        for key_json, record in desired.get(table, {}).items():
-            changed |= _upsert(conn, table, record)
+        records = desired.get(table, {})
+        for group in batched(records.values(), 1024):
+            changed |= _upsert_batch(conn, table, group)
+        for keys in batched(records, 1024):
             conn.execute(
                 (
-                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) VALUES (%s, "
-                    "%s, %s, %s) ON CONFLICT DO NOTHING"
+                    "INSERT INTO canonical_scope_rows (scope_kind, scope_id, table_name, record_key) "
+                    "SELECT %s, %s, %s, record_key FROM unnest(%s::text[]) AS keys(record_key) "
+                    "ON CONFLICT DO NOTHING"
                 ),
-                (scope_kind, scope_id, table, key_json),
+                (scope_kind, scope_id, table, list(keys)),
             )
     finding_change = replace_findings(
         conn,
@@ -171,31 +175,58 @@ def replace_source_event_map(
     return tuple(affected)
 
 
-def _upsert(conn: engine.Connection, table: str, record: CanonicalRecord) -> bool:
+def _upsert_batch(
+    conn: engine.Connection, table: str, records: tuple[CanonicalRecord, ...]
+) -> bool:
+    """Read and write bounded groups, preserving Python's semantic comparison.
+
+    Canonical insert/update triggers affect bookkeeping, not another desired
+    canonical row. Projection records are already materialized and deduplicated.
+    """
+    keys = TABLES[table].primary_key
+    placeholders = "(" + ",".join("%s" for _ in keys) + ")"
+    old_rows = {
+        tuple(row[key] for key in keys): row
+        for row in conn.execute(
+            f"SELECT * FROM {table} WHERE ({','.join(keys)}) IN "
+            f"({','.join(placeholders for _ in records)})",
+            tuple(value for record in records for value in record.key()),
+        )
+    }
+    prepared = []
+    for record in records:
+        values = _changed_values(table, record, old_rows.get(record.key()))
+        if values is not None:
+            prepared.append(values)
+    if not prepared:
+        return False
+    columns = tuple(prepared[0])
+    placeholders = "(" + ",".join("%s" for _ in columns) + ")"
+    updates = ",".join(f"{column}=excluded.{column}" for column in columns if column not in keys)
+    conn.execute(
+        f"INSERT INTO {table} ({','.join(columns)}) VALUES "
+        f"{','.join(placeholders for _ in prepared)} "
+        f"ON CONFLICT ({','.join(keys)}) DO UPDATE SET {updates}",
+        tuple(row[column] for row in prepared for column in columns),
+    )
+    return True
+
+
+def _changed_values(
+    table: str, record: CanonicalRecord, old: engine.Row | None
+) -> dict[str, Any] | None:
     values = {
         field.name: _sql_value(getattr(record, field.name)) for field in dataclasses.fields(record)
     }
     schema = TABLES[table]
-    where = " AND ".join(f"{column}=%s" for column in schema.primary_key)
-    key_values = tuple(values[column] for column in schema.primary_key)
-    old = conn.execute(f"SELECT * FROM {table} WHERE {where}", key_values).fetchone()
     if old is not None:
         values["first_seen_at"] = old["first_seen_at"]
         for column in schema.owner_columns:
             values[column] = old[column]
         semantic_columns = set(values) - {"first_seen_at", "last_seen_at", "run_id"}
         if all(old[column] == values[column] for column in semantic_columns):
-            return False
-    columns = tuple(values)
-    placeholders = ",".join("%s" for _ in columns)
-    updates = ",".join(
-        f"{column}=excluded.{column}" for column in columns if column not in schema.primary_key
-    )
-    conn.execute(
-        f"INSERT INTO {table} ({','.join(columns)}) VALUES ({placeholders}) ON CONFLICT ({','.join(schema.primary_key)}) DO UPDATE SET {updates}",
-        tuple(values[column] for column in columns),
-    )
-    return True
+            return None
+    return values
 
 
 def _sql_value(value: Any) -> Any:

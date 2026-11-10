@@ -42,6 +42,42 @@ locates the logical table names below. The destination also has
 advance independently from the preserved SQLite import version
 ([version semantics](schema-history.md#version-semantics)).
 
+Native migration 39 counts transition rows for four bulk history-timing
+triggers. Their fence revision still advances once per affected row when the
+statement returns, including unchanged-row updates. Zero-row statements leave
+it untouched; rollback restores it. Publication and work-generation row
+triggers keep their existing rules
+([D-0284](../../journal/decisions/0284-count-bulk-history-fence-changes-per-statement.md)).
+Native migration 40 batches the pending-work callbacks that update generations.
+Each changed unit still increments once; a missing generation is inserted only
+for a new pending row. Retry fields and generation-insert row fences are
+preserved ([D-0286](../../journal/decisions/0286-batch-pending-work-generation-updates.md)).
+
+Only verification copy sources may opt into `allow_checkpoint_schema=True`
+with `read_only=True` and `lock=False`. This admits native 38 when its import
+version and exact migration-prefix checksum match. It never migrates the
+source; the new owned copy receives the current schema. Ordinary opens still
+require the current native version and checksum
+([D-0285](../../journal/decisions/0285-read-verified-native38-checkpoints-without-migrating-them.md)).
+
+Private verification creates an empty `template0` database within ten
+seconds. Physical clones of its own quiescent scratch template have a
+1,200-second statement limit and a separate ten-second lock limit. They use
+`FILE_COPY`, which avoids per-block WAL and forces a cluster checkpoint
+before and after creation. Empty creation keeps PostgreSQL's default
+strategy ([D-0289](../../journal/decisions/0289-copy-owned-templates-without-per-block-wal.md)). Foreign
+templates are refused before a new claim. This changes no application write
+deadline or cleanup fence
+([D-0290](../../journal/decisions/0290-allow-twenty-minutes-for-owned-physical-clones.md)).
+
+A migration graph receipt binds the unchanged source checkpoint separately
+from its accepted candidate. Code-only acceptance can clear matching watch
+extraction versions and register known NULL-pointer scopes. A read-only
+projection hashes those exact changes and every other field unchanged; the
+actual candidate identity and input context must match. Unsupported changes
+do not provide this stronger migration proof. The source still must equal
+its preseal ([D-0288](../../journal/decisions/0288-bind-source-and-accepted-checkpoints-separately.md)).
+
 `inspect-import` reads a hash-bound native import receipt and finalized target
 through an explicit read-only owner connection. All 141 source tables must be
 marked loaded. It checks database identity, schema, counts and quiescence;

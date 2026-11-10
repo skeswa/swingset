@@ -23,7 +23,7 @@ COMMANDS = {
             "restore",
             "restore-resume",
             "backup",
-            "loop",
+            "release",
             "pause",
             "resume",
             "hold",
@@ -31,7 +31,7 @@ COMMANDS = {
             "summary",
         }
     ),
-    "verifier": frozenset({"verify-derivations", "doctor", "summary"}),
+    "verifier": frozenset({"verify-derivations", "profile-input-acceptance", "doctor", "summary"}),
 }
 
 

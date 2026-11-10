@@ -13,6 +13,51 @@ from swingset.state.recipes import recipe_inputs
 from swingset.state.work import WorkUnit
 
 
+def test_inventory_certificate_keeps_exact_basis_with_one_token_snapshot(source_fixture):
+    f = source_fixture
+    unit = WorkUnit("project", "inventory", "all")
+    recipe = {"code": "known"}
+    context = {"label": "雪"}
+    versions = {
+        (row[0], row[1]): int(row[2])
+        for row in f.conn.execute(
+            "SELECT namespace,input_key,version FROM derivation_input_versions"
+        )
+    }
+    pairs = [
+        (name, "all")
+        for name in (
+            "calendar_raw",
+            "inventory_registry",
+            "inventory_sources",
+            "snapshot_basis",
+            "watch_sources",
+            "source_selections",
+        )
+    ]
+    for kind in ("calendar", "source_index", "dancer"):
+        key = json.dumps(["project", kind], separators=(",", ":"))
+        pairs.extend((("selected", key), ("replayed", key)))
+    basis = [
+        "certificate-v1",
+        ("project", "inventory", "all"),
+        recipe,
+        context,
+        *[(namespace, key, versions.get((namespace, key), 0)) for namespace, key in pairs],
+    ]
+    expected = hashlib.sha256(
+        json.dumps(basis, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    ).hexdigest()
+    reads = []
+    with f.conn.observing(
+        lambda sql, _params: (
+            reads.append(sql) if "FROM derivation_input_versions" in str(sql) else None
+        )
+    ):
+        assert certificate(f.conn, unit, recipe, context) == expected
+    assert len(reads) == 1
+
+
 def materialize(fixture):
     unit = WorkUnit("project", "event", "event-a")
     with fixture.db.transaction():
@@ -26,6 +71,59 @@ def materialize(fixture):
         )
     assert derivations.current(fixture.conn, unit)
     return unit, selection
+
+
+def test_currentness_reads_staging_presence_with_pointer_and_honors_visibility(source_fixture):
+    f = source_fixture
+    unit, _ = materialize(f)
+    statements = []
+    with f.conn.observing(lambda sql, _params: statements.append(str(sql))):
+        assert derivations.current(f.conn, unit)
+    assert sum("AS building_available FROM derivation_scopes" in sql for sql in statements) == 1
+    assert not any(
+        sql.startswith("SELECT 1 AS _value_0 FROM pg_catalog.pg_class") for sql in statements
+    )
+
+    with pytest.raises(RuntimeError, match="rollback shadow"):
+        with f.db.transaction():
+            f.conn.execute("CREATE TEMP VIEW derivation_building AS SELECT 1 AS unrelated")
+            f.conn.execute(
+                "SELECT set_config('search_path', 'pg_temp,' || current_setting('search_path'), true)"
+            )
+            statements.clear()
+            with f.conn.observing(lambda sql, _params: statements.append(str(sql))):
+                assert derivations.current(f.conn, unit)
+            assert not any("FROM derivation_building WHERE" in sql for sql in statements)
+            raise RuntimeError("rollback shadow")
+    assert derivations.current(f.conn, unit)
+
+
+def test_bulk_selected_generations_preserve_groups_missing_units_and_boundary(source_fixture):
+    from types import SimpleNamespace
+
+    f = source_fixture
+    unit, _ = materialize(f)
+    missing = [WorkUnit("project", "event", f"missing-{index}") for index in range(1024)]
+    for mode in ("ordinary", "selected", "effective", "null", "foreign"):
+        active = None
+        if mode != "ordinary":
+            active = SimpleNamespace(
+                connection=object() if mode == "foreign" else f.conn,
+                selected={unit: SimpleNamespace(generation_id="group-selected")},
+                effective={unit: None if mode == "null" else "group-effective"}
+                if mode in {"null", "effective"}
+                else {},
+            )
+        token = derivations._group.set(active)
+        try:
+            expected = derivations.selected_generation(f.conn, unit)
+            reads = []
+            with f.conn.observing(lambda sql, _params, reads=reads: reads.append(str(sql))):
+                found = derivations.selected_generations(f.conn, (unit, *missing, unit))
+            assert found == {unit: expected, **dict.fromkeys(missing)}
+            assert len(reads) == (2 if mode in {"ordinary", "foreign"} else 1)
+        finally:
+            derivations._group.reset(token)
 
 
 @pytest.mark.parametrize(

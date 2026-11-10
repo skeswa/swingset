@@ -15,6 +15,10 @@ worker. Every phase reports the complete selection; their assignments and
 executions must cover it exactly once. The 180-second wall budget includes
 both phases, service setup, verification and cleanup; phase totals add work
 across workers.
+The disposable test primary sets `max_locks_per_transaction=512` so concurrent
+imports and restores fit its shared lock table, within its existing 2 GiB
+cap. Physical lifecycle tests and production keep their separate settings
+([D-0291](../../journal/decisions/0291-size-test-lock-tables-for-concurrent-imports.md)).
 See the [local outcome](../../journal/investigations/2026/stage-1-implementation-2026-11-04.md).
 
 The ordinary core reuses a separate durable physical-test service, prepared

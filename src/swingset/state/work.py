@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from time import monotonic
 
+from swingset.log import log
 from swingset.state import engine
 
 from .db import Database
@@ -24,18 +26,38 @@ class WorkUnit:
 MAP_ALL = WorkUnit("project", "map", "all")
 
 
+def _invalidation_batches(units: Iterable[WorkUnit]) -> Iterator[tuple[WorkUnit, ...]]:
+    batch: dict[WorkUnit, None] = {}
+    for unit in units:
+        # Repeated invalidations advance work_generations. Keep each one, but
+        # never update the same key twice in one Postgres ON CONFLICT statement.
+        if unit in batch or len(batch) == 1024:
+            yield tuple(batch)
+            batch.clear()
+        batch[unit] = None
+    if batch:
+        yield tuple(batch)
+
+
 def enqueue(conn: engine.Connection, units: Iterable[WorkUnit], *, enqueued_at: str) -> None:
     queued = list(units)
     if MAP_ALL in queued:
         from .derivation_dependencies import mapping_units
 
         queued = [unit for unit in queued if unit != MAP_ALL] + list(mapping_units(conn))
-    conn.executemany(
-        (
-            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) VALUES (%s, %s, %s, %s) ON CONFLICT(stage, unit_kind, unit_id) DO UPDATE SET enqueued_at = excluded.enqueued_at"
-        ),
-        ((unit.stage, unit.unit_kind, unit.unit_id, enqueued_at) for unit in queued),
-    )
+    for batch in _invalidation_batches(queued):
+        conn.execute(
+            "INSERT INTO pending_work (stage, unit_kind, unit_id, enqueued_at) "
+            "SELECT stage, unit_kind, unit_id, %s FROM "
+            "unnest(%s::text[], %s::text[], %s::text[]) AS units(stage, unit_kind, unit_id) "
+            "ON CONFLICT(stage, unit_kind, unit_id) DO UPDATE SET enqueued_at = excluded.enqueued_at",
+            (
+                enqueued_at,
+                [unit.stage for unit in batch],
+                [unit.unit_kind for unit in batch],
+                [unit.unit_id for unit in batch],
+            ),
+        )
 
 
 def recover_parse_hints(
@@ -67,6 +89,8 @@ def accept_inputs(
             old = None if row is None else str(row[0])
             if old == digest:
                 continue
+            started = monotonic()
+            log("input_invalidation", consumer=consumer, input_name=name, phase="start")
             enqueue(conn, affected(name, old, digest, conn), enqueued_at=timestamp)
             conn.execute(
                 (
@@ -75,6 +99,13 @@ def accept_inputs(
                 (consumer, name, digest),
             )
             changed.add(name)
+            log(
+                "input_invalidation",
+                consumer=consumer,
+                input_name=name,
+                phase="queued",
+                seconds=round(monotonic() - started, 3),
+            )
     return changed
 
 

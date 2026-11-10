@@ -18,9 +18,9 @@ from . import engine
 from .engine import Connection
 from .engine.locks import acquire_writer
 from .engine.settings import SETTINGS
+from .postgres_schema import SCHEMA_VERSION as SCHEMA_VERSION
 from .rwlock import Held, LockBusy, exclusive, shared
 
-SCHEMA_VERSION = 38
 BUSY_TIMEOUT_SECONDS = 70.0
 MIGRATION_PENDING = "migration pending"
 
@@ -243,7 +243,10 @@ def open_database(
     clock: Clock | None = None,
     read_only: bool = False,
     allow_restore_pending: bool = False,
+    allow_checkpoint_schema: bool = False,
 ) -> Database:
+    if allow_checkpoint_schema and (not read_only or lock):
+        raise ValueError("checkpoint compatibility requires read-only access without a write lock")
     if mode not in {"exclusive", "shared"}:
         raise ValueError(f"unknown lock mode: {mode}")
     if mode == "shared" and (loop is None or not lock or read_only):
@@ -273,9 +276,12 @@ def open_database(
                 )
             except LockBusy as error:
                 raise DatabaseLockedError(str(error), reason=error.reason) from error
-        from .postgres_schema import validate_schema
+        from .postgres_schema import validate_checkpoint_schema, validate_schema
 
-        validate_schema(conn)
+        if allow_checkpoint_schema:
+            validate_checkpoint_schema(conn)
+        else:
+            validate_schema(conn)
         database = Database(directory, conn, locks, loop=loop)
         # The marker is routing information, not authority. Always compare it
         # with the identity stored in the actual target database.

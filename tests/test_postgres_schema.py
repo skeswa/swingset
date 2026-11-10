@@ -225,17 +225,19 @@ def test_explicit_forward_migration_preserves_environment_and_fences_new_tables(
     original_identity = conn.execute("SELECT database_id FROM ops.environment_identity").fetchone()[
         0
     ]
+    original_version = schema.SCHEMA_VERSION
+    next_version = original_version + 1
     copied = tmp_path / "migrations"
     shutil.copytree(schema.ROOT, copied)
-    (copied / "0039_fixture_probe.sql").write_text(
+    (copied / f"{next_version:04d}_fixture_probe.sql").write_text(
         "CREATE TABLE ops.fixture_probe(value TEXT PRIMARY KEY);\n"
     )
     monkeypatch.setattr(schema, "ROOT", copied)
-    monkeypatch.setattr(schema, "SCHEMA_VERSION", 39)
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", next_version)
     with pytest.raises(RuntimeError, match="version or migration checksum"):
         schema.validate_schema(conn)
-    assert schema.migrate(conn)["schema_version"] == 39
-    assert schema.migrate(conn)["schema_version"] == 39
+    assert schema.migrate(conn)["schema_version"] == next_version
+    assert schema.migrate(conn)["schema_version"] == next_version
     assert (
         conn.execute("SELECT database_id FROM ops.environment_identity").fetchone()[0]
         == original_identity
@@ -252,7 +254,7 @@ def test_explicit_forward_migration_preserves_environment_and_fences_new_tables(
     )
     with pytest.raises(psycopg.errors.CheckViolation, match="active publication fences"):
         conn.execute("INSERT INTO ops.fixture_probe VALUES('blocked')")
-    monkeypatch.setattr(schema, "SCHEMA_VERSION", 38)
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", original_version)
     with pytest.raises(RuntimeError, match="downgrade"):
         schema.migrate(conn)
 
@@ -287,6 +289,7 @@ def test_native38_forward_upgrade_keeps_sqlite37_rows_and_existing_identity(
     fresh_database, monkeypatch
 ):
     _, _, conn = fresh_database
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", 38)
     with monkeypatch.context() as legacy:
         legacy.setattr(schema, "SCHEMA_VERSION", 37)
         schema.migrate(conn, environment="dev")
@@ -309,6 +312,281 @@ def test_native38_forward_upgrade_keeps_sqlite37_rows_and_existing_identity(
             schema.migrate(conn)
 
 
+@pytest.mark.parametrize("base_version,target_version", [(38, 39), (39, 40), (38, 40)])
+def test_statement_upgrades_preserve_rows_and_worker_fence_semantics(
+    fresh_database, monkeypatch, base_version, target_version
+):
+    from swingset.state import engine
+
+    service, name, conn = fresh_database
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", target_version)
+    with monkeypatch.context() as legacy:
+        legacy.setattr(schema, "SCHEMA_VERSION", base_version)
+        schema.migrate(conn, environment="dev")
+    conn.execute("SELECT set_config('search_path',%s,false)", (schema.SEARCH_PATH,))
+    conn.execute(
+        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
+        "SELECT 'watch-'||n,'eepro','round','GET','https://example.test/'||n,'eepro.round','live' "
+        "FROM generate_series(1,8) AS n"
+    )
+    conn.execute(
+        "INSERT INTO work_generations(stage,unit_kind,unit_id,generation,retry_generation,"
+        "retry_reason,retry_requested_at) VALUES('parse','snapshot','one',7,3,'rehearsal',"
+        "'2026-11-10T00:00:00Z')"
+    )
+    queries = [
+        sql.SQL(
+            "SELECT {} AS source_table,coalesce(array_agg(row_to_json(t)::text "
+            "ORDER BY row_to_json(t)::text),ARRAY[]::text[]) AS rows FROM {} AS t"
+        ).format(sql.Literal(table), sql.SQL(schema.qualified(table)))
+        for table in schema.reference_manifest()["tables"]
+    ]
+
+    def rows(connection):
+        return dict(connection.execute(sql.SQL(" UNION ALL ").join(queries)))
+
+    def epoch(connection):
+        return connection.execute('SELECT revision FROM "fetch".history_dispatch_fence').fetchone()[
+            0
+        ]
+
+    baseline = rows(conn)
+    identity = conn.execute("SELECT * FROM ops.environment_identity").fetchall()
+    grants_sql = (
+        "SELECT n.nspname,p.proname,p.proowner,p.proacl,p.prosecdef,p.proconfig FROM pg_proc p "
+        "JOIN pg_namespace n ON n.oid=p.pronamespace "
+        "WHERE p.proname=ANY(%s) ORDER BY n.nspname,p.proname"
+    )
+    names = ["tr_" + name for name in sorted(schema.STATEMENT_HISTORY_TRIGGERS)]
+    if target_version >= 40:
+        names += ["tr_" + name for name in sorted(schema.STATEMENT_WORK_TRIGGERS)]
+    grants = conn.execute(grants_sql, (names,)).fetchall()
+
+    class Rollback(Exception):
+        pass
+
+    def exercise(connection):
+        deltas = []
+        with service.connect(name) as observer:
+            committed = epoch(observer)
+            with pytest.raises(Rollback):
+                with connection.transaction():
+                    for statement in (
+                        "UPDATE watches SET parser=parser",
+                        "UPDATE watches SET parser=parser WHERE false",
+                        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
+                        "VALUES('parse','snapshot','one','2026-11-10T00:00:00Z'),"
+                        "('parse','snapshot','two','2026-11-10T00:00:00Z'),"
+                        "('parse','snapshot','three','2026-11-10T00:00:00Z')",
+                        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
+                        "SELECT 'parse','snapshot','absent','2026-11-10T00:00:00Z' WHERE false",
+                        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
+                        "VALUES('parse','snapshot','one','2026-11-10T00:00:01Z'),"
+                        "('parse','snapshot','four','2026-11-10T00:00:01Z') "
+                        "ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET enqueued_at=excluded.enqueued_at",
+                        "UPDATE work_generations SET generation=generation+1",
+                        "UPDATE pending_work SET enqueued_at=enqueued_at",
+                        "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
+                        "VALUES('parse','snapshot','one','2026-11-10T00:00:02Z') ON CONFLICT DO NOTHING",
+                        "UPDATE work_generations SET generation=generation+1 WHERE false",
+                        "DELETE FROM work_generations WHERE unit_id='three'",
+                        "UPDATE pending_work SET enqueued_at=enqueued_at WHERE unit_id='three'",
+                    ):
+                        before = epoch(connection)
+                        physical = connection.execute(
+                            "SELECT ctid::text FROM history_dispatch_fence"
+                        ).fetchone()[0]
+                        connection.execute(statement)
+                        delta = epoch(connection) - before
+                        deltas.append(delta)
+                        if delta == 0:
+                            assert (
+                                connection.execute(
+                                    "SELECT ctid::text FROM history_dispatch_fence"
+                                ).fetchone()[0]
+                                == physical
+                            )
+                        assert epoch(observer) == committed
+                    changed = rows(connection)
+                    raise Rollback
+            assert epoch(observer) == committed
+        assert rows(connection) == baseline
+        return deltas, changed
+
+    legacy_result = exercise(conn)
+    assert legacy_result[0] == [8, 0, 6, 0, 4, 4, 8, 0, 0, 1, 1]
+    assert schema.migrate(conn)["schema_version"] == target_version
+    assert schema.migrate(conn)["schema_version"] == target_version
+    assert rows(conn) == baseline
+    assert conn.execute("SELECT * FROM ops.environment_identity").fetchall() == identity
+    assert conn.execute(grants_sql, (names,)).fetchall() == grants
+    with engine.connect(service.dsn(name, role="worker")) as worker:
+        assert schema.validate_schema(worker, full=True)["equal"]
+        assert exercise(worker) == legacy_result
+        with service.connect(name) as observer:
+            before = epoch(observer)
+            with worker.transaction():
+                worker.execute(
+                    "UPDATE watches SET parser=parser WHERE watch_id IN ('watch-1','watch-2')"
+                )
+                assert epoch(worker) == before + 2
+                assert epoch(observer) == before
+            assert epoch(observer) == before + 2
+            with worker.transaction():
+                worker.execute(
+                    "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
+                    "VALUES('parse','snapshot','one','2026-11-10T00:00:00Z'),"
+                    "('parse','snapshot','committed','2026-11-10T00:00:00Z')"
+                )
+                assert epoch(worker) == before + 6
+                assert epoch(observer) == before + 2
+                assert (
+                    observer.execute(
+                        "SELECT generation FROM derive.work_generations WHERE unit_id='one'"
+                    ).fetchone()[0]
+                    == 7
+                )
+            assert epoch(observer) == before + 6
+            assert tuple(
+                observer.execute(
+                    "SELECT generation,retry_generation,retry_reason FROM derive.work_generations "
+                    "WHERE unit_id='one'"
+                ).fetchone()
+            ) == (8, 3, "rehearsal")
+            assert tuple(
+                observer.execute(
+                    "SELECT generation,retry_generation,retry_reason FROM derive.work_generations "
+                    "WHERE unit_id='committed'"
+                ).fetchone()
+            ) == (1, 0, None)
+        conn.execute(
+            "INSERT INTO ops.execution_admissions(action_id,action_kind,admitted_at,control_revision,"
+            "all_sources,all_kinds,state) VALUES('statement-fence','publication',"
+            "'2026-11-10T00:00:00Z',0,0,0,'active')"
+        )
+        before = epoch(worker)
+        for statement in (
+            "UPDATE watches SET parser=parser",
+            "UPDATE pending_work SET enqueued_at=enqueued_at",
+            "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) "
+            "VALUES('parse','snapshot','blocked','2026-11-10T00:00:00Z')",
+        ):
+            generations = worker.execute(
+                "SELECT * FROM work_generations ORDER BY unit_id"
+            ).fetchall()
+            with pytest.raises(psycopg.errors.CheckViolation, match="active publication fences"):
+                worker.execute(statement)
+            assert epoch(worker) == before
+            assert (
+                worker.execute("SELECT * FROM work_generations ORDER BY unit_id").fetchall()
+                == generations
+            )
+
+
+@pytest.mark.parametrize("version", [37, 38, 39])
+def test_checkpoint_reader_admits_only_verified_readonly_native38(
+    fresh_database, tmp_path, monkeypatch, version
+):
+    import shutil
+
+    from swingset.state import engine
+    from swingset.state.db import open_database
+
+    service, name, conn = fresh_database
+    with monkeypatch.context() as legacy:
+        legacy.setattr(schema, "SCHEMA_VERSION", version)
+        schema.migrate(conn, environment="dev")
+    original = conn.execute(
+        "SELECT obj_description('ops'::regnamespace,'pg_namespace')"
+    ).fetchone()[0]
+    state = tmp_path / "checkpoint"
+    engine.write_settings(state, service.dsn(name, role="worker"), environment="dev")
+    with pytest.raises(RuntimeError, match="schema version or migration checksum"):
+        open_database(state, read_only=True, lock=False)
+    if version != 38:
+        with pytest.raises(RuntimeError, match="checkpoint schema"):
+            open_database(state, read_only=True, lock=False, allow_checkpoint_schema=True)
+    else:
+        with open_database(
+            state, read_only=True, lock=False, allow_checkpoint_schema=True
+        ) as checkpoint:
+            assert schema.validate_checkpoint_schema(checkpoint.connection)["schema_version"] == 38
+            with pytest.raises(psycopg.OperationalError, match="readonly"):
+                checkpoint.connection.execute("INSERT INTO ops.meta VALUES('forbidden','write')")
+        with monkeypatch.context() as future:
+            future.setattr(schema, "SCHEMA_VERSION", 41)
+            with pytest.raises(RuntimeError, match="checkpoint schema"):
+                open_database(state, read_only=True, lock=False, allow_checkpoint_schema=True)
+        copied = tmp_path / "changed-migrations"
+        shutil.copytree(schema.ROOT, copied)
+        with (copied / "0038_environment_dryrun.sql").open("a") as stream:
+            stream.write("\n-- checksum mismatch must be rejected\n")
+        with monkeypatch.context() as changed:
+            changed.setattr(schema, "ROOT", copied)
+            with pytest.raises(RuntimeError, match="checkpoint schema"):
+                open_database(state, read_only=True, lock=False, allow_checkpoint_schema=True)
+    for read_only, lock in [(False, False), (True, True)]:
+        with pytest.raises(ValueError, match="read-only access"):
+            open_database(state, read_only=read_only, lock=lock, allow_checkpoint_schema=True)
+    assert (
+        conn.execute("SELECT obj_description('ops'::regnamespace,'pg_namespace')").fetchone()[0]
+        == original
+    )
+    assert conn.execute("SELECT count(*) FROM ops.meta WHERE key='forbidden'").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("fault", ["body", "level", "transition", "event"])
+@pytest.mark.parametrize(
+    "namespace,table,trigger,event,transition",
+    [
+        ("fetch", "watches", "history_timing_watches_update", "UPDATE", "swingset_changed_rows"),
+        ("derive", "pending_work", "work_enqueued", "INSERT", "swingset_pending_rows"),
+        ("derive", "pending_work", "work_invalidated", "UPDATE", "swingset_pending_rows"),
+    ],
+)
+def test_catalog_audit_rejects_changed_statement_trigger(
+    fresh_database, fault, namespace, table, trigger, event, transition
+):
+    _, _, conn = fresh_database
+    schema.migrate(conn)
+    function = sql.Identifier(namespace, "tr_" + trigger)
+    if fault == "body":
+        conn.execute(
+            sql.SQL(
+                "CREATE OR REPLACE FUNCTION {}() RETURNS trigger "
+                "LANGUAGE plpgsql AS $$BEGIN RETURN NULL; END$$"
+            ).format(function)
+        )
+    else:
+        conn.execute(
+            sql.SQL("DROP TRIGGER {} ON {}").format(
+                sql.Identifier(trigger), sql.Identifier(namespace, table)
+            )
+        )
+        alias = "wrong_rows" if fault == "transition" else transition
+        binding = (
+            "FOR EACH ROW"
+            if fault == "level"
+            else (f"REFERENCING NEW TABLE AS {alias} FOR EACH STATEMENT")
+        )
+        if fault == "event":
+            event = "UPDATE" if event == "INSERT" else "INSERT"
+        conn.execute(
+            sql.SQL("CREATE TRIGGER {} AFTER {} ON {} {} EXECUTE FUNCTION {}()").format(
+                sql.Identifier(trigger),
+                sql.SQL(event),
+                sql.Identifier(namespace, table),
+                sql.SQL(binding),
+                function,
+            )
+        )
+    with pytest.raises(
+        RuntimeError,
+        match="function body differs|level or transition tables differ|event or timing differs",
+    ):
+        schema.validate_schema(conn, full=True)
+
+
 def test_fresh_dryrun_is_seeded_once_after_forward_ddl_and_worker_cannot_change_it(
     fresh_database, monkeypatch
 ):
@@ -320,12 +598,9 @@ def test_fresh_dryrun_is_seeded_once_after_forward_ddl_and_worker_cannot_change_
         assert (
             connection.execute("SELECT count(*) FROM ops.environment_identity").fetchone()[0] == 0
         )
-        assert (
-            dict(connection.execute("SELECT key,value FROM ops.schema_identity()"))[
-                "schema_version"
-            ]
-            == "38"
-        )
+        assert dict(connection.execute("SELECT key,value FROM ops.schema_identity()"))[
+            "schema_version"
+        ] == str(schema.SCHEMA_VERSION)
         calls.append(environment)
         return seed(connection, environment, database_id)
 
@@ -359,9 +634,10 @@ def test_failed_fresh_forward_ddl_leaves_no_temporary_identity(
     _, _, conn = fresh_database
     copied = tmp_path / "migration-failure"
     shutil.copytree(schema.ROOT, copied)
-    (copied / "0039_fixture_failure.sql").write_text("SELECT 1/0;\n")
+    next_version = schema.SCHEMA_VERSION + 1
+    (copied / f"{next_version:04d}_fixture_failure.sql").write_text("SELECT 1/0;\n")
     monkeypatch.setattr(schema, "ROOT", copied)
-    monkeypatch.setattr(schema, "SCHEMA_VERSION", 39)
+    monkeypatch.setattr(schema, "SCHEMA_VERSION", next_version)
     with pytest.raises(psycopg.errors.DivisionByZero):
         schema.migrate(conn, environment="dryrun")
     assert conn.execute("SELECT to_regclass('ops.environment_identity')").fetchone()[0] is None
@@ -380,7 +656,7 @@ def test_trusted_empty_table_bootstrap_is_adopted_by_owner_without_cluster_admin
     conn.execute("SET ROLE swingset_owner")
     try:
         assert bootstrap.adopt(conn)
-        assert schema.migrate(conn, environment="dryrun")["schema_version"] == 38
+        assert schema.migrate(conn, environment="dryrun")["schema_version"] == schema.SCHEMA_VERSION
         assert (
             conn.execute("SELECT environment FROM ops.environment_identity").fetchone()[0]
             == "dryrun"
@@ -446,7 +722,9 @@ def test_prepared_catalog_hash_matches_native_engine_reader_and_real_owner_open(
         wrapped.execute("RESET search_path")
         wrapped.execute("SET ROLE swingset_owner")
         assert bootstrap.adopt(wrapped)
-        assert schema.migrate(wrapped, environment="dryrun")["schema_version"] == 38
+        assert (
+            schema.migrate(wrapped, environment="dryrun")["schema_version"] == schema.SCHEMA_VERSION
+        )
         assert schema.validate_schema(wrapped, full=True)["equal"]
 
 
