@@ -12,7 +12,7 @@ receipt and cleanup checks, four native Linux clients with four workers each
 run the rest of the core. Each client has a 2 GiB RAM-plus-swap limit.
 Measured file costs put expensive files first while keeping each file on one
 worker. Every phase reports the complete selection; their assignments and
-executions must cover it exactly once. The 180-second wall budget includes
+executions must cover it exactly once. The 300-second wall budget includes
 both phases, service setup, verification and cleanup; phase totals add work
 across workers.
 The disposable test primary sets `max_locks_per_transaction=512` so concurrent
@@ -43,7 +43,10 @@ Application deadlines and each case's memory and data assertions stay unchanged.
 Run `uv run pytest -q` for the core suite outside that bookmark. It selects the reviewed tests for
 data loss, recovery, publication, identity, source parsing and pipeline
 integration. That original command is serial. The current development
-target is three minutes; bookmark CI uses `swingset.dev.commands check`.
+target is five minutes; bookmark CI uses `swingset.dev.commands check`.
+The owner raised the local gate from three to five minutes on November 13
+([current plan](../plans/postgres-migration/6-stage-1.md)). Earlier reports keep
+their original outcomes; the policy change establishes no runtime improvement.
 
 On 2026-09-18, **989 core cases passed in 2 minutes 54 seconds wall time** on
 the development Mac; 2,039 extended cases were deselected. The
@@ -88,7 +91,7 @@ The bookmark's native Postgres full run passed 4,147 cases in 22 minutes
 44 seconds and needs about 30 GiB of scratch. Keep the 80 GiB free-disk floor;
 see the source-bound checks in the
 [local outcome](../../journal/investigations/2026/stage-1-implementation-2026-11-04.md).
-The core's 180-second budget is separate.
+The core's 300-second budget is separate.
 
 An explicit file, directory or node ID bypasses the default selection. In
 particular, explicitly selecting the crash file without `-m core` includes the
@@ -149,7 +152,7 @@ path while developing a new file, then classify it. Keep core selection based
 on the behavior it protects, not simply its duration.
 
 Put a new test in the existing file for its area; start a new file only for a
-new module. The core run stays under three minutes on the development Mac. If
+new module. The core run stays within five minutes on the development Mac. If
 a new core case pushes it over, move an older exhaustive case to extended
 rather than growing the run (D-0175).
 

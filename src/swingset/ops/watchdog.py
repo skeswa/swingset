@@ -1870,7 +1870,7 @@ def main(argv: list[str]) -> list[str]:
         )
 
     def write_deadline() -> None:
-        # Every write is small by construction (I2); the 60 s alarm firing
+        # Every write is small by construction (I2); the worker alarm firing
         # means one was not, and its unit rolled back (D-0217).
         for name, rows in sorted(_deadline_firings(state, now).items()):
             latest = rows[0]

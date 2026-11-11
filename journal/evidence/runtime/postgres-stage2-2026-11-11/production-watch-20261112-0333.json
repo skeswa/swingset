@@ -1,0 +1,77 @@
+{
+  "at": "2026-11-12T03:35:45.146628+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-12 03:00:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "60"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-derive.service",
+        "--since",
+        "2026-11-12 03:00:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "60"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "tail",
+        "-n",
+        "8",
+        "/var/lib/swingset/ALERTS.log"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "format": "swingset-readonly-production-watch-v1",
+  "latest_alert": "2026-11-12T01:35:03Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+  "latest_known_request_tick_finished_at": "2026-11-12T02:05:42.551258+00:00",
+  "limits": "Observed cycles succeed but do no work. This is an idle signal, not a healthy-fetching claim. No cause, watchdog repair, alarm clearing or production mutation is established.",
+  "loops": {
+    "acquire": {
+      "all_failed_false_error_null": true,
+      "last_finished_at": "2026-11-12T03:31:03.625570+00:00",
+      "observed_ticks": 7,
+      "progress": 0,
+      "requests": 0
+    },
+    "derive": {
+      "all_failed_false_error_null": true,
+      "last_finished_at": "2026-11-12T03:28:26.179886+00:00",
+      "last_ready": 443,
+      "last_retention_file_bytes": 41150623744,
+      "last_retention_over_cap": false,
+      "last_stages": [],
+      "last_waiting_input": 126,
+      "observed_ticks": 6,
+      "progress": 0
+    }
+  },
+  "previous_receipt": "journal/evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0243.json",
+  "previous_receipt_sha256": "473097d1a09b6ca8560fb12be48b38d696a5038fc12808a8572d8dc5f9f238b4",
+  "production_mutation": false,
+  "raw_sha256": {
+    "acquire": "94a75a4bf168ad418751a58e1bf2cce1ce908294cb00d71881b23e3ae5205bdc",
+    "alerts": "cefaa05a111a034488a21bad212899b3b809d944737c437371ae57111db1a31d",
+    "derive": "42292cbdb58b7076ba580f903233924abaf0d63bec3511b816cf5794e686a988"
+  },
+  "repair_deployed": false
+}

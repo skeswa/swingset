@@ -11,7 +11,9 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -254,6 +256,15 @@ def reap_copies(primary: Any, physical: Any = None, *, registry_root: Path | Non
 
 
 def run(partition: str) -> int:
+    return run_command(pytest_command(partition), partition=partition)
+
+
+def run_command(
+    command: Sequence[str], *, partition: str, measurement_seconds: float | None = None
+) -> int:
+    """Use the normal PID1 lifecycle for one explicitly bounded diagnostic command."""
+    if measurement_seconds is not None and not 0 < measurement_seconds <= 30:
+        raise ValueError("diagnostic measurement must be positive and at most 30 seconds")
     if (
         sys.platform != "linux"
         or os.getpid() != 1
@@ -265,10 +276,28 @@ def run(partition: str) -> int:
     for name in (signal.SIGINT, signal.SIGTERM):
         signal.signal(name, lambda number, frame: requested.append(number))
     started = time.monotonic()
-    command = pytest_command(partition)
-    child = subprocess.Popen(
-        command, env={**os.environ, "SWINGSET_TEST_STARTED": str(started)}, start_new_session=True
-    )
+    command = list(command)
+    expired: list[bool] = []
+    timer: threading.Timer | None = None
+    if measurement_seconds is not None:
+
+        def expire() -> None:
+            expired.append(True)
+            requested.append(signal.SIGINT)
+
+        timer = threading.Timer(measurement_seconds, expire)
+        timer.daemon = True
+        timer.start()
+    try:
+        child = subprocess.Popen(
+            command,
+            env={**os.environ, "SWINGSET_TEST_STARTED": str(started)},
+            start_new_session=True,
+        )
+    except BaseException:
+        if timer is not None:
+            timer.cancel()
+        raise
     forwarded = None
     while child.poll() is None:
         if requested and forwarded is None:
@@ -308,24 +337,45 @@ def run(partition: str) -> int:
             exported = export_failures()
         except Exception as error:
             exported = {"required": True, "complete": False, "error_type": type(error).__name__}
+    if timer is not None:
+        timer.cancel()
+        timer.join(timeout=1)
+        if timer.is_alive():
+            expired.append(True)
     summary = {
         "pytest_exit_code": status,
         "interrupted_signals": requested,
         "pytest_command": command,
-        "phase": "prologue" if partition == "prologue" else "parallel",
+        "phase": partition
+        if measurement_seconds is not None
+        else "prologue"
+        if partition == "prologue"
+        else "parallel",
         "seconds_including_cleanup": time.monotonic() - started,
         "cleanup": cleanup,
         "failure_artifact_export": exported,
         "pid_namespace": os.readlink("/proc/self/ns/pid"),
         "uid": os.getuid(),
     }
+    if timer is not None:
+        summary["diagnostic"] = {
+            "measurement_ceiling_seconds": measurement_seconds,
+            "measurement_ceiling_reached": bool(expired),
+            "normal_core_or_timing_claimed": False,
+        }
     _write_report(Path("/tmp/core-client-summary.json"), summary)
     print(
         "Core client: "
         + json.dumps({"partition": partition, "exit_code": status, "cleanup": cleanup["complete"]}),
         flush=True,
     )
-    return status if status else (0 if cleanup["complete"] and exported["complete"] else 1)
+    return (
+        124
+        if expired
+        else status
+        if status
+        else (0 if cleanup["complete"] and exported["complete"] else 1)
+    )
 
 
 def main() -> int:

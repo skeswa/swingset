@@ -290,6 +290,10 @@ class Connection(psycopg.Connection[Row]):
             if remaining <= 0:
                 raise WriteTimeout("database write deadline exceeded")
             milliseconds = max(1, int(remaining * 1000))
+            if milliseconds >= 1000:
+                # Reuse a conservative server bound within each 10 ms bucket.
+                # The absolute Python deadline is still checked on every query.
+                milliseconds -= milliseconds % 10
             key = (self._write_deadline, milliseconds)
             if self._timeout_settings != key:
                 try:

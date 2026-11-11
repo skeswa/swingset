@@ -67,6 +67,41 @@ def parser() -> argparse.ArgumentParser:
         "unpack-job", help="Supervise an isolated server checkpoint unpack from a pinned policy"
     )
     unpack_job.add_argument("--policy", type=Path, required=True)
+    forensics = commands.add_parser(
+        "graph-forensics", help="Capture one reviewed packet of retained graph metadata"
+    )
+    forensics.add_argument("--directory", type=Path, required=True)
+    forensics.add_argument("--review", type=Path, required=True)
+    numerics = commands.add_parser(
+        "link-numerics", help="Compare pure similarity backends for captured rehearsal inputs"
+    )
+    numerics.add_argument("--input", type=Path, required=True)
+    numerics.add_argument("--input-sha256", required=True)
+    numerics_probe = commands.add_parser(
+        "link-numerics-probe", help="Run one reviewed isolated similarity-backend probe"
+    )
+    numerics_probe.add_argument("--directory", type=Path, required=True)
+    numerics_probe.add_argument("--review", type=Path, required=True)
+    hold_review = commands.add_parser(
+        "review-rehearsal-hold",
+        help="Review the existing held rehearsal through its pinned protocol",
+    )
+    from swingset.deploy.hold_review import arguments as hold_review_arguments
+
+    hold_review_arguments(hold_review)
+    from swingset.deploy.unit_diagnostic import arguments as unit_diagnostic_arguments
+    from swingset.deploy.unit_diagnostic_job import arguments as unit_diagnostic_job_arguments
+
+    unit_diagnostic_arguments(
+        commands.add_parser(
+            "unit-diagnostic", help="Observe one rollback-only inventory diagnostic"
+        )
+    )
+    unit_diagnostic_job_arguments(
+        commands.add_parser(
+            "unit-diagnostic-job", help="Supervise one reviewed isolated unit diagnostic"
+        )
+    )
     from swingset.deploy.import_job import arguments as import_job_arguments
 
     import_job_arguments(
@@ -2312,6 +2347,37 @@ def main(argv: list[str] | None = None) -> int:
         from swingset.deploy.import_job import execute as import_job
 
         return import_job(args)
+    if args.command == "graph-forensics":
+        from swingset.deploy.metadata_capture import main as metadata_capture
+
+        return metadata_capture(["--directory", str(args.directory), "--review", str(args.review)])
+    if args.command == "review-rehearsal-hold":
+        from swingset.deploy.hold_review import main as review_hold
+
+        hold_arguments = ["--current", str(args.current)]
+        if args.prepare_reopen:
+            hold_arguments.append("--prepare-reopen")
+        for name in ("status", "resume", "reopen", "review", "review_sha256"):
+            value = getattr(args, name)
+            if value is not None:
+                hold_arguments.extend(("--" + name.replace("_", "-"), str(value)))
+        return review_hold(hold_arguments)
+    if args.command == "link-numerics":
+        from swingset.deploy.numerics import main as link_numerics
+
+        return link_numerics(["--input", str(args.input), "--input-sha256", args.input_sha256])
+    if args.command == "link-numerics-probe":
+        from swingset.deploy.numerics_probe import main as numerics_probe
+
+        return numerics_probe(["--directory", str(args.directory), "--review", str(args.review)])
+    if args.command == "unit-diagnostic":
+        from swingset.deploy.unit_diagnostic import execute as unit_diagnostic
+
+        return unit_diagnostic(args)
+    if args.command == "unit-diagnostic-job":
+        from swingset.deploy.unit_diagnostic_job import execute as unit_diagnostic_job
+
+        return unit_diagnostic_job(args)
     if args.command == "verification-job":
         from swingset.deploy.verification_job import execute as verification_job
 

@@ -145,6 +145,20 @@ class VerificationJob(ImportJob):
             "/var/lib/swingset-runtime/receipt.json",
         ]
 
+    def extra_operator_mount(self) -> dict[str, Any] | None:
+        return None
+
+    def readonly_mount_overrides(self) -> frozenset[str]:
+        mount = self.extra_operator_mount()
+        if mount is None:
+            return frozenset()
+        require(
+            mount["target"] == "/run/swingset-checker"
+            and mount["type"] == "bind"
+            and mount["readonly"] is True
+        )
+        return frozenset({mount["target"]})
+
     def bound(self) -> dict[str, Any]:
         value = super().bound()
         require(value["RestartCount"] == 0)
@@ -194,6 +208,7 @@ class VerificationJob(ImportJob):
                 "subpath": "blobs",
             }
         )
+        operator = self.extra_operator_mount()
         for target, suffix in (
             ("/run/swingset-config", "config"),
             ("/run/swingset-authorization", "authorization"),
@@ -215,6 +230,9 @@ class VerificationJob(ImportJob):
             ("/run/swingset-checker", "verifier-checker"),
         ):
             item = next(x for x in mounts if x["target"] == target)
+            if operator is not None and target == operator["target"]:
+                require(item == operator)
+                continue
             require(
                 item["type"] == "volume"
                 and not item["readonly"]
@@ -222,6 +240,8 @@ class VerificationJob(ImportJob):
                     re.escape(self.policy["deployment"]) + "-[0-9a-f]{12}-" + suffix, item["source"]
                 )
             )
+        if operator is not None:
+            require(operator in mounts)
         require(len(value["Mounts"]) == len(host["Mounts"]) == len(mounts) == 11)
         for expected_mount in mounts:
             found = next(x for x in value["Mounts"] if x["Destination"] == expected_mount["target"])

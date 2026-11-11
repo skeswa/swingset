@@ -833,7 +833,6 @@ def test_only_allowlisted_modules_name_the_row_tables_in_sql():
     functions = {
         function.name
         for function in ast.walk(tree)
-        if isinstance(function, ast.FunctionDef)
-        and any(node in _naming(function) for node in ast.walk(function))
+        if isinstance(function, ast.FunctionDef) and _naming(function)
     }
     assert functions == {"_refs", "_dancer_rows"}

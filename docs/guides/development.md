@@ -22,6 +22,11 @@ checked; the command never resets unknown state. A pure parser test does not sta
 role, image or template-fixture change invalidates the matching template;
 source edits run directly from the checkout.
 
+Restarting Docker can clear the temporary TEST container's data while its
+ownership receipt survives. A role-signature refusal then needs an empty-state
+check before recovery; do not reset the durable physical profile. A guarded
+recovery command is [maintenance item 45](../plans/README.md).
+
 Replay changed code on a disposable copy of the seed:
 
 ```sh
@@ -41,12 +46,61 @@ turn a development database into production.
 The default test command runs the reviewed core: one isolated deadline
 recovery case, then the remaining cases in four clients with four workers
 each and file affinity. Reports check that every selected case runs exactly
-once, within the same 180-second budget. Focused selections and full runs stay serial unless you
+once, within the same 300-second budget. Focused selections and full runs stay serial unless you
 explicitly supply worker flags. Run the files you changed
 while iterating, then `mise run test -- --full-suite` for a migration, recovery,
 backup or publication change. The [testing guide](testing.md) owns selection
 rules and the measured runtime goal. Tests keep temporary data under `/tmp`,
 where pytest prunes its old runs.
+
+For a measured CPU investigation, set `SWINGSET_CPU_IMAGE` to the immutable
+test-client image digest from an existing core report, then prepare a new
+private scratch packet:
+
+```sh
+mise exec -- uv run swingset dev-diagnostic prepare /tmp/swingset-cpu-profile --image "$SWINGSET_CPU_IMAGE"
+```
+
+Review its `plan.json` before `dev-diagnostic run /tmp/swingset-cpu-profile`.
+Preparation starts no actor. The default profiles the existing archived
+scoring pipeline case, using the normal test service, client limits and
+owned cleanup. It refuses source drift and packet reuse. Inspect the
+structured report with `dev-diagnostic result /tmp/swingset-cpu-profile`.
+The CPU ranking excludes suspended generators and overlapping cumulative
+times; it is diagnostic evidence, not a normal-core timing result. The
+scratch volume remains for reviewed cleanup.
+
+For an elapsed-time investigation of the allowlisted uncertain-publication
+case, add `--case uncertain-publication --mode waits` to preparation.
+This mode records body elapsed and owner-thread CPU time and outermost
+Postgres driver waits, with no SQL or arguments. Other-thread calls are
+counted separately without clocks. Both modes retain the same 30-second
+measurement and 120-second cleanup limits.
+
+Use `--case publication-fixture --mode waits` to measure the full setup
+of the changed-artifact publication case. Its ordinary test call and
+assertions still run. The packet and result bind the measured `setup`
+phase; a call-body measurement cannot satisfy that binding. The existing
+named cases measure their call phase. Limits and cleanup stay the same.
+
+Use `--case failed-build --mode cpu` for the failed-build retention case's
+call phase. Both deliberate build failures and their retention assertions
+still run; the profile does not measure successful candidate assembly.
+
+Use `--case unlanded-publication --mode cpu` for the safety case that rejects
+an obsolete publication intent, rebuilds and publishes through its offline
+fixture. It measures the full call, including its required local backup checks.
+
+Use `--case sql-guard --mode cpu` for the output-pack SQL architecture guard.
+Its bounded parsing and naming aggregates overlap; never sum them. Every
+source read and architecture assertion still runs.
+
+Use `--case checkpoint --mode waits` or `--mode cpu` for the public
+verification checkpoint case. The full call and activation assertions run.
+Both modes require the same five major-phase observations and the capture
+and backup-check children of checkpoint creation. Parent spans include their
+children; never add their times together. CPU rankings cover the whole call,
+not a particular child. Limits and owned cleanup stay the same.
 
 ## Format and review changes
 

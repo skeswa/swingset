@@ -1,0 +1,77 @@
+{
+  "format": "swingset-readonly-production-watch-v1",
+  "at": "2026-11-12T08:43:19Z",
+  "host": "root@swingset@orb",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-12 07:25:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "110"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-derive.service",
+        "--since",
+        "2026-11-12 07:25:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "110"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "tail",
+        "-n",
+        "8",
+        "/var/lib/swingset/ALERTS.log"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "loops": {
+    "acquire": {
+      "observed_ticks": 14,
+      "last_finished_at": "2026-11-12T08:31:01.685018+00:00",
+      "progress": 0,
+      "all_failed_false_error_null": true,
+      "requests": 0,
+      "zero_request_ticks": 14
+    },
+    "derive": {
+      "observed_ticks": 14,
+      "last_finished_at": "2026-11-12T08:33:26.633823+00:00",
+      "progress": 0,
+      "all_failed_false_error_null": true
+    }
+  },
+  "latest_alerts": [
+    "2026-11-12T05:35:52Z [loop-idle] acquire: no progress since 2026-11-12 04:11 UTC, over 60 minutes while unheld; its ticks finish but do nothing (read its run records)",
+    "2026-11-12T06:05:53Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+    "2026-11-12T08:05:30Z [loop-idle] acquire: no progress since 2026-11-12 04:11 UTC, over 60 minutes while unheld; its ticks finish but do nothing (read its run records)"
+  ],
+  "latest_known_request_tick_finished_at": "2026-11-12T04:11:12.078107+00:00",
+  "limits": "Observed cycles make no requests or progress; last known request is over four hours old. No cause or repair is established.",
+  "production_mutation": false,
+  "repair_deployed": false,
+  "raw_sha256": {
+    "acquire": "03728f8839deb9653c4559d8eed7408e149a337dc175d11a7f30a0c58f3e36b2",
+    "derive": "b4624923bacaabe1be09515ada65060c381274d2147b6f69806bb07c89037c97",
+    "alerts": "29196a0871584d6ed18a6baf6180a8a9517049acae37a1ebdf67d6e790bedf78"
+  },
+  "previous_receipt_sha256": "3f72510bf3a3f84478dd1285f45f6e009be50a29b2c042c58d6a07062f200f27"
+}

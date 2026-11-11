@@ -1,0 +1,47 @@
+{
+  "all_observed_ticks_failed_false_error_null": true,
+  "at": "2026-11-12T01:33:17.579204+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-12 00:20:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "160"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-watchdog.service",
+        "--since",
+        "2026-11-12 00:20:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "80"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "first_started_at": "2026-11-12T00:20:17.133659+00:00",
+  "format": "swingset-readonly-source-watch-v1",
+  "last_finished_at": "2026-11-12T01:24:30.051209+00:00",
+  "observed_ticks": 13,
+  "operation": "Read existing production acquire and watchdog journals",
+  "production_mutation": false,
+  "repair_deployed": false,
+  "requests": 748,
+  "source_journal_sha256": "249c6b5895ba3601f786dbb6d7b04a585b6541e50b8a61e8a697fcd392a44a30",
+  "watchdog_journal_sha256": "8003cf600138758508748bea929ed115b324c31d46f7169e80fab5a477d58b08",
+  "watchdog_report": "Both observed watchdog executions finish successfully; no alert text in this bounded journal excerpt"
+}

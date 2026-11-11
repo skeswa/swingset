@@ -114,7 +114,9 @@ weekly session.
    `finding_reviews.csv` (2026-09-22) in a batched override change.
 8. Human identity review website (H17) and the JesAnn history page as a site:
    deferred, see [D-0055](../../journal/decisions/0055-defer-human-adjudication-to-a-review-website.md).
-9. Bring the core test run back under three minutes. On 2026-09-26 it took
+9. Keep the core test run within five minutes (owner update, November 13;
+   [current gate](postgres-migration/6-stage-1.md)). The following measurements
+   used the earlier three-minute target. On 2026-09-26 it took
    194 s for 1,264 tests alone on the Mac (228 s in the phase 1 review; about
    203 s at phase 0). Most of the rise is new tests in existing core files.
    Profile with `--durations=30` and move exhaustive parameters to extended,
@@ -451,3 +453,25 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     database. Capture the exact failed syscall before changing process-group
     signaling or cleanup; ordinary `mise run test` still exits cleanly
     ([audit](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#native-watch-shutdown-permission-error)).
+
+44. Explain the production watchdog's 77.8 GB state-size observation against
+    its 50 GB cap at 2026-11-11 16:05 UTC. Audit database, WAL and included
+    directories before selecting cleanup or changing accounting; do not
+    remove frozen rehearsal inputs or alter production during stage 2
+    ([pulse](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#source-pulse-and-state-size-alert-at-1628-utc)).
+    The 2026-11-12 16:35 alert reports 79.5 GB, disabled remote backup upload
+    and a weekly off-machine copy requirement. The 20:11 UTC 100-line watch
+    records eight acquire ticks with no requests through 20:06 and nine
+    derive ticks with no progress through 20:08. All report no failure or
+    error; the last eight alerts are unchanged from the 19:07 watch,
+    including the idle and Wayback failures.
+    Preserve these partial observations without inferring a continuous
+    fetch gap or the cause of idle ticks
+    ([watch](../../journal/evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-2007.json)).
+
+45. Add a guarded recovery path for an empty temporary TEST profile after a
+    Docker restart. Its container and role-signature receipt survive while
+    tmpfs contents do not, so `dev` correctly refuses reuse. Distinguish that
+    proven empty state from unknown role drift; preserve durable physical and
+    development data and live owners
+    ([recovery](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#numerical-boundary-and-local-profile-recovery)).

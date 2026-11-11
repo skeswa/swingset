@@ -3525,3 +3525,2283 @@ Preparation sent no ping and changed no pipeline data. Its bounded
 normal-watchdog test controller is awaiting independent action review.
 The graph workers remain active; neither application delivery nor Gate 2
 is claimed by this preparation.
+
+## Guarded health attempt fails its timing check
+
+The independently reviewed health container starts once at 2026-11-11
+15:14:31 UTC. Its normal watchdog sends the application alert and heartbeat
+at 15:16:18; the provider records the alert down and the watchdog up, each
+with exactly one additional ping. The report has no delivery failures, but
+its timestamp precedes observation by about 106 seconds, exceeding the
+test's 90-second cycle allowance. Its alert keys also report stale,
+incomplete platform status. These are failed monitoring checks, not a
+passing application monitoring gate. The withheld-heartbeat test is not
+reached, and no new email confirmation is claimed.
+
+The controller stops this exact health incarnation at 15:16:23 with exit
+zero, PID zero and no OOM. It clears the owned event alarm and pauses the
+owned watchdog; the provider confirms both cleanup states. All twelve
+protected services remain unchanged, and the graph verifier continues.
+The failed result, application report and controller remain in scratch at
+`/tmp/swingset-stage2-guarded-health-20261111`. Do not replay the attempt or
+relax the timing check. Inspect the normal platform observer and measure
+the watchdog path before selecting another monitoring test.
+
+The hold is reviewed at 15:25:42 UTC, with its next review at 16:25:42.
+Owner, reason and original creation time are unchanged; protected services
+remain unchanged. Hold SHA-256:
+`ca9af323a65b7f6d233ac627b2325edd6ada05e0584702fdedab41cc4bcd801e`.
+
+Independent terminal review accepts the stopped boundary and confirms
+application delivery to the two intended checks. It leaves the monitoring
+gate failed. The heartbeat stores cycle start, while the loop sleeps 300
+seconds after completion; the next heartbeat's maximum age also includes
+both cycles' work. The first-cycle allowance alone cannot prove steady
+liveness. Platform status is read after database checks but compared with
+cycle start, so a newer observer timestamp can also be rejected as stale.
+The historical observer timestamp was not captured, so that mechanism is
+not established as this attempt's cause. No threshold change or retry is
+selected; inspect these clock semantics after the active graph completes.
+
+## Source requests resume at 15:16 UTC
+
+The read-only production pulse at 2026-11-11 15:36:43 UTC finds three
+requesting ticks since the previous pulse: 70 requests at 15:16, 73 at
+15:26 and one at 15:36. They fetch 9,952,597 bytes across scoring.dance,
+eepro.com and worldsdc.com, with no failed tick in that interval. This is
+observed collection progress, not just successful empty cycles. The earlier
+write-lock failure and stale Wayback finding remain recorded; this session
+performs no production repair. Scratch pulse SHA-256:
+`89cee3c99de7c1648d7c0d90458b93f3439017068198ab640e3d023e0e43773f`.
+
+## Graph progress at 15:58 UTC
+
+The 2026-11-11 15:58:07 UTC supervisor sample finds the same graph actor
+running, with advancing transaction/read counters, no reported error or
+OOM and all twelve protected services unchanged. Unit results remain
+pending; activity counters do not establish completed matches. The shared
+native-38 database is still unmigrated and unrekeyed.
+
+The existing hold is reviewed at 15:57:57 UTC, next review 16:57:57 UTC.
+Owner, reason, creation time and unstarted schedulers are unchanged.
+Hold SHA-256:
+`f9341d23b131860c603f8926dc25c5d07d73e92971f1ec700e4e5a8273cd1c7b`.
+
+## Completed full-suite scratch cleanup
+
+Independent review finds the exact `pytest-3395` root belongs to the
+completed 4,728-case run and has no active process, mount, container,
+database or ledger references. Its metadata inventory and all guards
+match again under both local validation locks. The operator quarantines
+only that root, then unlinks it; both commands exit zero. External test
+reports, neighboring roots and the current-root symlink remain unchanged.
+No server or database object is removed.
+
+Cleanup finishes at 2026-11-11 16:14:40 UTC. Free space rises from
+88,912,310,272 to 121,155,936,256 bytes, an observed increase of about
+30.0 GiB; APFS and concurrent system activity affect this measurement.
+Both locks are released. The review, fresh admission, command results and
+postchecks remain in scratch at
+`/tmp/swingset-stage2-completed-full3395-cleanup-20261111`. This selects
+no additional test run or application source change. The server graph
+continues without a reported error.
+
+## Source pulse and state-size alert at 16:28 UTC
+
+The read-only production pulse at 2026-11-11 16:28:19 UTC finds seven
+requests and 13,684,418 bytes fetched since the preceding pulse, with the
+last request at 16:16:27 and no failed acquire tick in that interval.
+The 16:05 watchdog reports state size of 77.8 GB against the 50 GB cap,
+629 partitions withheld for `source_support_unavailable`, the known stale
+Wayback warning and paused remote backup upload. The size is a watchdog
+observation, not a fresh database-size audit or a proven cause of test
+slowness. Item 41 already tracks the withheld partitions; add the size
+finding to maintenance. No production repair or cleanup is performed.
+Scratch pulse SHA-256:
+`6008ec84a2b314fd4580c92b9d42c9bb59d7bd20b445012813a710a1122e4a4a`.
+
+The rehearsal hold is reviewed at 16:31:12 UTC, next review 17:31:12 UTC.
+Owner, reason, creation time and unstarted schedulers are unchanged; all
+twelve protected services remain unchanged. Hold SHA-256:
+`8f56bda4e09193f57c8c302ea9b8436b691b01722b57223a50e618ad0c270a08`.
+
+## Isolated health clock repair
+
+The separate jj workspace
+`/private/tmp/swingset-stage2-health-clock-fix-20261111`, change `ypskmqrr`,
+reproduces two clock errors offline: a platform snapshot published during
+checks is falsely stale, and 102 seconds of work becomes a 402-second
+start-to-start interval. Completion timestamps, fresh platform time and
+monotonic remainder pacing pass all 70 focused health/deployment cases.
+Independent source review accepts the repair under D-0292; actual cadence
+and delivery remain unproved. The original checkout and active server graph
+keep source `8aae03bf…`; no runtime is replaced.
+
+The first isolated core run, `f790d2c8af21427c9580a503`, fails two DCN tests
+and timing at 273.135 seconds; Ruff and mypy pass. A tracked-only workspace
+omitted the externally archived, explicitly ignored index fixture. The
+existing approved 2,804,496-byte body is restored unchanged and verified
+against its provenance and the original full-run input hash. All 940
+baseline paths are now present, differing only in health code and its tests.
+All 73 affected DCN controls pass. This does not explain the timing failure.
+
+The repair source is `7abf02ae…`, corrected binding `4c07fef6…`. Its normal
+core check is active with inputs fixed, at
+`/tmp/swingset-stage2-health-clock-restored-check-20261111`; the failed
+939-file check and host observations remain separate. Full validation,
+installed bytes and graph/monitoring proofs remain open for this source.
+
+The restored-input run passes all 3,150 cases, Ruff and mypy but takes
+246.199 seconds. An ABBA source-capture probe finds similar cached path
+costs and does not justify relocation as an optimization. Sequential native
+profiles execute equal SQL-call counts; their first-run library-loading
+costs differ, without explaining core timing. The clock regression is
+strengthened to publish status during the read itself; it fails before the
+correction and all 70 focused cases pass after it. Source `dce34a49…`,
+binding `b03ffca5…`, passes independent source review. A check with an outside
+read-only observer passes correctness and static checks but takes 214.028
+seconds. Host compression rises during the run; detailed VM pressure files
+are unavailable. No causal performance claim or timing waiver follows.
+
+At 17:03 UTC, the byte-identical reviewed repair is integrated into the
+normal checkout. The original source and all 940 old validation paths are
+preserved in a sparse jj workspace at
+`/private/tmp/swingset-stage2-held-source-20261111`, exactly matching the
+earlier full-run binding. The active server image and graph stay unchanged.
+Validation of the integrated source uses the normal repository location;
+no cache reset, warm-up, resource, weight or test-selection change is made.
+
+## Current validation and source pulse at 17:24 UTC
+
+The integrated check fails one crash-recovery test and timing at 217.06
+seconds. The killed client can leave its PostgreSQL backend briefly alive.
+The test now records that backend's PID, database and start time, then
+observes its retirement and lock release through a bounded read-only
+connection. The original nonblocking reopen and replay assertions remain.
+Independent source review accepts the correction. The focused case passes.
+
+The next normal check, job `adeab3baad294f7b84a778a6`, passes all 3,150
+cases, Ruff and mypy but takes 198.154 seconds and fails timing. Application
+source remains `dce34a49…`; the corrected test changes the full binding to
+`6bb19eb7…`. All results and outside pressure observations remain in
+`/tmp/swingset-stage2-health-clock-retirement-check-20261111`. No timing
+waiver or causal claim follows. The active server graph still uses the
+separate, unchanged `8aae03bf…` image.
+
+The read-only production pulse at 17:24:54 UTC finds no requests since
+16:16:27, about 68 minutes idle, although acquire ticks finish without an
+error. The state-size and withheld-partition alerts remain open in the
+maintenance queue. No production repair is performed. Pulse SHA-256:
+`f1563ff6bb77c3a72cd53fa272bd187174bffaee03b4425072c0093369cf56b6`.
+
+The existing rehearsal hold is reviewed at 17:24:56 UTC; its next review
+is 18:24:56 UTC. Owner, reason, creation time and unstarted schedulers are
+unchanged. Hold SHA-256:
+`8367e7f5acc51f3f9e519df5b82112107c0f388e79d85ff96ad0a53c70a2e6c1`.
+
+## Conservative SQL timeout reuse
+
+The measured developer timing failure selects one narrow target: the native
+scoring pipeline profile has 9,466 timeout-setting SQL commands costing
+1.120 cumulative seconds. D-0293 rounds remaining budgets down to
+10-millisecond boundaries above one second and preserves precise integer
+milliseconds below that. Absolute expiry is still checked before every
+query. All transaction, configuration and error invalidation remains.
+
+The real-PostgreSQL regression fails before the change and passes after it.
+All 83 engine, deadline and crash cases pass; a stronger expiry assertion
+proves late SQL never reaches the raw cursor. An initial test failure at
+a floating-point boundary remains recorded; offsets away from that boundary
+correct the test. Independent source review accepts the final code/tests,
+SHA-256 `c04da655ea6838f22a228fb2c8772afedfa1c55cc11029cbf7a417954e11898d`.
+
+The next native profile keeps 62,846 pre-query checks and reduces setters
+to 3,065, costing 0.478 cumulative seconds. That demonstrates fewer SQL
+commands, not normal-core speed. Current source `99f66aa8…`, binding
+`df87edc1…`, passes all 3,151 core cases, Ruff and mypy in job
+`53521196bcb84c4fbef43b86` but fails timing at 206.973 seconds. Its complete
+failed result remains in
+`/tmp/swingset-stage2-timeout-buckets-normal-check-20261111`. No further
+timing retry is selected without measured cause or a substantive correction.
+The server graph and shared native-38 database remain unchanged.
+
+## Hold review at 17:51 UTC
+
+The existing rehearsal hold is reviewed at 17:51:53 UTC, next review
+18:51:53 UTC. Its owner, reason and original creation time remain unchanged;
+pipeline schedulers remain unstarted and all twelve protected services
+match. Hold SHA-256:
+`d7122a66b10e1e2a16045d49aab0fbaa466a219611912f4816a7408809cd99e6`.
+The same graph continues without a reported error or OOM; transaction
+activity is not proof of completed unit matches.
+
+## Source still idle at 18:04 UTC
+
+The read-only production pulse at 18:04:42 UTC finds eight more successful
+empty acquire ticks since 17:24 and no new request. The latest tick ends
+at 18:01:13; last fetch progress remains 16:16:27, about 108 minutes idle.
+Existing maintenance items retain this finding and the state-size/withheld
+alerts; no production repair or source request is performed. Pulse SHA-256:
+`19e6ae4c770d0daa975cf66b05271c072d51dddcee088e5bfeab5f414517540c`.
+
+## Bounded Linux SQL-shape diagnostic
+
+After independent review and fresh admission under both validation locks,
+one unchanged archived scoring pipeline case runs in the pinned normal
+Linux client image next to the existing test PostgreSQL. Source `99f66aa8…`
+and all 940 bound paths remain unchanged. The case passes, owned test
+cleanup completes, the actor is absent and its volume is retained. No
+measurement or host cleanup ceiling fires. Execution review SHA-256:
+`aac0161798b19613a1c3e1cf63a2905283733afa80726839010334d19846a7cb`.
+
+The accepted trace records 64,730 driver calls and 62,846 pre-query checks,
+with 3,250 groups, no overflow or metadata errors, and 97 local read-context
+ordinals. The body takes 9.657 seconds, including 5.904 seconds of thread
+CPU. Driver execute intervals total 3.744 wall seconds and 1.073 CPU
+seconds. Measured metadata/aggregation overhead is 0.464 wall seconds;
+wrapper dispatch, context-manager work and final serialization are outside
+that accounting. Query-shape hashes and local ordinals do not establish
+equal arguments or memoization safety. Credential/configuration SQL is
+suppressed before hashing; no SQL text or parameters are retained.
+
+The complete result stays in
+`/tmp/swingset-stage2-linux-query-shapes-20261111/run-77b5b3997dde4f5da8e0aa66/result.json`,
+SHA-256 `21a294f3e6415152e8cee09b6dc9e8f7bc7b5a2ae5d94b4843c676e0900ee802`.
+It is an instrumented single-case diagnostic, not normal core timing or
+proof that any proposed optimization closes the budget. No second trace,
+core retry, server mutation or optimization is selected by this result.
+
+## CPU measurement selected after SQL analysis
+
+The accepted Linux trace's snapshot recipe-input lookups cost 0.042 wall
+seconds, and their repeated shapes do not establish equal arguments.
+The largest row-write path costs 0.666 seconds and must preserve immediate
+stream visibility. No SQL memoization or row buffering is selected.
+The analysis receipt remains in scratch, SHA-256
+`ce3829c3d54412cb9a741c1f63c874367267201151c3d5fa9d98897665f26a59`.
+
+The measured next target is 4.831 main-thread CPU seconds outside base
+driver execution; it includes observer work and is not an identified
+application hotspot. Prepare one CPU-self profile using a thread clock,
+with generator suspension artifacts explicitly excluded. Before that
+second diagnostic, promote the repeated lifecycle into a tested
+`swingset` subcommand, reusing normal PID1 cleanup, resource checks and
+finite ceilings. This selects tooling and a measurement, not an
+optimization, normal-core retry, deployment or server data change.
+
+## Pinned-image migration direction
+
+All seven native SQL/explicit owner migration files match between the
+held `8aae03bf…` source and the latest checkout. The plan now permits
+only the authoritative dry-run schema transition to continue on that
+exact fully tested image after its actual graph and read-only postgraph
+proofs pass. No hybrid source closure is allowed. Desired DDL identity
+must be rechecked at preparation. The normal cold-profile, execution,
+typed-table, admission-transition, identity, hold and no-retry gates remain.
+
+Independent review accepts this direction, SHA-256
+`ac94fa85d0847edcd1a78f1d07386be3de6b6b285300f845b9355269abcec07a`.
+This grants no preparation or execution authority. The graph remains
+active; no shared database change has been made. Rekey, backups, private
+publication, recovery, lifecycle and final monitoring wait for the final
+source/image qualification. Current-source and Gate 2 checks remain open.
+
+## Hold review at 18:31 UTC
+
+The existing rehearsal hold is reviewed at 18:31:31 UTC, next review
+19:31:31 UTC. Its owner, reason and original creation time remain unchanged.
+Pipeline schedulers remain unstarted, and all twelve protected services
+match. Hold SHA-256:
+`55b25f153012d7be3df840313208143da95f273e8c7d3f49f15bd5ef2e17e89a`.
+The same graph remains active without a reported error or OOM; unit results
+are still pending.
+
+## Whole-graph failure at 18:33 UTC
+
+The exact source-8aae actor exits 1 at 18:33:08 UTC after about five and
+a half hours, with PID zero and no OOM. The supervisor's terminal zero-exit
+check raises its generic `ValueError`; its later generic stop reason does
+not establish that the supervisor interrupted the actor. The collected
+receipt contains all 108,390 results: 107,888 match, 500 mismatch and two
+fail. It reports `complete=false` and `clean=false`. No replay is performed.
+
+Inventory/all returns without completing its unit. Year/2026 exceeds the
+unchanged 60-second atomic write limit and rolls its output back. Of the
+500 mismatches, 492 resolution and four year units keep identical output
+labels while changing dependency digests. Four link/event cases change
+output: three lose one row and one keeps its count with a different hash.
+These classifications do not explain or accept any difference. Source
+investigation and independent terminal/cleanup review remain open.
+
+The public receipt is 63,892,390 bytes, retained only in scratch at
+`/tmp/swingset-stage2-selected-generation-whole-graph-20261111/collected-graph.json`,
+SHA-256 `24358187745cf37c30edc576106f9085a7ccb570162874ad8a9228f88ee108bc`.
+The supervisor reports all twelve protected services unchanged and a
+minimum 459,749,584,896 free bytes. Private PostgreSQL has nonzero memory
+pressure events, with no OOM; this is not a no-pressure claim or proven
+cause of the year deadline. Migration, rekey, backups and private
+publication remain unstarted.
+
+## Failure-boundary check and error-report correction
+
+Independent terminal inspection confirms natural exit 1, PID zero, no OOM
+or restart, and no supervisor stop attempt. All three exact A51 database
+names and OIDs are absent, its registry is empty, and no owned sessions,
+process groups or cgroup remain. Protected C696/69 metadata, the shared
+database's native-38 identity, guard, roots, hold and twelve services match.
+This is a failed-graph boundary acceptance, not graph acceptance. Verdict
+SHA-256 `42b699259e17a97a248d38cb228722567f196377f4d076b816ab23a08fa7d45e`.
+
+Correction to the initial inventory classification: the old graph wrapper
+overwrites any pre-completion error with its generic message. That message
+does not prove a normal transform return. The lost original error cannot
+be reconstructed from this receipt. The new wrapper still fails missing
+completion, preserving an existing error and reason. Three regressions use
+real transform exceptions/normal noncompletion and actual transaction
+writes, proving both error retention and rollback. All 29 tests in the
+verification file pass, with Ruff and mypy. No graph replay or transform
+version bump is performed.
+
+## Source still idle at 19:05 UTC
+
+The read-only pulse at 19:05:40 UTC finds twelve more successful empty
+acquire ticks and no request since 16:16:27, about 169 minutes idle. The
+watchdog has also recorded this idle state at 17:35. The old Wayback
+server-error warning remains. No production repair is performed. Pulse
+SHA-256 `ee657f35f289521fc989034bbce78d9848da2f603f4e6ac3389c752d8156d2cb`.
+
+## Hold review at 19:08 UTC
+
+The existing rehearsal hold is reviewed at 19:08:12 UTC, next review
+20:08:12 UTC. Its owner, reason and original creation time remain unchanged;
+pipeline schedulers remain unstarted and all twelve protected services
+match. Hold SHA-256:
+`175cdf49ebb5b26371bc64e5d48e2ed4d9961a34d5fa3622cf97513bbb470eda`.
+The proposed read-only forensics packet is being revised for customer
+execution after root SSH and passwordless sudo prove unavailable. No
+forensics staging, SQL execution or business replay has taken place.
+
+## Forensics capture fails before query stream
+
+The customer-owned v2 packet passes remote hashes and private ownership
+checks, then its one capture exits 1 before installing the SQL-owner
+fence or sending the forensic query stream. Docker rejects `top -eo pid=`
+because suppressing the header prevents its PID-field parser from working.
+A separate read-only probe confirms `top -eo pid` succeeds with the header.
+No target dependency or link data is captured. The cleanup metadata query
+returns zero named backends; the Docker exec client exits zero.
+
+Independent failure-boundary inspection confirms no owned clients remain
+and protected services, guard, roots, hold and preseal metadata match.
+The collector's own cleanup error remains recorded. Result SHA-256:
+`5adb706fcc9dc4a33b5889741bd831f289abf7e917541e8cb84585324ada06f5`;
+boundary verdict SHA-256:
+`32b48015f75d63733325ca30be43b605556dc057be047ae9ab10fa202bfcf1bd`.
+All v1/v2/v3 packets remain preserved. V3 is a prepared one-option correction
+with a fresh nonce; it is not executed. Before another capture, the repeated
+collector moves into a tested `swingset` command under the repository's
+script-reuse rule. SQL and cleanup-shell files stay separately reviewed
+operation inputs. No automatic replay or migration is performed.
+
+## Bounded metadata capture and first causal witnesses
+
+The repeated collector is now the tested `swingset graph-forensics` command.
+Its first maintained capture executes all twelve read-only queries and
+cleans up its owned clients, but validation fails: the decoder expects JSON
+lines while PostgreSQL emits formatted JSON documents. The global manifest
+bound also withholds dependency bodies when one nested object exceeds the
+per-object bound. Neither condition is accepted as successful capture.
+The original result remains unchanged, SHA-256
+`0bd54b49e3d8e53e9e8d9bf37914a1c542aab92f8369f3f9882fe1f041b5d3dd`.
+
+The corrected decoder reads bounded concatenated JSON documents, checks
+their exact order and rejects truncated or extra content. Forty-seven
+focused tests, Ruff and mypy pass. Independent source review accepts the
+change. A separately reviewed capture of eight top-level roots completes
+in 2.884 seconds, with matching hashes, no remaining owned clients and
+unchanged protected services. It does not prove nested closure or graph
+acceptance. Result SHA-256:
+`2d4006f0a92fe582a767d3103852d7751a57f34bee7729109e52392b5af9ba3f`;
+terminal verdict:
+`5f4972a024ebc505843b72c2b7c047d03050f77704db0f1ebdbb9dc0c9249060`.
+
+For one resolution and two year units, replacing only the stored inventory
+generation group with the checkpoint's current inventory group reproduces
+the graph's dependency digest exactly. These three cases contain stale
+checkpoint dependencies. The remaining output-identical mismatches still
+need their own witnesses. For each of the three link cases that loses one
+row, removing only dancer 16984 reproduces the dependency digest; removing
+that candidate and its resulting identity fields reproduces the output
+digest exactly. Why the candidate disappears remains unresolved. The fourth
+link case has equal row counts and needs a separate explanation. No recipe
+bump or graph replay is performed.
+
+## Hold review at 19:57 UTC
+
+Hold renewal is now the tested `swingset review-rehearsal-hold` command.
+Its independently reviewed first run completes at 19:57:40 UTC, with the
+next review at 20:57:40 UTC. Owner, reason and original creation time remain
+unchanged; pipeline schedulers remain unstarted and all twelve protected
+services match. Hold SHA-256:
+`b25fb8b15d62f5baabdee3844aebfaf9668439c8bd2a81568a30844afd62f10b`.
+
+## Source pulse at 20:15 UTC
+
+The read-only pulse finds two more successful empty ticks and no request
+since 16:16:27, about 239 minutes idle. The latest completed acquire tick
+is 19:10:29, over an hour before the pulse. Service-state inspection follows;
+no production repair is performed. Existing watchdog warnings still report
+the state-size cap, withheld partitions and Wayback server errors. Pulse
+SHA-256:
+`ffbff75590a0d23489d254fc8a8559e54e37767324b6ad6a7b09f092bfc7bd77`.
+
+The following read-only systemd and journal checks show a new VM boot
+between the 19:10 and 20:15 ticks. Acquire and watchdog timers are active;
+the 20:15 acquire tick exits successfully at 20:15:36 with zero requests.
+The first pulse preceded that completion. The journal records no tick
+between the two boots. This corrects the apparent missing current tick,
+but collection still has no fetching progress. No restart or repair is
+performed by this check.
+
+## Local diagnostic preparation refuses after VM restart
+
+The first maintained CPU-diagnostic preparation refuses before creating a
+packet because the warm test service is stopped. The existing test and
+physical containers both exited zero about an hour earlier; their exact
+IDs, pinned image and configuration labels still match. The supported
+test-service start function starts the same test container, then refuses
+role-signature drift. It reaches no physical-service start. No container,
+database, role or ownership record is reset. Read-only diagnosis precedes
+any recovery; no CPU profile or core timing retry is run.
+
+## All 496 dependency differences reconstructed
+
+Four disjoint read-only captures cover all 496 output-identical mismatches
+and their 397 distinct top-level roots. Every capture completes, exits zero,
+leaves no owned clients or named backends, and preserves the protected
+boundary. Remote hashes before and after SFTP match each local file. The
+unchanged per-operation root bound is 128; no nested manifest is read.
+
+For every unit, replacing only the previous inventory group with the
+checkpoint's current inventory group, then applying the held source's
+canonical outer-list sort, reproduces its graph dependency digest exactly.
+All 492 resolution and four year units have witnesses, with zero residuals.
+Analysis SHA-256:
+`4041b180b5e5a20438960fbb4bc9c1df0997384270a2b8aea3e4acbbbc987243`.
+Independent reconstruction confirms all 496 hashes. The review's initial
+counterexample omitted the required outer sort; its corrected witness
+records that observer error. Terminal verdict SHA-256:
+`bb49fb383e2f02971c352b7d6b4dea4010249143ebb281073fe30db6dec2dd52`.
+This explains existing checkpoint dependencies; it does not accept the
+four link differences, either failed unit, or the graph gate.
+
+## Numerical boundary and local profile recovery
+
+The captured candidate inputs identify three Emily Wilson/Eli Wilson
+pairs, Anna Koch/Anna Kratochwil, and Ben Ha/Ben Howard. A local pure
+comparison on ARM64 finds Emily/Eli at `0.92` in C++ and
+`0.9199999999999999` in Python. The unchanged `>= 0.92` gate flips; Anna
+and Ben stay at `0.92` in both. This is a local backend witness, not proof
+of the held server's backend. The repeated probe is promoted to tested
+`swingset link-numerics` before any server comparison. Twelve focused tests,
+the standard focused test entry point, formatting and CLI help pass.
+
+Independent local checks confirm the stopped/restarted temporary TEST
+profile contains only four initdb databases and its administrator role,
+with no user objects or other clients. Its reviewed one-shot recovery
+removes only exact empty container `4555d664…` and dead empty owner record
+`3fdfaf2d…`. Supported functions recreate TEST as `1cb24135…` and its
+immutable template. The same durable physical container `6bfb6553…` starts
+and validates without reset. The unmatched copy ledger remains untouched.
+No test, graph replay or server migration is part of this recovery.
+
+## Hold review at 20:40 UTC
+
+The maintained hold command reviews the existing hold at 20:40:01 UTC,
+next review 21:40:01 UTC. Owner, reason and original creation time remain
+unchanged; pipeline schedulers remain unstarted and all twelve protected
+services match. Hold SHA-256:
+`8e7d843ee37e5382c3d20f0d0388d2439b04e334b5d6da8a255270dad3f5639e`.
+
+## CPU profile rejects its timing quality
+
+The reviewed maintained profile runs once on source `8a0f9c0f…`, with its
+948-file binding and recreated local TEST profile. The one original
+scoring case passes. Source stability, resource limits, actor retirement
+and owned cleanup pass; no measurement or cleanup ceiling fires. Body
+wall time is 23.095 seconds and main-thread CPU is 18.574 seconds.
+
+The profile remains rejected: its 5,831 entries include negative self
+times and an impossible 1,279-second lock entry. No performance ranking or
+normal timing claim is accepted. Raw result SHA-256:
+`7dbd683173a7b3381940cc8eec7b7d97c506c7558e8f5aa1d834e4f148b8dfeb`.
+A tiny separate CPython 3.12 reproduction observes profiler callbacks in
+multiple threads subtracting their distinct thread clocks. Filtering all
+four callbacks to the enabling thread removes that error in the tiny
+experiment. Select a narrow maintained-profiler correction and real
+worker-thread regression before another pipeline profile. The failed
+result remains unchanged; the core timing gate stays open.
+
+## Pure numerical sandbox fails before Python
+
+The independently reviewed sandbox's first launch fails before its Python
+process starts. Docker refuses inherited logging settings: compression is
+enabled while the maximum file count is one. Exact container `7f0bf2e4…`
+remains created with PID zero, zero start/finish timestamps and no OOM.
+The supervisor completes its failure path in 1.514 seconds; protected
+services, guard, roots, hold and preseal checks still match. There is no
+numerical result, database access or graph replay.
+
+Stable remote/local hashes bind its owner, allocation and result files.
+Result SHA-256:
+`9f78a532d550a0a54138ad913d021f1e67694a8ccc7b6b075c08ca2ccdb867c6`.
+The fixed safe projection also confirms the old verifier has no
+`RAPIDFUZZ_IMPLEMENTATION` override. No full environment is exported.
+Preserve this failure and the created container. Before a second lifecycle
+invocation, promote the supervisor into a tested command with explicit
+bounded logging settings, as the script-reuse rule requires. No retry is
+performed yet.
+
+## Server numerical gates and source watch at 21:16 UTC
+
+The maintained sandbox runs once with explicit bounded local logging and
+completes successfully. Exact container `edf941d6…` is stopped; its four
+output files have matching remote-before/after and local hashes. It runs
+the held image on x86-64 Linux with CPython 3.12.16 and RapidFuzz 3.14.6.
+Default and generic C++ both compute the three Emily/Eli similarities as
+`0.9199999999999999`, below the unchanged `0.92` gate. The old verifier and
+probe have no implementation override. The archived candidate code and
+normalization bytes match; the retained candidate had passed that gate.
+This supplies the runtime numerical seam behind the three reconstructed
+candidate losses. Independent causal and terminal review follows. Anna
+and Ben remain `0.92`; the fourth link difference is still unexplained.
+Result SHA-256:
+`3b08831fb89351ac629ec29bfffd5da7a59b2cc940354576539db0983634c7ee`.
+
+Read-only production journals through 21:16 contain thirteen successful
+acquire ticks with zero requests. The watchdog also reports stale fetching
+and the known expired Wayback warning. No production repair is performed;
+the latest earlier known request is 16:16. The compact generated watch
+[receipt](../../evidence/runtime/postgres-stage2-2026-11-11/source-watch-2116.json)
+retains commands, exit codes, counts and log hashes. Full logs stay in scratch.
+
+## Hold review at 21:24 UTC
+
+The maintained hold command reviews the existing hold at 21:24:09 UTC,
+next review 22:24:09 UTC. Owner, reason and original creation time remain
+unchanged; pipeline schedulers remain unstarted and all twelve protected
+services match. Hold SHA-256:
+`838d86b4ef2dc288442402c1a6ffff69ece2c5dcce4c438fb4e9384592ec06bb`.
+
+## All 500 mismatch labels explained
+
+The final names-only capture reads exactly 204 retained fuzzy pairs and
+260 unique public input rows, with no missing subjects or dancers. The
+reviewed numerical sandbox compares that whole pair set in the held image.
+It exits zero with no OOM and leaves its exact container stopped. Captured
+and calculated files have stable remote and local hashes. No solver or
+business transform is run.
+
+The offline comparison first reproduces all 204 old scores exactly and
+the complete 3,235-row stored label. Only two similarities change by one
+bit, for the same dancer in two contests. Both candidates have confirming
+printed IDs and score 1.0. Scores, confidence, membership, ranks and
+decisions remain unchanged. Replacing only those two cells reproduces the
+graph's complete found label:
+`4f8e9d7d5209cb964fd8a3e66fa4a36e5f495b95ed2410e88b9f29aeb3267918`.
+Independent stdlib-only reconstruction confirms it, verdict SHA-256
+`95d600b68fa84a998275428928898e3f7b51d1b4a04ff57e64b1d0b536f99f17`.
+
+Together with the 496 inventory-group witnesses and three complete
+candidate-loss reconstructions, this accounts for all 500 mismatch labels.
+It does not prove a historical runtime was executed. Neither failed unit
+is accepted, and the graph remains failed. Linker version 10 marks the
+observed runtime numerical changes; it does not change rounding, weights
+or the identity algorithm. Re-keying must leave affected work queued.
+
+## Current normal check and architecture correction
+
+The first normal check of source `0b17ac3d…`, binding `3ae526d6…`, selects
+3,335 cases: 3,332 pass and three architecture guards fail. The core takes
+193.99 seconds and also fails the unchanged 180-second limit. Ruff and
+mypy pass. Job: `92dc3dace10b463d9309b1d2`. This failed result remains
+unchanged; the fresh local TEST profile is not evidence of a speedup.
+
+The failures identify the new numerical diagnostic under the production
+linking package and its dynamic imports. Move the tool to `deploy`, use
+static optional C++ imports, and fail closed when a backend module is not
+already loaded. Keep all recipe-scope and entry-point rules. All 70
+functional cases and five existing architecture checks pass. The corrected
+source still needs its own normal and full qualification; no timing pass,
+migration or publication is claimed.
+
+## Corrected source passes correctness, not timing
+
+Source `b392a022…`, binding `b29e3fe3…`, passes all 3,336 core cases, Ruff
+and mypy. The core takes 190.14 seconds and fails the unchanged 180-second
+gate. The earlier three architecture failures are fixed; no rule, selection,
+weight or resource cap is relaxed. Job: `ad5e3dd0053a4430a6a8287d`.
+This is correctness evidence, not a completed normal qualification or an
+attributed speedup. Do not retry it without a new causal reason.
+
+## Hold review at 22:20 UTC
+
+The maintained hold command reviews the existing hold at 22:20:32 UTC,
+next review 23:20:32 UTC. Owner, reason and original creation time remain
+unchanged; pipeline schedulers remain unstarted and all twelve protected
+services match. Hold SHA-256:
+`d6f29d164c6159aedf90e57093bbaa8705e4ffbb8fd789ede59544e3bdc35fad`.
+
+## Publication wait diagnostic at 22:44 UTC
+
+One bounded diagnostic of the existing uncertain-publication case passes
+with fixed source `0d5fa506…`, binding `a6f52c93…`. The body takes
+3.299 seconds and 1.464 owner-thread CPU seconds. Its 7,820 outermost
+driver waits consume 0.781 elapsed and 0.140 CPU seconds, with zero nested,
+foreign-thread, exception or invalid-clock samples. Quality, source and
+owned cleanup checks pass; the actor is absent. No SQL or arguments are
+captured. Result SHA-256:
+`d81a92a7a338b8daadfa7926fdfdf65b4678775c769c3c094b962218a95b1f12`.
+
+This isolated case does not reproduce an older suite's 27.94-second call;
+the corrected `b392a022…` suite already records 6.61 seconds. It does not
+prove a normal-suite speedup or cause. The 180-second gate remains open.
+Scratch packet: `stage2-publication-waits-20261111-2240`. Independent
+terminal review accepts the clock accounting, fixed source, resource caps
+and cleanup; both locks are released. Verdict SHA-256:
+`4aaded22bd462edc93e0b82cae4b404efa85bae35efb4d1f5d580850ee9f292e`.
+
+The separate failed-unit diagnostic has not run. Its first source review
+refuses an operator file mounted at `/probe/unit_diagnostic.py`: the actual
+guardian permits only fixed destinations. Preserve that guardian and use
+an already allowed destination with a real container-validation regression.
+Independent refusal SHA-256:
+`993dd14a6270d5468cca192fb838076ca90fae58c9541d5f9a3a1f560d8f0301`.
+
+## Next qualification direction
+
+Offline comparison of the corrected normal run finds five new fast files
+with fallback estimates totaling 182 seconds, versus 0.820 measured phase
+seconds. The runner learns their actual weights on correctness success,
+including when timing fails. Do not edit, reset or pin the cache. All four
+clients remain long; the error alone does not explain the timing gap.
+Current common-case elapsed sums are 3.58% above the older passing run;
+overlapping worker times cannot be subtracted from job elapsed time.
+Analysis SHA-256:
+`91917b871e18f6f7363070e1d3f5cca4161026e21df39d791cba5ef1fc918802`.
+
+Independent review permits only the required first qualification after the
+current diagnostic source closes, passes review and is formatted. Preserve
+all earlier failures and every normal cap and selection rule. If that new
+source misses timing, stop unchanged retries and select a measurement in
+that normal context. No production optimization or further isolated profile
+is selected. Direction verdict SHA-256:
+`4e6c96fab0dd1d6161d9caf7f19a198fad011a12d848f09de5cbaffd1e016d80`.
+
+## Unit diagnostic source qualification
+
+Independent source review accepts the corrected eleven-mount composition,
+using the existing checker root as a read-only operator directory. The
+guardian stays unchanged. Producer image, OCI artifact, Python source and
+archive hash are checked separately. Source verdict SHA-256:
+`d8fcd46820fdc30eb1636914c9ce524e3fd0587e44f997cd048c9cb1399be747`.
+This grants no actor-start or database-copy authority.
+
+The required normal check of source `0aca6352…`, binding `5e9f3583…`,
+selects 3,430 cases. All calls pass, but five directory-validation cases
+error during Linux teardown: their global `os.fstat` mock lacks `st_ino`
+when `shutil.rmtree` runs before the mock fixture restores it. Scope the
+mock to the test body and retain every ownership and mode assertion.
+Ruff and mypy pass; timing also fails at 184.67 seconds. Job:
+`d39692c6ee7c4133a1823ac1`. Physical cleanup completes. The controller
+survives the tool-server restart, finishes once and is not relaunched.
+No timing speedup is attributed and no unchanged retry is selected.
+
+## Hold review at 23:04 UTC
+
+The maintained hold command completes at 23:04:08 UTC, with the next review
+at November 12 00:04:08 UTC. All twelve protected services match; owner,
+reason and original creation time remain fixed. The interrupted tool
+handle is not a reason to repeat the completed command. Hold SHA-256:
+`d4e44c4f047cd75eb6bd0396705fb1461ee9b7b69bd0eb9e6f884deaf60c1ba4`.
+
+## Linux directory-test cleanup correction
+
+The test now scopes its `fstat` replacement with `monkeypatch.context()`,
+asserts restoration before return, and restores directory permissions in
+`finally`. Only the test file changes; the reviewed operator and supervisor
+bytes remain fixed. The same pinned Linux client passes all five cases,
+including teardown, with no database credentials or network. Its actor
+exits zero, has PID zero and no OOM, and remains stopped for review.
+Result SHA-256:
+`04fece15943f8d67d2b9761ea6710a1e7f157cca9b1441ec428c86e8b682f893`.
+Independent source and terminal acceptance SHA-256:
+`5e8f822ae0d9713f8a18aa9d647b39a885730e8e4ec65a323784e8414d39cbc6`.
+
+This corrects the five known teardown errors, not the failed timing gate.
+Do not repeat the normal run unchanged. Continue preparing the separately
+reviewed disposable unit diagnostic; its old producer image already has
+its own core and full-suite proof. Current qualification and Gate 2 stay
+open. No server actor or database copy has started.
+
+## Source watch through 23:26 UTC
+
+Read-only production journals show twelve successful acquire ticks from
+22:30 through 23:26, all with zero requests. The watchdog repeats the
+existing expired archive-host warning. No repair or production change is
+made; the known collection stall stays in maintenance items 40, 41 and 44.
+The first SSH date-quoting attempts fail without changing anything; the
+corrected queries succeed. The [compact watch receipt](../../evidence/runtime/postgres-stage2-2026-11-11/source-watch-2326.json)
+records both journal hashes and the observed interval. Logs stay in scratch.
+
+## Disposable-unit read-only preflight
+
+Fresh direct CLI checks confirm all twelve protected services and the
+guardian incarnation. The private catalog still contains only C696 and
+the retained 69 copy, with no sessions on either. C696's UUID, native
+schema 38, source schema 37 and migration checksum match the protected
+baseline. This is metadata evidence; the actor must still verify the
+full source checkpoint before copying.
+
+Shared and private database sizes are 38,505,133,747 and 38,409,934,515
+bytes. Free space is 580,654,825,472 bytes, exceeding the unchanged
+508,041,069,976-byte admission requirement. No guarded worker is running,
+verifier address 18 is free, and the new nonce has no root, volume or
+container. Security and network hashes match. No server change is made.
+Preflight SHA-256:
+`637438ba7f75d46bc9a0480617205212c638241ddc2acfc23f44c36fc3f97e1e`.
+
+The failed local Python wrapper and initial read-only template/SSH attempts
+remain recorded. Corrected standard CLI observations pass; none starts a
+container or changes data. Exact cold preparation still awaits review.
+
+## Cold preparation and controller pause
+
+Independent review accepts the exact 114-step cold preparation, with
+three new filesystem volumes, 21 bounded helpers and one unstarted actor.
+It grants no database copy, actor start, migration or cleanup authority.
+Preparation verdict SHA-256:
+`13d9e641cb340a14dd01e141d59c7bf6cb1c06d3a9a7f9ec066c55e67068c592`.
+
+Steps 0 through 47 complete. Seven source-only helpers validate topology,
+private-file metadata, 1,689 inputs totaling 69,548,306 bytes, and the blob
+link. The public operator seal is the eighth completed helper: root-owned
+directory mode 0555, its sole file mode 0444 and exact source hash. All
+eight helpers exit zero without OOM and remain stopped. No new volume or
+diagnostic actor exists yet.
+
+The controller then mistakes the successful, empty runtime-volume listing
+for a failed container lookup. It halts before step 48. The reviewed
+command actually returns its declared exit zero and empty output; no
+helper or command is rerun. Continuation awaits a narrow review of the
+saved partial state and renewed administrative hold.
+
+## Hold review at 23:55 UTC
+
+While preparation remains halted, the maintained hold command completes
+at 23:55:52 UTC, next review November 12 00:55:52 UTC. The twelve protected
+services match, and owner, reason and creation time remain fixed. This is
+an explicit hold renewal, not an unrecorded rebind of the frozen preparation
+plan. Hold SHA-256:
+`3a06e796f3260e540e02f8bffeda2d45221cffd1b3cb942e831b768fd1d63a0d`.
+
+## Cold preparation completed
+
+The continuation review accepts only remaining steps 48 through 113,
+binding the renewed hold explicitly and preserving all earlier records.
+No prior helper, fence or command is rerun. Addendum SHA-256:
+`06db21dda95703bcefec98b642228568babc2d70487bb1f7e3c904db76ac1744`.
+
+All 114 commands complete. The 21 helpers exit zero without OOM and remain
+stopped. Three new filesystem volumes have the expected ownership; the
+metadata copy matches its read-only source byte for byte through quiet
+`diff`. Public input counts, file types, private-file permissions and the
+blob link match. No secret value is printed or hashed. Preparation result:
+`0c1a8676b0b499f1d5fafdcdbc6ad326b5bae3726c6a3d9dd932bbaa29f04a94`.
+Actor `109bb869…` is created with eleven mounts and remains unstarted at
+this boundary. Preparation performs no database copy or migration.
+
+## Inventory diagnostic startup
+
+The maintained hold review at November 12 00:11:37 UTC preserves all twelve
+protected services and the original hold identity; next review is 01:11:37
+UTC. Hold SHA-256:
+`1a33da621c047301fc3c3075085528c9f76e2cbe7d065a76834e8e09fe20e10f`.
+
+Execution plan `80263893…` binds the actual actor, original failed graph
+receipt `24358187…`, old producer `8aae03bf…` and separately reviewed
+operator. Independent verdict `40517ea3…` permits one inventory diagnostic
+and cleanup of only its one owned database. The exact foreground maintained
+CLI starts once at 00:37 UTC. Source and current host qualifications remain
+distinct; neither graph acceptance nor Gate 2 is granted.
+
+Independent startup checks verify PID 3309078, birth 984027405, namespace
+4026533551, actual authorization and both firewall chains, source UUID and
+native schema 38, private environment equality and all protected boundaries.
+The initialized owner token is `dec25faf0c9f460e8f466ed4`; readiness is not
+inferred from an empty registry. The actor reports its freeze phase after
+checking the source checkpoint. Historical memory-pressure counters remain
+explicit; there is no new OOM. Startup verdict SHA-256:
+`6aa69a25fcbd5a2be72152d3f807ff78e9b5ff2f69393a781fe813a0972fca97`.
+
+## Per-worker timing observation
+
+The 184.67-second normal run cannot identify actual executing workers from
+its merged receipts. The corrected observer records native monotonic
+boundaries, owner-thread CPU and worker identity through report serialization
+without changing phase totals, outcomes, selection, scheduling or weights.
+Eleven focused checks pass, including real two-worker transport and clock
+mock isolation. Root formatting preserves the observer AST. Independent
+source review accepts one first normal qualification of this changed source,
+with the same 180-second gate and every earlier failure retained. Verdict:
+`d15e313880366ef4e4d2f5ab86c93ec21da9ffa86e5a42a01465ad3be25305f6`.
+This adds observation, not a production optimization or speed claim.
+
+## Observer qualification and alarm reproduction
+
+First normal observer job `2f057650…`, source `e056b1fa…`, binding
+`ed0eff18…`, selects 3,438 cases. A worker exits with a keyboard interrupt
+inside the nested 30-millisecond write-deadline test. Its unfinished
+partition fails membership; the job takes 199.93 seconds. Ruff and mypy
+pass, all owned client cleanup completes, and sampled cgroups show no OOM.
+Preserve this failure; it is not a passing timing or membership result.
+
+The new records give complete worker timelines for clients 0 and 2.
+Their workers finish nearly together and spend under 1.03 seconds between
+observed phases. Client 3 completes correctness, but its clock-failure
+self-test corrupts two outer observations by leaving a direct clock alias
+patched until teardown. Scope that patch inside the test body: the same
+test then passes with the actual plugin active and outer quality true,
+while preserving its intended inner error. Focused proof:
+`8a1107ba55d7fce69483a19c7a9d1181775e743c00f8c198ebc86d26224e39d8`.
+
+Valid partial data show broad elapsed slowdown, not a scheduling-only gap
+or proved redundant work. The new nested tests total about 3.32 seconds
+on one late worker, which does not explain the whole overrun. The empty
+restore case rises from about 29 to 41.55 seconds, with 9.44 seconds of
+owner CPU; the remainder cannot be labeled SQL waiting. Analysis:
+`1beff3dee853bf5543d9c1aba88c195c813ab39817f05382636b85520ffc1461`.
+
+A deterministic no-database reproduction proves a separate deadline
+cleanup defect. After a server `WriteTimeout`, delivery of the actual owned
+alarm callback during disarm escapes as `_Expired` instead of being
+translated and counted. The control path produces `WriteDeadlineExceeded`.
+The historical worker traceback is unavailable, so this does not prove its
+cause or implicate the observer. Reproduction SHA-256:
+`cee7a3659ae6088be06047b1a0e24fa59dc81b931d1090c3606844869d9727c1`.
+The focused fix captures the body failure before disarming, makes owned
+alarm delivery during cleanup mark expiry without interrupting restoration,
+and classifies once after the caller's timer and connection deadline return.
+It preserves commit uncertainty and genuine keyboard interruption, and
+cannot return success after finalizer expiry. All 27 focused cases pass,
+including deterministic transition regressions and existing real alarm and
+Postgres rollback checks. No deadline is extended. Final source SHA-256:
+`69af48b70903e5701d9f15dd204b9bed80d4eca845eaf1e8b1b527eb4bb78b80`.
+The old-image diagnostic uses the unchanged producer; this fix does not
+explain or repair that separate preparation timeout.
+
+## Hold renewal timeout and recovery
+
+The 00:55 maintained renewal times out. Read-only audit proves only its
+temporary file was installed: the installer is dead with exit zero, the
+separate activation helper never exists, and the active hold remains
+`1a33da62…`. Preserve this failed packet and temporary file; do not activate
+or replay it. Audit SHA-256:
+`d0cf2f9bb7bda9e9a5a9387e8661fc96c0e4f1b7eccea7f31757165b03ff093c`.
+
+One fresh maintained renewal succeeds at 01:03:00 UTC, next review 02:03:00
+UTC. The twelve protected services and the original owner, reason and
+creation time remain fixed. The running diagnostic permits this ordinary
+same-identity renewal. Hold SHA-256:
+`073c61fa2852b19257ae49cf3e90cacdea4cf69a06584546f355a826e11bd828`.
+
+## Inventory diagnostic stops before the trial
+
+Actor `109bb869…` exits naturally with code 1 at November 12 01:09 UTC,
+after about 32 minutes. Its freeze completes, then input acceptance reaches
+the unchanged 60-second atomic-write deadline. The original error is
+`WriteDeadlineExceeded`; no inventory trial, rollback witness or accepted
+candidate checkpoint is produced. The supervisor's generic terminal
+`ValueError` is bookkeeping after that exit. Neither the 45-minute freeze
+limit nor a host interruption is established as the cause. Public receipt
+SHA-256: `64dadaea1c89c5439782ad1d2a736fb74253ef0aee0784ab67244a13a75204bd`.
+
+Independent read-only review finds the exact owned database, registry,
+clients, process groups, cgroup and local SSH absent. The protected services,
+source identity and schema, second retained copy, native import actor,
+public file pins, guardian and hold remain intact. No OOM occurs. The actor
+does not reach its final full source-checkpoint recomputation; metadata
+checks cannot substitute for that proof. Review SHA-256:
+`9910eda06b8125ce2cc4c1ff426ffb0966b39ca203dc120ffa27f1e83cbde6f2`.
+The failed packet remains in scratch. Do not repeat it or extend its bounds;
+first compare this preparation path with the earlier successful acceptance.
+
+## Production fetching resumes
+
+The bounded read-only watch covers thirteen successful acquire ticks from
+November 12 00:20 through 01:24 UTC, totaling 748 requests. Both observed
+watchdog executions finish successfully, with no alert text in this excerpt.
+This is observation of unchanged production, not a deployed repair
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-11/source-watch-20261112-0126.json)).
+
+A separate bounded read through 01:41 UTC observes eleven successful
+derive ticks with progress totaling 1,116. The alert tail includes the known
+00:05 derive-idle warning and a repeated expired archive-host warning at
+01:35. Current progress does not prove those watchdog findings repaired
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-11/derive-watch-20261112-0146.json)).
+
+## Corrected deadline source qualification
+
+Independent source review `3074a86e…` accepts the final deadline correction
+and clock-test patch scope. Its first normal check, job `f84f54d9…`, binds
+source `d5c068d0…` and source binding `526ff958…`. All 3,446 cases pass,
+including the formerly interrupted partition; Ruff and mypy pass. The job
+still fails its unchanged timing gate at 213.18 seconds. Every client's
+phase observation has quality true with no errors, and all owned cleanup
+completes. Summary SHA-256:
+`8e9418ee1ff63cbae437dbe9161dd519d540485e5fe70e5adeb385f239d84b9e`.
+The historical worker crash's cause remains unproved.
+
+The empty restore/rebuild pair now takes 25.48 and 38.31 seconds, including
+6.75 and 9.60 seconds of owner-thread CPU. These cases include setup of the
+source, publication, checkpoint capture with an inline restore check, empty
+restore, activation and rebuild. Their totals do not identify the slow
+operation. Preserve this failure and use a matched normal-context subphase
+measurement before selecting another correction. No unchanged retry or
+timing exception follows.
+
+## Routine hold review at 01:47 UTC
+
+The maintained review succeeds at November 12 01:47:07 UTC, with next review
+02:47:07 UTC. All twelve protected services remain unchanged, as do the
+hold owner, reason and creation time. Pipeline schedulers remain unstarted.
+Hold SHA-256:
+`a46dec6af3a69d2b2367958b77ac8e5ebb57c844fd237c7249a055a4d7c7e448`.
+
+## Corrected diagnostic source and preparation packet
+
+The standalone operator now reproduces the graph's full destination
+enumeration and read-only input binding before ordinary committed acceptance.
+It requires the exact 108,390-unit/D58 inventory, source `00c831a4…`,
+candidate `5039effb…` and original input map. Bounded RAM observations retain
+phase, owner CPU, coarse statement families and primary-only static traceback
+locations. They cannot identify a precise timed SQL statement or repair the
+old producer's separate alarm behavior. All 43 focused cases, Ruff and mypy
+pass. Central formatting preserves its AST. Source `c745d63f…` and tests
+`5c612304…` pass source-only review `1850dadf…`; no server execution follows
+from that review.
+
+The local `99ffb3d1370e` preparation packet proposes 147 standard commands,
+24 helpers, three new filesystem volumes and a cold actor that never starts.
+It replaces the prior one-off sealing script with four explicit path
+operations and public topology/hash checks. No recursive traversal or fsync
+durability is claimed. All nine staged public files match their local hashes.
+Manifest `74fc704f…` is submitted for preparation-only review; no server
+preparation or replay has occurred at this boundary.
+
+## Matched restore measurement
+
+Source review `d3d6e681…` accepts a separate call-only observer with native
+clocks, fixed labels, actual worker identity and at most 64 nested records.
+Twenty-one focused cases and the existing architecture guards pass, as do
+Ruff and mypy. Ordinary observation faults invalidate measurement without
+replacing expected exceptions; fatal error and hook-restoration cases are
+covered. Central formatting preserves both source ASTs.
+
+Its first normal job `b1de85b2…`, source `52574e9a…`, binding `e8fe879e…`,
+passes all 3,474 cases, Ruff and mypy. It still fails timing at 204.51 seconds.
+Summary SHA-256:
+`55b2195ec151bf85ffff67a0b1ca077383ff1a43e3f1fd61065e9acf130aeedb`.
+The lower wall time is not a speedup claim: source, membership, learned
+weights and observations differ from earlier jobs.
+
+Only client 0/worker `gw1` observes the ordered restore pair. Both payloads
+have complete coverage, restored hooks, no foreign calls or dropped records,
+and valid clocks. The first body takes 23.895 seconds, including 6.416 owner
+CPU seconds and 23,220 driver waits totaling 8.025 seconds. The changed-source
+variant takes 33.914 seconds, including 9.648 owner CPU seconds and 34,019
+driver waits totaling 12.183 seconds. Nested costs overlap; waits include
+client and scheduling work and do not measure server CPU.
+
+Independent review verifies exact selection, resources, source and all owned
+cleanup; all five core containers and volumes are absent. One resource sample
+is missing; observed OOM counters are zero. The measurement is accepted while
+the timing failure remains. Review SHA-256:
+`24670b81881c3c265a94890e3f16983b603f282b48a4edc669efac6b12f63cec`.
+Inspect measured operations and their source before selecting a correction;
+no unchanged retry or optimization is accepted here.
+
+## Routine hold review at 02:24 UTC
+
+The maintained review succeeds at November 12 02:24:24 UTC, with next review
+03:24:24 UTC. All twelve protected services and the original hold identity
+remain unchanged. Hold SHA-256:
+`5fa041dd1ff96d24eeaf002b1f3ebcdd7bbfe0cb862b95e53f41aada89c99e61`.
+
+## Export scan cost remains unmeasured
+
+Read-only analysis subtracts direct child spans to form a nonoverlapping
+table that reconstructs the full 33.914-second body. Snapshot capture costs
+9.142 seconds, restore installation excluding audit 6.306, restore checks
+excluding nested audit 5.089, and audits 4.290. No repeated proof can be
+removed from this evidence. Column/key helpers already cache the frozen
+reference schema. Analysis SHA-256:
+`112abb22f8be5a7d0462b84f095c9aa3df5d0247b474e71b0d67c83c652cb7bd`.
+
+Source inspection finds two identical typed-row scans per export table,
+on the same enforced read-only snapshot; the second scan applies a pure
+immutable-field projection. Their share of capture time remains unknown.
+Direction `d386c548…` accepts only fixed physical/immutable aggregate timing
+inside existing snapshot records, with exact caller and complete 282-call,
+141-pair guards. No per-call records, extra scans, cache or production change
+is selected. The prior three observer files remain frozen at source
+`52574e9a…` for version-1 payload validation.
+
+## Production watch at 02:43 UTC
+
+Nine observed acquire ticks complete with 66 requests; seven ticks make no
+request. The latest request-bearing tick finishes at 02:05 UTC. Ten derive
+ticks complete with progress totaling 1,099 through 02:42. All observed
+cycles report no failure, and both watchdog executions succeed. The latest
+alert remains the known expired archive-host warning from 01:35
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0243.json)).
+The receipt's typed `zero_request_ticks` count is seven; its free-text limits
+incorrectly say eight. This note corrects that wording while preserving the
+captured receipt's bytes. No production repair or alarm clearing occurred.
+
+## Fresh unit preparation complete
+
+The first initial controller refuses before allocation because it compares
+changing process counters instead of stable guardian identity. PID, birth,
+boot and namespace match. Refusal `ba3c9dc8…` remains unchanged; independent
+addendum `3332b220…` permits the still-unattempted commands after correcting
+that predicate. No preparation command is replayed.
+
+After the first source-only helper exits zero, row 35's external validator
+rejects its inherited image labels because its baseline map is unset.
+Actual user, command, mounts, two inherited labels plus owner/phase labels,
+resources and terminal state match. The failed validation result remains
+unchanged. Input audit `eacf7bdc…` initializes every remaining contract;
+independent continuation `644e2211…` permits only rows 36 through 146.
+
+All 147 commands finish once by 03:07 UTC. All 24 helpers exit naturally
+with code zero and remain stopped. The three fresh volumes contain the
+expected 1,689 files totaling 69,548,306 bytes; quiet comparison, source and
+target private-file permissions and symlink targets match. No credential
+value or private-file hash is exported. Operator `c745d63f…` is sealed as one
+root-owned `0444` file under a root-owned `0555` directory. Actor `0e80c8b9…`
+is created with eleven mounts, PID zero and no start time. The private RAM
+environment comparison passes. Receipt SHA-256:
+`9a02ccebe1d8863a77a65628fc51a1eceadcaab0283073a9340c1e1e02a2804b`.
+Protected services, guardian, source identity and retained databases remain
+unchanged. No database copy or diagnostic execution has occurred here.
+
+Separate execution plan `7acf34a6…` binds that actual cold actor, completed
+preparation, old qualified producer and corrected standalone operator.
+Execution review is pending. No launch follows from preparation approval.
+
+## Export digest measurement result
+
+Aggregate observer source review `93dd6489…` permits its first normal run.
+Job `cb369fbf…`, source `78c2b7bd…`, binding `e9ff072a…`, passes all 3,482
+cases, Ruff and mypy but fails timing at 187 seconds. Summary SHA-256:
+`2788424c1dd93b3426e471f55f96d385ddcc37598c4e46b91fe565f925d766fd`.
+Every phase observer reports quality true. Only client 1/worker `gw2`
+captures the ordered pair; all five snapshots report one completed export,
+282 normal digest returns, 141 pairs and no nested, foreign or unexpected
+caller. Independent measurement audit remains pending.
+
+The changed-source body takes 32.642 seconds. Its three immutable scans
+total only 0.244 seconds, 0.75% of the body; both scan roles total 0.546
+seconds. Reject scan fusion for this core bottleneck. The first input capture
+takes 5.421 seconds with 0.069 owner CPU seconds; the later calls take under
+0.090 seconds each. This locates elapsed cost, not its filesystem or flush
+cause. Read-only analysis SHA-256:
+`7722716ec7b9a2d4b4f9836e755865a98aa90ecf581368a0998f5fbd1e1a93d0`.
+No production optimization or unchanged timing retry is selected.
+
+## Routine hold review at 03:13 UTC
+
+The maintained review succeeds at November 12 03:13:21 UTC, with next review
+04:13:21 UTC. The original owner, reason, creation time and all twelve
+protected services remain unchanged. Hold SHA-256:
+`90757c4505768bc62f30fd06c35f1f9524089fa40408ca16a175c8ea35dc4a2a`.
+
+## Corrected unit diagnostic started
+
+Independent execution verdict `cd6c07f3…` accepts the exact plan
+`7acf34a6…` and cold actor `0e80c8b9…`. The single foreground launch starts
+November 12 at 03:49 UTC. Independent startup review `5862e319…` confirms
+the actual process incarnation, private environment equality, all eleven
+mounts, network controls and protected boundary. Owner
+`046da103604a45e9931a5d58` may allocate only one copy. This is the old
+qualified producer with standalone operator `c745d63f…`, not qualification
+of the current checkout.
+
+At 04:04:54 UTC the actor is still running, with three databases observed
+against two retained private databases. All twelve protected services
+remain unchanged; observed OOM counters remain zero. Private PostgreSQL
+memory-limit events increase, so no absence-of-pressure claim follows.
+No final unit result or graph acceptance exists yet. Keep the 45-minute
+freeze, 60-second atomic write and one-hour job bounds unchanged.
+
+## Input capture measurement result
+
+Independent measurement audit `441a2c16…` accepts the preceding export
+digest observations and normal context while retaining its 187-second
+timing failure. The measured second scans are too small to select fusion.
+Source review `53759da0…` instead accepts three bounded owner aggregates
+inside existing input-capture records: runtime capture, future-result wait
+and path-existence probes. Original caller identity and owner thread bound
+the observations; arguments, results and paths are not retained.
+
+The first changed-observer normal job `a6884ec2…` passes all 3,489 cases,
+Ruff and mypy but fails timing at 204.16 seconds. Independent measurement
+verdict `35c40a30…` confirms source binding, normal membership, natural
+weights, caps, observer quality and owned cleanup. Two resource samples
+are unknown. The first captures take 1.932 and 1.783 seconds, including
+1.849 and 1.679 seconds waiting for futures. Runtime capture takes about
+0.049 seconds and path probes under 0.005 seconds each. This does not
+identify helper CPU, filesystem or flush cause.
+
+Analysis `d6eec94a…` finds that the observed pair runs on the shortest
+client, 190.258 seconds including cleanup, against 196.352 seconds on the
+slowest. Removing these waits would not move that slowest client. Stop
+this branch: no writer, runtime or path optimization, new diagnostic or
+unchanged timing retry is selected. After the run, local `df` reports
+about 65 GiB free, below the 80 GiB floor; pause local runs. No retained
+packet or unrelated cache is deleted.
+
+At 04:10 UTC the same filesystem reports 109,670,660 KiB available, about
+105 GiB, without a deletion by this session. The transient cause is unknown.
+The 80 GiB floor is restored; the 110 GiB full-suite admission is not met.
+
+## Production watch at 03:33 UTC
+
+Seven acquire ticks through 03:31 make zero requests and six derive ticks
+through 03:28 make zero progress. The latest known request-bearing tick
+ends 02:05. The cycles report no failure, but the elapsed idle period
+fires the watch rule. The latest alert text remains the 01:35 expired
+archive-host warning. No production repair is made in this rehearsal.
+The compact [receipt](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0333.json)
+binds the journal captures.
+
+## Delayed hold review and supervisor stop
+
+The 04:00 and fresh 04:06 hold renewals both time out on their installer
+transport. Each exact installer later exits naturally with zero; neither
+has activated its candidate. Audit `01cdca8c…` confirms the old active
+`90757c45…`, new `1cbbf0c4…` temporary file, full installer profile and
+protected boundary. Independent review `dc8124c3…` permits only the still
+unattempted rename and original receipt finalization. No installer is replayed.
+
+That one rename is launched at 04:12:29 UTC under the pointer lock and an
+exclusive fence, with the original 30-second transport bound. Its transport
+also times out. The queued exact helper later starts at 04:14:17.769 and
+exits naturally with zero at 04:14:18.150. Original expiry is 04:13:21.558;
+continuous review validity is therefore not proved, with a gap bounded
+between 56.211 and 56.591 seconds. Independent full-profile witness
+`26289dcd…` confirms active `1cbbf0c4…`, root `0444`, one link and twelve
+unchanged peers. The queued CLI is gone. No rename is replayed.
+
+Receipts-only finalizer `53de96ae…`, reviewed in `2195da42…`, succeeds once.
+Both transport timeouts remain explicit and distinct from witnessed Docker
+terminal zero. Original postchecks, durable receipts, standard SFTP and
+remote hash equality precede atomic pointer completion. The same owner,
+reason and creation time remain; next review is 05:06:12 UTC. No scheduler
+is started.
+
+The compact [hold receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-040612.json)
+retains exact commands, observed helper exits, transport outcomes, hashes
+and the expiry gap. The evidence-size check after hold closure passes.
+
+The diagnostic supervisor records a `ValueError` and its generic supervisor,
+peer or disk failure reason. Its last sample is 04:13:42, after the old hold
+expires and before delayed activation. It records one confirmed controlled
+stop, exit 137 with no OOM, finished at 04:15:43 UTC. Supervisor receipt
+SHA-256 `222c30d03a11c45558a4471415996ac1fa488079e97caf9ba052716a43fcc32f`
+is not an application failure or unit success. The hold-expiry chronology
+supports investigation; the generic reason alone does not identify the
+failed check. Owned-copy cleanup and final boundary review remain pending.
+
+The collected public operator receipt still names
+`freeze_one_new_owned_database`. Capture completes in 4.316 seconds and
+the pre-freeze source check in 262.584 seconds. No completed freeze,
+destination prelude, acceptance or inventory trial is recorded. This is an
+interrupted freeze, not a unit-result witness.
+
+Independent terminal observation at 04:21 confirms actor, supervisor,
+process groups and CLI gone, cgroup empty and authorization retired.
+Source C696 native-38 UUID/OID/checksum, retained 69, native-import actor,
+guardian, policy and twelve protected services match. The exact owner
+`046da103604a45e9931a5d58` registry and database OID 5861832 remain; no
+client backend is present, only two autovacuum workers. This boundary is
+not clean. Review cleanup of only that owned database and registry,
+preserving all failed proofs, volumes and retained source databases.
+
+Terminal verdict `cce06103…` accepts those observations while explicitly
+failing the diagnostic and owned-cleanup boundary. The compact
+[interruption receipt](../../evidence/runtime/postgres-stage2-2026-11-11/unit-diagnostic-99ffb3d1370e-interrupted.json)
+binds the actual launch, controlled stop, producer, operator and remaining
+owned database. It does not claim a recomputed full source checkpoint hash.
+
+## Production watch through 04:26 UTC
+
+Twelve acquire ticks make three requests in two ticks; ten make none.
+The request-bearing ticks end at 03:36 and 04:11. Eleven derive ticks
+through 04:23 make no progress. An acquire-idle alert fires at 03:35,
+before the next request-bearing tick; the archive-host warning also
+recurs then. These observations show limited fetching, not sustained
+collection or a repair. The [receipt](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0429.json)
+binds three read-only commands. No production mutation is made.
+
+## Existing phase-cost analysis
+
+Read-only analysis of the same `a6884ec2…` job sums parallel call, setup
+and teardown occupancy to 185.844 seconds per sixteen workers. Prologue
+and other overhead are additional. Reordering that fixed measured work
+cannot meet the 180-second budget. This is elapsed occupancy, not CPU.
+
+The slowest client runs the changed-artifact publication case with 14.860
+seconds of fixture setup and 1.990 seconds of owner CPU. Keep the complete
+`release_state` fixture and assertions. Select a bounded owner-psycopg-wait
+measurement of that setup through the existing diagnostic lifecycle, with
+its original 30-second ceiling and unchanged resources. This names another
+measured cost, not a filesystem cause, speedup or optimization. Analysis
+SHA-256: `5f99b9151c1d30f135d451223778e2312d2b1858e575fedf06caa293a7439ea1`.
+Source extension and review precede any diagnostic operation.
+
+## Owned046 cleanup complete
+
+Plan `10c59554…`, SQL `04be81cf…` and independent execution verdict
+`6d1fcc0d…` limit cleanup to the exact owned046 database OID 5861832 and
+one ownership record. Fresh identity checks precede the ordinary guarded
+DROP, which exits zero without FORCE or client signals. Separate reads
+confirm database and activity absent, retained databases unchanged and
+the ownership record intact.
+
+The existing removal helper's cold comparison refuses before start: Docker
+omits a false `ReadOnly` value in `HostConfig.Mounts`. Independent proof
+finds that sole representation difference, with public `RW=true` and the
+full expected profile otherwise equal. Preserve the refusal. Continuation
+`8b6544ac…` permits only fresh guards and the existing never-started helper.
+It exits naturally with zero; the ownership record is absent. No earlier
+step is replayed.
+
+Independent postcheck `47aeeda9…` verifies the actual 137 record files and
+fresh protected boundary. The private catalog returns to its five retained
+databases. Actor, groups, cgroup and authorization are gone. All three
+volumes, 24 preparation helpers, two cleanup helpers and failed operator
+receipt remain. Server free space is 579,559,403,520 bytes. The compact
+[cleanup receipt](../../evidence/runtime/postgres-stage2-2026-11-11/owned046-cleanup-20261112.json)
+closes only scratch cleanup; the interrupted diagnostic remains failed.
+
+## Maintained hold recovery source and first renewal
+
+The maintained command now records a private per-pointer operation fence,
+each dispatch intent and each transport outcome durably. Status reconciles
+only exact owned helper termination and active-file state. A hash-bound,
+consumed-once review can continue only unattempted steps. Attempted unknown
+operations remain blocked. Receipt-copy completion needs exact remote
+regular-file metadata and hashes before pointer advancement, including when
+transport itself timed out. Closed legacy packets remain readable.
+
+All 45 focused tests pass, plus Ruff and mypy. Central formatting preserves
+the syntax trees. Independent source verdict `461504a5…` accepts source
+`6993365f…`, its tests and public CLI wiring. This does not authorize an
+unbound continuation or qualify the whole current checkout.
+
+The first routine use succeeds from 04:55:53 UTC, with next review
+05:55:53 UTC. Both helpers finish naturally with zero; all twelve protected
+services remain unchanged. Receipt readback precedes pointer completion.
+This renewal proves continuous validity and does not erase the earlier
+gap. The compact [receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-045553.json)
+binds the actual command journal and source verdict. No scheduler starts.
+
+## Publication-fixture setup waits
+
+Independent source verdict `c0824915…` accepts the fixed setup-phase
+extension. Execution verdict `78df49a2…` binds fresh packet `4d4e0782…`,
+source `c2cb36ba…` and binding `64693233…`. The single native diagnostic
+passes its full case, ordinary call assertions, phase quality and owned
+cleanup. Result SHA-256:
+`0e3271ab883d29d8f6c01e0469fdc5a6ee21d511953677f6ad58f6dee68e4d69`.
+
+Setup measures 5.117606 seconds and 1.696755 owner CPU seconds. Its 6,187
+outer owner-driver waits total 0.452471 elapsed and 0.092864 CPU seconds;
+the wrapper is restored. This leaves 1.603891 owner CPU seconds outside
+those waits. It does not explain the parallel run's 14.860-second setup or
+identify filesystem, helper or server work. Select one existing CPU-mode
+profile of the same setup, with a new packet and unchanged ceilings.
+
+Root's first review-hash command names a nonexistent receipt filename.
+The correct written execution approval already precedes launch; afterward
+its actual `independent-execution-review.json` hashes to `78df49a2…`.
+The diagnostic runs once. Preserve that verification-order exception;
+it supplies no authority for another execution.
+
+## Year 2026 failure bounds
+
+Held-source analysis `a79657be…` links the failed graph's nonempty discovered
+dependencies to the completion-dispatch boundary. Transform, hint work and
+the process pending-work deletion returned; the wrapper appended the
+dependency digest immediately before calling the original completion.
+Its original body entry and return remain unproved. Group certification,
+final labeling and deadline handling during deliberate rollback also
+remain possible boundaries. The failed-result serializer omits all labels,
+so a missing `found` field cannot distinguish those paths.
+
+The retained baseline's 15,140 year rows are not a trial count or timing
+cause. This verification route is inline inside one absolute 60-second
+outer transaction, unlike staged `derive_one` work. No cause, optimization
+or year execution is selected. Inventory remains first. Analysis SHA-256:
+`a79657be83703f8319a47e32a2804072445edc420b3a3cc53679103e004e0c1e`.
+
+## Publication-fixture setup CPU
+
+Fresh CPU packet `21d5a546…` and execution review `95e88aea…` produce one
+passing case with correct setup binding and owned cleanup. Result
+`b4ff9c83…` and terminal verdict `b0f93ab4…` record 2,498 profile entries,
+including 281 suspension exclusions, with no omissions. Setup measures
+7.025578 elapsed and 3.659540 owner CPU seconds, including instrumentation.
+Ranked Python-frame self times are not cumulative or a speed comparison.
+
+Flat `durable_write` totals 578 calls and 0.440413 self CPU seconds, but
+includes archive and manifest callers. The serial `_published_fixture`
+loop exists; its exclusive elapsed cost remains unmeasured. Import parsing
+is already cached and production capture already has eight writers.
+Analysis `26a94309…` selects no optimization. Add one fixed-callsite owner
+aggregate in the unchanged normal setup context before choosing a change.
+One resource sample is unknown; no wall-cause or global pressure claim follows.
+
+## Production watch through 05:28 UTC
+
+Thirteen acquire ticks make no requests and thirteen derive ticks make no
+progress. The latest known request-bearing tick ends 04:11, over an hour
+before this read. All observed cycles report no failure; that does not
+establish progress. The latest alert text remains 03:35. The compact
+[receipt](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0529.json)
+binds the three read-only commands. No cause or repair is established.
+
+## Routine hold reviews at 05:39 and 06:07 UTC
+
+The same maintained `6993365f…` hold protocol renews review to 06:39:33
+and then 07:07:56 UTC. Both operations record six zero exits, exact owned
+installer and rename terminal identities, unchanged twelve protected
+services, and copied receipt metadata/hash verification before pointer
+completion. Both activations finish before the prior expiry; no scheduler
+starts. The [05:39 receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-053933.json)
+and [06:07 receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-060756.json)
+bind the raw plans, commands, results and step journals. The hold hash
+chains `29f28eb8…` → `9748bd81…` → `5a99b43d…`.
+
+## Fixture persistence and the next measured case
+
+The eight-writer change affects only `_published_fixture` member
+persistence in `tests/test_correction_only.py`; source `c0306bf5…` is
+accepted by review `9f1e5f3c…`. Each original durable write and file/directory
+fsync remains, every submitted worker joins before the owner manifest and
+DB acceptance, and failure cannot publish early. No production persistence
+API, case selection, caps, placement or shared mutable state changes.
+
+The next normal check passes all 3,556 cases and Ruff/mypy but takes
+187.74 seconds, failing the 180-second gate. Application source remains
+`b98363ef…`; test binding is `4e1052dc…`, summary `4bfaa182…`, independent
+measurement audit `67e0b930…`. Target setup measures 6.487234 wall and
+1.361802 owner CPU seconds; its owner-only write observation now sees the
+manifest and excludes 572 worker calls. This is not a controlled speed
+comparison. Raw source and audit records remain under
+`/tmp/swingset-stage2-fixture-pool-source-review-20261112/`.
+
+The existing CPU/waits command gains only the fixed `failed-build` CALL
+case, preserving its two real preparation attempts and assertions. Source
+`a8a445cd…` keeps its AST through formatting; 133 focused cases pass. Packet
+`688158be…` is separately reviewed under the unchanged 30-second measurement
+and 120-second cleanup ceilings. No optimization is selected from admission
+of that case, and current normal timing/full qualification remains open.
+
+## B818 cold preparation and actual startup
+
+The [cold preparation receipt](../../evidence/runtime/postgres-stage2-2026-11-11/cold-unit-preparation-b8180e227f16.json),
+SHA `79dc8126…`, binds all 147 command indices. Three false observer halts
+(preallocation, row 33 and row 64) remain preserved; reviewed continuations
+execute only remaining commands, without replay. Preparation creates no
+copy and performs no trial.
+
+At 06:21:41 UTC, actor `cc3bc375…` starts with PID 1287617 and birth ticks 986094050. Startup review `3726b094…` accepts that boundary and the sole
+allocated owner `f6c944fa…`, database OID 6309804. It proves neither freeze
+completion nor a trial result. The old qualified image and LINKER 9 context
+remain separate from current source qualification. Raw startup observation
+and review remain under
+`/tmp/swingset-stage2-unit-diagnostic-cold-draft-b8180e227f16-v1/execution-v1/`.
+
+## Production watch through 06:33 UTC
+
+The [06:34 receipt](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0634.json),
+SHA `ee535538…`, records fourteen acquire ticks through 06:31 with zero
+requests and fourteen derive ticks through 06:33 with zero progress. The
+last known request-bearing tick still ends 04:11. New alerts report loop
+idleness at 05:35 and a failing host at 06:05. Successful tick completion
+establishes no fetching progress, cause or repair.
+
+## Hold witness ordering refusal at 06:39 UTC
+
+Renewal packet `20261112-063454` records a step-two transport timeout.
+The exact installer `3fac8730…` later exits zero. Maintained status first
+records unknown, then reconciles that terminal witness. Review `bc6d0ef5…`
+permits only remaining steps 3–6. The attempted continuation refuses before
+its dispatch fence or any new step intent; the active hold remains `5a99b43d…`,
+valid until 07:07:56 UTC. No installer or activation is replayed.
+
+Independent finding `1957c59e…` proves the refusal comes from witness
+hashing: Docker reverses the same two complete mount objects. Sorted
+objects reproduce the pinned terminal profile hash exactly. The checker
+already validates sorted mounts but hashes their original array order.
+Select only canonical ordering before hashing, retain the old proof and
+timeout, and require source review plus a fresh remaining-only verdict.
+Raw findings remain in `/tmp/swingset-stage2-hold-review-20261112-063454/`.
+
+## Reviewed continuation of the 06:34 hold renewal
+
+The [06:34 renewal receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-063454.json)
+records installer and rename SSH timeouts as unknown transport exits;
+each exact owned helper later proves natural exit zero. The first review
+`bc6d0ef5…` refuses before dispatch because Docker reverses the two mounts.
+Finding `1957c59e…` proves every other projected field unchanged. Corrected
+source `81772a44…`, accepted by `8eb92a74…`, sorts only validated mount
+order before hashing and preserves the original `fa0d627d…` terminal proof.
+
+Fresh review `8aa77f05…` permits only steps 3–6; after the rename timeout,
+review `d6cc4684…` permits only step 6. Neither helper is replayed. Actual
+activation finishes 06:49:07.452 UTC, before the old 07:07:56 expiry.
+Receipt-copy metadata/hash readback then precedes pointer completion at
+`68166df8…`, with next review 07:34:54 UTC. All twelve protected services
+remain unchanged. No scheduler starts or other operational authority follows.
+
+## Failed-build CPU attribution
+
+Packet `688158be…` completes once with one passing full case and accepted
+result `b924053b…`; independent terminal audit `25a201ff…` verifies source,
+quality, ceilings and owned cleanup. Instrumented CALL body measures
+5.023349 wall and 4.990216 owner CPU seconds. All 882 entries fit the bound:
+768 regular entries are ranked, 114 suspension entries excluded, none
+omitted. This isolated profile is separate from normal 4.726900 wall and
+4.446125 owner CPU seconds; it establishes no normal timing pass.
+
+Analysis `de0f851e…` finds 2.972297 exclusive CPU seconds in import lookup
+machinery, including 250,548 `find_spec` calls. The flat report cannot name
+the requesting module or caller, so a DuckDB optional-import cause remains
+unproven. Inspect the existing retained `/tmp/diagnostic-cpu.pstats` caller
+edges under a separate reviewed read before selecting a new measurement
+or optimization. Raw result, terminal audit and analysis remain in their
+`/tmp/swingset-stage2-failed-build-cpu-20261112-0626/` and
+`/tmp/swingset-stage2-failed-build-cpu-analysis-20261112/` packets.
+
+## Routine hold renewal at 07:14 UTC
+
+The [renewal receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-071455.json),
+SHA `1b74adce…`, records seven successful steps under reviewed source
+`81772a44…`. Both helpers finish naturally with exit zero. Activation at
+07:15:06 UTC precedes the old 07:34:54 expiry; verified receipt copies
+precede the pointer update to `d06b03e4…`, due 08:14:55 UTC. All twelve
+protected services remain unchanged. No scheduler starts.
+
+## B818 inventory diagnostic terminal outcome
+
+The [operation receipt](../../evidence/runtime/postgres-stage2-2026-11-11/inventory-unit-diagnostic-b8180e227f16.json),
+SHA `85f1d606…`, records natural exit zero at 07:10:45 UTC. The corrected
+prelude and ordinary input acceptance complete with the original strong
+108,390-unit binding. The inventory trial still exceeds its unchanged
+60-second atomic deadline; rollback preserves its output and run rows.
+Final source identity remains `00c831a4…` and automatic cleanup removes
+only owned database `f6c944fa…`. Sole terminal review `445304ea…` confirms
+its absence, empty registry, retired authorization and unchanged retained
+databases, guardian, native importer and twelve protected services.
+Diagnostic completion establishes no inventory match or graph proof.
+
+## Existing CPU caller edges and the pandas lookup
+
+The fixed read of the existing pstats file passes terminal review
+`604af7de…`: 101,616 bytes, SHA `2bcb6800…`, one read-only helper, no new
+profile. Its local cold comparator first rejects LogConfig key order;
+that false observation remains preserved, no start had occurred, and a
+complete unordered-map comparison permits the helper's sole start.
+Caller analysis `258fce7c…` traces 22,776 of 22,808 import calls to scratch
+DuckDB reconstruction sites. Generated-code identity collisions explain
+the 799 pstats keys versus 882 getstats entries; no unique key is missing.
+
+The reviewed synthetic probe runs once in the same image, with one
+in-memory database and ten SQL calls. Output `97852b3c…`, terminal review
+`52d7da06…`, records 40 failed pandas requests with the module absent
+before and after. Hooks restore, counters fit, and no ceiling fires.
+This names the repeated request; it establishes no normal-core speedup.
+DuckDB 1.5.5's [scalar conversion](https://github.com/duckdb/duckdb-python/blob/v1.5.5/src/duckdb_py/native/python_conversion.cpp)
+checks pandas missing-value objects before primitive scalar types. Its
+[import cache](https://github.com/duckdb/duckdb-python/blob/v1.5.5/src/duckdb_py/python_import_cache.cpp)
+leaves a failed optional module null, permitting another attempt. Pinned
+source hashes and the dev-only dependency proposal remain in scratch
+analysis `a872c1c1…`; no package change is selected yet.
+
+## Production watch through 07:28 UTC
+
+The [07:30 watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0730.json)
+records thirteen acquire ticks through 07:26 with zero requests and
+thirteen derive ticks through 07:28 with zero progress. The latest known
+fetch still ends 04:11. Alert text remains at 06:05; this establishes no
+repair or liveness. All three read-only commands exit zero.
+
+## Routine hold renewal at 07:57 UTC
+
+The [renewal receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-075706.json),
+SHA `2b3fcb98…`, records seven successful steps under reviewed source
+`81772a44…`, with no timeout. Both helpers finish naturally with exit zero.
+Activation at 07:57:16 UTC precedes the old 08:14:55 expiry; receipt
+metadata and hashes verify before the pointer moves from `d06b03e4…` to
+`14f13e6c…`, due 08:57:06 UTC. Hold identity and all twelve protected
+services remain unchanged. No scheduler starts.
+
+## Dev dependency trial and the two normal failures
+
+Direction review `32f34185…` accepts a real dev-only pandas trial, without
+fake imports, preloading or a timing waiver. Resolver review `c1b79f6d…`
+verifies pandas 3.0.6 is the only added package; all old package records
+remain identical. The lock's nine marker regions refine its original two
+without changing their coverage. Production installation uses `--no-dev`,
+but the lock and dependency-image identity still change context. Both
+affected full build cases pass. This remains an unqualified trial.
+
+Job `08851ca6…` selects 3,574 unique cases: 3,573 pass, one architecture
+guard fails. Its 215.62-second check also fails timing. Audit `a42b2a19…`
+confirms native image `c92bfcd1…`, unchanged natural scheduling and actual
+cleanup. Cold image setup remains charged; no residual is relabeled as a
+measured build duration. The failed guard finds two observer registration
+references, not an extra execution route. Its source-only review had
+missed that constraint; the actual failure supersedes that conclusion.
+
+The correction recognizes only the two exact passive patch-registration
+shapes and counts all references before collapsing edges. Four direct-call
+and escape mutations remain forbidden. A real process/read-recording and
+rollback witness passes. Both affected files pass 79 tests; review
+`1fdcfe70…` accepts this correction and one changed-test normal check.
+
+Job `bc4fe1fb…` passes all 3,579 cases, Ruff and mypy. It still fails at
+193.55 seconds (runner 193.451623); audit `a30bab9e…` confirms five genuine
+additions, no removed cases, all ordinary limits and complete owned cleanup.
+Application source is `73fa0633…`, test binding `186ea5e7…`; image `c92bfcd1…`
+and dependency key `3ed9213e…` are unchanged. No timing retry is selected.
+
+## Actual critical-worker checkpoint target
+
+Analysis `2f2793d8…` identifies client 0/gw1: 178.288829 phase seconds,
+43.688674 owner CPU seconds and 0.255829 between-phase gaps. Its 27 checkpoint
+calls account for 85.742701 wall and 18.728754 CPU seconds. The previously
+observed large empty-restore cases are both on gw2 and finish well before
+the tail; analysis `1680a3e4…` does not justify optimizing them. Cohort,
+digest and input-cache branches remain closed.
+
+The selected checkpoint public-verification case costs 6.159240 wall and
+1.136980 owner CPU seconds on gw1. It lacks major-phase slices. Extend only
+the existing fixed-case observers for its real state/create/restore/verify/
+activate aliases, with driver waits and full assertions. A source-reviewed,
+bounded isolated attribution will establish those costs; it cannot claim
+normal timing or select an optimization without further analysis.
+
+## Routine hold renewal at 08:44 UTC
+
+The [renewal receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-084401.json),
+SHA `fa6e0013…`, records seven successful steps under reviewed source
+`81772a44…`, with no timeout. Both helpers finish naturally with exit zero.
+Activation at 08:44:11 UTC precedes the old 08:57:06 expiry; receipt
+metadata and hashes verify before the pointer moves from `14f13e6c…` to
+`9edb0725…`, due 09:44:01 UTC. Hold identity and all twelve protected
+services remain unchanged. No scheduler starts.
+
+## Checkpoint attribution and closed cache branches
+
+The fixed public-verification case passes the waits attribution and owned
+cleanup (`27325d51…`, review `1cc76515…`). Its call takes 2.136577 wall
+and 1.180854 owner CPU seconds. Creation dominates at 1.269900 wall seconds;
+the observer adds no skipped assertions or safety-pass changes.
+
+The child attribution also passes (`64a6e9dd…`, review `6e2156ee…`).
+Snapshot capture takes 0.660973 wall and 0.536558 owner CPU seconds;
+backup checking takes 0.608988 wall and 0.189581 CPU. Only 0.007050 wall
+seconds remain in creation outside those children. Parent spans include
+their children. Driver wait calls are not SQL statement counts. Neither
+measurement establishes normal-core speed or an optimization.
+
+The existing CPU mode now accepts this exact case while requiring its
+complete v5 phase payload. All 142 changed-file tests, Ruff and mypy pass.
+The full-case attribution passes accounting, payload and cleanup
+(`da8fabbf…`, review `960cab71…`). Its instrumented call takes 4.506177
+wall and 3.600069 owner CPU seconds. Of 2,949 profile entries, 189
+suspension frames are excluded; their active CPU is unknown. The remaining
+self times total 2.517767 seconds. These are whole-call observations, with
+profiling overhead, not snapshot-specific or normal-run costs.
+
+One reviewed read captures the existing raw profile as 289,516 bytes,
+SHA `cb165a15…`. Terminal verdict `013e8ca8…` accepts it with an ordering
+deviation: complete volume identity was captured before reading, but its
+equality assertion ran afterward. All expected fields match. Future reads
+still require that assertion before execution; this is no replay waiver.
+
+Caller analysis `b16ed43e…` finds only 29 ms of inclusive instrumented CPU
+in 82 dispatch digests. Close dispatch caching. Existing runtime and import
+content caches work. A larger lexical edge is verification's 2,880
+`relative_to` calls at 0.251605 instrumented CPU seconds. Select one bounded
+unprofiled pure-path comparison before any repository rewrite. Preserve
+traversal, physical resolution, containment and all digest checks; do not
+hoist root resolution. Synthetic timing can reject a candidate but cannot
+qualify the normal core gate.
+
+## Disk admission remains blocked
+
+Read-only cache audits find no suitable inactive 8 GiB cleanup candidate.
+BuildKit has about 1.73 GiB of nonshared reclaimable entries, and the
+one-level installer inventory totals about 1.88 GiB. Their safety is not
+established and neither is proposed for deletion. Existing active caches
+and the previously consumed deletion approval remain excluded. No new
+deletion occurs. About 104 GiB free remains below 110 GiB full admission.
+
+## Routine hold renewal at 09:42 UTC
+
+The [renewal receipt](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-094238.json),
+SHA `bc246b78…`, records seven successful steps under reviewed source
+`81772a44…`, with no timeout. Both helpers finish naturally with exit zero.
+Activation at 09:42:48 UTC precedes the old 09:44:01 expiry. Receipt hashes
+verify before the pointer moves to `5716b08f…`, due 10:42:38 UTC. Hold
+identity and all twelve protected services remain unchanged. No scheduler
+starts.
+
+## Production watch through 09:43 UTC
+
+The [09:45 watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-0945.json)
+records one request and one acquire progress at 09:41 after nine observed
+idle acquire ticks. Ten derive ticks through 09:43 make no progress. The
+latest alert is an 08:35 host failure. Both read-only commands exit zero.
+This updates the earlier idle finding without establishing pages fetched,
+sustained recovery, a cause or a deployed repair.
+
+## Pure lexical comparison closes without a rewrite
+
+The reviewed probe runs once in image `c92bfcd1…` at 09:51 UTC. Output
+`88e77ca0…`, 1,064 bytes, records all 783 equivalence cases and 631
+refusals passing in 0.150280 seconds. Review `3b1687bd…` verifies the
+actual bounded actor, natural exit zero, no OOM, exact read-only script
+mount and private outputs. The stopped helper and scratch outputs remain.
+
+Three alternating rounds save 8.55–8.81 microseconds per warm synthetic
+call. This does not establish a material contribution to the 13.55-second
+normal-core gap; no suite-count extrapolation is justified. Close the path
+branch without a repository rewrite, another profile or a normal timing
+retry. The original lexical operation and every physical check remain.
+Stage 2 still needs the two failed units resolved and current qualification.
+
+## Authorized Gradle cache cleanup at 15:56 UTC
+
+The owner asks to delete the Gradle caches. A fresh independent check first
+holds deletion for an open Gradle daemon; Gradle reports it idle and its
+ordinary stop succeeds. Fresh no-use checks and review `55b56e57…` accept
+only the exact cache directory. The command runner rejects the force form
+before dispatch; the non-force removal exits zero. The 6.39 GiB cache is
+absent and every sibling identity remains unchanged. The [receipt](../../evidence/runtime/postgres-stage2-2026-11-11/gradle-cache-cleanup-20261112.json),
+SHA `e5d3958f…`, separates cache allocation from concurrent filesystem space
+changes. About 109.4 GiB is free, still 0.55 GiB below full admission.
+
+## Retired October rollback copies removed at 17:19 UTC
+
+The owner explicitly retires both old database copies. Fresh metadata,
+no-use checks and independent review `46168e03…` confirm their exact scope.
+The newer schema-37 source on Rhuidean still hashes to `ae3bbcd1…`, matching
+both original full-validation receipts; all newer source files and transport
+remain. The exact non-force removal exits zero. Both October files are absent,
+all three offload siblings retain their identities, and about 208 GiB is free.
+The [receipt](../../evidence/runtime/postgres-stage2-2026-11-11/old-database-copy-cleanup-20261112.json),
+SHA `91de35d2…`, records 106.21 GiB allocated and the separate observed
+free-space change. One current-source full qualification is now admitted;
+the historical core timing failure remains open.
+
+## Rehearsal review expired during stopped work
+
+The last review expired at 10:42:38 UTC. The ordinary renewal refuses before
+opening an operation. Maintained status at 17:15 checks the unchanged protected
+services and exact old hold, then reports `active_fresh=false` and
+`continuation_allowed=false`. No server actor starts. Preserve this expiry gap;
+reopening requires its own explicit, reviewed protocol. Local source-bound full
+qualification does not need a server actor and can proceed independently.
+
+## Current-source full qualification starts at 17:22 UTC
+
+The documented native full command starts once with four workers and all core
+and extended cases. Source `732a0b96…`, input binding `35a49cdf…` and all
+956 inputs are captured before launch. PID and process group 9813 own the
+run; JUnit output and raw logs stay in private scratch. About 208 GiB free
+passes admission, with the 80 GiB floor still required. The result remains
+pending. No source changes are permitted during the run; docs and receipts
+are outside its bound input map. The earlier normal core still fails timing.
+
+## Production watch through 17:23 UTC
+
+The [bounded watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-1725.json),
+SHA `e3f32abb…`, finds ten acquire ticks through 17:21 with zero requests and
+ten derive ticks through 17:23 with zero progress. Both read commands exit
+zero, but that establishes no liveness. At 16:35 the watchdog reports 79.5 GB
+of counted state over its 50 GB cap, disabled remote backup upload, local set
+`set_20261112T040049Z` and 632 withheld partitions. The independently retained
+November 5 source still hashes correctly; no current-set integrity or new
+restore drill is established. No production state or configuration changes.
+
+## Full qualification passes all 5,172 cases
+
+The [full receipt](../../evidence/runtime/postgres-stage2-2026-11-11/current-source-full-20261112.json)
+records native CLI exit zero and 5,172 unique JUnit case identities, all
+passing, with no errors or skips. Pytest reports 1,273.33 seconds. Source
+`732a0b96…`, binding `35a49cdf…` and all 956 inputs remain exact before and
+after. The owned group is absent; no case/copy databases or clients remain.
+All preexisting ledger identities are preserved, including unknown-endpoint
+`9e6…`; six new empty lock files are harmless. Independent terminal review
+`ceeeb76b…` accepts those facts. Four saved monitoring samples stay above the
+80 GiB floor; they do not establish a continuous minimum. About 177 GiB is
+free afterward. Raw reports and temporary artifacts stay in scratch.
+
+This completes full qualification for that source, not the separate core
+timing gate. The two failed graph units and expired server hold still block
+stage 2. The explicit hold-reopen draft remains unexecuted in scratch;
+applying it will create a different source binding requiring its own checks.
+
+## Explicit expired-hold source checked
+
+The reviewed draft is applied after the full run's post-binding. Only the
+hold helper, CLI forwarding and existing hold tests change. Public status
+regressions preserve exit 1 while the installed hold is expired, even when
+the reviewed administrative continuation is eligible; verified activation
+changes that status honestly. A local annotation and import order are fixed.
+All 64 focused tests, Ruff, mypy across 376 files and formatting pass.
+
+The [new-source core receipt](../../evidence/runtime/postgres-stage2-2026-11-11/expired-hold-source-core-20261112.json)
+records 3,608 passing cases on source `5a2a3814…`, binding `cee1d102…`, but
+207.68 seconds still fails 180. Review `979a612e…` verifies exact assignment,
+caps, source binding, actual cleanup and the preserved unknown ledger.
+Weights `2ce4c6a2…` are the ordinary runner's automatic update from the previous
+normal result, not a manual timing change. No unchanged retry is selected.
+
+Actual-source review `d448f6f1…` accepts the control protocol, not a runtime
+operation. At 18:01 the tested command prepares a fresh local reopen packet
+after exact closed-prior and protected-service checks. It mutates nothing on
+the server. Its fixed interval ends 19:01:40 UTC; the old 10:42 expiry remains
+explicit. The separate administrative operation still needs concrete review.
+
+## Reviewed reopening and routine renewal complete
+
+The [explicit reopening](../../evidence/runtime/postgres-stage2-2026-11-11/expired-hold-reopen-20261112-180140.json)
+finishes activation at 18:07:58 UTC. Independent terminal review `fc3c9b80…`
+accepts actual CLI exit zero, seven zero transport exits, both exact owned
+helpers naturally exited and the three copied receipts verified before the
+pointer advances. The unchanged owner, reason, creation time and protected
+12 services remain bound. The old 10:42:38 review expired 26,720.629642
+seconds before activation; continuous validity is explicitly false. The
+prepared interval is not redated and ends at 19:01:40 UTC.
+
+The separate [18:32 routine renewal](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-183202.json),
+SHA `b0d0a3d9…`, activates at 18:32:13 UTC, before that interval ends.
+Independent terminal review `388a4b…` confirms seven zero transport exits,
+no timeout or retry, exact helper exits zero with PID zero and no OOM,
+unchanged protected services and copied receipt hashes. Hold `4b0264bc…`
+now has review at 19:32:02 UTC. This routine interval is continuous; it
+does not erase the earlier expired gap. Neither administrative receipt
+qualifies a worker, cold preparation, pipeline, migration or publication.
+The current 3,608-case core remains a 207.68-second timing failure; the
+5,172-case full pass qualifies only source `732a0b96…` and binding `35a49cdf…`.
+
+## Bounded production watch at 19:07 UTC
+
+The [read-only watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-1907.json),
+SHA `ebacb8a7…`, records eight acquire summaries through 19:01 with zero
+requests and eight derive summaries through 19:03 with zero progress.
+All report `failed=false` and no error; both read commands exit zero with
+empty stderr. The 17:35 idle alert reports no acquire progress since 16:21;
+the 18:05 Wayback alert repeats seven server errors with an old November 6
+deadline. The prior 79.5 GB size alert, paused upload and 632 withheld
+partitions remain. A partial 100-line journal cannot prove a continuous
+fetch gap or its cause. No repair or new backup-integrity claim follows.
+
+## Routine review renewed and inventory diagnostic started
+
+The [19:48 routine renewal](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-194848.json)
+finishes naturally with all seven transport exits zero. Independent terminal
+review `feb21c18…` verifies both exact helpers exited zero with PID zero,
+no OOM or restart, unchanged protected services and all three receipt hashes
+and metadata before pointer finalization. Activation at 19:48:59 UTC precedes
+the prior 20:09 review. Hold `9a25583d…` ends at 20:48:48 UTC, preserving
+the old expired gap and unchanged owner, reason and creation time. This
+administrative receipt grants no pipeline qualification.
+
+The [cold preparation](../../evidence/runtime/postgres-stage2-2026-11-11/cold-unit-preparation-d21bfe137a3d.json)
+completes all 147 stock rows, with 24 helpers naturally exited and a fresh
+unstarted actor. Root launches the separately reviewed foreground diagnostic
+once at 19:56:53 UTC. Independent [startup review](../../evidence/runtime/postgres-stage2-2026-11-11/inventory-unit-diagnostic-d21-startup.json)
+`c45be3ad…` confirms actor `1bd4ed0b…` running from 19:56:54 UTC, its exact
+authorization and egress limits, the protected boundary and native-38 source.
+The actual supervisor is PID/group 2438424; root's SSH tool session 27467
+is a different identity. New owner `ab603d2197fd4982ba1c4f23` has an empty
+registry at observation, and the source has one legitimate prefreeze read
+client. Producer `8aae03bf`/image `346f30a4` is unchanged; observer `70f85704`
+measures capture, desired state, inventory preparation and post-link hints.
+No freeze completion, inventory result or final cleanup is claimed yet.
+
+## Bounded production watch at 20:11 UTC
+
+The [read-only watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-2007.json)
+is recorded at the actual clock time, 20:11:16 UTC. Both completed SSH reads
+exit zero with empty stderr. The partial 100-line journal contains eight
+acquire ticks through 20:06:02 with zero requests and nine derive ticks
+through 20:08:25 with zero progress; all report no failure or error. The
+eight-line alert tail has exactly the same hash as the 19:07 watch. Its
+latest entry remains the 18:05 Wayback failure; the 17:35 idle alert and
+16:35 state-size, disabled upload and withheld-partition alerts persist.
+This establishes no continuous fetch gap, cause, recovery, current backup
+integrity or restore result. No production repair follows. Maintenance
+item 44 keeps the accounting investigation separate from this observation.
+
+## Hold renewal reconciled without replay
+
+The [20:19 renewal](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-201956.json)
+keeps its original step-two `TimeoutExpired` transport with unknown exit.
+Status `fc43273c…` proves exact installer `112bcf76…` naturally exited zero;
+the remaining-only review `b1ec6502…` permits steps 3 to 6. Their maintained
+resume exits zero, with the installer never replayed. Both exact helpers
+have terminal exit zero, PID zero and no OOM or restart; only the other six
+transports are zero. Independent terminal review `a26b7c64…` accepts those
+distinctions, the protected services and the copied receipt readback.
+Activation at 20:25:26 UTC precedes the old 20:48 review. Hold `4196d386…`
+ends at 21:19:56 UTC, with unchanged owner, reason and creation time. Runtime
+chain `a34cf1ea…` binds the renewal to the existing diagnostic; neither this
+administrative result nor its continuous interval proves a unit result.
+
+## Output-pack SQL guard owner measurement
+
+The [isolated measurement](../../evidence/runtime/postgres-stage2-2026-11-11/sql-guard-measurement-f541cb413f6243daa1fa9d2d.json)
+passes the whole fixed SQL-guard case on source `fc7f5f8c…`, with 956 stable
+bound paths. Its body uses 6.620495509 wall and 6.619374767 owner-CPU seconds.
+The repeated function-naming child runs 11,214 times, using 5.353911613 wall
+and 5.349946095 owner-CPU seconds. Global parse and naming each run 376 times
+(0.467937517 and 0.646363007 wall seconds); partition parsing runs once
+(0.006126324 wall seconds). These inclusive children overlap their parents;
+they are not pure membership costs and cannot predict normal-core savings.
+Quality, owner and hook-restoration checks pass with no errors. Independent
+terminal review `ae7285d4…` confirms actor absence, owned-profile cleanup,
+retained volume and preservation of unknown inode 303784487 without reading
+its ledger body. The 30-second measurement and 120-second cleanup bounds
+are unchanged. No optimization is applied; the normal 207.68-second timing
+failure remains.
+
+## D21 acceptance failed before the inventory trial
+
+The [failed diagnostic](../../evidence/runtime/postgres-stage2-2026-11-11/inventory-unit-diagnostic-d21-failed.json)
+ends with natural actor exit one at 20:37:10 UTC, PID zero and no OOM.
+Root's foreground session 27467 exits one; the supervisor finishes after
+2,421.82 seconds. Capture, the exact source check, fresh freeze and full
+108,390-unit/D58 prelude return; destination checkpoint `5039effb…` and
+input binding `1ffa96ed…` match. Normal acceptance then raises
+`WriteDeadlineExceeded` after 60.593217 wall / 12.689127 owner-CPU seconds.
+No inventory trial or new inventory spans run. The 177 coarse pending-work
+calls observe 28.514006 wall / 1.643885 owner-CPU seconds; watches and reads
+are also coarse outermost connection families, not precise SQL attribution.
+They omit raw transaction/commit calls and establish no server-CPU,
+pressure or coordinator cause.
+
+Independent terminal review `6831c3a3…` confirms owner
+`ab603d2197fd4982ba1c4f23` has no database/comment, registry, sessions,
+process groups, cgroup or active authorization left. The retained five-DB
+catalog, C696/69 native-38 identity/checksum metadata, guard, protected
+services and current `4196d386…` hold remain bound. Full source post-hashing
+does not run after the acceptance exception; small metadata and the source
+read-only protocol cannot be presented as that full hash. The independent
+cleanup observation also does not turn the operator's incomplete receipt
+into a completed diagnostic. Input acceptance must finish within its normal
+bound before a new inventory trial is possible. No unchanged replay or
+actor restart is selected.
+
+## Core 695 prologue failed before main
+
+The [latest attempt](../../evidence/runtime/postgres-stage2-2026-11-11/core-695dcf689a704248bb886fb1-prologue-failed.json)
+on source `4413d9df…`/binding `e0bc634e…` fails one prologue case in 22.93
+seconds. The healthy control still runs under the test's injected 30 ms
+deadline after its deliberately slow call. No main client or main case is
+selected; `within180=true` on this aborted summary is not qualification.
+Ruff and mypy over 376 files pass. Independent terminal review `e27eb4f0…`
+confirms owned cleanup, no remaining case/copy clients or locks and the
+unchanged unknown-ledger inode. The correction is confined to the injected
+timer's test scope; production 60-second writes and the 180-second core
+gate remain unchanged. The last complete 3,608-case run still fails timing
+at 207.68 seconds. No timing saving follows from the aborted attempt.
+
+## D3 core correctness passes; timing still fails
+
+The [complete normal check](../../evidence/runtime/postgres-stage2-2026-11-11/sql-guard-core-d3a1116374484245a71cc59f.json)
+passes all 3,666 cases on source `4413d9df…`, binding `493d0de6…`, with 956
+stable bound paths. Its prologue passes one case; the four clients pass
+855, 801, 918 and 1,091. No case fails, errors or skips, and all five phase
+observers have quality true. Ruff and mypy over 376 files pass. The runner
+takes 250.587448500 seconds and the wrapper prints 250.69; default check
+exit one is the unchanged 180-second timing failure, not a correctness pass
+turned into timing qualification. Independent terminal review `8d1d0fea…`
+confirms exact natural measured weights `18e94246…` from the earlier `0def`
+result, stable source, owned cleanup and the preserved unknown-ledger inode.
+Raw reports and samples stay in scratch. No normal-core recovery or saving
+is inferred, and the failed `695` prologue is earlier history.
+
+## Routine hold review extended to 22:02 UTC
+
+The [21:02 routine renewal](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-210236.json)
+completes with CLI exit zero, all seven transports zero and both exact owned
+helpers naturally exited with PID zero, no OOM and no restart. Independent
+terminal review `f4e31f9d…` confirms root-owned mode-0444 single-link hold
+bytes, copied receipt readback, unchanged protected services and unchanged
+owner, reason and creation time. Activation at 21:02:48 UTC precedes the
+prior 21:19 review. New hold `959fb11e…` ends at 22:02:36 UTC; continuous
+validity preserves, rather than erases, the historical expired gap. D21
+remains terminal and failed. No new actor, SQL, cleanup or pipeline authority
+follows from this administrative renewal.
+
+## Production watch adds budget and stale-fetch alerts
+
+The [21:25 read-only watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-2125.json)
+is recorded at 21:25:51 UTC. Both completed stock SSH reads exit zero with
+empty stderr. Its bounded 100-line journal contains eight acquire ticks
+through 21:21:02 with zero requests and nine derive ticks through 21:23:27
+with zero progress; all report no failure or error. Compared with the
+earlier watch, the alert tail adds a 20:35:54 Wayback failure and one
+request-budget guard, then a 21:05:53 stale-fetch alert. The latter reports
+two hours without requests and a newest stored page five hours old. Those
+are alert statements, not independently established continuous coverage.
+The older size, paused-upload and withheld-partition notices persist. No
+cause, recovery, integrity result or repair is claimed; hold `959fb11e…`
+is untouched.
+
+## Isolated publication-safety CPU diagnostic completes
+
+The [fixed local diagnostic](../../evidence/runtime/postgres-stage2-2026-11-11/unlanded-publication-cpu-07f6e8cf72104a079713ca01.json)
+passes the complete unlanded-intent publication-safety case on source
+`89ba7730…`, binding `1d2aad5e…`, with all 956 bound paths unchanged. Its
+instrumented call takes 13.683050972 wall and 10.494631632 owner-CPU seconds.
+Client time including cleanup is 18.256417 seconds; host time including
+cleanup and report reads is 19.110954 seconds. These are separate clocks.
+The profile sees 3,312 entries, ranks 3,028, excludes 284 suspension entries
+and omits none. Quality, owner and hook-restoration checks pass with no
+observer errors; ranked self time totals 9.82244659 CPU seconds. Pathlib
+leads the self-time ranks. Native work is charged to its containing Python
+frame; this flat ranking supplies no precise caller or normal-core saving.
+Independent terminal review `38e1417a…` verifies actor absence, clean owned
+native profiles, the retained volume and unchanged unknown inode 303784487.
+The existing 30/120-second bounds and 2 GiB/six-CPU limits remain; no ceiling
+is reached. This local test publishes no production dataset and changes no
+normal timing qualification. Raw results and samples remain in scratch.
+
+## Hold reopened after a separate 268-second expiry gap
+
+The [explicit administrative reopening](../../evidence/runtime/postgres-stage2-2026-11-11/expired-hold-reopen-20261112-220454.json)
+completes with CLI exit zero. Sole terminal review `d09f73c3…` verifies all
+seven transports exited zero, both exact helpers naturally exited zero with
+PID zero and no OOM or restart, and all 12 protected services are unchanged.
+The installed hold is root-owned mode 0444 with one link; three copied
+receipt hashes and metadata match before pointer finalization. This consumes
+the sole verdict and adds no independent review or server operation.
+
+The old 22:02:36.819952 review expired before activation completed at
+22:07:04.990803698 UTC: the recorded gap is 268.170851 seconds, explicitly
+not continuous validity. It is separate from the earlier 26,720.629642-second
+gap. Owner, reason and creation time remain unchanged. New hold `846b3782…`
+retains its prepared 22:04:54.469325 review time and fixed 23:04:54.469325 UTC
+deadline (6:04 p.m. ET); it is not redated from activation. No worker, new
+run, SQL, cleanup, migration or publication authority follows.
+
+## Bounded watch records one request
+
+The [22:27 read-only watch](../../evidence/runtime/postgres-stage2-2026-11-11/production-watch-20261112-2225.json)
+records both completed stock SSH reads exiting zero with empty stderr.
+The journal query starts at 21:15 UTC but retains only 100 lines. Those
+lines contain eight acquire ticks through 22:20:25.816665, with one request
+and total progress of one, and eight derive ticks through 22:24:26.533027
+with zero progress. All report no failure or error. The alert tail is
+byte-identical to the previous watch, including its host-failure, budget
+guard and stale-fetch notices. One observed request is not evidence of
+continuous recovery, and this bounded window establishes no cause or full
+coverage. No repair or new server action follows from this receipt.
+
+## Core 508 interrupted after sixteen failures
+
+The [latest check](../../evidence/runtime/postgres-stage2-2026-11-11/core-508762f3a0b94f039d0f5619-interrupted.json)
+on source `c9f7bb57…`, binding `dad1c576…`, remains failed and incomplete.
+Of 3,693 selected cases, 543 pass, 16 fail and 3,134 are unfinished. Fifteen
+failures are crash-helper 15-second timeouts; one is a publication
+`ControlTimeout`. Cause remains unlocated. Root sends one SIGINT at
+22:31:04.307520 UTC to exact PID 46512, bound by its recorded birth and job
+marker. The resulting 412.235024916-second incomplete run exits one; it
+does not qualify timing or correctness. Ruff and mypy over 376 files pass,
+and the observer's 95 focused passes remain a separate, narrower result.
+
+Sole terminal review `25850292…` accepts owned cleanup and the native
+boundaries, unchanged unknown-ledger inode and exact natural weight cache
+`7b215846…`. No manual weight, scheduling or limit change follows. The
+last complete run is still the historical 3,666-case pass at 250.69 seconds,
+over the unchanged 180-second gate. The existing plan selects a bounded
+reproduction of two failed native cases; it selects no unchanged normal
+retry, full replay or server operation. Raw reports remain in scratch.
+
+## Routine hold interval extended to 23:40 UTC
+
+The [22:40 routine renewal](../../evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-224015.json)
+exits zero with all seven transports zero and both exact helpers naturally
+exited zero without OOM. Sole terminal review `44b7fd83…` verifies their
+complete profiles, unchanged protected services, root-owned mode-0444
+single-link hold, three copied receipt hashes and metadata, and final
+pointer equality. Source `3a4845a2…` remains unchanged. Activation at
+22:40:31.180631426 UTC precedes the old 23:04:54.469325 deadline, so this
+interval is continuous. New hold `61c2af69…` ends at 23:40:15.510999 UTC
+(6:40 p.m. ET). The earlier expiry gaps remain historical; no worker or
+new operation authority follows. The compact receipt retains only hashes,
+counts and flags; raw records remain in scratch.
+
+## Native full suite passes 5,273; core gate remains open
+
+The [final native full run](../../evidence/runtime/postgres-stage2-2026-11-11/callee-observer-full-20261112.json)
+exits zero with all 5,273 unique cases passing and no failure, error or skip.
+Four native workers run the unchanged full command recorded in the sole
+review. Pytest reports 1,528.25 seconds; measured phase wall time is
+1,528.4692 seconds. All 956 before-snapshot inputs still match source
+`c9f7bb57…` and binding `dad1c576…` after completion. The sealed scratch
+proposal is preserved; the compact retained receipt adds only the command
+descriptor and actual exit zero, with all raw artifact hashes bound through
+terminal review `8fca9712…`.
+
+That sole review verifies the fresh native catalogs and profiles, no
+remaining clients or case-copy databases, no TestRun JSON records, released
+locks and the unchanged unknown-ledger inode. Available space is
+154,399,883,264 bytes, above the 80 GiB floor. No new test, source edit,
+server query or review is performed to record this outcome. The earlier
+5,172-case pass is historical; core `508762` is still interrupted, incomplete
+and failed. Full-suite correctness does not qualify the normal 180-second
+core gate or erase those 16 failures.
+
+## Fresh read-only preparation observations and checkpoint review
+
+The new callee-observer packet remains scratch only at
+`/tmp/swingset-stage2-callee-observer-cold-draft-bcb430f5961a44e49daa11a7-v2`,
+manifest `cb75b1c3…`. Its 26 selected public read-only checks finish with exit
+zero and empty stderr. Collection `0f8a4209…` and sole semantic review
+`c0aa2ce5…` preserve the private catalog, source identity, protected services,
+guardian and current hold. The known held inventory limitation remains; exact
+role counts and healthy monitoring are not established. No preparation effect,
+new actor or new database has occurred. Fresh actual preparation admission is
+still pending. The source-bound native full check passes 5,273 cases, while the
+concurrent core's incomplete failure remains open. The reviewed revision
+description is `/tmp/swingset-stage2-reviewed-revision-description-20261112.txt`;
+permission to close the unfinished checkpoint is pending because only 101 bytes
+remain in this change's evidence budget.
+
+## Seventy-five-second policy: local validation
+
+On November 13 the owner selects one 75-second absolute worker write deadline,
+including nested writes and commit acknowledgement ([D-0294](../../decisions/0294-use-a-seventy-five-second-worker-write-deadline.md)).
+Cancellation, rollback and retry rules remain in force. Future rehearsal
+operators must record the frozen producer's installed limit and the applied
+75-second limit on their owned copy, then restore the installed setting. No
+server run, deployment, commit or push is authorized by this request. The last
+recorded server review expired November 12 at 23:40 UTC.
+
+The initial focused selection reports 434 passes and one failure from 435
+cases in 229.97 seconds: a synthetic 30-millisecond admission alarm also covered
+retry bookkeeping. The correction scopes that test's real SIGALRM to its
+intended capture, without changing production behavior. The complete
+write-deadline test file then passes all 27 cases in 12.96 seconds. Sole source
+review `/tmp/swingset-75s-review-20261113/independent-source-review.json`, SHA-256
+`c9b26556430800e3e956bee29608072e6e5a73ed4524712f638872ba82907700`,
+finds no material source issue; core and full validation were pending at that
+review.
+
+Core job `5ff7c22a19744c1a967230fe` subsequently passes all 3,702 cases with zero
+failures, errors or skips in 236.89 seconds. Its checks pass with no reported
+errors; all five nested client cleanups and physical cleanup report complete.
+These are the runner's cleanup reports; the later independent terminal review
+below confirms the owned boundary.
+Ruff, mypy across 376 files and formatting exit zero. The unchanged 180-second
+core gate still fails. Summary SHA-256 is
+`b726a1eef6408c85954c2b93ced6df34891a926062d15b27a60bbeda3de62036`;
+source is `f3e415d06469f23dadc13d696d8218eadf7be46bdfba471e84a99c4b5b793fc7`,
+with 956-input binding
+`269814347ccd1aa2ba5b553fd722f75b3e43dbc9860b8d645fc6cc20d0d94c86`.
+
+The final native full run completes with all 5,282 tests passing, zero failures,
+errors or skips, in 1,458.12 seconds (24 minutes 18 seconds). Tool session 2025
+exits zero after using four workers on those frozen inputs. Its scratch packet
+is `/tmp/swingset-75s-full-20261113-1632`. `after.json`, observed November 13
+at 16:57:47.898054 UTC, confirms the same source and exact 956-input binding
+as `before.json`. Available space falls from 150,945,427,456 bytes to
+118,472,949,760 bytes, still above the 80 GiB floor; initial admission exceeded
+110 GiB. Log SHA-256 is
+`123eba447ef2e714d5064cce4c38c51e8717be855002499405d7359a8452978c`;
+JUnit SHA-256 is
+`cf3909487491ec766a5867818ce57468e84a6980975c278366d9d04dcbc52dfa`.
+The sole independent combined terminal review accepts correctness and owned
+cleanup, while retaining the core timing failure. Its scratch verdict is
+`/tmp/swingset-75s-full-20261113-1632/independent-combined-terminal-review.json`,
+SHA-256 `8ec195a6ba2b65441e994a942ff609a21e55f17b3d9f14e3e4fd26526f79b56d`.
+It independently checks all 5,282 unique full-suite cases, the 3,702-case core
+membership and natural assignments, and all 956 unchanged source inputs.
+Both native profiles, catalogs and six public roles match the prior baseline;
+owned clients and case-copy databases are absent, locks are free, and the
+unknown ledger's metadata is preserved without reading its body. Fresh free
+space is 118,211,850,240 bytes, above the 80 GiB floor. CPU observations for
+clients 2 and 3 remain rejected-quality. No material correction or further
+runtime action follows from this review.
+The core's 236.89-second result still fails the 180-second gate. The prior
+5,273-case full pass on `c9f7bb57…` predates the new deadline and remains
+historical. No new server run, deployment, commit or push occurs. No new
+retained receipt is written: only 101 bytes remain in the change's evidence
+budget, so this validation's raw artifacts stay in scratch.
+
+## Getting the current core below three minutes
+
+The owner's latest question is how to bring the 3,702-case core from 236.89
+seconds below the unchanged 180-second gate. That requires 56.89 seconds,
+about 24% of elapsed time. Existing observations do not identify a safe change
+that delivers that saving. The 16 workers finish within 6.286 seconds of one
+another. Dividing their observed case-phase work equally gives an ideal
+216.16 seconds before launch, collection and cleanup overhead; scheduling
+alone cannot close the gap at those observed costs. Setup totals 574.20
+worker-seconds, or 35.89 seconds divided by 16. Even eliminating all setup
+would not alone bridge the elapsed gap, and eliminating coverage is not an
+option. Worker occupancy is not directly additive elapsed savings.
+
+The useful next measurements are bounded caller attribution inside these
+existing operations, preserving all cases, assertions, resource caps and the
+180-second gate:
+
+- Crash recovery occupies 190.38 aggregate worker-seconds across 19 cases,
+  with only 1.355 seconds of accepted parent owner CPU. Split actual child
+  lifetimes into startup/imports, state opening, pipeline work and recovery.
+  Parent CPU does not measure the children. The passed source flow implies
+  39 child launches; that is a static count, not a measured launch count or
+  child-cost attribution.
+- On actual critical worker client 0 / `gw1`, assembly and closure-validation
+  blocks occupy 85.36 wall seconds, including 46.07 seconds of setup. Their
+  accepted owner CPU totals 47.63 seconds. Attribute the shared real release
+  fixture's bootstrap, admission, publication fixture, input acceptance and
+  materialization callers before proposing reuse or removal. Existing
+  records do not establish redundancy.
+- The 33-page completion-cohort case on that same worker occupies 79.47 wall
+  seconds and 24.14 accepted owner-CPU seconds. Its source permits at most
+  600 choices; the receipt does not establish 600 executed choices. Attribute
+  readiness preparation, watch updates and actual fetch selection without
+  reducing the test's scope or reopening earlier closed cache proposals.
+
+Clients 2 and 3 fail CPU-observer quality, so their CPU values cannot support
+attribution; their monotonic wall observations remain useful. Memory samples
+show no sampled cap event or OOM event. They neither prove an absence of all
+pressure nor justify a RAM change. No particular optimization, normal-core
+saving or new execution is selected by this analysis.
+
+The scratch analysis is
+`/tmp/swingset-stage2-core-5ff7-existing-analysis-20261113/analysis.json`, SHA-256
+`bd47581620db334328d7a0ce333b3639ac98c102806e964388bf3dd999a053a2`.
+The resource analysis is
+`/tmp/swingset-core-5ff7-resource-analysis-20261113.json`, SHA-256
+`52da6ff958ea132f946512f02b1c6155dfeec7a458463b5d24021a409b97d9b1`.
+Both describe existing job `5ff7c22a19744c1a967230fe`; no new profile,
+repository implementation or retained evidence is created for this answer.
+
+## Five-minute core gate
+
+On November 13 the owner raises the complete local core budget from 180 to
+300 seconds. This replaces the three-minute target in the migration plan and
+development instructions. It changes the feedback policy; no performance
+optimization, test selection, resource cap, worker count or 75-second worker
+write bound changes. Historical failures, including job `5ff7c22a…`, retain
+their original 180-second outcome.
+
+The runner reports `swingset-core-run-v2`, with explicit `budget_seconds` and
+`within_budget` fields in place of the old fixed-duration field. The error
+message uses the same budget constant as the final exit check. All 67 runner
+cases pass in 61.25 seconds. The complete default check runs as job
+`98bb4ce6d3bd4ffca4abc8e3`, on source
+`862bbd75c9a7496e0d297147c8a9192b1acd759917a90ac6d16f04d331118e3c`,
+with 956-input binding
+`8e83714209c94b9b4353cb21c3afcbf31c23529dba739744314d1d9a2b1ce367`.
+The raw packet stays in `/tmp/swingset-core-300-20261113-1849`; no retained
+receipt or server operation is added. The earlier full-suite pass remains on
+its original source. This budget-only runner change needs focused and core
+checks, not a repeated extended recovery run.
+
+The check exits zero: all 3,702 cases pass, with zero failures, errors, skips,
+xfails or xpasses. The printed core duration is 267.29 seconds; its summary
+records 267.193431 seconds, `budget_seconds=300` and `within_budget=true`.
+Ruff and mypy across 376 source files pass. All five client cleanup reports
+and physical cleanup report complete. These are runner reports, without a
+new independent native cleanup audit. All 956 bound inputs match before and
+after the run; only `src/swingset/dev/core_runner.py` differs from the earlier
+full-suite input set. Free space after the run is 142,837,051,392 bytes.
+Summary SHA-256:
+`ced8c7a02815c36c9c6c4d57ec61d25400eecd04842f9fbc6b4b8bacddeb85b5`.
+Check-log SHA-256:
+`eb91be5a8ce6a4cb9a696934f7530f7f6117a5ed970e48daf4fe1b5b5641025c`.
+This passes the newly selected budget; it establishes no performance gain.
+The 75-second write policy and failed server graph units remain unchanged.
+
+## November 16 Stage 2 resume
+
+The owner asks to proceed. All 956 source inputs still match the tested
+`862bbd75…` source and `8e837142…` binding. No performance work or source edit
+is selected. The revision still contains 204,699 bytes of added evidence;
+only 101 bytes remain. Explicit approval to close `rnmoupss` and continue in
+a fresh revision is requested before server mutations and new receipts.
+
+Read-only SSH checks preserve the exact old hold hash and all twelve
+protected services against the prior baseline. The server filesystem reports
+579,082,010,624 bytes free. Raw resume artifacts stay in
+`/tmp/swingset-stage2-resume-20261116`. No guarded job or server mutation runs.
+
+The maintained hold command prepares the unapplied reopening draft
+`/tmp/swingset-stage2-hold-review-20261116-153214`, changing proposed hold
+`61c2af69…` to `2b66cc2c…`. Its admission hash is
+`fcb4de2932a70cff4b53e9c96d4a465490379816d1e5e034055b656db10353cc`.
+The sole independent administrative review is
+`/tmp/swingset-stage2-hold-reopen-independent-20261116-153214/execution-review.json`,
+SHA-256 `030c07fadf6eba5dcdc638731b76677c15de4d9dafe5f09c4185d41d4cbbfb0d`.
+It accepts only the seven-index reopening protocol, conditional on the pending
+revision approval. The fixed proposed review expires at
+2026-11-16 16:32:14.220269 UTC. It supplies no worker authority and must not be
+retimed or used after expiry. The installed hold remains expired.
+
+A new local 75-second candidate is sealed at
+`/tmp/swingset-stage2-75s-callee-cold-draft-92900be19500452c971e1292-20261116-v1`.
+Its manifest SHA-256 is
+`bb9d89aaa1fbc7b3062619f0ac1861389667d6142bfea43775dee819c0cf1086`;
+147-command SHA-256 is
+`0846f968d4b7fb923d81a14c9334fa48ee6ba6b3bbd53dcfe6e489909380553c`.
+It stages both current diagnostic modules, operator `614d3bd1…` and supervisor
+`89cd6ff2…`, with new resource names. Frozen producer `8aae03bf…`, image
+`346f30a4…`, its 560-file proof and linker 9 remain fixed. Historical D21 and
+bcb resources are denied targets. Both preparation and execution authority
+remain false; runtime container and review fields remain placeholders.
+
+After revision approval, apply and independently confirm a fresh hold, collect
+fresh read-only admission, obtain the actual preparation review and root go,
+then run and audit all 147 preparation outcomes and cold-copy memory proof.
+A separate execution review and root go must bind the actual cold container
+before the foreground diagnostic. These local drafts establish no admission,
+acceptance, graph success, migration or deployment. No new retained evidence
+is written while the current change has no receipt space.
+
+The sole static reviewer accepts the new template and proposed read-only
+boundary without material findings. Verdict
+`independent-static-template-review.json` in the new candidate directory has
+SHA-256 `09282651b780db69012c2805fe9c1181094a86daa3d43a42bed1609df2665d57`.
+It checks all 24 member identities, all 147 command rows, nine uploads,
+24 helper templates, three proposed volumes and current module bytes. The
+proposed 26-record admission scope and stat ordering remain bounded; no
+collection, preparation or worker authority follows. Fresh actual hold and
+admission, conditional filesystem guards, the later recheck, cold-copy memory
+proof and a separate execution review remain required. No historical helper
+identity may substitute for actual proof. Local preparation is complete;
+revision-close approval remains pending.

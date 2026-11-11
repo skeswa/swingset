@@ -218,8 +218,8 @@ seconds by default for both. A wait timeout or interruption preserves the
 pause and reports the remaining admissions and leases; it never reports that
 no change occurred.
 
-Worker write phases have a 60-second wall-clock alarm, the same for every unit
-([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)).
+Worker write phases have a 75-second wall-clock alarm, the same for every unit
+([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md), [D-0294](../../journal/decisions/0294-use-a-seventy-five-second-worker-write-deadline.md)).
 Writes are small by construction, so a firing is an alarm. The limit interrupts
 Python work and long SQLite statements. Nested transactions inherit the outer
 deadline. A timed-out derivation rolls back, retains its queue token, and records

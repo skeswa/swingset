@@ -55,13 +55,13 @@ and teardown before each change. The targets below remain the acceptance
 conditions; the [local outcome](../../../journal/investigations/2026/stage-1-implementation-2026-11-04.md)
 records the implementation and limits. First-time downloads are separate.
 
-| Task                                       | Entry point                                                     | Feedback target                                             |
-| ------------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------- |
-| start work                                 | `mise run dev`                                                  | ready in 30 s with dependencies and images cached           |
-| edit and test one behavior                 | `mise run test -- <file-or-nodeid>`                             | under 10 s for the representative focused case              |
-| keep that test running on edits            | `mise run test-watch -- <file-or-nodeid>`                       | same target; one run at a time, changes coalesced           |
-| inspect one unit or a small event scenario | `swingset dev-replay <database> --unit <key>` or `--event <id>` | under 30 s for the bounded seed scenario                    |
-| ready a change                             | `mise run check`, then `mise run fmt`                           | core under 180 s; lint and type timings reported separately |
+| Task                                       | Entry point                                                     | Feedback target                                              |
+| ------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| start work                                 | `mise run dev`                                                  | ready in 30 s with dependencies and images cached            |
+| edit and test one behavior                 | `mise run test -- <file-or-nodeid>`                             | under 10 s for the representative focused case               |
+| keep that test running on edits            | `mise run test-watch -- <file-or-nodeid>`                       | same target; one run at a time, changes coalesced            |
+| inspect one unit or a small event scenario | `swingset dev-replay <database> --unit <key>` or `--event <id>` | under 30 s for the bounded seed scenario                     |
+| ready a change                             | `mise run check`, then `mise run fmt`                           | core within 300 s; lint and type timings reported separately |
 
 The bounded core executor is maintained in
 [`dev/core_runner.py`](../../../src/swingset/dev/core_runner.py), with a
@@ -108,7 +108,7 @@ not silent deselection. Extra parallel workers are not the initial remedy.
   four file partitions with four workers per client. Each client stays
   under its 2 GiB limit. Every phase reports the complete reviewed core;
   their assignments and executions must form its exact disjoint union.
-  Both phases and their cleanup count toward 180 seconds. Source, tests and fixtures
+  Both phases and their cleanup count toward 300 seconds. Source, tests and fixtures
   are mounted from the checkout; only dependency or tool changes rebuild
   that cached environment. Match production's Postgres
   patch release, extensions, locale and relevant settings, and pin both

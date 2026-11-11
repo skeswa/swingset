@@ -1,0 +1,64 @@
+{
+  "format": "swingset-production-readonly-watch-v1",
+  "at": "2026-11-11T21:18:28Z",
+  "observed_through": "2026-11-11T21:16:11Z",
+  "commands": [
+    {
+      "ssh": "root@swingset@orb",
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-11 20:15:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "150"
+      ],
+      "exit_code": 0
+    },
+    {
+      "ssh": "root@swingset@orb",
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-watchdog.service",
+        "--since",
+        "2026-11-11 20:15:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "70"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "inputs": {
+    "acquire": {
+      "bytes": 14545,
+      "sha256": "cd9e00ce97f5b7b7fb7ee13a2b6f0f66bbd7829ab3fac91d3c72c1ee01bf3daf"
+    },
+    "watchdog": {
+      "bytes": 1688,
+      "sha256": "5e13c60301f8d348095cc87b21360d7770ed76d8faf53e2468ef2452e7156a27"
+    }
+  },
+  "observed": {
+    "acquire_ticks": 13,
+    "requests": 0,
+    "failed_ticks": 0,
+    "latest_finished_at": "2026-11-11T21:16:01.609887+00:00",
+    "watchdog_alerts": [
+      "[host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+      "[stale-fetch] no request has been made for 2 hours while unheld; newest stored page 19 hours old; spent today: points.worldsdc.com, web.archive.org"
+    ]
+  },
+  "limits": [
+    "Read-only local journals; no service, configuration, fetch or data mutation.",
+    "Latest known earlier acquire request is16:16UTC; unobserved traffic is not claimed.",
+    "Full logs stay in scratch; migration and publication remain unstarted."
+  ]
+}

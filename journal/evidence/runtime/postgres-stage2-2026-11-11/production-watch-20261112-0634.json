@@ -1,0 +1,77 @@
+{
+  "at": "2026-11-12T06:33:57.662114+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-12 05:25:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "100"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-derive.service",
+        "--since",
+        "2026-11-12 05:25:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "100"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "tail",
+        "-n",
+        "8",
+        "/var/lib/swingset/ALERTS.log"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "format": "swingset-readonly-production-watch-v1",
+  "host": "root@swingset@orb",
+  "latest_alerts": [
+    "2026-11-12T03:35:52Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+    "2026-11-12T05:35:52Z [loop-idle] acquire: no progress since 2026-11-12 04:11 UTC, over 60 minutes while unheld; its ticks finish but do nothing (read its run records)",
+    "2026-11-12T06:05:53Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC"
+  ],
+  "latest_known_request_tick_finished_at": "2026-11-12T04:11:12.078107+00:00",
+  "limits": "Observed ticks finish without work; last known fetch is over two hours old. New idle and host-failing alerts require reporting; no cause or repair is established.",
+  "loops": {
+    "acquire": {
+      "all_failed_false_error_null": true,
+      "last_finished_at": "2026-11-12T06:31:01.305598+00:00",
+      "observed_ticks": 14,
+      "progress": 0,
+      "requests": 0,
+      "zero_request_ticks": 14
+    },
+    "derive": {
+      "all_failed_false_error_null": true,
+      "last_finished_at": "2026-11-12T06:33:26.663493+00:00",
+      "observed_ticks": 14,
+      "progress": 0
+    }
+  },
+  "previous_receipt_sha256": "2c0d9f76a454ba4c6a7e92932b8794633761eb50416d120c822126d6b5ebd7b7",
+  "production_mutation": false,
+  "raw_sha256": {
+    "acquire": "148f803d0046615126f4dc7b4002e72d24fb09b92ac04457217b17f16fe0cc04",
+    "alerts": "4e643d61de802e8fe3eb357cf5ab48ca7924a24be01d233df32dc5a355c15ce1",
+    "derive": "f1e89a1ce57886cd59e8fe51f4b206d5c4d2b47174791bd2b8c35c873a10a624"
+  },
+  "repair_deployed": false
+}

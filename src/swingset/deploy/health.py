@@ -154,14 +154,16 @@ def _signals(state: Path, now: float, *, full: bool) -> set[str]:
     return keys
 
 
-def _platform_signals(runtime: Path, now: float) -> set[str]:
+def _platform_signals(runtime: Path, now: float | None) -> set[str]:
     keys: set[str] = set()
+    observed_at = time.time() if now is None else now
     path = Path(
         os.environ.get("SWINGSET_CONTAINER_STATUS", "/run/swingset-authorization/containers.json")
     )
     try:
         value = _read(path)
-        if not value or not 0 <= now - float(value["utc"]) <= 120:
+        observed_at = time.time() if now is None else now
+        if not value or not 0 <= observed_at - float(value["utc"]) <= 120:
             keys.add("platform-status-stale")
         if value.get("complete_inventory") is not True or not value.get("containers"):
             keys.add("platform-incomplete")
@@ -188,13 +190,15 @@ def _platform_signals(runtime: Path, now: float) -> set[str]:
             tick = _read(tick_path)
             if tick.get("exit_code") not in (None, 0):
                 keys.add("task-failed")
-            if tick.get("held") and now - float(tick["hold_since"]) > HOUR:
+            if tick.get("held") and observed_at - float(tick["hold_since"]) > HOUR:
                 keys.add("hold-overdue")
     except (OSError, ValueError, TypeError, KeyError):
         keys.add("platform-status-invalid")
     holds = Path(os.environ.get("SWINGSET_HOLDS_DIR", "/run/swingset-holds"))
     try:
-        if holds.exists() and any(now - path.stat().st_mtime > HOUR for path in holds.iterdir()):
+        if holds.exists() and any(
+            observed_at - path.stat().st_mtime > HOUR for path in holds.iterdir()
+        ):
             keys.add("hold-overdue")
     except OSError:
         keys.add("health-blind")
@@ -240,12 +244,14 @@ def _publish(
     state: Path,
     runtime: Path,
     keys: set[str],
-    now: float,
+    now: float | None,
     *,
     deadman: bool,
     observe_state: bool = True,
     deliver: bool = True,
 ) -> Report:
+    live_clock = now is None
+    now = time.time() if now is None else now
     runtime.mkdir(parents=True, exist_ok=True, mode=0o700)
     try:
         cursor = _read(runtime / "health.json")
@@ -305,9 +311,10 @@ def _publish(
                 handle.write(
                     f"{datetime.fromtimestamp(now, UTC).isoformat()} [{key}] deployment health\n"
                 )
-    cursor.update(signature=signature, utc=now)
+    completed_at = time.time() if live_clock else now
+    cursor.update(signature=signature, utc=completed_at)
     _write(runtime / "health.json", cursor)
-    report = Report(now, tuple(sorted(keys)), tuple(failures))
+    report = Report(completed_at, tuple(sorted(keys)), tuple(failures))
     _write(runtime / ("heartbeat.json" if deadman else "tick-health.json"), report.safe_dict())
     return report
 
@@ -315,8 +322,9 @@ def _publish(
 def watchdog(state: Path, *, runtime: Path | None = None, now: float | None = None) -> Report:
     stamp = time.time() if now is None else now
     runtime = runtime or Path("/var/lib/swingset-runtime/health")
-    keys = _signals(state, stamp, full=True) | _platform_signals(runtime, stamp)
-    return _publish(state, runtime, keys, stamp, deadman=True)
+    keys = _signals(state, stamp, full=True)
+    keys.update(_platform_signals(runtime, now))
+    return _publish(state, runtime, keys, now, deadman=True)
 
 
 def notify_tick(
@@ -478,9 +486,10 @@ def main(argv: list[str] | None = None) -> None:
     previous = signal.signal(signal.SIGTERM, lambda _signum, _frame: stopped.set())
     try:
         while not stopped.is_set():
+            started = time.monotonic()
             report = watchdog(args.state, runtime=args.runtime)
             print(json.dumps(report.safe_dict()), flush=True)
-            if not args.watch or stopped.wait(args.interval):
+            if not args.watch or stopped.wait(max(0, args.interval - (time.monotonic() - started))):
                 break
     finally:
         signal.signal(signal.SIGTERM, previous)

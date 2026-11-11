@@ -2,11 +2,857 @@
 
 Read [6. Stage 1](6-stage-1.md) first; next is [8. Stage 3](8-stage-3.md).
 
+November 16 resume: prepare a fresh 75-second diagnostic packet on the
+qualified host source, then reopen the expired rehearsal hold and obtain fresh
+read-only admission before cold preparation or execution. The tested current
+revision has only 101 bytes of its evidence budget left; closing it needs
+owner approval before new operation receipts. No new worker has started
+([resume](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-16-stage-2-resume)).
+
+November 13 core policy update: the owner raises the complete local core
+gate to 300 seconds (five minutes). This supersedes earlier instructions
+below to retain 180 seconds; historical failures keep their original outcomes.
+Fresh validation must report the active budget and exact source. Test
+selection, worker counts, resource caps and the 75-second write bound stay
+unchanged ([current gate](6-stage-1.md)).
+
+November 13: the owner changes the shared worker write deadline to 75 seconds
+([D-0294](../../../journal/decisions/0294-use-a-seventy-five-second-worker-write-deadline.md)).
+This replaces the earlier direction to preserve 60 seconds for future runs.
+The frozen producer's verified files stay fixed; the operator explicitly applies
+75 seconds on its new owned copy and records both the installed and applied
+budgets, restoring the installed value on exit. The supervisor requires a
+matching 75-second plan. Prior 60-second packets, receipts and timing results
+remain historical; prepare a new packet and obtain a fresh review before any
+server run. Freeze, trial, job and cleanup limits remain unchanged.
+Implementation and local validation do not establish completion within 75
+seconds or deployment. The earlier full-suite source below predates this change.
+
+Current work, November 12: the latest core attempt is interrupted after 543
+passes and 16 failures, with 3,134 cases unfinished. The last complete normal
+check passes all 3,666 cases but fails the 180-second gate at 250.69 seconds.
+Full-suite admission needs
+110 GiB free; approved retirement of two October rollback copies leaves
+about 208 GiB and admits one current-source full run. Preserve all core and
+extended cases, four native workers, source/input bindings, actual outcomes,
+owned cleanup and the 80 GiB floor. That full run passes all 5,172 cases in
+21 minutes 13 seconds on source `732a0b96…` with 956 unchanged bound inputs;
+review `ceeeb76b…` accepts actual cleanup. The core timing failure remains.
+The latest frozen source `c9f7bb57…` passes all 5,273 full-suite cases in
+25 minutes 28 seconds, with 956 unchanged inputs and independently verified
+cleanup. Its interrupted default core still fails; broader native coverage
+does not replace that gate
+([current full receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/callee-observer-full-20261112.json)).
+The server diagnostic confirms
+an inventory write timeout with rollback and owned cleanup; year 2026
+also remains blocked. No migration or graph success is established.
+
+Existing checkpoint caller edges close dispatch caching at only 29 ms of
+instrumented CPU. The bounded lexical-path comparison also establishes no
+material contribution to the core gap; close it without a source rewrite.
+Existing runtime/import caches work. No repository optimization, unchanged
+timing retry or removal of a safety pass is selected. Current qualification
+and the two graph failures remain open. Explicit reviewed reopening replaces
+the expired server hold at 18:07 UTC, preserving its 26,720.63-second gap.
+A renewal to 21:19 UTC, hold `4196d386…`, has an installer transport timeout;
+exact helper completion and a reviewed
+resume of only steps 3 to 6 complete the renewal without replay. The
+following renewal extends review to 22:02 UTC, hold `959fb11e…`. Both
+renewals preserve all 12 protected services and continuous validity.
+That review expires before the next attended check. A fresh reviewed
+administrative reopening activates at 22:07 UTC, with a separate 268.17-second
+gap and review due at 23:04 UTC, hold `846b3782…`. No guarded worker runs
+during the gap; independent terminal checks preserve all 12 services.
+A routine renewal then sets review to 23:40 UTC, hold `61c2af69…`, with
+continuous validity for that interval. Both earlier expired gaps remain recorded.
+These administrative
+proofs do not establish cold-preparation or worker success
+([reopen](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/expired-hold-reopen-20261112-180140.json),
+[renewal](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-210236.json),
+[reopening](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/expired-hold-reopen-20261112-220454.json),
+[current review](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/hold-review-20261112-224015.json)).
+The completed measurements below explain those limits.
+
+The [fresh cold preparation](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/cold-unit-preparation-d21bfe137a3d.json)
+passes all 147 stock-command contracts and 32 post-check reads. Its separate
+inventory diagnostic starts at 19:56 UTC. Independent
+[startup review](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/inventory-unit-diagnostic-d21-startup.json)
+accepts the actual actor, source boundary, guard and protected services.
+Producer `8aae03bf`/image `346f30a4` and linker 9 remain fixed; observer
+`70f85704` adds the four reviewed inventory spans. Keep one newly owned
+copy and the unchanged 2,700/60/90/3,600-second bounds. The initial registry
+is empty and the source has one legitimate prefreeze read client. The
+[terminal result](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/inventory-unit-diagnostic-d21-failed.json)
+is a natural actor exit one at 20:37 UTC: normal input acceptance exceeds
+its unchanged 60-second bound after the exact 108,390-unit/D58 prelude and
+5039/1ffa destination binding. No inventory trial or four new spans run;
+the full source post-hash does not run. Independent terminal review accepts
+actual owned cleanup and the retained metadata/protected boundary, without
+claiming a full post-hash or a precise SQL, pressure or coordinator cause.
+Acceptance must finish within its existing bound before an inventory trial
+can be measured. No unchanged replay or actor restart is selected.
+
+The failed 207.68-second core run records 10.571
+seconds of wall time and 9.776 seconds of owner CPU in the output-pack SQL
+architecture guard. Its function-selection loop repeats `_naming(function)`
+for each AST node. The bounded owner-aggregate
+[measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/sql-guard-measurement-f541cb413f6243daa1fa9d2d.json)
+passes its whole case in isolation. Its body takes 6.620496 wall and
+6.619375 owner-CPU seconds. Function naming accounts for 11,214 calls and
+5.353912 wall / 5.349946 owner-CPU seconds. Global parsing and naming each
+run 376 times; partition parsing runs once. Quality, owner identity and
+hook restoration pass, with no observer errors. Terminal review confirms
+owned cleanup, retained volume and the untouched unknown-ledger inode.
+The measurement preserves every read, traversal and assertion and the
+30/120-second bounds.
+Nested timings overlap: this is no pure-membership or normal-core saving.
+The run contains 3,008.06 parallel case-seconds; this one caller does not
+explain the full timing gap. No scheduling, cache, worker, limit or test
+selection change or unchanged core retry is selected
+([failed run](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/expired-hold-source-core-20261112.json)).
+
+Next local optimization: evaluate `_naming(function)` once per function in
+the SQL architecture guard. It returns only nodes from that function's
+unchanged AST, so its nonempty result has the same truth value as the old
+repeated subtree-membership test. Keep both architecture assertions, the
+helper, source reads and allowlist unchanged. Narrow the observer to the
+new direct caller and update its two existing fixture assertions. Review
+that three-file change, then run both complete test files, formatting,
+Ruff, mypy and one changed-source normal core check. Keep the 180-second
+gate, all cases, natural weights, workers and resource limits. The
+measurement selects this rewrite; it establishes no whole-core saving.
+
+The first changed-source core attempt, `695dcf68…`, fails its isolated
+recovery prologue before the main partitions run. Its healthy control still
+has the synthetic 30 ms deadline intended to force the slow operation to
+fail. Scope that injected deadline to the first slow call, restoring the
+existing bounded production deadline for the healthy control. Keep every
+rollback, committed-output, settled-admission and doubling-backoff assertion;
+the later slow retry still injects 30 ms. Run the whole changed test file,
+formatting and static checks before one changed-input default core check.
+Production 60 seconds, core 180 seconds, cases, workers, natural weights and
+resource limits stay unchanged. This is fault isolation, not a timing waiver.
+
+The corrected-input run `d3a11163…` passes all 3,666 cases but fails the
+180-second gate at 250.69 seconds. Cleanup and natural weights pass review;
+no unchanged retry is selected. Its actual critical worker runs the
+publication safety file for 180.73 wall / 49.28 owner-CPU seconds. Select one
+bounded CPU profile of its existing
+`test_unlanded_old_intent_is_rejected_then_new_build_can_publish` case,
+observed at 21.00 wall / 7.31 owner-CPU seconds. Add only that fixed selector
+to the maintained diagnostic allowlist; preserve its offline fixture path,
+source binding, 30-second measurement, 120-second cleanup and resource limits.
+Validate the source and fresh packet before one run. Profiling overhead may
+reach the bound; incomplete output is no accepted measurement. No new
+optimization, normal timing claim, cache or scheduling change follows from
+this selection.
+
+That profile passes its whole case within the existing bound: 13.683051 wall
+and 10.494632 owner-CPU seconds. Accounting and independent owned cleanup pass;
+all 3,312 entries are ranked or excluded as suspension frames, with none omitted.
+Path-library self time does not locate its project caller. Repeated safety
+checks are not proved redundant; close this measurement without a path rewrite,
+new local benchmark or unchanged normal run.
+
+Next, locate the server's measured acceptance failure with three pass-through
+owner aggregates for `captured_recipe_inputs`, `affected_work` and `enqueue`.
+Recipe validation has two legitimate callers; retain both as separate labels.
+Use the exact held producer's source, caller identities and imported aliases.
+Keep the existing connection observer unchanged. Its 177 `pending_work` family
+calls combine queue upserts and scope SELECTs; the receipt cannot apportion them.
+Independent review rejects the initial combined draft as too complex: defer SQL
+subdivisions, array counters and timing reconciliation until the callee timings
+show they are needed. One real acceptance/caller integration witness and focused
+pass-through/restoration checks should replace broad synthetic control tests.
+Preserve every query, invalidation, native generation counter, result, exception,
+binding, deadline, rollback, cleanup and protected service. Spans overlap and
+must not be summed. Source review and focused checks precede any separately
+reviewed fresh-copy operation. No cache, deduplication, index, timeout, resource
+or network change is selected before attribution.
+
+The reduced callee observer passes 95 focused cases, formatting, Ruff, mypy
+and source review. Its next ordinary core run, `508762f3…`, reports recovery
+helper and publication-control timeouts. One verified supervisor SIGINT ends
+it through normal cleanup: 543 pass, 16 fail and 3,134 remain unfinished;
+412.24 seconds is neither a complete result nor timing qualification. Independent
+review confirms owned cleanup and unchanged natural weights. Do not start the
+full suite or repeat the core unchanged. Select only the first failed recovery
+case and the failed publication-control case through the ordinary native
+focused-test entry point, retaining their existing deadlines and assertions.
+Different platform and concurrency prevent a causal comparison with the Linux
+core. Record host activity as context; Xcode/browser work, load and swap are
+observations, not an established cause. Further normal qualification needs an
+explicit changed condition or correction.
+The [receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-11/core-508762f3a0b94f039d0f5619-interrupted.json)
+preserves the failed partial result.
+
+Both selected cases pass in the ordinary native focused run, 15.82 seconds
+total. This does not reproduce or explain the Linux concurrent failure.
+Select one important native full-suite check on the same frozen source,
+using its existing four-worker route, admission floor and cleanup rules.
+It broadens behavioral coverage; it does not replace the core's failed
+membership, correctness or 180-second gates. Keep all deadlines and cases.
+The optional idle-window question is pending; do not claim an idle host.
+This native full check passes all 5,273 cases with no failures, errors or skips.
+Source `c9f7bb57…` and all 956 bound inputs remain unchanged; independent
+terminal review `8fca9712…` accepts actual native cleanup and the protected
+unknown-ledger inode. Its 1,528.4692-second phase wall is a full-run result,
+not normal-core timing. Input acceptance, both failed graph units and the
+default core's incomplete failure remain open.
+
+Fresh-copy preparation is still pending. Scratch packet
+`/tmp/swingset-stage2-callee-observer-cold-draft-bcb430f5961a44e49daa11a7-v2`
+keeps the old producer and deadlines, with only fresh resource names and the
+reviewed callee observer. Its 26 selected read-only checks complete with exit
+zero; review `c0aa2ce5…` accepts the scoped observations. The existing held
+inventory limitation remains explicit. No new root, volume, actor or database
+has been created. Exact preparation admission and immediate fresh proofs are
+still required. The current change has only 101 bytes of its evidence budget
+left; approval to close this unfinished Stage 2 checkpoint is pending.
+
+Earlier measurement direction: independent audit `441a2c16…`
+accepts the export-digest observations while preserving the 187-second
+core failure. The second scans cost only 0.244 seconds; do not select scan
+fusion for this bottleneck. Initial input capture costs 5.421 seconds with
+0.069 seconds of owner CPU. This locates cost without proving its cause.
+Select three bounded owner aggregates inside existing capture records:
+runtime capture, future-result waits and path-existence probes. Preserve
+normal capture semantics, all proofs, worker counts, caps, natural weights
+and placement. Source review `53759da0…` precedes one changed-observer
+normal measurement. That job passes 3,489 cases but fails timing at 204.16
+seconds; analyze and independently review its measurements before selecting
+any optimization. No unchanged timing retry is selected.
+
+The corrected one-unit server diagnostic starts at 03:49 UTC under exact
+execution verdict `cd6c07f3…`; startup verdict `5862e319…` confirms its actual
+boundary. Its supervisor later stops it with exit 137 and no OOM, following
+a delayed administrative hold renewal and expiry gap. Receipt `222c30d0…`
+confirms the controlled stop, not its exact failed check. Review the owned
+copy, interrupted operation and final boundary before selecting further
+work. No unchanged replay, whole-graph acceptance or migration is selected.
+
+Before another diagnostic, correct the maintained administrative hold
+command's unknown-outcome handling. The observed 30-second installer and
+rename timeouts precede eventual natural-zero helpers; the delayed rename
+leaves a review-expiry gap and the diagnostic is controlled-stopped during
+freeze. Preserve those receipts and the original transport bound. Record
+each command intent and result durably; expose a read-only status and a
+reviewed continuation for only proved-unattempted steps. A timeout remains
+unknown until the exact helper and active-file state are reconciled. Never
+replay uncertain operations or advance the pointer before actual complete
+postchecks, copied receipts and verified hashes. Scope source review and
+focused tests to this correction before selecting a new execution.
+
+On this bookmark, `swingset review-rehearsal-hold --current <pointer>`
+performs a fresh review. After an uncertain outcome, use the same command
+with `--status <packet>` to inspect it; status writes a local proof and
+performs only remote reads. A remaining-only continuation uses
+`--resume <packet> --review <verdict> --review-sha256 <hash>`. Its verdict
+binds the exact fresh status, plan, pointer and dispatch journal. Repeating
+the bare command cannot open another operation for the same pointer.
+An unknown attempted step is consumed, including when its helper is not
+yet visible. Preserve the packet and inspect its eventual state.
+
+An expired closed review needs a separate, explicit reopen. Ordinary renewal
+still refuses it. `review-rehearsal-hold --current <pointer> --prepare-reopen`
+checks the closed prior packet and protected services, then prepares only
+local proposal bytes. An independent review binds that exact packet, pointer,
+prior receipts, source and fixed new one-hour interval. Execute it with
+`--reopen <packet> --review <verdict> --review-sha256 <hash>`; the reviewed
+operation and per-pointer fence are consumed before any remote effect.
+Owner, reason and original creation time stay the same. The final receipt
+records the real expiry gap and never claims continuous validity.
+
+Before verified activation, `active_fresh` remains false for the expired hold.
+Its explicit administrative window may permit reviewed remaining steps, but
+`--status` still exits 1; inspect the JSON and bind a fresh remaining-only
+review. That status does not admit a worker. Unknown attempts are never
+replayed. If the fixed new interval expires before completion, refuse rather
+than redate the proposal or restart an uncertain operation. Source and focused
+tests must pass before preparing the actual reopen, followed by its own
+concrete operation review. The completed full run above qualifies the base
+source, not this subsequent control-plane change.
+
+Actual source `5a2a3814…` changes only the CLI, hold helper and existing hold
+test file from that full-run base. All 64 focused cases, Ruff and mypy pass;
+the new-source core passes 3,608 cases but fails timing at 207.68 seconds.
+Terminal review `979a612e…` preserves that failure. The ordinary runner uses
+its automatically measured `2ce4c6a2…` weights from the previous normal result;
+no manual scheduling, weight, cap or selection change is made. These functional
+checks support reviewing the administrative reopen separately; they do not
+admit a worker, migration, deployment or Gate 2 success.
+
+The 06:34 renewal's installer times out in transport, then finishes with
+exit zero. Its first reviewed continuation refuses before dispatch: finding
+`1957c59e…` proves the complete helper profile differs only in Docker's
+mount array order. The existing witness already hashes canonical order.
+Sort the fully validated mount objects by destination before witness hashing;
+retain every field and the original proof bytes. Test reordered status and
+resume, with real mount drift still refused. Source review, a fresh maintained
+status and a new remaining-only verdict precede continuation; replay no helper.
+
+The corrected B818 diagnostic finishes at 07:10 UTC. Its fresh copy,
+original graph prelude and ordinary input acceptance complete; acceptance
+takes 59.129774 seconds. The inventory trial hits the unchanged atomic
+60-second limit, with matching rollback fingerprints and run rows. Its
+process uses 44.719954 owner CPU seconds before interruption; completion
+is not reached. Full source post-check and owned cleanup report success,
+pending independent terminal review. This reproduces a deadline failure;
+it does not recover the earlier graph's masked exception. Coarse SQL
+families cover acceptance, not the trial. Inspect existing source and
+measurements before selecting any new diagnostic or optimization; no
+unchanged replay or longer limit is selected.
+
+Terminal review `445304ea…` accepts the completed diagnostic and actual
+owned cleanup, with the inventory unit still failed. Source analysis
+`2e914bf6…` finds the inventory path byte-identical to the held producer.
+The process span includes dependency capture and desired-state work before
+inventory rebuilding, plus hints afterward. Select bounded owner wall/CPU
+spans at those existing boundaries in the maintained observer, scoped only
+inside this inventory process. Preserve pass-through calls, exceptions,
+restoration, the 60-second write limit and all rollback proofs. Add no SQL
+logging, profiler, cache or query change. Source review precedes a future
+concrete diagnostic proposal; no execution is selected by this source edit.
+
+Existing normal-run phase records locate another cost without another run.
+Receipt `5f99b915…` sums parallel phase occupancy to 185.844 seconds per
+sixteen workers, before prologue and other overhead. The slowest client's
+changed-artifact publication case spends 14.860 seconds in fixture setup
+with 1.990 owner CPU seconds. Preserve its full `release_state` fixture and
+assertions. Extend the existing bounded diagnostic command to admit exactly
+that case's setup phase, and first measure owner psycopg waits there. Keep
+the 30-second ceiling, cleanup, normal PostgreSQL profile and resources.
+Do not profile only its short call body or infer a filesystem cause from
+wall minus CPU. Source review and a fresh concrete packet precede one
+diagnostic; no fixture reuse, proof omission, optimization or normal timing
+retry is selected.
+
+The first setup/waits diagnostic passes the complete case and owned
+cleanup. Receipt `0e3271ab…` measures 5.118 seconds of setup and 1.697
+owner CPU seconds; 6,187 owner driver waits total 0.452 wall and 0.093
+CPU seconds. Keep SQL behavior unchanged. Select one existing CPU-mode
+profile of the same fixed setup phase to attribute its remaining 1.604
+owner CPU seconds. Keep the 30-second ceiling, resources and full test
+assertions. This isolated observation neither explains the parallel
+fixture's 14.860 seconds nor supplies a normal-core speed claim. A fresh
+concrete packet and independent execution review precede the profile.
+
+That CPU profile passes its complete case and cleanup (`b4ff9c83…`,
+independent audit `b0f93ab4…`). Its flat 578 `durable_write` calls include
+multiple callers; 0.440 self CPU seconds do not measure the serial fixture
+loop's elapsed time. Analysis `26a94309…` traces that loop and confirms
+production capture already has eight writers and import parsing is cached.
+Select one fixed-callsite, owner-thread wall/CPU aggregate during the
+publication case's setup in the unchanged normal core context. Match the
+original `_published_fixture` caller before clocks; exclude other callers
+and threads without retaining paths, bodies, arguments, results or frames.
+Keep actual writes and both durability barriers, full setup/call assertions,
+all core cases, four clients/four workers, caps, natural weights and placement.
+Restore hooks and separately validate the aggregate's quality. Source review
+precedes its first changed-observer normal measurement. No persistence,
+batching, cache or parallelism optimization is selected yet.
+
+The first normal callsite measurement passes all 3,555 cases and static
+checks, but fails timing at 197.85 seconds (`0221ab7e…`, audit `f06e1cdf…`).
+Its 573 direct fixture writes complete in 7.897682 of 13.810203 setup
+seconds, with hooks restored and quality true. Select only the synthetic
+fixture's member-write loop for the existing production persistence
+pattern: at most eight writers, await every future, then the same owner
+manifest and database acceptance. The fixture already uses that peak-eight
+bound in its bootstrap and final capture. Keep every file and directory
+fsync, identical bytes, per-case isolation and all normal core limits.
+Join submitted work and propagate its original failure without publishing
+a manifest or accepting inputs. Add one focused failure/barrier regression;
+retain the existing publication and corruption assertions. The observer
+will exclude concurrent writers and measure the owner manifest, so that
+smaller owner aggregate is not total write cost or a speedup claim. Source
+review and actual normal checking decide whether the change meets the gate.
+
+The corrected normal check passes all 3,556 cases and static checks, but
+still fails at 187.74 seconds (`4bfaa182…`, audit `67e0b930…`). Natural
+assignments and the added regression prevent a controlled whole-run speed
+claim. The observer now covers the owner manifest only and excludes 572
+member writers. Analysis `e46a1f9b…` finds negligible worker gaps. Select
+one fixed call-phase CPU attribution for
+`test_failed_build_attempt_retains_no_closure_proof`: 4.726900 elapsed and
+4.446125 owner CPU seconds on the critical client. Its two deliberate
+failures precede candidate assembly, narrowing the measured area to release
+preparation and error handling. Add only that named case to the maintained
+tool; preserve both attempts, all assertions, 30-second measurement,
+120-second cleanup and resource limits. Source and concrete execution
+review precede one profile. No caching, proof omission or optimization is
+selected from phase timing alone.
+
+The fixed failed-build profile passes the full case and owned cleanup
+(`b924053b…`, terminal review `25a201ff…`). Import machinery accounts for
+2.972297 of 4.990216 measured owner CPU seconds, with profiler overhead
+included. Flat rows do not identify its caller. Analysis `de0f851e…` selects
+a bounded read of the existing `diagnostic-cpu.pstats` in this job's retained
+volume, then offline caller-edge analysis. Preserve the file, ownership and
+all native profiles. No new profile, normal run or optimization is selected.
+
+The bounded read and terminal review `604af7de…` pass. Caller analysis
+`258fce7c…` traces 22,776 of 22,808 import requests to scratch DuckDB API
+sites, but does not identify the requested modules. Select one tiny pure
+dependency reproduction in the same image: one synthetic in-memory database,
+at most ten scalar calls, two seconds of work, bounded module-name counts
+and restored hooks. No project database or source mounts, fake modules,
+case rerun or optimization. Source and concrete review precede execution.
+
+The synthetic result `97852b3c…` and terminal review `52d7da06…` record
+40 failed pandas requests, with no module loaded before or after. Primary
+DuckDB 1.5.5 source explains those optional-module retries during scalar
+conversion. Proposal `a872c1c1…` and direction review `32f34185…` select a
+real pandas dependency in the dev group only, constrained to the supported
+3.0 series and pinned by the lock. Preserve every existing runtime package
+version and avoid the broad DuckDB extras. Review the resolver delta before
+installation, then run affected existing build assertions and one ordinary
+native check with its new dependency-image identity. Keep four clients,
+four workers, caps, natural weights, placement and the 180-second limit.
+No fake import cache or preload. Count the actual image build wherever the
+normal runner counts it; do not move or subtract its clock. Initial import
+cost/RSS and the normal result decide whether to keep this trial. The new
+lock and image change context fingerprints despite `--no-dev` runtime
+installation; full and runtime qualification remain open.
+
+The resolver adds only pandas 3.0.6; review `c1b79f6d…` verifies every old
+package record and the expanded marker partition. Both affected build
+assertions pass. The first normal check selects 3,574 cases, passes 3,573
+and fails one architecture guard; 215.62 seconds also fails the timing
+gate (`a42b2a19…`). Preserve both failures and the charged cold image setup.
+The guard treats the observer's two hook-registration references as direct
+execution edges. Correct only those exact non-executing registration shapes,
+with extra/direct-reference regressions and an actual entry-point witness.
+Keep all other edges forbidden. Source review precedes one changed-test
+normal check; no unchanged retry, timing subtraction or gate waiver.
+
+The corrected guard passes all 79 affected-file cases and source review
+`1fdcfe70…`. Its next normal check passes all 3,579 cases and static checks,
+but 193.55 seconds fails timing (`a30bab9e…`). Analysis `2f2793d8…` locates
+the actual tail at client 0/gw1. Large empty-restore cases run on gw2 and
+finish well before that tail. Select only the exact critical-worker case
+`test_restore_public_verification_keeps_activation_explicit` for the next
+bounded attribution: its create/restore/public-verify/activate work costs
+6.159240 wall and 1.136980 owner CPU seconds, without phase slices. Extend
+existing fixed-case observation and diagnostic interfaces to record major
+phase wall/CPU plus outermost driver waits while preserving the whole case,
+barrier assertions, 30-second measurement and 120-second cleanup. Source
+and concrete review precede one isolated attribution run. It cannot prove
+normal-context speed or justify an optimization by itself. No checkpoint
+checks are removed; cohort, digest and input-cache branches stay closed.
+
+The fixed checkpoint attribution passes its whole case, required singleton
+and waits checks, and owned cleanup (`27325d51…`, review `1cc76515…`).
+Its isolated body costs 2.136577 wall and 1.180854 owner CPU seconds;
+creation is the largest phase at 1.269889 seconds. Analysis `402b836c…`
+finds fixed 141-table selection/export work and a mandatory fresh restore
+check inside creation. The 5,630 driver waits do not apportion that work
+or establish avoidable SQL. Select just two nested observations under the
+creation span: `snapshot.capture` and `backup.check.check`, with a bounded
+request span if that checker delegates. Reuse existing pass-through hooks,
+clock fields and bounds; preserve actual source snapshots and all old
+quality requirements. Source and a fresh concrete review precede one
+attribution run. No safety check, digest pass or SQL is removed.
+
+The child attribution passes its whole case, both payload checks and owned
+cleanup (`64a6e9dd…`, review `6e2156ee…`). Capture costs 0.660973 wall and
+0.536558 owner CPU seconds; the mandatory check costs 0.608988 wall and
+0.189581 CPU. Only 0.007050 wall seconds remain in creation outside them.
+Analysis `dd2423b0…` supports no optimization yet. Admit this same exact
+checkpoint case to the existing bounded CPU mode, retaining its required
+v5 phase payload and every case/assertion/cleanup limit. The two existing
+waits-only guards must change together with focused refusal/quality tests.
+Source and concrete review precede one full-case CPU attribution. Treat
+flat self CPU, excluded suspension frames and overlapping callers honestly;
+no normal timing or reduction in verification work follows from it.
+
+The CPU attribution passes its full case, accounting, v5 payload and owned
+cleanup (`da8fabbf…`, review `960cab71…`). Analysis `578358f0…` confirms
+existing content caches work. Its 450 AST parses have several consumers;
+the path collector already uses scandir. One narrow repeat is structural:
+82 dispatch digest calls during one manifest over at most two dispatcher
+bodies. Flat self CPU does not locate their parser/dump cost. Select a
+bounded read of the existing raw pstats file and offline caller attribution,
+with exact volume ownership, byte/time caps and reviewed standard CLI.
+No new profile, broad cache, path change or safety-pass removal is selected.
+
+Caller analysis `b16ed43e…` locates only 29 ms of inclusive instrumented
+CPU in dispatch digest work; close that cache branch. A larger edge is
+verification's lexical `relative_to` call: 2,880 calls and 0.251605 CPU
+seconds in the instrumented profile. Before any production rewrite, select
+one bounded, unprofiled pure-path comparison in the same Python image.
+Compare the exact old spelling/refusal behavior with a prefix-components
+fast path that falls back to the original operation for other inputs.
+Cover absolute, relative, empty, double-root, parent and prefix-sibling
+paths. Touch no filesystem or project data; retain all traversal, resolution,
+containment and digest checks. Source/concrete review precedes its sole
+invocation. Synthetic timing can reject an insignificant candidate; it
+cannot establish a core speedup or select a schema/root-resolution cache.
+
+The sole lexical comparison completes in 0.150280 seconds with all 783
+value/refusal cases equal. Output `88e77ca0…` and terminal review
+`3b1687bd…` confirm the reviewed actor and terminal boundary. Its three
+rounds save 8.55–8.81 microseconds per warm synthetic call. This establishes
+no material contribution to the 13.55-second normal-core gap; do not
+extrapolate across suite counts. Close the branch without a repository
+rewrite or further instrumentation. Retain the original operation and all
+physical checks. No new normal run follows from this result.
+
+The source-8aae graph exits 1 at 2026-11-11 18:33 UTC. All 108,390 results
+are present: 107,888 matches, 500 mismatches and two failed units. Inventory
+does not complete; year 2026 exceeds its unchanged 60-second write limit.
+496 mismatches keep their output label but change dependencies; four link
+events change output. Owned cleanup and the protected boundary pass independent review.
+The generic inventory error masks its original exception; the corrected
+wrapper preserves that exception while still failing missing completion.
+Causal investigation remains open. The tested `swingset graph-forensics`
+command now captures bounded metadata. Four further captures and independent
+hash reconstruction explain all 496 dependency-only differences: each uses
+the checkpoint's previous inventory generation. Three one-row link
+differences are reconstructed exactly. The actual held server runtime
+puts the lost candidate one ULP below its threshold; local C++ results
+differ. This explains the observed output without claiming that the
+historical runtime was executed or that architecture alone caused it.
+The fourth link difference is also reconstructed exactly by two one-bit
+similarity changes, with scores, ranks and decisions unchanged. Independent
+witnesses account for all 500 mismatches. Mark the changed runtime with
+linker version 10, without rounding or changing its algorithm. Both failed
+units remain open. No graph replay,
+postgraph-success proof or migration is selected.
+
+The first one-unit diagnostic exits 1 on November 12 at 01:09 UTC. Its
+new owned freeze completes, but normal input acceptance hits the unchanged
+60-second write deadline before the inventory trial. Independent terminal
+review confirms owned cleanup and protected boundaries. Preserve receipt
+`64dadaea…` and verdict `9910eda0…`; neither is a graph proof. Compare this
+preparation with the earlier successful acceptance before selecting a
+correction or another diagnostic. No unchanged replay or longer bound is
+selected.
+
+Read-only comparison finds that the original graph enumerates the full
+destination and computes its read-only input-acceptance binding before
+ordinary acceptance; the failed one-unit operator omits that semantic
+prelude. No cache or timing cause is proved. Direction review `c91b5e6a…`
+selects a correction to match the original full 108,390-unit/D58 prelude,
+strong source `00c831a4…` to candidate `5039effb…` binding and input map.
+Keep the separate pre-freeze source check and ordinary top-level acceptance
+with its normal commit. Add bounded owner-thread phase/fixed-family timing,
+last phase and sanitized stack frames, without SQL, parameters or bodies.
+Buffer in RAM, flush outside the atomic write, restore hooks and preserve
+the original application and fatal errors. No outer rollback, optional
+warmup, cap increase or server operation is selected. Source and concrete
+execution reviews must precede any new operation.
+
+The stale inventory references are existing checkpoint work, not a reason
+to mint equivalences to current inputs. The re-key already excludes every
+mismatched unit and its unresolved consumers; leave these units queued and
+drain them before B. A real changed output still needs its named transform
+version bump. This does not waive either failed unit or accept the graph.
+
+The reviewed health clock repair is integrated as source `dce34a49…`, binding
+`6bb19eb7…`. Its 70 focused cases pass. Isolated core checks pass correctness
+but fail timing; all failed outcomes remain in scratch. The normal checkout
+still needs its own check, full suite and new image/graph/monitoring proofs.
+The failed graph and earlier validation below bind source `8aae03bf…`,
+preserved exactly in `/private/tmp/swingset-stage2-held-source-20261111`.
+No server runtime changes with this source integration.
+
+The integrated check fails one crash-recovery test and timing at 217.06
+seconds. The test treats SIGKILL of the client as immediate retirement of
+its PostgreSQL session. Add an exact PID/database/backend-start witness and
+observe that session and its locks gone through a read-only connection,
+bounded to ten seconds with finite connect/query limits. Keep the original
+nonblocking reopen and all replay-epoch assertions. All 35 existing cases
+pass, and the final bounded variant passes its focused case. This is test
+coordination, not a production-lock change or speed claim.
+
+The normal check after this correction passes all 3,150 cases, Ruff and
+mypy, but takes 198.154 seconds and fails timing. Its outside observer
+records CPU, I/O and memory events; unavailable pressure metrics are
+explicit. All earlier failures remain in scratch.
+
+The measured optimization trigger is this timing failure plus 9,466 raw
+timeout-setting SQL calls in the native scoring pipeline profile, costing
+1.120 cumulative seconds. The profile is diagnostic, not a core speed
+comparison or proof that these calls explain the timing failure. Investigate
+rounding remaining SQL budgets down to 10 milliseconds above one second,
+retaining exact milliseconds below that. Reuse settings only within that
+conservative bound, with existing transaction and configuration invalidation.
+Require real PostgreSQL checks of server limits and fewer setter commands
+before measuring the pipeline again. Keep all caps, natural weights,
+membership and placement. No timing retry is selected without a substantive
+correction. The measurement receipt stays in scratch at
+`/tmp/swingset-stage2-deadline-settings-measurement-20261111.json`.
+
+The four-line timeout change passes independent source review and 83
+engine, deadline and crash-recovery cases. The stronger expiry assertion
+also passes: expired SQL never reaches the raw cursor. A second native
+profile records the same 62,846 pre-query checks, with timeout setter calls
+falling from 9,466 to 3,065. Instrumented setter time falls from 1.120 to
+0.478 cumulative seconds; neither profile proves normal core speed.
+Latest checked source `99f66aa8…`, binding `df87edc1…`, passes all 3,151 core
+cases, Ruff and mypy but fails timing at 206.973 seconds. The failed check
+remains in `/tmp/swingset-stage2-timeout-buckets-normal-check-20261111`.
+Caps, workers, selection, placement and timing limits remain unchanged.
+The setter reduction supplies no normal-core speed claim. Full-suite and
+runtime proofs remain open; inspect measured costs before selecting another
+correction or timing attempt.
+
+The next diagnostic is one bounded Linux SQL-shape trace of the unchanged
+archived scoring pipeline case, adjacent to the normal test PostgreSQL.
+The host profile spends 11.36 cumulative seconds across 62,037 execute
+calls; generator suspension makes its assembly self times unsuitable as
+CPU evidence. The latest core phase occupancy divided by sixteen is
+188.94 seconds, so ordering alone cannot meet the budget. Record static
+SQL hashes and call sites, counts, wall/thread CPU, snapshot boundaries,
+observer overhead and complete fixture costs without parameters. Select
+batching or snapshot-local memoization only if repeated snapshot-identical
+SQL has material measured cost. Equal SQL hashes locate a repeated shape,
+not equal arguments or duplicate work; source reasoning must establish
+argument equality, volatility and snapshot ownership before caching.
+Local snapshot ordinals are not PostgreSQL MVCC identifiers. This selects a diagnostic, not an
+optimization or a timing retry; resource and assertion limits stay fixed.
+
+That Linux trace passes its quality, exact-case, unchanged-source, finite
+ceiling and owned-cleanup checks. Its body takes 9.657 seconds with 5.904
+seconds of main-thread CPU; base driver intervals consume 1.073 CPU seconds.
+Snapshot recipe lookups total only 0.042 wall seconds. No SQL memoization
+is selected. The next measured target is the 4.831 CPU seconds outside
+driver execution, including observer work. Select one bounded CPU-self
+profile on Linux, using a thread CPU clock and excluding generator
+suspension and overlapping cumulative artifacts. The analysis receipt is
+`/tmp/swingset-stage2-linux-query-shapes-20261111/analysis.json`.
+
+Move the repeated diagnostic lifecycle into a tested `swingset` subcommand
+before the next profile, as required by the script-reuse rule. Reuse the
+normal client cleanup and resource checks, retain the same exact test and
+caps, and keep normal-core behavior unchanged. A concrete prepared packet
+and independent review precede one actual profile; no source optimization
+or core retry is selected yet.
+
+The maintained CPU diagnostic passes focused tests and independent source
+review. Its first preparation refuses before creating a packet because
+the warm test service is stopped after the local VM restart. Both exact
+local profile containers still exist with matching configurations. Starting
+the test profile through its supported service function preserves its
+container, then refuses role-signature drift. Read-only checks prove only
+fresh initdb state remains in its temporary data directory. After independent
+review, replace only that empty test container and its exact dead empty
+owner record. Supported paths recreate the restricted test profile and
+start the same durable physical container without reset. The CPU packet
+is prepared against these validated profiles; normal timing retries remain
+unselected.
+
+The first actual CPU profile passes its test and cleanup but rejects its
+own timing quality: CPython 3.12 records callbacks from different threads
+against a thread-specific clock. Preserve the failure. The corrected
+profiler filters all nine events through four callbacks owned by the enabling
+thread, restores prior monitoring state even when disable fails, and rejects
+impossible positive totals. Its 52 focused tests pass. A new reviewed packet
+must precede one further profile; the normal timing gate remains open.
+
+The corrected profile has valid owner-thread timing but reaches the fixed
+30-second measurement ceiling before the case finishes. Preserve its
+`eb0d244d…` failed result; partial costs are not a complete fixture proof.
+The measured next trigger is observer overhead: one 5,000-call pure fixture
+takes 0.0120 seconds with all owner-filtered events and 0.00319 seconds with
+only six Python-frame events. Select that narrower observation scope,
+including native work in its Python caller's self cost. Remove all three C
+events from the monitoring mask, keep owner filtering and restoration,
+and retain the exact test and 30/120-second limits. This measures observer
+overhead, not pipeline savings or normal core speed. The measurement stays
+in scratch at `stage2-python-frame-overhead-20261111/result.json`.
+
+The Python-frame diagnostic passes one complete case and its quality and
+cleanup gates. Existing normal receipts show uneven slowdown rather than
+a proved production-code defect; do not select caching or other optimization
+from those rankings. All diagnostic functionality is now closed, and the
+guarded local TEST-profile recovery is complete. Select one first normal
+qualification check of source `0b17ac3d…`, retaining its correctness and
+180-second timing outcome. This is a required current-source check, not a
+speed claim. Do not repeat a timing failure without new causal evidence.
+
+That check selects 3,335 cases: 3,332 pass and three architecture guards fail;
+timing is 193.99 seconds. Ruff and mypy pass. The numerical diagnostic was
+placed under the production linking layer and used dynamic imports. Move it
+to the existing deployment operator layer, use static optional imports and
+keep all architecture rules. Seventy functional cases and five existing
+guards pass after this correction. Requalify the corrected source once,
+including the required linker epoch bump; keep the 180-second gate and
+retain any timing failure.
+
+After the placement correction and linker bump, source `b392a022…` passes
+all 3,336 core cases, Ruff and mypy, but takes 190.14 seconds. No production
+optimization is proved. The next diagnostic target is the existing uncertain
+publication case: its call time in earlier saved runs rises from 6.22 to
+6.78 to 27.94 seconds; the corrected `b392a022…` run records 6.61 seconds.
+The normal-case comparison receipt is
+`stage2-existing-core-profile-analysis-20261111.json` (`61c86879…`).
+Select one bounded elapsed/owner-CPU/Postgres-driver-wait measurement of that
+exact case. Add only a named allowlisted diagnostic case and wait mode to
+the maintained command; keep the scoring CPU default. Record no SQL or
+parameters. Owner-thread outermost driver waits must not be counted twice;
+other-thread calls are counted separately, with their time excluded. Keep
+the same 30-second measurement, 120-second cleanup, resources, ownership
+and source guards. No normal membership, weights or timing limit changes.
+
+That wait diagnostic passes its exact case and quality gates. Its body
+takes 3.299 seconds, including 1.464 owner-thread CPU seconds; 7,820
+outermost driver waits total 0.781 elapsed seconds and 0.140 CPU seconds.
+There are no foreign-thread calls, nested calls or invalid clock samples.
+Cleanup completes and source stays fixed. This isolated measurement does
+not reproduce the older suite's slow case or establish a speedup. Retain
+the result at `stage2-publication-waits-20261111-2240/result.json` and
+compare existing suite evidence before selecting another correction.
+
+The existing normal report exposes inaccurate initial weights for five new
+fast test files: fallback estimates total 182 seconds, while measured phase
+time totals 0.820 seconds. The runner already learns the measured values
+when correctness passes. Do not edit or reset those weights. This is a
+scheduling-input error, not proof of the timing gap's cause or a future
+pass. Independent review selects only the required first normal check
+after the current diagnostic source closes, passes review and is formatted.
+Keep normal selection, caps and scheduling policy. If it misses timing,
+preserve the failure and measure that normal context before another retry.
+Analysis: `stage2-publication-waits-analysis-20261111.json` (`91917b87…`);
+direction review: `4e6c96fa…`. No further isolated profile is selected.
+
+For the two failed graph units, prepare a diagnostic that uses the held
+image's installed transform on one newly owned disposable database. Keep
+the original business clock, linker version 9 and 60-second atomic write
+limit. Observe phase time and preserve the original exception, then verify
+rollback of output, pointers and the full pre-existing graph run row.
+The result cannot serve as graph acceptance. Independent review refuses
+the first operator mount because the actual guardian disallows `/probe`.
+Use an already permitted mount destination and test the complete container
+against the unchanged guardian before preparing any actual operation.
+
+The corrected operator passes independent source review with the existing
+eleven mounts and a read-only checker root. No actor has started. Its first
+normal qualification selects 3,430 cases and passes all calls, Ruff and
+mypy, but five directory tests error in Linux teardown: a global `fstat`
+mock is still active when the cleanup fixture runs. Scope that mock to the
+body without weakening the ownership checks, and verify on Linux. The
+184.67-second run also fails timing. Preserve that outcome; a cleanup fix
+does not prove a timing correction or permit an unchanged retry.
+
+The scoped test correction passes all five cases, including cleanup, in
+the same pinned Linux client without database credentials or network.
+Operator and supervisor code remain unchanged. Preserve the failed normal
+run and continue preparing the disposable unit diagnostic under its held,
+qualified producer. Current timing, full-suite and Gate 2 proofs remain
+open; no further normal retry is selected now.
+
+The next timing measurement must explain the current normal context.
+Job `d39692c6…` takes 184.6387 seconds with unchanged caps and selection;
+its merged receipts cannot identify the worker that executes each case.
+Record worker identity, monotonic phase boundaries and owner-thread CPU in
+the existing core receipt, using original clock functions so test clock
+mocks cannot corrupt the observer. Preserve case selection, scheduling,
+weights, assertions and every resource and timing limit. These observations
+must not alter test behavior, double-count phases or retain SQL arguments.
+Require meaningful worker serialization and clock-accounting checks before
+one first qualification of that changed observer source. Retain any failure;
+use its worker timeline before selecting another correction. No production
+cache, batching or pipeline optimization is selected. This source work is
+independent of the staged six-module supervisor and old producer image
+used by the disposable unit diagnostic.
+
+That first observer qualification fails: job `2f057650…` selects 3,438
+cases, but one worker exits with a keyboard interrupt while running the
+nested write-deadline test. Its unfinished partition fails membership and
+the run takes 199.93 seconds; Ruff and mypy pass. Preserve the result and
+do not retry it unchanged. The captured resource samples show no OOM event.
+Investigate the actual deadline and observer interaction before attributing
+the crash. In particular, test whether an owned alarm delivered while a
+server-timeout exception is being handled can escape as `_Expired` instead
+of `WriteDeadlineExceeded`. A bounded deterministic reproduction must
+precede a fix; do not lengthen either deadline, move cases or change caps.
+Preserve rollback, commit-uncertainty handling, previous handlers and caller
+timers. The old-image database diagnostic is a separate reference
+operation and remains preserved after its preparation failure.
+
+The deterministic reproduction confirms an owned alarm can escape during
+disarm. The corrected boundary defers cleanup delivery to one final expiry
+classification, restoring the caller's state first and preserving fatal
+commit uncertainty and genuine interruption. All 27 focused deadline tests
+pass. The observer's own clock-failure test now restores its patch before
+outer observation and passes with the actual plugin active. Independent
+source review `3074a86e…` accepts these substantive correctness fixes and
+one first required normal qualification. Keep the same 180-second gate,
+membership, resource caps, learned-weight lifecycle and placement. Retain
+every failure; no unchanged timing loop or server retry is selected.
+
+That corrected-source check passes all 3,446 cases, Ruff and mypy, but
+fails timing at 213.18 seconds. All four phase observers have quality true
+and no errors; owned cleanup completes. Preserve job `f84f54d9…` and
+summary `8e9418ee…`. The existing empty restore/rebuild pair takes 25.48
+and 38.31 seconds, including 6.75 and 9.60 seconds of owner-thread CPU.
+Their bodies include publication and checkpoint validation as well as
+restore. Measure named subphases in the unchanged normal concurrent context
+before selecting an optimization. The isolated diagnostic's 30-second cap
+cannot contain this complete case; do not extend it or substitute an
+unmatched serial run. No unchanged normal timing retry is selected.
+
+Direction review `32e5a74a…` accepts at most 64 fixed regular-function
+subphase records and owner-thread outermost driver-wait counters around
+both existing empty-restore variants. Capture native clocks and actual
+worker identity; use a separate versioned call-only payload through the
+existing serializer. Restore hooks, preserve expected exceptions and
+assertions, and mark observation faults incomplete without changing test
+outcomes. Nested intervals overlap and must not be added together; driver
+waits do not measure server CPU. Keep the normal four-by-four concurrent
+context and all fixture work, placement, caps, natural weights and membership.
+Exact source review precedes one changed-observer normal-context measurement.
+No production optimization or serial diagnostic is selected.
+
+That measurement passes all 3,474 cases and static checks but fails timing
+at 204.51 seconds. Independent review `24670b81…` accepts its complete
+ordered pair and cleanup while retaining the timing failure. Nonoverlapping
+analysis `112abb22…` attributes 9.142 seconds to snapshot capture in the
+changed-source variant; its repeated captures and audits cross distinct
+required proof boundaries. Do not omit them or add a metadata cache: the
+column/key helpers already use the frozen reference manifest.
+
+Export does two identical typed-row scans per table on its enforced single
+repeatable-read, read-only snapshot. The second scan applies only the pure
+immutable-field projection, but its cost is not measured separately.
+Direction `d386c548…` selects two fixed aggregate counters inside each
+existing snapshot record, around consuming `_row_digest` calls whose direct
+caller is the exact original export code. Require one normally completed
+export and snapshot, 282 normal digest returns and 141 physical/immutable
+pairs. Keep the 64-record cap, native clocks, owner-thread wait accounting,
+passive faults and hook restoration. Retain no arguments, results, frames or
+per-call records. Prior observer sources remain frozen in scratch. Exact
+source review precedes one normal-context measurement; a small second-scan
+cost rejects this optimization branch. No production fusion is selected.
+
+The pure numerical sandbox's first launch fails before Python because
+inherited Docker logging enables compression with one retained file. The
+created container remains preserved. Its repeated lifecycle is now the
+tested `swingset link-numerics-probe` command, with explicit bounded logging
+and exact cold readback. Twenty-one focused cases pass. Only a fresh reviewed
+packet may run it; no numerical result is inferred from the failed launch.
+
+For the authoritative dry-run migration only, retain the exact fully tested
+`8aae03bf…` image and its dependency closure. Its native SQL and explicit
+owner migration entry points are byte-identical to the latest checkout
+(`0871eb9c…`, scratch `stage2-migration-ddl-identity-20261111.json`).
+After that image's actual graph terminal proof and read-only postgraph
+proof pass independent review, the separately reviewed migration may run
+under its original source/full-suite binding. Recheck the desired DDL
+identity at preparation. Keep the 141-table typed audit, exact admission
+transitions, database identity, hold and no-retry rules. This operation
+proves only the pinned image's schema transition on the rehearsal copy.
+It does not qualify newer application code. Rekey, backups, publication,
+recovery, lifecycle and final monitoring wait for the final source/image
+qualification. Current-source and Gate 2 checks remain open.
+
 Status: started 2026-11-05 on `postgres-migration`, following the tested
 stages 0/1 revision `5f5e52447963`. Gate 2 is open. Infrastructure onboarding,
 persistent backup exclusions and enforced network isolation are prepared;
 the native import passes all 141 tables and 23,433,486 typed rows. Native-40 input acceptance passes in 58.920 seconds under the unchanged
-60-second limit. Whole-graph verification remains open; the fresh bounded run starts at 2026-11-11 13:02 UTC. The final source passes all 3,148
+60-second limit. Whole-graph verification remains open; the fresh bounded run starts at 2026-11-11 13:02 UTC. Its source `8aae03bf…` passes all 3,148
 core cases in 179.054 seconds, Ruff and mypy; its 4,728-case full suite passes
 in 55 minutes 47 seconds on unchanged inputs. Final-runtime isolated
 network, worker recreation/restart and loopback relay/tunnel checks passed
@@ -249,6 +1095,15 @@ guarded application delivery remains open. The project management key stays
 outside application services. Separate owner-alert and watchdog checks prevent
 normal heartbeats from erasing an explicit alarm
 ([D-0283](../../../journal/decisions/0283-use-separate-healthchecks-alert-and-liveness-checks.md)).
+
+The first guarded application attempt on November 11 sends both normal
+notifications but fails its 90-second watchdog cycle allowance and reports
+stale, incomplete platform status. Its exact actor stops cleanly, its owned
+event alarm is cleared and its owned watchdog is paused. The withheld-heartbeat
+proof is not reached. Keep the monitoring gate open; inspect the normal
+platform observer and measure the watchdog path before selecting another
+attempt. The whole-graph run continues unchanged
+([outcome](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#guarded-health-attempt-fails-its-timing-check)).
 
 Developer-gate trigger: the corrected 2,729-case core passes functionally but
 takes 200.48 seconds, above its unchanged 180-second limit
@@ -542,8 +1397,10 @@ checks are watched during every heavy step.
 ## Gate 2
 
 - the import's audit passes, and the other apps stayed healthy;
-- the whole-graph verify run is clean, or every difference is explained and
-  bumped; the re-key on the untouched import passes; times recorded;
+- the whole-graph verify covers every current unit with no failed units;
+  every mismatch is explained, changed outputs have named version bumps,
+  and stale dependency-only units remain queued; the re-key on the untouched
+  import passes; times recorded;
 - both backups' checks pass; their size and time are recorded;
 - B published with its own backup first;
 - the rebuild drill from backup 2, from an empty database and volume,
@@ -1003,7 +1860,20 @@ floor preserved. No obsolete runtime archive is deleted. The next selected
 action is the prepared image-only transition's fresh independent preflight;
 then the normal whole graph on three new owned scratch databases.
 
-The completed current full suite left generated root `/private/tmp/pytest-of-skeswa/pytest-3361` while Mac free space remained just above the 80 GiB floor. Independent review finds 31,667,224,576 allocated bytes eligible for exact unlink-only cleanup after fresh checks under both validation locks. External full-suite results, siblings, reference R, runtime images, databases and server work remain outside this cleanup. The measured low disk margin is the trigger; no extra validation run is selected.
+An earlier full suite left generated root `/private/tmp/pytest-of-skeswa/pytest-3361` while Mac free space remained just above the 80 GiB floor. Independent review finds 31,667,224,576 allocated bytes eligible for exact unlink-only cleanup after fresh checks under both validation locks. External full-suite results, siblings, reference R, runtime images, databases and server work remain outside this cleanup. The measured low disk margin is the trigger; no extra validation run is selected.
+
+The final 4,728-case full run leaves its own root
+`/private/tmp/pytest-of-skeswa/pytest-3395`, created at 11:59:08 UTC and last
+modified at its successful finish, 12:54:54 on November 11. At 16:05 UTC,
+Mac free space is 88,867,749,888 bytes, below 100 GB and above the 80 GiB
+floor. The generated root occupies 31,742,394,368 allocated bytes and has
+no pytest lock. Independent ownership, process, container-mount and
+validation-lock checks pass and are repeated under both locks before
+exact quarantine and unlink cleanup. Both commands exit zero at 16:14 UTC;
+external reports and siblings are unchanged. Free space reaches
+121,155,936,256 bytes. No new validation run or application source change
+is selected by this cleanup
+([outcome](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#completed-full-suite-scratch-cleanup)).
 
 ### Measure the large physical clone strategy
 

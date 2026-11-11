@@ -397,6 +397,20 @@ ALLOWED = {
     ),
 }
 
+# Reading these function objects installs passive wrappers; execution still
+# enters through verify_unit/process_unit. Every reference must be the exact
+# registration, so an additional call or escaped reference remains forbidden.
+OBSERVED = {
+    (
+        "swingset.deploy.unit_diagnostic.profile_derivation",
+        "swingset.project.history.prepare_inventory",
+    ): ("history", "prepare_inventory", "prepare_inventory"),
+    (
+        "swingset.deploy.unit_diagnostic.profile_derivation",
+        "swingset.project.process._hint_links",
+    ): ("process", "_hint_links", "post_link_hints"),
+}
+
 
 def _module_name(path):
     parts = path.relative_to(SRC.parent).with_suffix("").parts
@@ -486,23 +500,50 @@ class _Graph:
     def references(self):
         """(referrer, target): a top-level function or module naming a definition."""
         for module, (_, tree) in self.modules.items():
-            names = self.imports[module]
             for node in tree.body:
                 if isinstance(node, ast.Import | ast.ImportFrom):
                     continue  # Importing is not using.
                 referrer = f"{module}.{getattr(node, 'name', '<module>')}"
                 for inner in ast.walk(node):
-                    target = None
-                    if isinstance(inner, ast.Name) and inner.id in names:
-                        target = names[inner.id]
-                    elif (
-                        isinstance(inner, ast.Attribute)
-                        and isinstance(inner.value, ast.Name)
-                        and names.get(inner.value.id) in self.modules
-                    ):
-                        target = self.resolve(f"{names[inner.value.id]}.{inner.attr}")
+                    target = self.target(module, inner)
                     if target in self.definitions and target != referrer:
                         yield referrer, target
+
+    def target(self, module, node):
+        names = self.imports[module]
+        if isinstance(node, ast.Name) and node.id in names:
+            return names[node.id]
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Name)
+            and names.get(node.value.id) in self.modules
+        ):
+            return self.resolve(f"{names[node.value.id]}.{node.attr}")
+        return None
+
+
+def _observation_only(graph, referrer, target):
+    specification = OBSERVED.get((referrer, target))
+    if specification is None:
+        return False
+    module, _, name = referrer.rpartition(".")
+    function = next(
+        node for node in graph.modules[module][1].body if getattr(node, "name", None) == name
+    )
+    references = [node for node in ast.walk(function) if graph.target(module, node) == target]
+    if len(references) != 1:
+        return False
+    parents = {
+        child: parent for parent in ast.walk(function) for child in ast.iter_child_nodes(parent)
+    }
+    timed = parents.get(references[0])
+    registration = parents.get(timed)
+    alias, member, span = specification
+    expected = ast.parse(
+        f"patch.object({alias}, {member!r}, inventory_span({span!r}, {alias}.{member}))",
+        mode="eval",
+    ).body
+    return registration is not None and ast.dump(registration) == ast.dump(expected)
 
 
 def _outside(referrer):
@@ -547,6 +588,8 @@ def test_project_and_link_never_open_connections_or_authorizers():
 def test_project_and_link_are_reached_only_through_their_entry_points():
     graph = _Graph()
     references = set(graph.references())
+    observations = {edge for edge in references if _observation_only(graph, *edge)}
+    references -= observations
     used = set()
     external = []
     for referrer, target in sorted(references):
@@ -586,6 +629,25 @@ def test_project_and_link_are_reached_only_through_their_entry_points():
             opening.append(name)
     assert opening == []
     assert sorted(set(ALLOWED) - used) == []
+    assert set(OBSERVED) == observations
+
+
+@pytest.mark.parametrize("target", list(OBSERVED))
+@pytest.mark.parametrize("extra", ["call", "reference"])
+def test_observation_registration_does_not_hide_an_additional_bypass(monkeypatch, target, extra):
+    graph = _Graph()
+    assert _observation_only(graph, *target)
+    module, _, name = target[0].rpartition(".")
+    function = next(
+        node for node in graph.modules[module][1].body if getattr(node, "name", None) == name
+    )
+    alias, member, _ = OBSERVED[target]
+    expression = f"{alias}.{member}(conn)" if extra == "call" else f"escaped = {alias}.{member}"
+    function.body.append(ast.parse(expression).body[0])
+    assert not _observation_only(graph, *target)
+    monkeypatch.setattr(sys.modules[__name__], "_Graph", lambda: graph)
+    with pytest.raises(AssertionError):
+        test_project_and_link_are_reached_only_through_their_entry_points()
 
 
 def test_the_entry_points_open_a_recording():

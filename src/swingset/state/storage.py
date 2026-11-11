@@ -901,7 +901,7 @@ def _move(
     """One writer transaction: delete eligible references without changing guards.
 
     Not `Database.transaction`: this is an operator step under the hold, and
-    its 60-second bound is for loop writes (D-0217). The note is finished in
+    its 75-second bound is for loop writes (D-0217). The note is finished in
     the same transaction, so a crash leaves either nothing moved or the move
     and its receipt.
     """

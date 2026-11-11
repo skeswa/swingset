@@ -1,0 +1,75 @@
+{
+  "at": "2026-11-12T04:28:41.977273+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-12 03:30:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "80"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-derive.service",
+        "--since",
+        "2026-11-12 03:30:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "80"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "tail",
+        "-n",
+        "8",
+        "/var/lib/swingset/ALERTS.log"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "format": "swingset-readonly-production-watch-v1",
+  "host": "root@swingset@orb",
+  "latest_alerts": [
+    "2026-11-12T03:35:52Z [loop-idle] acquire: no progress since 2026-11-12 02:05 UTC, over 60 minutes while unheld; its ticks finish but do nothing (read its run records)",
+    "2026-11-12T03:35:52Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC"
+  ],
+  "latest_known_request_tick_finished_at": "2026-11-12T04:11:12.078107+00:00",
+  "limits": "Two acquire ticks make three requests; ten make none. Derive remains idle. Observed cycle successes do not establish sustained collection or a repair. The acquire-idle alert precedes its next request-bearing tick.",
+  "loops": {
+    "acquire": {
+      "all_failed_false_error_null": true,
+      "last_finished_at": "2026-11-12T04:26:01.937090+00:00",
+      "observed_ticks": 12,
+      "progress": 3,
+      "requests": 3,
+      "zero_request_ticks": 10
+    },
+    "derive": {
+      "all_failed_false_error_null": true,
+      "last_finished_at": "2026-11-12T04:23:26.745436+00:00",
+      "observed_ticks": 11,
+      "progress": 0
+    }
+  },
+  "production_mutation": false,
+  "raw_sha256": {
+    "acquire": "1d6ee8d2c2f537e08d9838a2b7c13cf3d4c293520fc203037be6ffb9765c0b00",
+    "alerts": "8681017320db3e6658baba7a30de5d0177181229041aae64e9e5a23b0c5bd283",
+    "derive": "a56d09266b8feb13463783dabfab658c4a6735da8bfd1f0e1ca3b6e52bf6c6ae"
+  },
+  "repair_deployed": false
+}

@@ -53,6 +53,16 @@ Each changed unit still increments once; a missing generation is inserted only
 for a new pending row. Retry fields and generation-insert row fences are
 preserved ([D-0286](../../journal/decisions/0286-batch-pending-work-generation-updates.md)).
 
+PostgreSQL worker writes keep the 75-second absolute deadline and check it
+before every statement. Server statement and lock timeouts round the
+remaining budget down to 10 milliseconds above one second, retaining exact
+integer milliseconds below that. Settings may be reused within the same
+deadline and rounded budget; transaction boundaries, configuration changes
+and errors invalidate them. This can cancel less than 10 milliseconds
+earlier without extending the budget
+([D-0293](../../journal/decisions/0293-reuse-conservative-sql-write-timeouts.md),
+[D-0294](../../journal/decisions/0294-use-a-seventy-five-second-worker-write-deadline.md)).
+
 Only verification copy sources may opt into `allow_checkpoint_schema=True`
 with `read_only=True` and `lock=False`. This admits native 38 when its import
 version and exact migration-prefix checksum match. It never migrates the
@@ -1703,10 +1713,10 @@ When those tables exist, activation also advances their observation epoch in
 the same transaction. The transaction commits before `RESTORE_PENDING` is
 removed; schemas through 11 remain compatible and perform neither change.
 
-Outer immediate worker transactions run under a 60-second wall-clock alarm,
+Outer immediate worker transactions run under a 75-second wall-clock alarm,
 the same for every unit; savepoints inherit it. Writes are small by
 construction (I2), so the alarm is a safety net: a firing rolls the write back
-and counts in `write_deadline.fired()` ([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)). The deadline starts
+and counts in `write_deadline.fired()` ([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md), [D-0294](../../journal/decisions/0294-use-a-seventy-five-second-worker-write-deadline.md)). The deadline starts
 once `BEGIN IMMEDIATE` holds SQLite's writer: time spent waiting for another
 process's write is not counted against it. Each process counts `writes`,
 `write_wait_seconds_total` and `_max`, `write_seconds_max` (writer held, begin

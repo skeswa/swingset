@@ -168,6 +168,10 @@ class ImportJob:
         require(value["Id"] == identifier)
         return value
 
+    def readonly_mount_overrides(self) -> frozenset[str]:
+        """Make an existing writable destination read-only; ordinary utilities do not."""
+        return frozenset()
+
     def bound(self) -> dict[str, Any]:
         value = self.inspect(self.container)
         labels, host = value["Config"]["Labels"], value["HostConfig"]
@@ -213,6 +217,10 @@ class ImportJob:
             "/var/lib/swingset-source",
         }
         readonly.update("/run/secrets/" + name for name in self.CREDENTIALS)
+        overrides = self.readonly_mount_overrides()
+        require(overrides <= writable)
+        writable.difference_update(overrides)
+        readonly.update(overrides)
         if self.STATE_READ_ONLY:
             writable.remove("/var/lib/swingset")
             readonly.add("/var/lib/swingset")

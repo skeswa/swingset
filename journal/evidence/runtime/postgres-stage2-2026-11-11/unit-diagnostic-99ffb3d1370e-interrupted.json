@@ -1,0 +1,103 @@
+{
+  "actor": "0e80c8b99b8460e8b72d87142b1d6636ddbf1b90c70bde25fc52fad5a411e4ac",
+  "at": "2026-11-12T04:27:06.438154+00:00",
+  "cleanup_complete_at_terminal_review": false,
+  "commands": [
+    {
+      "argv": [
+        "ssh",
+        "-T",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=10",
+        "-o",
+        "ServerAliveCountMax=3",
+        "rhuidean",
+        "cd /var/tmp/swingset-stage2-unit-diagnostic-job-99ffb3d1370e && umask 077 && set -C && exec env -i PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 python3 -m swingset.deploy.unit_diagnostic_job --plan /var/tmp/swingset-stage2-unit-diagnostic-job-99ffb3d1370e/execution-plan.json --plan-sha256 7acf34a669ca37522eb02cccf8d88745effbcc065a01293e65f0bedd9f15bae8 --container 0e80c8b99b8460e8b72d87142b1d6636ddbf1b90c70bde25fc52fad5a411e4ac --platform cbcb3ef851e568ae852afd7f884f31df2e09ff37193a7b034eb674f65c791ea2 --review /var/tmp/swingset-stage2-unit-diagnostic-job-99ffb3d1370e/execution-review.json --review-sha256 cd6c07f3b6cb00194de7a37b71231d67f0bc9382eadfa035648eae9c14aa9a34 > /var/tmp/swingset-stage2-unit-diagnostic-job-99ffb3d1370e/unit-diagnostic-supervisor.stdout 2> /var/tmp/swingset-stage2-unit-diagnostic-job-99ffb3d1370e/unit-diagnostic-supervisor.stderr"
+      ],
+      "exit_code": 1
+    },
+    {
+      "argv": [
+        "docker",
+        "stop",
+        "--timeout",
+        "120",
+        "0e80c8b99b8460e8b72d87142b1d6636ddbf1b90c70bde25fc52fad5a411e4ac"
+      ],
+      "basis": "maintained supervisor receipt",
+      "observed_exit_code": 0
+    }
+  ],
+  "completed_phases": [
+    {
+      "name": "capture",
+      "owner_thread_cpu_seconds": 2.714330359,
+      "wall_seconds": 4.315763959661126
+    },
+    {
+      "name": "prefreeze_source_identity",
+      "owner_thread_cpu_seconds": 239.164976373,
+      "wall_seconds": 262.5841774754226
+    }
+  ],
+  "completed_unit_results": 0,
+  "diagnostic_complete": false,
+  "format": "swingset-stage2-interrupted-unit-diagnostic-receipt-v1",
+  "hashes": {
+    "data-terminal-readonly-collection.json": "fab16a992fa554e186e248a1443eb5a7b8903adbefab395452a7022bbf72e628",
+    "execution-plan.json": "7acf34a669ca37522eb02cccf8d88745effbcc065a01293e65f0bedd9f15bae8",
+    "execution-review.json": "cd6c07f3b6cb00194de7a37b71231d67f0bc9382eadfa035648eae9c14aa9a34",
+    "independent-startup-review.json": "5862e3192c3b28ea65f9fb17f5e77d94299be21d4891366b325053765e43d2b1",
+    "independent-terminal-observed.json": "8d9b966e21e98fd00fd92805dd85a93ca79f0a2bc6cb3104253ac0181520f872",
+    "root-collected-supervisor.json": "222c30d03a11c45558a4471415996ac1fa488079e97caf9ba052716a43fcc32f",
+    "terminal-independent-review.json": "cce06103b66900738dec55884f45aa7d27c62e484121cba4a89e8b7f62db9392"
+  },
+  "host": "rhuidean",
+  "last_operator_phase": "freeze_one_new_owned_database",
+  "limits": [
+    "No completed freeze, destination prelude, input acceptance, inventory trial or rollback witness.",
+    "Controlled supervisor stop; generic failure reason does not identify exact failed require or SQL cause.",
+    "Owned046 cleanup is a separate reviewed operation; sourceC696 and retained69 remain protected."
+  ],
+  "no_automatic_replay": true,
+  "operator_sha256": "c745d63fd64f2c7b917d1cb2ce304ce96e274d488eb48c2c36412c2264b76c90",
+  "owned_database_remaining_at_terminal_review": [
+    {
+      "bytes": 38166451891,
+      "comment": "swingset-scratch:046da103604a45e9931a5d58",
+      "name": "sst_copy_046da103604a45e9931a5d58_0",
+      "oid": 5861832,
+      "owner": "postgres"
+    }
+  ],
+  "owner": "046da103604a45e9931a5d58",
+  "post_full_source_checkpoint_hash_recomputed": false,
+  "producer": {
+    "image": "sha256:346f30a492e7263c77e7c4346595e5a28e01bb1957ce6ee7e16be4f5c0f74f89",
+    "installed_file_count": 560,
+    "installed_proof_sha256": "d13c0e3f4688c6bbcc51a8339266487cda96a86d20cc9f441c3d5ca92180cd74",
+    "linker_version": "9",
+    "runtime_artifact": "swingset-runtime@sha256:5f9b83c510d8af3870cf3b20d3319fb9dff83c91e1c4eadb4fe03134ce0b4cf9",
+    "source_revision": "source-sha256:8aae03bf38566229a30475acadaf0ea659cff843166d6c40b31883cb6e8e3c2a"
+  },
+  "protected12_pass": true,
+  "scratch_packet": "/tmp/swingset-stage2-unit-diagnostic-cold-draft-99ffb3d1370e-v1/execution-v1",
+  "source_metadata_prefix_pass": true,
+  "stop_confirmed": true,
+  "stop_reason": "supervisor, peer or disk failure",
+  "supervisor_error_type": "ValueError",
+  "terminal_state": {
+    "ExitCode": 137,
+    "FinishedAt": "2026-11-12T04:15:43.322544803Z",
+    "OOMKilled": false,
+    "Pid": 0,
+    "Running": false,
+    "StartedAt": "2026-11-12T03:49:08.459573843Z"
+  }
+}

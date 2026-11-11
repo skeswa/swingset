@@ -1,0 +1,174 @@
+{
+  "active_sha256": "1cbbf0c413d959857cb4acfbafa71bab68ef4bda012e8021cf70e95f5a2fd3c5",
+  "at": "2026-11-12T04:19:42.825916+00:00",
+  "commands": [
+    {
+      "argv": [
+        "mkdir",
+        "-m",
+        "700",
+        "/var/tmp/swingset-stage2-hold-review-20261112-040612"
+      ],
+      "observed_exit_code": 0
+    },
+    {
+      "argv": [
+        "scp",
+        "-q",
+        "/tmp/swingset-stage2-hold-review-20261112-040612/hold.json",
+        "rhuidean:/var/tmp/swingset-stage2-hold-review-20261112-040612/hold.json"
+      ],
+      "observed_exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--pull=never",
+        "--network",
+        "none",
+        "--read-only",
+        "--user",
+        "0:0",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "64m",
+        "--memory-swap",
+        "64m",
+        "--cpus",
+        "1",
+        "--pids-limit",
+        "32",
+        "--log-driver",
+        "local",
+        "--log-opt",
+        "max-size=1m",
+        "--log-opt",
+        "max-file=1",
+        "--log-opt",
+        "compress=false",
+        "--label",
+        "io.swingset.owned-hold=20261112-040612",
+        "--mount",
+        "type=bind,src=/var/tmp/swingset-stage2-app-cc89f18f5c31/holds,dst=/holds",
+        "--name",
+        "swingset-hold-install-20261112-040612",
+        "--mount",
+        "type=bind,src=/var/tmp/swingset-stage2-hold-review-20261112-040612/hold.json,dst=/hold.json,readonly",
+        "--entrypoint",
+        "/usr/bin/install",
+        "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4",
+        "--mode=0444",
+        "--",
+        "/hold.json",
+        "/holds/.stage2-import-review-20261112-040612.tmp"
+      ],
+      "helper_id": "ad1c8026dec2ba30cffb0f86a66226cb6e0eeea6e0a3df5f75a353206ef0ba7f",
+      "observed_exit_code": 0,
+      "observed_exit_code_basis": "exact owned Docker helper terminal exit; not transport success",
+      "transport_error_type": "TimeoutExpired",
+      "transport_exit_code": null
+    },
+    {
+      "argv": [
+        "sha256sum",
+        "/var/tmp/swingset-stage2-app-cc89f18f5c31/holds/.stage2-import-review-20261112-040612.tmp",
+        "/var/tmp/swingset-stage2-app-cc89f18f5c31/holds/stage2-import.json"
+      ],
+      "observed_exit_code": 0
+    },
+    {
+      "argv": [
+        "stat",
+        "-c",
+        "%u %a %h",
+        "/var/tmp/swingset-stage2-app-cc89f18f5c31/holds/.stage2-import-review-20261112-040612.tmp"
+      ],
+      "observed_exit_code": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--pull=never",
+        "--network",
+        "none",
+        "--read-only",
+        "--user",
+        "0:0",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "64m",
+        "--memory-swap",
+        "64m",
+        "--cpus",
+        "1",
+        "--pids-limit",
+        "32",
+        "--log-driver",
+        "local",
+        "--log-opt",
+        "max-size=1m",
+        "--log-opt",
+        "max-file=1",
+        "--log-opt",
+        "compress=false",
+        "--label",
+        "io.swingset.owned-hold=20261112-040612",
+        "--mount",
+        "type=bind,src=/var/tmp/swingset-stage2-app-cc89f18f5c31/holds,dst=/holds",
+        "--name",
+        "swingset-hold-review-20261112-040612",
+        "--entrypoint",
+        "/usr/bin/mv",
+        "sha256:315f8f44fd65c93ec2d9be358fd1118e9fa3eae38a4730c9aeff574b93a304b4",
+        "-T",
+        "--",
+        "/holds/.stage2-import-review-20261112-040612.tmp",
+        "/holds/stage2-import.json"
+      ],
+      "helper_id": "76e60a29bc479251fbf7d47b782ad25a972b2217ea75d1ae8ab312b694a0008b",
+      "observed_exit_code": 0,
+      "observed_exit_code_basis": "exact owned Docker helper terminal exit; not transport success",
+      "transport_error_type": "TimeoutExpired",
+      "transport_exit_code": null
+    }
+  ],
+  "complete": true,
+  "finalization_exit_code": 0,
+  "finalization_receipts_remote_hashes_verified_before_pointer": true,
+  "format": "swingset-stage2-hold-review-receipt-v1",
+  "hashes": {
+    "admin-commands.json": "449f9b5cac78713385cf283640f65cc2e2adbb49a560d0c2901f96113a120022",
+    "admin-plan.json": "d42a2d360218246af2cc678cedcf58ec913841e895f123f36a7e40623e6fdbc0",
+    "finalize-receipts-once.py": "53de96aebd4417ffc90c6124d48ee550a25d3ca9770041f8554647920d44f711",
+    "independent-continuation-review.json": "dc8124c3618345ba46403ce8205334501fccc0908a6bae4618adbff48cdf7161",
+    "independent-late-activation-observed.json": "26289dcd0dd5a80090e1b5989c00fa6b3bbaf115cd43739304e17622eb41642f",
+    "independent-receipts-finalizer-review.json": "2195da428c03af91df819222fb77f87e823630bc5ed4332d9cf87e0fd88fea39",
+    "result.json": "cb15fe2c1724abc7ebdd00a5564de6a49fc38a38f5c57cbb80c83aadbf28346d"
+  },
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-12T05:06:12.314789+00:00",
+    "reviewed_at": "2026-11-12T04:06:12.314789+00:00"
+  },
+  "host": "rhuidean",
+  "installers_and_activation_not_replayed": true,
+  "metadata": "0 444 1",
+  "protected12_unchanged": true,
+  "review_expiry_gap": {
+    "activation_finished_at": "2026-11-12T04:14:18.149615432Z",
+    "activation_started_at": "2026-11-12T04:14:17.769282613Z",
+    "continuous_validity_proven": false,
+    "old_review_at": "2026-11-12T04:13:21.558437+00:00"
+  },
+  "scratch_packet": "/tmp/swingset-stage2-hold-review-20261112-040612"
+}

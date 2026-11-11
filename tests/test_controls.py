@@ -701,12 +701,12 @@ def test_resuming_all_still_reports_overlapping_operator_host_pause(tmp_path):
 
 
 def test_an_admission_outwaits_the_write_alarm():
-    """A worker write ends by the 60 s alarm at the latest, and no unit gets a
+    """A worker write ends by the 75 s alarm at the latest, and no unit gets a
     longer one (D-0217), so a request or operation admission waiting behind it
     does not time out. A unit takes no control lock (D-0238)."""
     from swingset.state import write_deadline
 
-    assert write_deadline.WRITE_SECONDS == 60.0
+    assert write_deadline.WRITE_SECONDS == 75.0
     assert not hasattr(write_deadline, "allowance")
     assert write_deadline.WRITE_SECONDS < controls.ADMISSION_TIMEOUT_SECONDS
 

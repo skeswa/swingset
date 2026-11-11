@@ -493,3 +493,18 @@ def test_stop_inspection_failure_keeps_last_observation_and_terminal_unknown(job
     assert sum(argv[1] == "start" for argv in backend.calls) == 1
     assert not any(argv[1] == "stop" for argv in backend.calls)
     assert "PRIVATE" not in json.dumps(result)
+
+
+def test_import_refuses_an_extra_operator_mount_by_default(job):
+    instance, backend = job
+    backend.application["Mounts"].append(
+        {
+            "Type": "bind",
+            "Source": "/safe/operator.py",
+            "Destination": "/probe/unit_diagnostic.py",
+            "RW": False,
+        }
+    )
+    result = instance.run()
+    assert not result["start_attempted"] and not result["complete"]
+    assert not any(call[1] in {"start", "stop"} for call in backend.calls)

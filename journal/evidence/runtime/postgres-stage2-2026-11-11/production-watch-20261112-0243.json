@@ -1,0 +1,90 @@
+{
+  "at": "2026-11-12T02:45:33.014043+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-12 02:00:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "90"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-derive.service",
+        "--since",
+        "2026-11-12 02:00:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "90"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-watchdog.service",
+        "--since",
+        "2026-11-12 02:00:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "50"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "tail",
+        "-n",
+        "8",
+        "/var/lib/swingset/ALERTS.log"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "format": "swingset-readonly-production-watch-v1",
+  "latest_alert": "2026-11-12T01:35:03Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+  "limits": "Acquire has eight zero-request ticks after its observed request-bearing tick; report actual fetching separately from successful cycles. Known expired archive-host and old derive-idle warnings remain; no repair or alarm-clear claim.",
+  "loops": {
+    "acquire": {
+      "all_failed_false_error_null": true,
+      "first_started_at": "2026-11-12T02:00:08.648286+00:00",
+      "last_finished_at": "2026-11-12T02:41:01.850422+00:00",
+      "latest_request_tick_finished_at": "2026-11-12T02:05:42.551258+00:00",
+      "observed_ticks": 9,
+      "progress": 66,
+      "requests": 66,
+      "zero_request_ticks": 7
+    },
+    "derive": {
+      "all_failed_false_error_null": true,
+      "first_started_at": "2026-11-12T01:57:20.432401+00:00",
+      "last_finished_at": "2026-11-12T02:42:41.885562+00:00",
+      "observed_ticks": 10,
+      "progress": 1099
+    }
+  },
+  "observed_watchdog_successes": 2,
+  "production_mutation": false,
+  "raw_sha256": {
+    "acquire": "d328d14d7772d2e2ee79a5248a12486f76033c3d75f38d1827127dc85b09f8f4",
+    "alerts": "cefaa05a111a034488a21bad212899b3b809d944737c437371ae57111db1a31d",
+    "derive": "604e9691048ef2b5dd1a4663b83bdc29616a04ebe35dbea7134126a62b5da263",
+    "watchdog": "6e3d84a81f79776d66c887b2145554d8e0d921658a314d57e350171ed0add6db"
+  },
+  "repair_deployed": false
+}

@@ -14,7 +14,7 @@ from .engine import CommitUncertain, Connection, WriteTimeout
 
 # A safety net, not the bound: every write is small by construction (I2), so
 # a firing is an alarm (D-0217). No unit gets a longer limit.
-WRITE_SECONDS = 60.0
+WRITE_SECONDS = 75.0
 _fired = 0
 
 
@@ -76,11 +76,17 @@ def bounded_write(conn: Connection, *, seconds: float | None = None) -> Iterator
     if previous_interval or 0 < previous_delay <= limit:
         raise RuntimeError("pipeline write deadline conflicts with an active earlier timer")
     expired = False
+    cleaning = False
+    error: BaseException | None = None
 
     def timeout(_number: int, _frame: FrameType | None) -> None:
         nonlocal expired
         expired = True
-        raise _Expired()
+        # The body must be interrupted, but interrupting cancellation or error
+        # translation would let this private KeyboardInterrupt escape instead
+        # of rolling back as WriteDeadlineExceeded. Cleanup still records it.
+        if not cleaning:
+            raise _Expired()
 
     signal.signal(signal.SIGALRM, timeout)
     previous_deadline = conn._write_deadline
@@ -89,39 +95,62 @@ def bounded_write(conn: Connection, *, seconds: float | None = None) -> Iterator
         min(deadline, previous_deadline) if previous_deadline is not None else deadline
     )
     try:
-        # Delivery can occur as arming returns after the process was paused.
-        # Protect that boundary just like delivery during the write body.
-        signal.setitimer(signal.ITIMER_REAL, limit)
-        yield
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        # A body that ran past the limit before the alarm could land (it lands
-        # only between bytecodes) is cut off the same way.
-        expired = expired or time.monotonic() - started >= limit
-        if expired:
-            raise _Expired()
-    except BaseException as error:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        expired = expired or isinstance(error, WriteTimeout) or time.monotonic() >= deadline
-        if expired:
-            _fired += 1
-            if isinstance(error, CommitUncertain):
+        try:
+            try:
+                # Delivery can occur as arming returns after a process pause.
+                signal.setitimer(signal.ITIMER_REAL, limit)
+                yield
+            except BaseException as caught:
+                error = caught
+            finally:
+                cleaning = True
+                signal.setitimer(signal.ITIMER_REAL, 0)
+        except _Expired as caught:
+            # A one-shot owned alarm can land while entering the handler or
+            # finally, before cleaning is set. Preserve the original failure
+            # carried in its context, especially an uncertain commit or SIGINT.
+            if not expired:
                 raise
-            if conn._commit_serial != commits_before:
-                conn.close()
-                raise CommitUncertain(
-                    "database commit crossed its acknowledgement deadline; reconcile retained state"
-                ) from error
-            raise WriteDeadlineExceeded(
-                f"atomic write exceeded {limit:g} seconds; output rolled back"
-            ) from error
-        raise
+            if error is None:
+                error = caught if caught.__context__ is None else caught.__context__
     finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        conn._write_deadline = previous_deadline
-        signal.signal(signal.SIGALRM, previous_handler)
-        if previous_delay:
-            signal.setitimer(
-                signal.ITIMER_REAL,
-                max(0.000001, previous_delay - (time.monotonic() - started)),
-                previous_interval,
-            )
+        cleaning = True
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        finally:
+            conn._write_deadline = previous_deadline
+            signal.signal(signal.SIGALRM, previous_handler)
+            if previous_delay:
+                signal.setitimer(
+                    signal.ITIMER_REAL,
+                    max(0.000001, previous_delay - (time.monotonic() - started)),
+                    previous_interval,
+                )
+    # Classify once, after cancellation and restoration. A late callback in
+    # either cleanup block must still count and cannot turn an overrun green.
+    expired = expired or isinstance(error, WriteTimeout) or time.monotonic() >= deadline
+    if expired:
+        _fired += 1
+        if isinstance(error, _Expired):
+            # Delivery can precede even the body handler's error assignment.
+            # Its context still carries an in-flight fatal failure; do not
+            # downgrade that failure into an ordinary retriable deadline.
+            interrupted = error.__context__
+            if isinstance(interrupted, CommitUncertain) or (
+                isinstance(interrupted, KeyboardInterrupt) and not isinstance(interrupted, _Expired)
+            ):
+                error = interrupted
+        if isinstance(error, CommitUncertain):
+            raise error
+        if conn._commit_serial != commits_before:
+            conn.close()
+            raise CommitUncertain(
+                "database commit crossed its acknowledgement deadline; reconcile retained state"
+            ) from error
+        if isinstance(error, KeyboardInterrupt) and not isinstance(error, _Expired):
+            raise error
+        raise WriteDeadlineExceeded(
+            f"atomic write exceeded {limit:g} seconds; output rolled back"
+        ) from error
+    if error is not None:
+        raise error

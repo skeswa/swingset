@@ -3,6 +3,7 @@
 import subprocess
 import sys
 import traceback
+from types import SimpleNamespace
 
 import psycopg
 import pytest
@@ -297,42 +298,67 @@ def test_timeout_settings_reuse_keeps_the_absolute_check_on_every_query(tmp_path
         conn = database.connection
         tick = [1000.0]
         applied = []
+        late_statements = []
         original = psycopg.Cursor.execute
 
         def execute(cursor, query, *args, **kwargs):
             if isinstance(query, str) and query.startswith("SELECT set_config('statement_timeout'"):
                 applied.append(args[0])
+            if query == "SELECT 1 AS too_late":
+                late_statements.append(query)
             return original(cursor, query, *args, **kwargs)
 
         monkeypatch.setattr(psycopg.Cursor, "execute", execute)
-        monkeypatch.setattr(module.time, "monotonic", lambda: tick[0])
+        clock = SimpleNamespace(monotonic=lambda: tick[0])
+        monkeypatch.setattr(module, "time", clock)
+        monkeypatch.setattr(write_deadline, "time", clock)
         with pytest.raises(WriteDeadlineExceeded):
-            with conn.transaction(), bounded_write(conn, seconds=1):
+            with conn.transaction(), bounded_write(conn, seconds=2):
                 for _ in range(3):
                     assert conn.execute("SELECT 1 AS ready").fetchone()[0] == 1
-                assert applied == [("1000", "1000")]
-                tick[0] += 0.002
-                conn.execute("SELECT 1 AS ready").fetchone()
-                assert len(applied) == 2 and int(applied[-1][0]) <= 998
-                tick[0] = 1001.0
+                assert applied == [("2000", "2000")]
+                for elapsed, expected, calls in (
+                    (0.002, 1990, 2),
+                    (0.004, 1990, 2),
+                    (0.012, 1980, 3),
+                    (1.0015, 998, 4),
+                    (1.0025, 997, 5),
+                ):
+                    tick[0] = 1000.0 + elapsed
+                    limits = conn.execute(
+                        "SELECT setting::integer FROM pg_settings "
+                        "WHERE name IN ('statement_timeout','lock_timeout') ORDER BY name"
+                    ).fetchall()
+                    # Check real server limits, not just the connection cache.
+                    actual = [row[0] for row in limits]
+                    assert actual == [expected, expected]
+                    assert all(value <= (2 - elapsed) * 1000 for value in actual)
+                    assert len(applied) == calls
+                tick[0] = 1002.0
                 conn.execute("SELECT 1 AS too_late")
-        assert len(applied) == 2  # Expiry refused the statement before another SQL call.
+        assert len(applied) == 5  # Expiry refused the statement before another SQL call.
+        assert not late_statements
         assert not conn.in_transaction
 
 
-def test_server_timeouts_survive_raw_savepoint_rollback_and_new_transaction(tmp_path, monkeypatch):
+@pytest.mark.parametrize("seconds", [1, 2])
+def test_server_timeouts_survive_raw_savepoint_rollback_and_new_transaction(
+    tmp_path, monkeypatch, seconds
+):
     from swingset.state.engine import connection as module
     from swingset.state.write_deadline import bounded_write
 
     with open_database(tmp_path) as database:
         conn = database.connection
-        monkeypatch.setattr(module.time, "monotonic", lambda: 1000.0)
+        clock = SimpleNamespace(monotonic=lambda: 1000.0)
+        monkeypatch.setattr(module, "time", clock)
+        monkeypatch.setattr(write_deadline, "time", clock)
 
         class AbandonSavepoint(Exception):
             pass
 
         for _ in range(2):
-            with conn.transaction(), bounded_write(conn, seconds=1):
+            with conn.transaction(), bounded_write(conn, seconds=seconds):
                 try:
                     with conn.transaction():
                         # The raw psycopg savepoint predates the first timeout SET.
@@ -341,20 +367,19 @@ def test_server_timeouts_survive_raw_savepoint_rollback_and_new_transaction(tmp_
                 except AbandonSavepoint:
                     pass
                 for name in ("statement_timeout", "lock_timeout"):
-                    assert (
-                        conn.execute(
-                            "SELECT setting FROM pg_settings WHERE name=%s", (name,)
-                        ).fetchone()[0]
-                        == "1000"
-                    )
+                    assert conn.execute(
+                        "SELECT setting FROM pg_settings WHERE name=%s", (name,)
+                    ).fetchone()[0] == str(seconds * 1000)
                 for name in ("statement_timeout", "lock_timeout"):
-                    conn.execute("SELECT set_config(%s,'0',true)", (name,))
-                    assert (
-                        conn.execute(
+                    for query, params in (
+                        ("SELECT set_config(%s,'0',true)", (name,)),
+                        (f"SET LOCAL {name}='0'", None),
+                        (f"RESET {name}", None),
+                    ):
+                        conn.execute(query, params)
+                        assert conn.execute(
                             "SELECT setting FROM pg_settings WHERE name=%s", (name,)
-                        ).fetchone()[0]
-                        == "1000"
-                    )
+                        ).fetchone()[0] == str(seconds * 1000)
             # The next iteration deliberately reuses the identical absolute
             # deadline and millisecond, across a real COMMIT and new BEGIN.
             assert not conn.in_transaction

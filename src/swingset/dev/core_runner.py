@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[3]
 LABEL = "io.swingset.core-job"
 MEMORY = 2 * 1024**3
 MINIMUM_FREE = 80 * 1024**3
-BUDGET_SECONDS = 180
+BUDGET_SECONDS = 300
 PARTITIONS = 4
 CLIENT_CPUS = 6
 AGGREGATE_WORKING_LIMIT = 7 * 1024**3
@@ -911,7 +911,7 @@ def _run_locked(root: Path | None = None) -> int:
             )
     wall = time.monotonic() - started
     summary = {
-        "format": "swingset-core-run-v1",
+        "format": "swingset-core-run-v2",
         "job": job,
         "image": image,
         "source_revision": revision,
@@ -932,7 +932,8 @@ def _run_locked(root: Path | None = None) -> int:
             "test_database_cpus": primary_info["HostConfig"].get("NanoCpus"),
         },
         "wall_seconds": wall,
-        "within_180_seconds": wall <= BUDGET_SECONDS,
+        "budget_seconds": BUDGET_SECONDS,
+        "within_budget": wall <= BUDGET_SECONDS,
         "checks_passed": not verified["errors"],
         "clients": reports,
         "prologue": prologue_report,
@@ -950,7 +951,7 @@ def _run_locked(root: Path | None = None) -> int:
         summary.update(checks_passed=not verified["errors"], errors=verified["errors"])
     # End-to-end timing includes private receipts and mandatory volume cleanup.
     wall = time.monotonic() - started
-    summary.update(wall_seconds=wall, within_180_seconds=wall <= BUDGET_SECONDS)
+    summary.update(wall_seconds=wall, within_budget=wall <= BUDGET_SECONDS)
     _write_private(directory / "summary.json", summary)
     wall = time.monotonic() - started
     print(
@@ -960,7 +961,7 @@ def _run_locked(root: Path | None = None) -> int:
     for issue in verified["errors"]:
         print("Core check failed: " + issue, flush=True)
     if wall > BUDGET_SECONDS:
-        print("Core exceeded the 180-second development budget", flush=True)
+        print(f"Core exceeded the {BUDGET_SECONDS}-second development budget", flush=True)
     return (
         130
         if aborted == "interrupted"

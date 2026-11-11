@@ -21,6 +21,13 @@ stage builds is the one development keeps after the switch
 ([10. Local development](10-local-development.md#tests)). Full-size work happens on the server in the dry run,
 because its initial 138 GiB of free disk was shared with the production VM.
 
+November 13 policy update: the owner raises the complete core gate from 180
+to 300 seconds (five minutes), including setup, verification and cleanup.
+Summary format `swingset-core-run-v2` records `budget_seconds` and
+`within_budget`; earlier reports keep their original budget and outcome.
+This changes the feedback target, not test selection, resource caps or worker
+write deadlines. The older measurement history below remains historical.
+
 ## Before it starts
 
 - **Check the server, read-only.** The whole plan depends on it, and nobody
@@ -71,7 +78,7 @@ Bare `mise run test` first runs the unchanged 30 ms recovery case in one
 isolated process, then the remaining cases in four four-worker clients.
 Every phase reports the full selection; assigned and executed cases must form
 its exact disjoint union. A failed prologue stops the run. Setup, validation,
-reporting and cleanup remain inside the 180-second gate. File-cost hints
+reporting and cleanup remain inside the 300-second gate. File-cost hints
 change ordering only and update only after complete verified success.
 
 The ordinary core uses a separate warm durable `physical` profile, capped at
@@ -199,7 +206,7 @@ measurement; missing-service startup still counts when a core command needs it.
      disposable test database while preserving its 2 GiB memory cap and
      1.5 GiB data tmpfs; development and lifecycle databases keep two CPUs.
      Reconcile an existing validated test container by exact ID without
-     replacing it or its databases. The complete core must still meet 180 s;
+     replacing it or its databases. The complete core must still meet 300 s;
      this bounded pair does not satisfy that gate. See the
      [CPU measurement](../../../journal/evidence/runtime/postgres-stage1-2026-11-04/test-postgres-cpu-profile.json).
    - **measured input writer trigger:** the complete core selected 2,411 cases
@@ -223,7 +230,7 @@ measurement; missing-service startup still counts when a core command needs it.
      clients with four workers each, capped at 2 GiB per client, with a
      deterministic file partition applied after core selection. Verify that
      their node sets are disjoint and their union is the complete core;
-     preserve every nested check and the 180-second gate. See the
+     preserve every nested check and the 300-second gate. See the
      [resource receipt](../../../journal/evidence/runtime/postgres-stage1-2026-11-04/linux-core-memory.json).
    - **measured revision trigger:** two four-worker clients fit their strict
      2 GiB RAM-plus-swap limits, with peak working sets of 1.04 and 1.23 GB,
@@ -255,7 +262,7 @@ measurement; missing-service startup still counts when a core command needs it.
      ledgers on persistent storage, inherit pytest's failed-only retention in
      nested tests, export failure artifacts durably, and monitor bytes and
      inodes. Preserve every application durability call and every test. The
-     complete core must still pass within 180 seconds before this becomes the
+     complete core must still pass within 300 seconds before this becomes the
      default. See the
      [actual profile](../../../journal/evidence/runtime/postgres-stage1-2026-11-04/filesystem-and-core-profile.json),
      [controlled checkpoint pair](../../../journal/evidence/runtime/postgres-stage1-2026-11-04/checkpoint-filesystem-pair.json)

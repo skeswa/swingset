@@ -79,6 +79,118 @@ def test_deadline_delivered_while_arming_rolls_back_and_restores_the_boundary(
         assert db.connection.execute("SELECT 1").fetchone()[0] == 1
 
 
+@pytest.mark.parametrize(
+    "body,disarm,expected",
+    [
+        ("server_timeout", 1, WriteDeadlineExceeded),
+        ("success", 2, WriteDeadlineExceeded),
+        ("uncertain", 1, engine.CommitUncertain),
+        ("acknowledged", 1, engine.CommitUncertain),
+        ("interrupt", 1, KeyboardInterrupt),
+        ("interrupt", None, KeyboardInterrupt),
+    ],
+)
+def test_owned_alarm_cleanup_preserves_translation_and_original_failures(
+    monkeypatch, body, disarm, expected
+):
+    from types import SimpleNamespace
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.getitimer(signal.ITIMER_REAL)
+    assert previous_timer == (0, 0)
+    real_setitimer = signal.setitimer
+    closed, delivered, armed = [], [], []
+    connection = SimpleNamespace(
+        _write_deadline=None, _commit_serial=0, close=lambda: closed.append(True)
+    )
+    error = (
+        engine.CommitUncertain("original uncertain acknowledgement")
+        if body == "uncertain"
+        else KeyboardInterrupt("original user interrupt")
+        if body == "interrupt"
+        else engine.WriteTimeout("original server timeout")
+    )
+    cancelled = 0
+
+    def timer(which, seconds, interval=0):
+        nonlocal cancelled
+        if seconds:
+            # Exercise the exact registered handler deterministically. The
+            # existing SQL/Python cases retain real 30 ms OS timers.
+            armed.append(seconds)
+            return previous_timer
+        cancelled += 1
+        if cancelled == disarm:
+            delivered.append(True)
+            signal.getsignal(signal.SIGALRM)(signal.SIGALRM, None)
+        return real_setitimer(which, seconds, interval)
+
+    monkeypatch.setattr(signal, "setitimer", timer)
+    monkeypatch.setattr(write_deadline, "time", SimpleNamespace(monotonic=lambda: 1000.0))
+    before = write_deadline.fired()
+    with pytest.raises(expected) as raised:
+        with write_deadline.bounded_write(connection, seconds=0.03):
+            assert connection._write_deadline == 1000.03
+            if body == "acknowledged":
+                connection._commit_serial += 1
+            if body != "success":
+                raise error
+    assert armed == [0.03]
+    assert delivered == ([] if disarm is None else [True])
+    assert write_deadline.fired() == before + (disarm is not None)
+    if body in {"uncertain", "interrupt"}:
+        assert raised.value is error
+    elif body != "success":
+        assert raised.value.__cause__ is error
+    assert closed == ([True] if body == "acknowledged" else [])
+    assert connection._write_deadline is None
+    assert signal.getsignal(signal.SIGALRM) is previous_handler
+    assert signal.getitimer(signal.ITIMER_REAL) == previous_timer
+
+
+@pytest.mark.parametrize("failure", [engine.CommitUncertain, KeyboardInterrupt])
+def test_owned_alarm_at_exception_delivery_keeps_the_original_fatal_error(monkeypatch, failure):
+    from types import SimpleNamespace
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.getitimer(signal.ITIMER_REAL)
+    previous_trace = sys.gettrace()
+    assert previous_timer == (0, 0)
+    actual_setitimer = signal.setitimer
+    monkeypatch.setattr(
+        signal,
+        "setitimer",
+        lambda which, seconds, interval=0: (
+            previous_timer if seconds else actual_setitimer(which, seconds, interval)
+        ),
+    )
+    monkeypatch.setattr(write_deadline, "time", SimpleNamespace(monotonic=lambda: 1000.0))
+    connection = SimpleNamespace(_write_deadline=None, _commit_serial=0, close=lambda: None)
+    original = failure("original failure at generator boundary")
+    delivered = []
+    code = write_deadline.bounded_write.__wrapped__.__code__
+
+    def on_exception(frame, event, value):
+        if frame.f_code is code and event == "exception" and value[1] is original and not delivered:
+            delivered.append(True)
+            signal.getsignal(signal.SIGALRM)(signal.SIGALRM, frame)
+        return on_exception
+
+    before = write_deadline.fired()
+    try:
+        sys.settrace(on_exception)
+        with pytest.raises(failure) as caught:
+            with write_deadline.bounded_write(connection, seconds=0.03):
+                raise original
+    finally:
+        sys.settrace(previous_trace)
+    assert delivered == [True] and caught.value is original
+    assert write_deadline.fired() == before + 1
+    assert connection._write_deadline is None
+    assert signal.getsignal(signal.SIGALRM) is previous_handler
+    assert signal.getitimer(signal.ITIMER_REAL) == previous_timer
+
+
 def test_long_read_snapshot_does_not_take_worker_write_budget(tmp_path, monkeypatch):
     with open_database(tmp_path) as db:
         monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.01)
@@ -148,8 +260,10 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
     with open_database(tmp_path) as db:
         run = db.start_run(clock.now())
         enqueue(db.connection, [slow, healthy], enqueued_at=clock.now().isoformat())
-        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
-        outcome = derive_one(db, Archive(tmp_path), slow, bundle, clock, run)
+        # Only the slow operation receives the injected deadline.
+        with monkeypatch.context() as forced_timeout:
+            forced_timeout.setattr(write_deadline, "WRITE_SECONDS", 0.03)
+            outcome = derive_one(db, Archive(tmp_path), slow, bundle, clock, run)
         assert outcome.failed and outcome.reason == "write_deadline_exceeded"
         assert not derive_one(db, Archive(tmp_path), healthy, bundle, clock, run).failed
         assert db.connection.execute("SELECT 1 FROM meta WHERE key = 'slow'").fetchone() is None
@@ -234,11 +348,11 @@ def test_a_unit_that_raises_keeps_a_doubling_retry_clock(tmp_path, monkeypatch, 
 
 
 def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch, request):
-    """The 60 s alarm is the one limit; the history allowance is gone (D-0217)."""
+    """The 75 s alarm is the one limit; the history allowance is gone (D-0217)."""
     from swingset.schedule import derive
     from swingset.state.write_deadline import bounded_write
 
-    assert write_deadline.WRITE_SECONDS == 60.0
+    assert write_deadline.WRITE_SECONDS == 75.0
     assert not hasattr(write_deadline, "allowance")
     assert not hasattr(derive, "HISTORY_WRITE_SECONDS")
     monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
@@ -300,8 +414,11 @@ def test_admission_write_deadline_rolls_back_and_keeps_its_retry_class(tmp_path,
     def capture(conn, *_args, **_kwargs):
         entered.append(True)
         conn.execute("INSERT INTO meta(key,value) VALUES('admission_partial','forbidden')")
-        while True:
-            pass
+        # Fail this admission body without also shortening the later retry
+        # bookkeeping transaction. Other cases exercise real short OS timers.
+        assert conn._write_deadline is not None
+        signal.raise_signal(signal.SIGALRM)
+        pytest.fail("the write deadline did not interrupt admission")
 
     monkeypatch.setattr(derivations, "capture", capture)
     monkeypatch.setattr(
@@ -312,7 +429,6 @@ def test_admission_write_deadline_rolls_back_and_keeps_its_retry_class(tmp_path,
     with open_database(tmp_path) as database:
         run = database.start_run(clock.now())
         enqueue(database.connection, [unit], enqueued_at=clock.now().isoformat())
-        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
         before = write_deadline.fired()
         result = derive_one(database, Archive(tmp_path), unit, bundle, clock, run)
         assert entered == [True]
@@ -342,7 +458,7 @@ class _Monotonic:
         return self.now
 
 
-def test_a_body_past_sixty_seconds_raises_and_is_counted(tmp_path, monkeypatch, request):
+def test_a_body_can_pass_sixty_seconds_but_expires_at_seventy_five(tmp_path, monkeypatch, request):
     from swingset.state.write_deadline import bounded_write
 
     clock = _Monotonic()
@@ -352,10 +468,13 @@ def test_a_body_past_sixty_seconds_raises_and_is_counted(tmp_path, monkeypatch, 
     request.addfinalizer(database.close)
     before = write_deadline.fired()
     with bounded_write(conn):
-        clock.now += 59
+        clock.now += 60.6
     assert write_deadline.fired() == before
-    with pytest.raises(WriteDeadlineExceeded, match="exceeded 60 seconds"), bounded_write(conn):
-        clock.now += 61
+    with bounded_write(conn):
+        clock.now += 74.9
+    assert write_deadline.fired() == before
+    with pytest.raises(WriteDeadlineExceeded, match="exceeded 75 seconds"), bounded_write(conn):
+        clock.now += 75
     assert write_deadline.fired() == before + 1
     # Any other error in the body is not a firing.
     with pytest.raises(KeyError), bounded_write(conn):
@@ -401,7 +520,7 @@ def test_the_tick_record_carries_the_write_counters(tmp_path, monkeypatch):
     (config / "sources.toml").write_text("")
 
     def overran(database, *_args, **_kwargs):
-        # One bookkeeping write runs past a short bound; the rest keep 60 s.
+        # One bookkeeping write runs past a short bound; the rest keep 75 s.
         with monkeypatch.context() as patch:
             patch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
             with database.transaction():

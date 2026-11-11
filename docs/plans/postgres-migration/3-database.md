@@ -204,7 +204,7 @@ connection. No connection pooler sits in between.
 
 ## Timeouts and lost connections
 
-- **The write limit** is 60 seconds for the write itself, not the lock wait
+- **The write limit** is 75 seconds for the write itself, not the lock wait
   (D-0215). Postgres has no progress handler, so set `SET LOCAL
 statement_timeout` and `lock_timeout` to the time left. Savepoints
   inherit the deadline. If a cancel and rollback cannot be confirmed

@@ -1061,7 +1061,7 @@ def test_an_unfinished_a_for_other_inputs_moves_the_replay_epoch_and_is_collecte
 #: Run in a subprocess: derive_one stages UNIT with a live-row move, then the
 #: process is SIGKILLed between A and pass 1.
 _KILL_BETWEEN_A_AND_C = """
-import os, signal, sys
+import json, os, signal, sys
 from datetime import datetime
 from pathlib import Path
 
@@ -1086,6 +1086,13 @@ def die(*_args, **_kwargs):
 derivations.finish_building = die
 state, now = Path(sys.argv[1]), datetime.fromisoformat(sys.argv[2])
 with open_database(state) as database:
+    conn = database.connection
+    started = conn.execute(
+        "SELECT backend_start::text FROM pg_stat_activity WHERE pid=pg_backend_pid()"
+    ).fetchone()[0]
+    print("DERIVE_BACKEND " + json.dumps({
+        "pid": conn.info.backend_pid, "database": conn.info.dbname, "started": started,
+    }), flush=True)
     run_id = database.start_run(now)
     derive_one(database, Archive(state), UNIT, None, FakeClock(now), run_id)
 sys.exit(3)
@@ -1116,7 +1123,10 @@ def test_derive_one_killed_between_a_and_c_still_moves_the_replay_epoch(
     import signal
     import subprocess
     import sys
+    import time
     from datetime import timedelta
+
+    import psycopg
 
     import swingset.project
     from swingset.clock import FakeClock
@@ -1143,6 +1153,34 @@ def test_derive_one_killed_between_a_and_c_still_moves_the_replay_epoch(
         timeout=120,
     )
     assert killed.returncode == -signal.SIGKILL, killed.stderr[-2000:]
+    witness = json.loads(
+        next(
+            line.removeprefix("DERIVE_BACKEND ")
+            for line in killed.stdout.splitlines()
+            if line.startswith("DERIVE_BACKEND ")
+        )
+    )
+    # Client death precedes server-session retirement. Observe the exact
+    # backend and its locks gone before the original nonblocking reopen.
+    deadline = time.monotonic() + 10
+    with psycopg.connect(
+        engine.resolve_dsn(state),
+        connect_timeout=2,
+        options="-c default_transaction_read_only=on -c statement_timeout=1000 -c lock_timeout=1000",
+        autocommit=True,
+        application_name="swingset-test-derivation-retirement",
+    ) as observer:
+        assert observer.info.dbname == witness["database"]
+        while True:
+            pending = observer.execute(
+                "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid=%s AND datname=%s "
+                "AND backend_start::text=%s) OR EXISTS (SELECT 1 FROM pg_locks WHERE pid=%s)",
+                (witness["pid"], witness["database"], witness["started"], witness["pid"]),
+            ).fetchone()[0]
+            assert time.monotonic() < deadline, "killed derivation backend did not retire"
+            if not pending:
+                break
+            time.sleep(0.01)
     monkeypatch.setattr(swingset.project, "process_unit", staging_projector(move=False))
     clock = FakeClock(NOW)
     with open_database(state) as database:

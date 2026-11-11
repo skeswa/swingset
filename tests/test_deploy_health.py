@@ -5,6 +5,7 @@ import threading
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -248,6 +249,85 @@ def test_existing_watchdog_entrypoint_and_its_required_arguments_work(
 def test_report_interval_cannot_silently_exceed_two_hours():
     with pytest.raises(SystemExit):
         health.main(["watchdog", "--state", "/unused", "--interval", "7201"])
+
+
+def test_slow_checks_use_fresh_platform_time_and_stamp_completed_delivery(
+    tmp_path, delivery, monkeypatch
+):
+    _, _, status = delivery
+    clock = [NOW]
+    monkeypatch.setattr(health, "time", SimpleNamespace(time=lambda: clock[0]))
+
+    def signals(*_args, **_kwargs):
+        clock[0] += 102
+        value = json.loads(status.read_text())
+        value["utc"] = NOW + 80
+        status.write_text(json.dumps(value))
+        return {"fetch-idle"}
+
+    sent = []
+
+    read = health._read
+
+    def read_with_new_status(path):
+        if path == status:
+            clock[0] += 1
+            value = json.loads(status.read_text())
+            value["utc"] = clock[0]
+            status.write_text(json.dumps(value))
+        return read(path)
+
+    def post(target, body):
+        sent.append((target, body))
+        clock[0] += 1
+
+    monkeypatch.setattr(health, "_signals", signals)
+    monkeypatch.setattr(health, "_read", read_with_new_status)
+    monkeypatch.setattr(health, "_post", post)
+    runtime = tmp_path / "runtime" / "health"
+    report = health.watchdog(tmp_path / "state", runtime=runtime)
+    assert report.alert_keys == ("fetch-idle",)
+    assert report.delivery_failures == ()
+    assert len(sent) == 2
+    assert report.utc == NOW + 105
+    assert json.loads((runtime / "heartbeat.json").read_text())["utc"] == NOW + 105
+    assert json.loads((runtime / "health.json").read_text())["utc"] == NOW + 105
+
+
+def test_watchdog_interval_includes_check_work_without_catchup_bursts(tmp_path, monkeypatch):
+    clock = [0.0]
+    starts = []
+    waits = []
+    durations = iter([102.0, 350.0, 5.0])
+
+    class Stop:
+        stopped = False
+
+        def is_set(self):
+            return self.stopped
+
+        def set(self):
+            self.stopped = True
+
+        def wait(self, seconds):
+            waits.append(seconds)
+            clock[0] += seconds
+            self.stopped = len(waits) == 3
+            return self.stopped
+
+    stop = Stop()
+    monkeypatch.setattr(health, "threading", SimpleNamespace(Event=lambda: stop))
+    monkeypatch.setattr(health, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+
+    def watchdog(*_args, **_kwargs):
+        starts.append(clock[0])
+        clock[0] += next(durations)
+        return health.Report(NOW + clock[0], ())
+
+    monkeypatch.setattr(health, "watchdog", watchdog)
+    health.main(["watchdog", "--state", str(tmp_path), "--watch", "--interval", "300"])
+    assert starts == [0.0, 300.0, 650.0]
+    assert waits == [198.0, 0.0, 295.0]
 
 
 def test_corrupt_monitoring_clocks_alert_instead_of_silencing_the_watcher(

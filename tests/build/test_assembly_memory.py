@@ -274,7 +274,7 @@ def full_fixture(directory: Path) -> None:
                 "'[]') ON CONFLICT DO NOTHING"
             )
         # Fixture loading is not one production write: keep every real
-        # transaction within the unchanged 60-second bound.
+        # transaction within the worker's write bound.
         for start in range(0, FULL_SNAPSHOTS, 100):
             with database.transaction() as conn:
                 for number in range(start, min(start + 100, FULL_SNAPSHOTS)):

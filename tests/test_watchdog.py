@@ -1499,7 +1499,7 @@ def test_a_database_read_that_fails_twice_is_blind(tmp_path: Path) -> None:
 
 
 def test_a_write_deadline_firing_in_a_run_record_alerts_by_loop(tmp_path: Path) -> None:
-    """The 60 s alarm should never fire (D-0217): any run that saw it is named."""
+    """Any recorded worker alarm firing is reported, including older budgets."""
     _write_runs(
         tmp_path,
         # Older than two hours: not news any more.

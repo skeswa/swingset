@@ -664,6 +664,50 @@ def test_failed_postgres_copy_removes_only_its_owned_database(tmp_path, monkeypa
         assert not set(copies.record["databases"]) & names
 
 
+@pytest.mark.parametrize("outcome", ["error", "nondeterministic", "no_completion"])
+def test_graph_incomplete_transform_preserves_error_and_rolls_back(world, monkeypatch, outcome):
+    import swingset.project.process as project_process
+    from swingset.state import verify_graph
+
+    before = _state(world.conn)
+
+    def incomplete(database, unit, bundle, clock, run_id, **kwargs):
+        assert unit == WorkUnit("project", "year", "2026")
+        database.connection.execute(
+            "INSERT INTO runs(run_id, started_at, dry_run) VALUES('graph_trial', %s, 1)",
+            (clock.now().isoformat(),),
+        )
+        assert database.connection.execute(
+            "SELECT 1 FROM runs WHERE run_id='graph_trial'"
+        ).fetchone()
+        if outcome == "error":
+            raise RuntimeError("inventory transform exploded before completion")
+        if outcome == "nondeterministic":
+            raise derivations.NondeterministicOutputError("trial output changed before completion")
+
+    monkeypatch.setattr(project_process, "process_unit", incomplete)
+    result = verify_graph._derive(world.db, "project/year/2026", linked.Bundle(), world.clock)
+
+    assert result["state"] == "failed"
+    assert result["found_dependencies"] == []
+    if outcome == "error":
+        assert result["error"] == "RuntimeError: inventory transform exploded before completion"
+    elif outcome == "nondeterministic":
+        assert result["error"] == (
+            "NondeterministicOutputError: trial output changed before completion"
+        )
+        assert result["reason"] == "nondeterministic_output"
+    else:
+        assert result["error"] == "transform returned without completing its unit"
+    assert _state(world.conn) == before
+    assert (
+        world.conn.execute(
+            "SELECT 1 FROM runs WHERE run_id IN ('graph_trial', 'graph_verify')"
+        ).fetchone()
+        is None
+    )
+
+
 def test_graph_new_dependency_is_difference_even_with_identical_output(world, monkeypatch):
     from swingset.state import derivation_dependencies, verify_graph
 

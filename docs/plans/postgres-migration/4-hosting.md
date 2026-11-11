@@ -567,12 +567,21 @@ firewall and status-publication errors remain fatal
   readiness checks the database, the schema version and restore state.
   Held is healthy for these probes. It does not suppress overdue-hold or
   stalled-work alerts.
-- **Alerts leave the server.** An outside dead-man's switch is pinged every
-  tick. This proves scheduler liveness, not progress. Preserve the
+- **Alerts leave the server.** Only the dedicated health watchdog pings
+  the outside dead-man check. Explicit owner alerts use a separate check,
+  so a heartbeat cannot clear them. This proves watchdog liveness, not
+  collection progress. Preserve the
   operation guide's failure, pause, hold-age and 60-minute no-progress
   signals; after a resume check actual requests and pages, not just
   completed ticks. No unattended watch goes two hours without reporting.
-  Alerts are sent before they are written to Postgres.
+  Alerts are sent before their keys are written to the monitoring log
+  ([D-0283](../../../journal/decisions/0283-use-separate-healthchecks-alert-and-liveness-checks.md)).
+- **Health clocks include work.** Live heartbeat timestamps record completed
+  checks and delivery; platform status is compared with observation time.
+  The watchdog waits only the remainder of its 300-second interval, measured
+  from cycle start with a monotonic clock. An overrun starts one following
+  cycle without catch-up starts. The liveness limit remains 390 seconds
+  ([D-0292](../../../journal/decisions/0292-measure-watchdog-liveness-from-completed-checks.md)).
 - **New alerts for Postgres:** unreachable or schema mismatch (a mismatch
   at once, and a hold never silences it), connections near the limit, the
   oldest open or idle transaction, blocked sessions, temp-file

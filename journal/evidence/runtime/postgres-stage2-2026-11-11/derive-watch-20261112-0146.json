@@ -1,0 +1,41 @@
+{
+  "alerts_tail_sha256": "dfce4afbd1d7e230339f308673984de2b8bb33d8e0e35e8ff87ef2e7800b812b",
+  "all_observed_ticks_failed_false_error_null": true,
+  "at": "2026-11-12T01:45:06.596712+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-derive.service",
+        "--since",
+        "2026-11-11 23:30:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "70"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "tail",
+        "-n",
+        "15",
+        "/var/lib/swingset/ALERTS.log"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "derive_journal_sha256": "59ee2cd12ff8aae978a18f097cc5b45c3fb1d9f3bce3e8bf98f4c5f2802477c2",
+  "first_started_at": "2026-11-12T00:47:12.153402+00:00",
+  "format": "swingset-readonly-production-derive-watch-v1",
+  "last_finished_at": "2026-11-12T01:41:41.033597+00:00",
+  "latest_alert": "2026-11-12T01:35:03Z [host-failing] hosts answering only 429 or 5xx: web.archive.org ServerError x7 until 2026-11-06 00:47 UTC",
+  "limits": "Alert tail includes known derive-idle at00:05 and expired archive-host warning at01:35. Successful current derive progress does not prove a watchdog repair or clear the archive finding.",
+  "observed_ticks": 11,
+  "production_mutation": false,
+  "progress": 1116,
+  "repair_deployed": false
+}

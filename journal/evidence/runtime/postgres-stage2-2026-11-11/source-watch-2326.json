@@ -1,0 +1,49 @@
+{
+  "all_observed_ticks_failed_false_error_null": true,
+  "at": "2026-11-11T23:27:55.743321+00:00",
+  "commands": [
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-acquire.service",
+        "--since",
+        "2026-11-11 22:30:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "160"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "journalctl",
+        "-u",
+        "swingset-watchdog.service",
+        "--since",
+        "2026-11-11 22:30:00 UTC",
+        "--no-pager",
+        "-o",
+        "cat",
+        "-n",
+        "80"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "failed_initial_ssh_quoting_attempts": 2,
+  "first_started_at": "2026-11-11T22:30:49.543475+00:00",
+  "format": "swingset-readonly-source-watch-v1",
+  "initial_attempts_made_no_change": true,
+  "last_finished_at": "2026-11-11T23:26:01.955470+00:00",
+  "observed_ticks": 12,
+  "operation": "Read existing production acquire and watchdog journals",
+  "production_mutation": false,
+  "repair_deployed": false,
+  "requests": 0,
+  "source_journal_sha256": "9c39977d35618214dc4234830789a73bfb238827a7e060a8ebccc11485c67a23",
+  "watchdog_journal_sha256": "9ce9e360981538aa4e104f2c3f2243625830b1a67731dc2af3d3fc501a55bcde",
+  "watchdog_report": "Existing expired web.archive.org failure warning repeats; collection remains idle"
+}

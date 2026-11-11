@@ -77,7 +77,7 @@ def test_profile_rolls_back_as_worker_collects_functions_and_cleans_only_copy(
             assert result["diagnostic_complete"] and result["owned_database_cleanup_complete"]
             assert result["graph_proof"] is False
             assert result["trial"]["acceptance_complete"] == (outcome == "success")
-            assert result["trial"]["write_budget_seconds"] == 60
+            assert result["trial"]["write_budget_seconds"] == 75
             assert result["trial"]["rollback_fingerprint_equal"]
             assert result["functions"]
             assert all(row["calls"] > 0 for row in result["functions"])

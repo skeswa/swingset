@@ -203,7 +203,8 @@ def _derive(database: Database, name: str, bundle: Any, clock: FakeClock) -> dic
     result["expected_dependencies"] = expected
     result["found_dependencies"] = found
     if not found:
-        result.update(state="failed", error="transform returned without completing its unit")
+        result["state"] = "failed"
+        result.setdefault("error", "transform returned without completing its unit")
     elif result["state"] in {"match", "mismatch"} and any(value != expected for value in found):
         result.update(state="mismatch", reason="dependencies_changed")
     return result

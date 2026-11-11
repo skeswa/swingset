@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from swingset.state.derivations import Selection
     from swingset.state.inputs import InputBundle
 
-LINKER_VERSION = "9"
+LINKER_VERSION = "10"
 
 
 def link_event(

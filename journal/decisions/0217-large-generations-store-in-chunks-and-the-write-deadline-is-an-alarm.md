@@ -4,7 +4,7 @@ Recorded: 2026-09-27
 Decided by: agent, 2026-09-27, under D-0175; source: phase 2 of the [architecture plan](../../docs/plans/architecture.md) (invariant I2)  
 Topic: Local state  
 Supersedes: the 300-second history write allowance in [D-0198](0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)  
-Superseded by: —
+Superseded by: [D-0294](0294-use-a-seventy-five-second-worker-write-deadline.md) for the write limit only; chunking, alarms and retry rules remain
 
 ## Decision
 

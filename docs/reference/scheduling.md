@@ -133,7 +133,7 @@ run (the cycle and its allocator went in phase 5,
 [D-0239](../../journal/decisions/0239-the-loops-are-the-only-orchestration.md)).
 Release reconciles and builds supported corrections before a candidate. A
 budget is a deadline, not permission to exceed a host limit or the
-60-second write alarm. A zero budget still accepts inputs and starts no work.
+75-second write alarm. A zero budget still accepts inputs and starts no work.
 
 Acquisition divides each host's existing request allowance between new,
 current, identity, and old eligible demand. Initial percentages are:

@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -140,8 +141,12 @@ def _published_fixture(database, clock, *, runtime_bundle=None):
         digest=digest(canonical({name: digest(body) for name, body in bundle.files.items()})),
     )
     path = database.state_dir / "inputs" / bundle.digest
-    for name, body in bundle.files.items():
-        durable_write(path / name, body)
+    with ThreadPoolExecutor(max_workers=8) as writers:
+        futures = [
+            writers.submit(durable_write, path / name, body) for name, body in bundle.files.items()
+        ]
+        for future in futures:
+            future.result()
     durable_write(
         path / "manifest.json",
         canonical({name: digest(body) for name, body in bundle.files.items()}),
@@ -698,3 +703,88 @@ def test_a_revert_rebuilds_a_former_release_on_top_of_the_baseline(tmp_path):
         # holds stays withdrawn.
         entry = next(row for row in rows["entries"] if row["entry_id"] == identifier)
         assert entry["wsdc_id"] is None
+
+
+def test_published_fixture_member_failure_joins_writers_without_manifest_or_accept(
+    tmp_path, monkeypatch
+):
+    import sys
+    import threading
+
+    from swingset.fetch import archive
+
+    clock = FakeClock(datetime(2026, 9, 13, 6, tzinfo=UTC))
+    owner = threading.get_ident()
+    blocked, release, failed, unwound, shutting_down = (threading.Event() for _ in range(5))
+    started, finished, manifests, accepted, observations, shutdown_calls = [], [], [], [], [], []
+    lock = threading.Lock()
+    failure = ValueError("original member write failed")
+    original_write = archive.durable_write
+
+    class JoiningExecutor(ThreadPoolExecutor):
+        def shutdown(self, wait=True, *, cancel_futures=False):
+            shutdown_calls.append(wait)
+            shutting_down.set()
+            return super().shutdown(wait=wait, cancel_futures=cancel_futures)
+
+    def write(path, body):
+        if threading.get_ident() == owner:
+            if path.name == "manifest.json":
+                manifests.append(path)
+            return original_write(path, body)
+        with lock:
+            started.append(path)
+        try:
+            if path.parts[-2:] == ("config", "hosts.toml"):
+                blocked.set()
+                if not release.wait(10):
+                    raise AssertionError("blocked member was not released")
+            elif path.name == "identity_overrides.csv":
+                if not blocked.wait(10):
+                    raise AssertionError("other member never began")
+                failed.set()
+                raise failure
+            return original_write(path, body)
+        finally:
+            with lock:
+                finished.append(path)
+
+    def deny_accept(*args, **kwargs):
+        accepted.append(True)
+        raise AssertionError("failed fixture must not accept its input bundle")
+
+    def monitor():
+        try:
+            assert blocked.wait(10) and failed.wait(10) and shutting_down.wait(10)
+            assert shutdown_calls == [True] and not unwound.is_set()
+            with lock:
+                assert not any(path.parts[-2:] == ("config", "hosts.toml") for path in finished)
+            assert not manifests and not accepted
+        except BaseException as error:
+            observations.append(error)
+        finally:
+            release.set()
+
+    with open_database(tmp_path) as database:
+        monkeypatch.setattr(archive, "durable_write", write)
+        monkeypatch.setattr(sys.modules[__name__], "ThreadPoolExecutor", JoiningExecutor)
+        monkeypatch.setattr(sys.modules[__name__], "accept", deny_accept)
+        watcher = threading.Thread(target=monitor)
+        watcher.start()
+        try:
+            try:
+                with pytest.raises(ValueError) as caught:
+                    _published_fixture(database, clock)
+            finally:
+                unwound.set()
+            assert caught.value is failure
+            # The blocked real writer and every other submitted member have
+            # finished before the original member error reaches this caller.
+            assert len(started) == len(finished) == len(_bundle().files)
+            assert set(started) == set(finished)
+            assert not manifests and not accepted
+            assert not list((tmp_path / "inputs").glob("*/manifest.json"))
+        finally:
+            release.set()
+            watcher.join(timeout=10)
+        assert not watcher.is_alive() and not observations

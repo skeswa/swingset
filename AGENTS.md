@@ -171,7 +171,7 @@ changed while iterating. Run `--full-suite` only as a final or important check:
 before a commit or handoff, or when a change touches crash recovery,
 migrations, backup and restore, publication, or anything else the extended
 suite covers (see `docs/guides/testing.md`). A full run takes about ten
-minutes and writes about 15 GiB of temp; a core run takes about three minutes
+minutes and writes about 15 GiB of temp; a core run has a five-minute budget
 and must stay under that. Put a new test in the existing file for its area;
 start a new file only for a new module. The dev shell pins `TMPDIR=/tmp` so
 pytest prunes to its last three runs; never point `TMPDIR` at a directory

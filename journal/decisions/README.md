@@ -315,6 +315,9 @@ that links the old one.
 | [D-0289](0289-copy-owned-templates-without-per-block-wal.md) | Use FILE_COPY for owned physical templates within the existing bounds | Private Postgres clone strategy |
 | [D-0290](0290-allow-twenty-minutes-for-owned-physical-clones.md) | Allow 1,200 seconds for owned physical clones after measured FILE_COPY timeout; keep short lock and empty-create limits | Private clone deadlines |
 | [D-0291](0291-size-test-lock-tables-for-concurrent-imports.md) | Size only the disposable test primary lock table for sixteen workers, within the existing memory cap | Test PostgreSQL settings |
+| [D-0292](0292-measure-watchdog-liveness-from-completed-checks.md) | Timestamp completed watchdog checks and delivery, compare fresh observer time and include work in the unchanged interval | Watchdog clocks and cadence |
+| [D-0293](0293-reuse-conservative-sql-write-timeouts.md) | Reuse SQL timeout settings within conservative 10-millisecond budgets above one second; preserve absolute deadlines and invalidation | PostgreSQL worker deadlines |
+| [D-0294](0294-use-a-seventy-five-second-worker-write-deadline.md) | Use one 75-second worker write deadline, preserving rollback, alarms and retry rules; apply it explicitly on future rehearsal copies | Worker write deadline |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.
