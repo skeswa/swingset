@@ -1,0 +1,99 @@
+{
+  "authority": {
+    "SQL_freeze": false,
+    "cleanup": false,
+    "input_acceptance": false,
+    "migration_or_deployment": false,
+    "unit_trial": false,
+    "worker_start": false
+  },
+  "cold": {
+    "PID_limit": 256,
+    "RAM32_exact3_keys_strict_true": true,
+    "RAM33_exact3_keys_strict_true": true,
+    "UID": "10001:10001",
+    "actual_state": {
+      "exit_code": 0,
+      "finished_at": "0001-01-01T00:00:00Z",
+      "oom": false,
+      "pid": 0,
+      "running": false,
+      "started_at": "0001-01-01T00:00:00Z",
+      "status": "created"
+    },
+    "all147_preparation_rows_complete": true,
+    "all_public_Config_HostConfig_and11_complete_mountobjects_exact": true,
+    "completion": "2026-11-16T17:42:47.230932+00:00",
+    "currentlocal_pointer_and_hold_unchanged_from_renewal3_before_read_times": true,
+    "full_current_Config_and_Env_match_fixedimage_publicargv_and_accepted_previous_except_generatedHostname_Envorder": true,
+    "holdE989_remaining_at_completion_seconds": 2835.686209,
+    "image": "sha256:346f30a492e7263c77e7c4346595e5a28e01bb1957ce6ee7e16be4f5c0f74f89",
+    "independent_pinned_offline_predicate_equals_captured_validation": true,
+    "memory_bytes": 8589934592,
+    "memory_swap_bytes": 8589934592,
+    "name": "/swingset-private-verifier-92900be19500",
+    "nano_CPUs": 6000000000,
+    "onlyRuntimeSpill_RW": [
+      "/var/lib/swingset-spill",
+      "/var/lib/swingset-runtime"
+    ],
+    "public_projection_SHA": "cb19c9bc9877107de3f6e3a2a9c7b97c606d40031a2e6fd45a88ed6cec919d3d",
+    "raw_Config_Env_kept_in_remote_pipeline_RAM_only": true,
+    "restart": 0,
+    "three_exact_remote_vectors_raw_SHA_bounds_exit0_stderr0_unknownnull": true
+  },
+  "cold_cid": "24154fe5cb93df1dc4c4f64232b6f7d73c440c106179f4908781066c8f6d2311",
+  "command_context": {
+    "candidate_manifest_sha256": "bb9d89aaa1fbc7b3062619f0ac1861389667d6142bfea43775dee819c0cf1086",
+    "frozen_LINKER": 9,
+    "immutable147_commands_sha256": "0846f968d4b7fb923d81a14c9334fa48ee6ba6b3bbd53dcfe6e489909380553c",
+    "operation": "147 reviewed stock-CLI preparation rows, split at79 and146; two additional RAM-only comparisons",
+    "source_producer": "8aae03bf"
+  },
+  "completed_at": "2026-11-16T17:42:47.230932+00:00",
+  "counts": {
+    "RAM_only_boolean_checks": 6,
+    "actual_helpers_natural_exit0": 24,
+    "final_public_row": 1,
+    "fresh_owned_volumes": 3,
+    "phase2_rows": 67,
+    "postcold_read_vectors": 3,
+    "prefix_rows": 79,
+    "preparation_rows_complete": 147,
+    "settings_input_bytes": 69548306,
+    "settings_input_files": 1689
+  },
+  "format": "swingset-cold-preparation-v1",
+  "hashes": {
+    "phase2_summary": "d4d6c3d6e17ddf862b077a1e374770c51cb8ae1cf5a2070bf1218d8131fdcf44",
+    "phase2_terminal": "9081f4a15b4431fab5c57f8a1253841347f3ce1b29dd2b1791d397abc97c2862",
+    "postcold_collection_review": "9b7765eab670d29bef0ee1fababf4533b93f5ab6ac21d8da91535ebdd1c22abe",
+    "postcold_predicate": "ab15c4231958acc6a68844ba2384f471db3d1c2b5c387ea7aa0ab733e750b2a8",
+    "postcold_result": "ea059c8aac92a0834a14cdb835aa243dadb6e9f602bf7b8d9a93542b75077b2b",
+    "postcold_scope": "81371050b825cdd239008b1426d243f882be4fb7a3da7105bc2bbf9b378fad5e",
+    "postcold_terminal": "3c35d31c9a24aa7e181c041eed43e6b1601c316de91127ec8817a4fac32d8d2e",
+    "postcold_validation": "b2d6c54b1787828e7b8fa81fb8280ba98ab6edb9e36388550f75d83ea870e5b7",
+    "prefix_summary": "06466f6a810e606ce56ed96b526ac8d0b678af80535af06ab6ee5af498a1cf31",
+    "prefix_terminal": "5fecfb9e1b42e9999a97557172201d63f084a6642a13589c794c7fba3731e056"
+  },
+  "hold_at_postcold_sha256": "e989e58ae0fa7870d3b59ef64b0e2b64a7a222a115e1a8b9735af63d45a7aef5",
+  "independent_verdict": "ACCEPT_ALL147_COLD_PREPARATION_ROWS_COMPLETE_ACTOR_UNSTARTED",
+  "pointer_at_postcold_sha256": "b4bd22fcb589387da655ebab877db1eaeb25c3a2c6a09f0028e30261cce52037",
+  "preserved_refusal": {
+    "cause": "local expected9hashes for7Pythonfile command; all7matched",
+    "original_partial_boundary_sha256": "4a1e093a1971f52778fcd353b148d41344d825bd2f998b25351155df54765c3e",
+    "remaining_only": "two missingJSONhashes plus38unattempted boundaryreads; original16notreplayed"
+  },
+  "raw_packets": [
+    "/tmp/swingset-stage2-prefix0-78-runner-20261116-v1/attempt-001",
+    "/tmp/swingset-stage2-phase2-79-145-runner-20261116-v2/attempt-001",
+    "/tmp/swingset-stage2-postcold-actual-20261116"
+  ],
+  "scope_limits": [
+    "Preparation only: noSQLfreeze/nativeDBclone/inputacceptance/trial/worker/startup/runtime/graphpass,adoption,cleanup ordeployment performed/authorized.",
+    "Source/protected/native/guardian proof is acceptedprephase54boundary plus24 exactownedGNUhelpers/copyproof andrenewal3 freshprotected12. Reviewer did not rerunpostcopySQL/fullsourcehash; future workeradmission must freshlyguard its own boundaries.",
+    "Root perstepE989/pointer checks are reported by the inlinecollector; stored3commandrecords do not separatelyduplicate holdobservations. Currentlocalpointer SHA/inode timestamp predatesall3reads, holdbytesunchanged, independentrenewal3 terminalproof bound. No extra serverholdprobe wasneeded for thisread-onlymetadata operation.",
+    "No credentialbody/private.env/unknownledger/Config.Env export or hash. Only publiccoldprojection and6booleanresults persisted.",
+    "All24helpers/3newvolumes/coldactor/oldfailedreadartifactspreserved. Earlierfalse9-vs7predicate andoriginal16readtimestamps remainhistorical; no replay."
+  ]
+}

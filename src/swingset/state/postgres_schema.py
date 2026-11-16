@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, cast
 
 SOURCE_SCHEMA_VERSION = 37
-SCHEMA_VERSION = 40
+SCHEMA_VERSION = 41
 STATEMENT_HISTORY_TRIGGERS = frozenset(
     {
         "history_timing_watches_update",
@@ -469,9 +469,10 @@ def validate_checkpoint_schema(conn: Any) -> dict[str, Any]:
     found = dict(conn.execute("SELECT key,value FROM ops.schema_identity()"))
     if found.get("schema_version") == str(SCHEMA_VERSION):
         return validate_schema(conn)
-    # Migrations 39/40 change only trigger bodies/levels. Their source tables
-    # retain the exact native-38 shape. Future versions need a separate choice.
-    if SCHEMA_VERSION not in {39, 40}:
+    # Migrations 39/40 change only triggers; 41 adds nonunique indexes. Their
+    # source rows retain the native-38 shape. Future versions need a separate
+    # compatibility choice, and ordinary workers still require the current schema.
+    if SCHEMA_VERSION not in {39, 40, 41}:
         raise RuntimeError("checkpoint schema version or migration checksum differs")
     files = tuple(path for path in migration_files() if int(path.name[:4]) <= 38)
     checksum = _migration_checksum(files)

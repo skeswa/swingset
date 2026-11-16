@@ -32,6 +32,36 @@ def test_python_work_rolls_back_and_next_transaction_can_commit(tmp_path, monkey
         )
 
 
+def test_expired_closed_session_never_claims_confirmed_rollback(tmp_path):
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.getitimer(signal.ITIMER_REAL)
+    assert previous_timer == (0, 0)
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        before = write_deadline.fired()
+        with pytest.raises(
+            engine.ConnectionLost, match="rollback could not be confirmed"
+        ) as caught:
+            with db.transaction():
+                conn.execute("INSERT INTO meta(key,value) VALUES('closed_partial','forbidden')")
+                conn.close()
+                # Exercise the real owned alarm after the actual PostgreSQL
+                # session has closed, without changing the 75 second policy.
+                signal.raise_signal(signal.SIGALRM)
+        assert not isinstance(caught.value, WriteDeadlineExceeded)
+        assert conn.closed and conn._write_deadline is None
+        assert write_deadline.fired() == before + 1
+        assert signal.getsignal(signal.SIGALRM) is previous_handler
+        assert signal.getitimer(signal.ITIMER_REAL) == previous_timer
+    # An explicit independent session verifies the data; the failed operation
+    # never reconnects or retries and makes no rollback-acknowledgement claim.
+    with open_database(tmp_path) as reopened:
+        assert (
+            reopened.connection.execute("SELECT 1 FROM meta WHERE key='closed_partial'").fetchone()
+            is None
+        )
+
+
 def test_nested_sql_work_inherits_deadline_and_rolls_back(tmp_path, monkeypatch):
     with open_database(tmp_path) as db:
         monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
@@ -88,6 +118,10 @@ def test_deadline_delivered_while_arming_rolls_back_and_restores_the_boundary(
         ("acknowledged", 1, engine.CommitUncertain),
         ("interrupt", 1, KeyboardInterrupt),
         ("interrupt", None, KeyboardInterrupt),
+        ("system_exit", 1, SystemExit),
+        ("system_exit", None, SystemExit),
+        ("lost", 1, engine.ConnectionLost),
+        ("lost", None, engine.ConnectionLost),
     ],
 )
 def test_owned_alarm_cleanup_preserves_translation_and_original_failures(
@@ -101,13 +135,20 @@ def test_owned_alarm_cleanup_preserves_translation_and_original_failures(
     real_setitimer = signal.setitimer
     closed, delivered, armed = [], [], []
     connection = SimpleNamespace(
-        _write_deadline=None, _commit_serial=0, close=lambda: closed.append(True)
+        _write_deadline=None,
+        _commit_serial=0,
+        closed=body in {"uncertain", "interrupt", "system_exit", "lost"},
+        close=lambda: closed.append(True),
     )
     error = (
         engine.CommitUncertain("original uncertain acknowledgement")
         if body == "uncertain"
         else KeyboardInterrupt("original user interrupt")
         if body == "interrupt"
+        else SystemExit("original user exit")
+        if body == "system_exit"
+        else engine.ConnectionLost("original session loss")
+        if body == "lost"
         else engine.WriteTimeout("original server timeout")
     )
     cancelled = 0
@@ -138,7 +179,7 @@ def test_owned_alarm_cleanup_preserves_translation_and_original_failures(
     assert armed == [0.03]
     assert delivered == ([] if disarm is None else [True])
     assert write_deadline.fired() == before + (disarm is not None)
-    if body in {"uncertain", "interrupt"}:
+    if body in {"uncertain", "interrupt", "system_exit", "lost"}:
         assert raised.value is error
     elif body != "success":
         assert raised.value.__cause__ is error
@@ -148,7 +189,9 @@ def test_owned_alarm_cleanup_preserves_translation_and_original_failures(
     assert signal.getitimer(signal.ITIMER_REAL) == previous_timer
 
 
-@pytest.mark.parametrize("failure", [engine.CommitUncertain, KeyboardInterrupt])
+@pytest.mark.parametrize(
+    "failure", [engine.CommitUncertain, engine.ConnectionLost, KeyboardInterrupt, SystemExit]
+)
 def test_owned_alarm_at_exception_delivery_keeps_the_original_fatal_error(monkeypatch, failure):
     from types import SimpleNamespace
 
@@ -165,7 +208,9 @@ def test_owned_alarm_at_exception_delivery_keeps_the_original_fatal_error(monkey
         ),
     )
     monkeypatch.setattr(write_deadline, "time", SimpleNamespace(monotonic=lambda: 1000.0))
-    connection = SimpleNamespace(_write_deadline=None, _commit_serial=0, close=lambda: None)
+    connection = SimpleNamespace(
+        _write_deadline=None, _commit_serial=0, closed=True, close=lambda: None
+    )
     original = failure("original failure at generator boundary")
     delivered = []
     code = write_deadline.bounded_write.__wrapped__.__code__
@@ -626,7 +671,10 @@ def test_a_body_over_the_bound_still_raises_and_its_length_is_kept(tmp_path, mon
         assert write_counters()["write_seconds_max"] >= 0.05
 
 
-def test_expiry_after_acknowledged_commit_never_claims_rollback(tmp_path, monkeypatch):
+@pytest.mark.parametrize("close_before_expiry", [False, True])
+def test_expiry_after_acknowledged_commit_never_claims_rollback(
+    tmp_path, monkeypatch, close_before_expiry
+):
     from swingset.state import engine
     from swingset.state.write_deadline import bounded_write
 
@@ -639,6 +687,8 @@ def test_expiry_after_acknowledged_commit_never_claims_rollback(tmp_path, monkey
                 "INSERT INTO meta(key,value) VALUES('acknowledged-before-expiry','retained')"
             )
             conn.commit()
+            if close_before_expiry:
+                conn.close()
             time.sleep(0.1)
         assert conn.closed
     with open_database(tmp_path) as database:

@@ -1,4 +1,4 @@
-"""Supervise the reviewed old producer with one separately audited operator."""
+"""Supervise the reviewed current producer with one separately audited operator."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from .unit_diagnostic import (
     SOURCE,
     SOURCE_CHECKPOINT,
     UNIT,
+    UNITS,
     WRITE_SECONDS,
 )
 
@@ -39,11 +40,11 @@ def operator_directory(path: Path) -> None:
 
 
 class UnitDiagnosticJob(verification_job.InputProfileJob):
-    """One new copy; immutable old business code and a separate read-only probe."""
+    """One new copy; immutable qualified business code and a separate read-only probe."""
 
     FORMAT = "swingset-attended-unit-diagnostic-v1"
     PREFIX = "unit-diagnostic"
-    OPERATION = "one inventory unit rollback diagnostic"
+    OPERATION = "one fixed unit rollback diagnostic"
     LIMITS = "Separate diagnostic receipt required; never a graph or re-key proof; no base cleanup."
 
     def review(self, verdict: dict[str, Any]) -> None:
@@ -62,16 +63,18 @@ class UnitDiagnosticJob(verification_job.InputProfileJob):
             "runtime_artifact": RUNTIME_ARTIFACT,
             "source_revision": SOURCE,
             "installed_proof_sha256": INSTALLED_PROOF,
-            "installed_file_count": 560,
-            "linker_version": "9",
+            "installed_file_count": 570,
+            "linker_version": "10",
         }
         require(
             self.policy["runtime_image"] == IMAGE
             and self.policy["producer"] == verdict["producer"] == producer
-            and self.policy["unit"] == verdict["unit"] == UNIT
+            and self.policy["unit"] == verdict["unit"]
+            and self.policy["unit"] in UNITS
             and self.policy["business_clock"] == BUSINESS_CLOCK
             and self.policy["source_checkpoint"] == SOURCE_CHECKPOINT
             and self.policy["expected_checkpoint"] == ACCEPTED_CHECKPOINT
+            and self.policy["input_acceptance_binding"] is None
             and self.policy["freeze_seconds"] == 2700
             and self.policy["write_seconds"] == WRITE_SECONDS
             and self.policy["report_seconds"] == 90
@@ -84,7 +87,7 @@ class UnitDiagnosticJob(verification_job.InputProfileJob):
         self.result.update(
             producer=producer,
             operator_sha256=self.policy["operator_sha256"],
-            unit=UNIT,
+            unit=self.policy["unit"],
             write_budget_seconds=WRITE_SECONDS,
             graph_proof=False,
         )
@@ -102,27 +105,35 @@ class UnitDiagnosticJob(verification_job.InputProfileJob):
             "readonly": True,
         }
 
-    @staticmethod
-    def utility_command() -> list[str]:
-        return [
-            "/run/swingset-checker/unit_diagnostic.py",
-            "--checkpoint",
-            "/var/lib/swingset",
-            "--capture-state",
-            "/var/lib/swingset-runtime/capture",
-            "--receipt",
-            "/var/lib/swingset-runtime/unit-diagnostic.json",
-            "--config",
-            "/app/config",
-            "--overrides",
-            "/app/overrides",
-            "--at",
-            BUSINESS_CLOCK,
-            "--source-checkpoint",
-            SOURCE_CHECKPOINT,
-            "--expected-checkpoint",
-            ACCEPTED_CHECKPOINT,
-        ]
+    def utility_command(self) -> list[str]:
+        return diagnostic_command(self.policy["unit"])
+
+
+def diagnostic_command(unit: str = UNIT) -> list[str]:
+    """Keep the inventory argv unchanged; only the second fixed target needs a flag."""
+    require(unit in UNITS)
+    command = [
+        "/run/swingset-checker/unit_diagnostic.py",
+        "--checkpoint",
+        "/var/lib/swingset",
+        "--capture-state",
+        "/var/lib/swingset-runtime/capture",
+        "--receipt",
+        "/var/lib/swingset-runtime/unit-diagnostic.json",
+        "--config",
+        "/app/config",
+        "--overrides",
+        "/app/overrides",
+        "--at",
+        BUSINESS_CLOCK,
+        "--source-checkpoint",
+        SOURCE_CHECKPOINT,
+        "--expected-checkpoint",
+        ACCEPTED_CHECKPOINT,
+    ]
+    if unit != UNIT:
+        command += ["--unit", unit]
+    return command
 
 
 def arguments(parser: argparse.ArgumentParser) -> None:

@@ -312,7 +312,87 @@ def test_native38_forward_upgrade_keeps_sqlite37_rows_and_existing_identity(
             schema.migrate(conn)
 
 
-@pytest.mark.parametrize("base_version,target_version", [(38, 39), (39, 40), (38, 40)])
+def test_subject_delete_indexes_preserve_rows_history_and_cross_kind_deletes(
+    fresh_database, monkeypatch
+):
+    _, _, conn = fresh_database
+    with monkeypatch.context() as legacy:
+        legacy.setattr(schema, "SCHEMA_VERSION", 40)
+        schema.migrate(conn)
+    conn.execute("SELECT set_config('search_path',%s,false)", (schema.SEARCH_PATH,))
+    conn.execute(
+        "INSERT INTO identity_links(link_id,subject_kind,subject_id,wsdc_id,method,status,"
+        "confidence,constraints_applied,asserted_at,run_id,linker_version) "
+        "SELECT kind||n,kind,'subject-'||n,NULL,'fixture','review',0.5,'{}',"
+        "'2026-11-17T00:00:00Z','fixture','9' "
+        "FROM generate_series(1,300) AS n CROSS JOIN (VALUES('entry'),('judge')) AS kinds(kind)"
+    )
+    conn.execute(
+        "INSERT INTO link_candidates(subject_kind,subject_id,wsdc_id,score,name_similarity,"
+        "name_rarity,division_ok,role_ok,recency_ok,geography,bib_reuse,registry_confirms,"
+        "source_id_confirms,rank,chosen,run_id) "
+        "SELECT kind,'subject-'||n,1,0.5,0.5,0.5,NULL,NULL,0,NULL,0,0,0,1,0,'fixture' "
+        "FROM generate_series(1,300) AS n CROSS JOIN (VALUES('entry'),('judge')) AS kinds(kind)"
+    )
+
+    def snapshot():
+        return {
+            table: conn.execute(
+                sql.SQL("SELECT row_to_json(t)::text FROM {} AS t ORDER BY 1").format(
+                    sql.SQL(schema.qualified(table))
+                )
+            ).fetchall()
+            for table in (
+                "identity_links",
+                "link_candidates",
+                "identity_link_history",
+                "history_dispatch_fence",
+            )
+        }
+
+    baseline = snapshot()
+    assert schema.migrate(conn)["schema_version"] == schema.SCHEMA_VERSION
+    assert schema.migrate(conn)["schema_version"] == schema.SCHEMA_VERSION
+    assert snapshot() == baseline
+    for table in ("identity_links", "link_candidates"):
+        conn.execute(sql.SQL("ANALYZE {}").format(sql.SQL(schema.qualified(table))))
+        plan = conn.execute(
+            sql.SQL("EXPLAIN (FORMAT JSON) DELETE FROM {} WHERE subject_id=%s").format(
+                sql.SQL(schema.qualified(table))
+            ),
+            ("subject-1",),
+        ).fetchone()[0][0]["Plan"]
+        nodes = [plan]
+        for node in nodes:
+            nodes.extend(node.get("Plans", []))
+        assert any(node.get("Index Name") == table + "_subject_idx" for node in nodes)
+
+    class Rollback(Exception):
+        pass
+
+    with pytest.raises(Rollback):
+        with conn.transaction():
+            for table in ("link_candidates", "identity_links"):
+                deleted = conn.execute(
+                    sql.SQL("DELETE FROM {} WHERE subject_id=%s").format(
+                        sql.SQL(schema.qualified(table))
+                    ),
+                    ("subject-1",),
+                )
+                assert deleted.rowcount == 2
+            assert (
+                conn.execute(
+                    "SELECT count(*) FROM identity_link_history WHERE subject_id='subject-1'"
+                ).fetchone()[0]
+                == 2
+            )
+            raise Rollback
+    assert snapshot() == baseline
+
+
+@pytest.mark.parametrize(
+    "base_version,target_version", [(38, 39), (39, 40), (38, 40), (40, 41), (38, 41)]
+)
 def test_statement_upgrades_preserve_rows_and_worker_fence_semantics(
     fresh_database, monkeypatch, base_version, target_version
 ):
@@ -514,7 +594,7 @@ def test_checkpoint_reader_admits_only_verified_readonly_native38(
             with pytest.raises(psycopg.OperationalError, match="readonly"):
                 checkpoint.connection.execute("INSERT INTO ops.meta VALUES('forbidden','write')")
         with monkeypatch.context() as future:
-            future.setattr(schema, "SCHEMA_VERSION", 41)
+            future.setattr(schema, "SCHEMA_VERSION", schema.SCHEMA_VERSION + 1)
             with pytest.raises(RuntimeError, match="checkpoint schema"):
                 open_database(state, read_only=True, lock=False, allow_checkpoint_schema=True)
         copied = tmp_path / "changed-migrations"

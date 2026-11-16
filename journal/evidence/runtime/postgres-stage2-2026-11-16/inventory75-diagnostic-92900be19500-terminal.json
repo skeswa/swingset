@@ -1,0 +1,199 @@
+{
+  "acceptance": {
+    "authorized_write_seconds": 75,
+    "instrumented_wall_seconds": 59.6920725684613,
+    "ordinary_commit_returned": true
+  },
+  "actor_exit": 0,
+  "actor_finished_at": "2026-11-16T19:19:01.872041756Z",
+  "business_clock": "2026-11-11T13:03:02.488396+00:00",
+  "command_context": {
+    "action_review_sha256": "17873f6090bd33f903690332796e278eb9eae06e0011dddc01a0dae645ba23fc",
+    "command": "maintained one-unit rollback diagnostic via unit-diagnostic-job foreground SSH",
+    "foreground_exit": 0,
+    "foreground_tool_session": 13584,
+    "plan_sha256": "8ea259130245b49dbd2851810fcff37a3d19794178227bf7b1fcca89d46a7fa2",
+    "startup_receipt": "inventory75-diagnostic-92900be19500-startup.json"
+  },
+  "container_id": "24154fe5cb93df1dc4c4f64232b6f7d73c440c106179f4908781066c8f6d2311",
+  "counts": {
+    "expected_graph_unit_set_bound_only": 108390,
+    "operator_phases": 8,
+    "owned_database_removed": 1,
+    "protected_apps_unchanged": 12,
+    "retained_catalog_databases": 5,
+    "retained_helpers": 24,
+    "retained_volumes": 3,
+    "supervisor_samples": 134
+  },
+  "diagnostic_complete": true,
+  "format": "swingset-inventory75-terminal-v1",
+  "graph_proof": false,
+  "hashes": {
+    "independent_boundary": "cd3201ca5e8dc4b5310c3714ea73bca866386e4c0977bde3fe4c925d30d53ece",
+    "independent_terminal": "6363fbc6e2f4a1fca6dfcd6455c61a20c94ea5d2c597a1400a9c503445677344",
+    "operator": "3503ed70aec1313ec4f5f52c4a02c77a5d7a2e1f417fe969d699e13dd5120c3a",
+    "root_public_collection": "cd5481257cdd76b038d67ea2c896ce7c8f25cbeaee9920f301b5d32cbdfa6105",
+    "supervisor": "e08b3c832ac97dda4af4b4a15c8cf0585ddbf9e4bdab6065270109bc0ea3f52d"
+  },
+  "independent_verdict": "ACCEPT_COMPLETED_DIAGNOSTIC_FAILED_75S_TRIAL_WITH_SOURCE_AND_OWNED_CLEANUP_BOUNDARY",
+  "input_acceptance_binding": {
+    "checkpoint": "5039effbf0b79dbb5cef98fb2001e7142be18ec8a80eaf75a8ea9dc233351a61",
+    "expected_unit_count": 108390,
+    "inputs_sha256": "63c46b8dd4890849edb6cd1f549f80518a067f8ebd7c102e792ee0d47b988fe8",
+    "sha256": "1ffa96ed76243926c62d2e98b8c34d7042fc080b46d0dc82c03973a21847010e",
+    "source_checkpoint": "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37",
+    "unit_set_sha256": "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228"
+  },
+  "limits": [
+    "Inventory trial remains failed; actor exit0 means diagnostic and cleanup completed.",
+    "Inclusive overlapping spans are not summed; callee counts are function calls, not SQL writes.",
+    "Instrumentation overhead unknown; no normal timing, speedup, precise SQL cause, full graph or migration qualification.",
+    "Held complete_inventory=false remains a limited held observation.",
+    "No new actor, guard change, deletion, adoption, graph or publish authority."
+  ],
+  "operator_phase_timings": [
+    {
+      "name": "capture",
+      "owner_thread_cpu_seconds": 2.70238506,
+      "wall_seconds": 4.342616440728307
+    },
+    {
+      "name": "prefreeze_source_identity",
+      "owner_thread_cpu_seconds": 239.445695083,
+      "wall_seconds": 263.72901344671845
+    },
+    {
+      "name": "freeze",
+      "owner_thread_cpu_seconds": 525.518480172,
+      "wall_seconds": 1439.3012100830674
+    },
+    {
+      "name": "destination_prelude",
+      "owner_thread_cpu_seconds": 291.81199501899994,
+      "wall_seconds": 356.4095208477229
+    },
+    {
+      "name": "accept",
+      "owner_thread_cpu_seconds": 12.561626311000055,
+      "wall_seconds": 59.6920725684613
+    },
+    {
+      "name": "post_acceptance_binding",
+      "owner_thread_cpu_seconds": 240.95009773700008,
+      "wall_seconds": 256.35289487056434
+    },
+    {
+      "name": "inventory_trial",
+      "owner_thread_cpu_seconds": 55.42908110600001,
+      "wall_seconds": 75.40433226712048
+    },
+    {
+      "name": "post_source_identity",
+      "owner_thread_cpu_seconds": 237.10453764499994,
+      "wall_seconds": 259.33888965658844
+    }
+  ],
+  "operator_sha256": "614d3bd152d1108af091169aa47536c26fc60c357bf630ca836760d81acd3545",
+  "owned_cleanup": {
+    "actor_supervisor_cgroup_and_authorization_absent": true,
+    "database_and_copy_backends_absent": true,
+    "database_oid": 7209713,
+    "owner": "1d527dbfd220474abcd80cec",
+    "registry_root_only_no_files": true
+  },
+  "producer": {
+    "image": "sha256:346f30a492e7263c77e7c4346595e5a28e01bb1957ce6ee7e16be4f5c0f74f89",
+    "installed_file_count": 560,
+    "installed_proof_sha256": "d13c0e3f4688c6bbcc51a8339266487cda96a86d20cc9f441c3d5ca92180cd74",
+    "linker_version": "9",
+    "runtime_artifact": "swingset-runtime@sha256:5f9b83c510d8af3870cf3b20d3319fb9dff83c91e1c4eadb4fe03134ce0b4cf9",
+    "source_revision": "source-sha256:8aae03bf38566229a30475acadaf0ea659cff843166d6c40b31883cb6e8e3c2a"
+  },
+  "raw_packets": [
+    "/tmp/swingset-stage2-unit75-terminal-root-20261116",
+    "/tmp/swingset-stage2-unit75-independent-terminal-20261116"
+  ],
+  "resources": {
+    "minimum_free_bytes": 538046914560,
+    "no_oom_observed": true,
+    "private_max_pressure_counter": 1761817,
+    "runtime_floor_bytes": 200000000000
+  },
+  "source_and_protected_boundary": {
+    "C696_and_69_preserved": true,
+    "catalog_exact_original_five": true,
+    "full_source_postbinding": "Pinned operator completed post_source_identity equality against source00c; reviewer did not repeat full fingerprint. Independent UUID/schema/checksum/catalog metadata match admission.",
+    "guardian_incarnation_complete_profile_ABB_B4_preserved": true,
+    "hold_sha256": "30d84bfe95169cb0c4aacd41effe0aeaebeabdaa2fe38c707d0901aa898603f2",
+    "hold_unexpired": true,
+    "protected12_and_native87_preserved": true,
+    "public_seven_code_hashes_preserved": true,
+    "source_uuid_schema38_checksum_preserved": true,
+    "three_volumes_24_helpers_retained": true
+  },
+  "started_at": "2026-11-16T18:33:10.216488566Z",
+  "supervisor_finished_at": "2026-11-16T19:19:05.128507+00:00",
+  "trial": {
+    "observer_complete": true,
+    "result": "WriteDeadlineExceeded",
+    "rollback_fingerprint_equal": true,
+    "rollback_run_rows_equal": true,
+    "verify_unit_wall_seconds": 75.00353366322815
+  },
+  "trial_inventory_spans": [
+    {
+      "error_type": null,
+      "name": "desired",
+      "thread_cpu_seconds": 30.936061493000125,
+      "wall_seconds": 39.49605429545045
+    },
+    {
+      "error_type": null,
+      "name": "capture",
+      "thread_cpu_seconds": 31.546929202,
+      "wall_seconds": 40.23891226761043
+    },
+    {
+      "error_type": null,
+      "name": "prepare_inventory",
+      "thread_cpu_seconds": 21.333012492999842,
+      "wall_seconds": 31.484422435984015
+    },
+    {
+      "error_type": null,
+      "name": "post_link_hints",
+      "thread_cpu_seconds": 0.18761488900008771,
+      "wall_seconds": 0.1958614531904459
+    },
+    {
+      "error_type": "_Expired",
+      "name": "desired",
+      "thread_cpu_seconds": 0.7917036220001137,
+      "wall_seconds": 1.6213124115020037
+    }
+  ],
+  "trial_observer": {
+    "clock_errors": 0,
+    "foreign_thread_calls": 0,
+    "inventory_span_calls": {
+      "capture": 1,
+      "desired": 2,
+      "post_link_hints": 1,
+      "prepare_inventory": 1
+    },
+    "other_completions": 0,
+    "other_labels": 0,
+    "overflow": false,
+    "quality": true
+  },
+  "unit": "project/inventory/all",
+  "unit_passed": false,
+  "worker_write_policy": {
+    "applied_seconds": 75.0,
+    "authorized_seconds": 75.0,
+    "installed_seconds": 60.0,
+    "restored": true,
+    "scope": "Postfreeze owned-copy acceptance and ordinary inventory trial only; installed producer bytes unchanged."
+  }
+}

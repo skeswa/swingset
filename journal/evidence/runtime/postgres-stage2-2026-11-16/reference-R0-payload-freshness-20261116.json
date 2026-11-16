@@ -1,0 +1,44 @@
+{
+  "all_original_hashes_match": true,
+  "artifacts": {
+    "intent.json": {
+      "bytes": 16175,
+      "sha256": "c635ddc2952e7e884bd0a44991f8314522ce2a67998a01c2d76f486f2de83ff5"
+    },
+    "result.json": {
+      "bytes": 198,
+      "sha256": "f4d31ce58a3cce4146d3c685839bb288f70ad76bcf8f12a13de66e40dad3c04d"
+    },
+    "stdout.json": {
+      "bytes": 10582,
+      "sha256": "cbfd516446dce90c03e88c528720ec2de6f01568ac98c85d7d26ce52b08aa846"
+    }
+  },
+  "business_table_parity_established": false,
+  "bytes": 381686344,
+  "candidate": "cand_459f6af282274dc4",
+  "files": 59,
+  "format": "swingset-stage2-reference-payload-freshness-v1",
+  "guards": [
+    "exact original root UID/mode/device/inode",
+    "every path component opened without symlink following",
+    "each known file length/hash matches original export",
+    "same file device/inode/length/mtime/ctime before and after hashing"
+  ],
+  "new_reference_job_started": false,
+  "observed_at": "2026-11-16T22:36:49.797207+00:00",
+  "operation": "read-only SHA256 of exactly59 known public reference export files",
+  "production_or_database_state_changed": false,
+  "release_manifest_sha256": "0bb2309d45995bb14abea13821f19a11928609eec2ca7b8faea01e272c50a312",
+  "root_identity": {
+    "device": 2050,
+    "inode": 15894262,
+    "mode": 448,
+    "uid": 1000
+  },
+  "scratch": "/tmp/swingset-stage2-reference-R0-fresh59-20261116-v1",
+  "source_checkpoint_sha256": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "source_revision": "source-sha256:b6cc9c28f977502686e63b9dfdaf57ab7106904b72d3ac67e54816fea8ec70b4",
+  "stderr_bytes": 0,
+  "transport_exit_code": 0
+}

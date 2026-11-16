@@ -1,0 +1,97 @@
+{
+  "archive_bytes": 248929280,
+  "archive_sha256": "8c2947f47ce3cd1f3a97396cd57d9ca8b3f0ee926650570fdbc449d7832bd532",
+  "capacity_bytes": {
+    "after": [
+      546091073536,
+      546091073536
+    ],
+    "before": [
+      549351051264,
+      549351051264
+    ]
+  },
+  "checks": {
+    "archive_hash_readback_match": true,
+    "protected_and_old_diagnostic_preserved": true,
+    "public_architecture_labels_rootfs_match_qualified_local": true
+  },
+  "command_context": {
+    "collector_sha256": "8dc3561335328ab0e2b2a19b478ba75fb62e802ac6ed85735c6e4910d20df383",
+    "once_with_exact_commands_sha256": "604278b1d2155f5d54fbd0c50cf9614e653f9092b5df0c81d8614c563b694594",
+    "operation": "15 fixed stock SSH/SCP/image-load and public metadata steps",
+    "steps": [
+      "protected-before",
+      "actor-before",
+      "hold-before",
+      "capacity-before",
+      "new-private-root",
+      "root-stat",
+      "upload-archive",
+      "archive-stat",
+      "archive-sha",
+      "load-immutable-image",
+      "image-public",
+      "protected-after",
+      "actor-after",
+      "hold-after",
+      "capacity-after"
+    ]
+  },
+  "completed_at": "2026-11-16T18:52:12.001772+00:00",
+  "counts": {
+    "exit0": 15,
+    "protected_containers_pre_post": 14,
+    "stderr_empty": 15,
+    "transports": 15,
+    "unknown": 0
+  },
+  "exit": 0,
+  "format": "swingset-server-runtime-cache-v1",
+  "hold_sha256": "41f2b246b874aa66e3d2abcaffff95bf155c5a04145fecac2cfbb567ea2011e4",
+  "limits": "Old image346 diagnostic remains running and unchanged. Cache availability is not a final-runtime installed-file, role/network, graph or deployment proof.",
+  "local_qualification_sha256": "13271be51fe40acc365c946f324f28f2a3ffcd5d8500d565512c57fc94176776",
+  "packet": "/tmp/swingset-stage2-runtime862-server-cache-20261116-v1",
+  "preserved_old_actor": {
+    "id": "24154fe5cb93df1dc4c4f64232b6f7d73c440c106179f4908781066c8f6d2311",
+    "image": "sha256:346f30a492e7263c77e7c4346595e5a28e01bb1957ce6ee7e16be4f5c0f74f89",
+    "oom": false,
+    "pid": 3116755,
+    "restart": 0,
+    "running": true,
+    "started_at": "2026-11-16T18:33:10.216488566Z"
+  },
+  "required_capacity_bytes": 508224930112,
+  "result_sha256": "c7f818b4f26be2c42e42ba1b367a477c1f5bf3392e1bf4d2e12495e87c6021a6",
+  "runtime_artifact": "swingset-runtime@sha256:08df0ebcf24c3def6233bfb297cb8378412cb982129f9ced6d359d4fe5ea4859",
+  "scope": {
+    "activated_or_deployed": false,
+    "cache_loaded": true,
+    "database_written": false,
+    "guard_changed": false,
+    "local_installed_file_proof_only": 569,
+    "server_installed_file_proof": false,
+    "worker_started": false
+  },
+  "server_cache_root": "/var/tmp/swingset-stage2-runtime862-20261116-1849",
+  "server_image_config_id": "sha256:e68aa1274c16eb2a445f7ebec921ca175cb57dc0bf627fab6b00bb30695aa276",
+  "server_public_image_sha256": "f52e21b361f9531fff7ca0d837394435f3be6c676a659bab2a1f3fece21bfb50",
+  "started_at": "2026-11-16T18:50:47.380486+00:00",
+  "stdout_sha256": {
+    "actor-after": "73569152475aef0a7b1eb12b6df5a29fac8a548e77903351445e5e4d5d0dcd21",
+    "actor-before": "73569152475aef0a7b1eb12b6df5a29fac8a548e77903351445e5e4d5d0dcd21",
+    "archive-sha": "1f3e2c60f53618740b44c224568a90814bca25c9e63ad90f598aabe6f15c3278",
+    "archive-stat": "9ac149e6c97ff605c3155381b8cb5af230b00a9cec704c0c3538370f3e7912cb",
+    "capacity-after": "b149b82a68516d83339dbee5189171736e830e9a3d20459d2ccc8e14095b7faa",
+    "capacity-before": "c4d47a115c2ab1b124e0b61ca982bba043e0f96043628c8fa55678fca3f84e11",
+    "hold-after": "e883520ccce3d1f50e436905296591141564c543e627f1b6b7727b4085f0470f",
+    "hold-before": "e883520ccce3d1f50e436905296591141564c543e627f1b6b7727b4085f0470f",
+    "image-public": "f52e21b361f9531fff7ca0d837394435f3be6c676a659bab2a1f3fece21bfb50",
+    "load-immutable-image": "ec7db53c9b849907d83d174fdd75c9205e3587a1d6ed1fceeb9c6059ba3b4acd",
+    "new-private-root": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "protected-after": "17a68a12e44c66d6dd7835a1678e476ad84104853d6c0b9170b2b4f3b5203c36",
+    "protected-before": "17a68a12e44c66d6dd7835a1678e476ad84104853d6c0b9170b2b4f3b5203c36",
+    "root-stat": "4d3153b4e5525ef423fecde239ef6e0ca8e7a947360970694051c1bf480f2038",
+    "upload-archive": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -126,6 +126,88 @@ def test_bulk_selected_generations_preserve_groups_missing_units_and_boundary(so
             derivations._group.reset(token)
 
 
+@pytest.mark.parametrize("mode", ["ordinary", "selected", "effective", "null", "foreign"])
+def test_inventory_dependencies_batch_pointers_without_changing_manifests(
+    source_fixture, monkeypatch, mode
+):
+    from types import SimpleNamespace
+
+    from swingset.state import derivation_dependencies
+
+    f = source_fixture
+    present, _ = materialize(f)
+    missing = tuple(WorkUnit("project", "event", f"missing-雪-{i}") for i in range(1024))
+    required = (present, *missing, present)
+    monkeypatch.setattr(derivation_dependencies, "prerequisites", lambda conn, unit: required)
+    inventory = WorkUnit("project", "inventory", "all")
+    active = None
+    if mode != "ordinary":
+        active = SimpleNamespace(
+            connection=object() if mode == "foreign" else f.conn,
+            selected={present: SimpleNamespace(generation_id="selected-generation")},
+            effective={present: None if mode == "null" else "effective-generation"}
+            if mode in {"null", "effective"}
+            else {},
+        )
+    token = derivations._group.set(active)
+    try:
+
+        def individually(conn, units):
+            return {unit: derivations.selected_generation(conn, unit) for unit in units}
+
+        reference = derivation_dependencies.dependencies(f.conn, inventory, individually)
+        statements = []
+        with f.conn.observing(lambda sql, _params: statements.append(str(sql))):
+            actual = derivation_dependencies.dependencies(
+                f.conn, inventory, derivations.selected_generations
+            )
+        assert actual == reference  # Includes complete canonical members and group digests.
+        pointer_reads = [
+            statement
+            for statement in statements
+            if "JOIN unnest(" in statement
+            or statement.startswith("SELECT materialized_generation_id FROM derivation_scopes")
+        ]
+        assert len(pointer_reads) == (2 if mode in {"ordinary", "foreign"} else 1)
+        groups = actual[1]
+        members = next(group for group in groups.values() if len(group) == len(required))
+        assert (
+            sum(
+                member["key"] == [present.stage, present.unit_kind, present.unit_id]
+                for member in members
+            )
+            == 2
+        )
+    finally:
+        derivations._group.reset(token)
+
+
+def test_inventory_batched_dependencies_still_recheck_writes_and_rollback(
+    source_fixture, monkeypatch
+):
+    from swingset.state import derivation_dependencies
+    from swingset.state.attempts import SupersededWorkError
+
+    f = source_fixture
+    present, _ = materialize(f)
+    monkeypatch.setattr(derivation_dependencies, "prerequisites", lambda conn, unit: (present,))
+    inventory = WorkUnit("project", "inventory", "all")
+    before = derivations.desired(f.conn, inventory)
+    with pytest.raises(SupersededWorkError):
+        with f.db.transaction():
+            captured = derivations.capture(f.conn, inventory, now=f.corpus.clock.now())
+            f.conn.execute(
+                "UPDATE derivation_scopes SET materialized_generation_id=NULL "
+                "WHERE stage=%s AND unit_kind=%s AND unit_id=%s",
+                (present.stage, present.unit_kind, present.unit_id),
+            )
+            assert derivations.desired(f.conn, inventory).fingerprint != before.fingerprint
+            derivations.complete(
+                f.conn, captured, rows=(), now=f.corpus.clock.now(), run_id=f.corpus.run
+            )
+    assert derivations.desired(f.conn, inventory).fingerprint == before.fingerprint
+
+
 @pytest.mark.parametrize(
     "mutation", ["UPDATE  SET", "DELETE", "snapshot", "selection", "watch_source"]
 )

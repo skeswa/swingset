@@ -1,0 +1,89 @@
+{
+  "actual_activation_and_gap": {
+    "activation_finished_at": "2026-11-16T16:05:08.333362139Z",
+    "activation_started_at": "2026-11-16T16:05:08.166341224Z",
+    "continuous_validity_proven": false,
+    "expired_seconds": 318292.822363,
+    "old_review_at": "2026-11-12T23:40:15.510999+00:00"
+  },
+  "after_hold_sha256": "2b66cc2c166fcd6d89daf43d695f3b7afe6e5dc40507066918f3489b2f798f97",
+  "before_hold_sha256": "61c2af6960fd9010a00bd3139a30aafd46d549934f306e0429f0acff9666755e",
+  "checks": {
+    "all7_intents_exact_bound_plan": true,
+    "all7_transports_exit0_no_error": true,
+    "both_helpers_natural_exit0_PID0_noOOM_restart0": true,
+    "closed_predecessor_hashes_unchanged": true,
+    "consumed_operation_fence_exact_review_admission_plan": true,
+    "fresh_installed_hold_sha256": "2b66cc2c166fcd6d89daf43d695f3b7afe6e5dc40507066918f3489b2f798f97",
+    "fresh_protected12_equal_baseline": true,
+    "pointer_exact_packet_hold_review_at": true,
+    "root_CLI_exit": 0,
+    "root_uid0_mode0444_singlelink": true,
+    "three_remote_public_receipts_metadata_and_hashes_equal_local_before_after": true,
+    "two_exact_helpers_fresh_complete_profile_hashes_match": true
+  },
+  "command_context": {
+    "admin_commands_sha256": "62f3c16e33d51b2c30aac0b17f25da60b9067fb2071495728e49b891bc63694d",
+    "command": "swingset review-rehearsal-hold",
+    "current": "/tmp/swingset-stage2-current-hold.json",
+    "protocol": "six administrative argv plus maintained receipt/pointer finalization, seven intent/transport steps",
+    "reopen": "/tmp/swingset-stage2-hold-review-20261116-153214",
+    "review": "/tmp/swingset-stage2-hold-reopen-independent-20261116-153214/execution-review.json",
+    "review_sha256": "030c07fadf6eba5dcdc638731b76677c15de4d9dafe5f09c4185d41d4cbbfb0d"
+  },
+  "counts": {
+    "administrative_argv": 6,
+    "helpers_natural_exit0": 2,
+    "protected_services_unchanged": 12,
+    "protocol_steps": 7,
+    "public_receipt_readbacks": 3,
+    "transport_exit0": 7
+  },
+  "exit": 0,
+  "format": "swingset-administrative-hold-reopen-v1",
+  "hashes": {
+    "admin_plan": "1c6239af126c48b67635e1259b78de1332cb9d3969f5a952739129d472e8a3bd",
+    "admission": "fcb4de2932a70cff4b53e9c96d4a465490379816d1e5e034055b656db10353cc",
+    "independent_terminal": "f0c8721a9d01d95523b9b8fd03dfb51be6374d5513e4e8bcd01fc5ebaed8c3cd",
+    "pointer_result": "1ddb3839c1412bccdc83f9b0a0461944094ca8228a3ece5017ad4d6f1e793765",
+    "public_readbacks": "05aaedcb742cfa4f5736385a1dde70b346f053611572565417de7c9275efcb67",
+    "result": "cb11abc2f33f2bedf1ebe8265c1420d41d1aeb0f2b1fd949b224cb29d4d7694f"
+  },
+  "helpers": [
+    {
+      "created": "2026-11-16T16:05:02.860394049Z",
+      "exit_code": 0,
+      "finished": "2026-11-16T16:05:03.277449124Z",
+      "id": "3385774f00ac82266845641ff6982d7891d6954c5ea8fc076cffce1641925b1e",
+      "profile_sha256": "70028da337147786cf3fcd779df76a1c29997099253f76cf60bc59eebc027563",
+      "started": "2026-11-16T16:05:03.103433446Z"
+    },
+    {
+      "created": "2026-11-16T16:05:07.928549145Z",
+      "exit_code": 0,
+      "finished": "2026-11-16T16:05:08.333362139Z",
+      "id": "540060e651babe99e367b3f5665aad656de6f707b0595b978c38511d1f8194c8",
+      "profile_sha256": "902a6ac51c67069c6f247a9eede9aa3fe43a09aa1fedd588a64ea7ac969fb880",
+      "started": "2026-11-16T16:05:08.166341224Z"
+    }
+  ],
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-16T16:32:14.220269+00:00",
+    "reviewed_at": "2026-11-16T15:32:14.220269+00:00"
+  },
+  "independent_verdict": "ACCEPT_OBSERVED_ADMINISTRATIVE_REOPEN_WITH_EXPLICIT_EXPIRY_GAP",
+  "observed_at": "2026-11-16T16:08:47.261697+00:00",
+  "operation_packet": "/tmp/swingset-stage2-hold-review-20261116-153214",
+  "scope": {
+    "administrative_only": true,
+    "cold_preparation": false,
+    "database_copy_or_mutation": false,
+    "deployment": false,
+    "worker_start": false
+  },
+  "source_sha256": "3a4845a2e1933cc4f18d92817a247e0aeda455c1f8f71f5b1a867e6a496e01a7",
+  "time_semantics": "hold reviewed_at/result.at are preparation time; actual activation is the observed rename interval, not preparation time or a fresh one-hour interval"
+}

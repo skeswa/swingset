@@ -37,6 +37,12 @@ missing-generation update behavior and exact history deltas preserved.
 Publication and generation-insert fences remain per row
 ([D-0286](../../journal/decisions/0286-batch-pending-work-generation-updates.md)).
 
+Native migration 41 indexes `subject_id` on `identity_links` and
+`link_candidates`. Link replacement deletes by that field across subject
+kinds; the existing composite keys lead with `subject_kind`. The new
+nonunique indexes preserve the existing predicates, rows, history and write
+order ([measured scans](../../journal/evidence/runtime/postgres-stage2-2026-11-17/link-subject-delete-plans.json)).
+
 The SQLite schema version is the migration number recorded in both
 `PRAGMA user_version` and the `schema_version` row in `meta`. A writable
 `open_database()` call applies each intervening numbered migration in order,

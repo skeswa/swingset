@@ -1,0 +1,131 @@
+{
+  "actor": {
+    "id": "4f4c958daf1d7f029c400f054a245a6168ed1be5d97cb6c026f6f3b728215f02",
+    "image": "sha256:2eb802d9b34b5c009bbd97eab69d67180d980057bcb82a92c3a3d049a77e7095",
+    "restart": 0,
+    "state": {
+      "exit_code": 0,
+      "oom": false,
+      "pid": 204672,
+      "running": true,
+      "started_at": "2026-11-17T05:20:45.620680761Z",
+      "status": "running"
+    }
+  },
+  "actor_start_ticks": "1028928416",
+  "actual_catalog_transport0_and_owned0_transport0": true,
+  "at": "2026-11-17T06:28:10.731503+00:00",
+  "catalog": {
+    "bytes": 1499,
+    "path": "/tmp/swingset-stage2-graph41-midrun-native-readonly-20261117-v1/catalog-corrected.stdout",
+    "sha256": "54691e2016554ef7aec53aa6a5f52f14ed4038022657888d5947a0379dc75fdf"
+  },
+  "commands": [
+    {
+      "bytes": 2694,
+      "path": "/tmp/swingset-stage2-graph41-midrun-native-readonly-20261117-v1/catalog-corrected.intent.json",
+      "sha256": "ac519d7485d28c25b9c9cbe92425afb79a058c70a53e5d46b4bc935ee58ed4df"
+    },
+    {
+      "bytes": 2638,
+      "path": "/tmp/swingset-stage2-graph41-midrun-native-readonly-20261117-v1/owned0.intent.json",
+      "sha256": "ff09479aa01c3fbebd5086a9306758f81d4ef40e1ce6b7e7f33b4b383baeb68d"
+    },
+    {
+      "bytes": 738,
+      "path": "/tmp/swingset-stage2-graph41-midrun-native-readonly-20261117-v1/actor.intent.json",
+      "sha256": "56541462556347c07a385fbcc05541aceb2f28c11fefee3d3bf5f58e2068b0f0"
+    },
+    {
+      "bytes": 367,
+      "path": "/tmp/swingset-stage2-graph41-midrun-native-readonly-20261117-v1/actor-proc.intent.json",
+      "sha256": "90dba982fbb47e6a0fae8eee3c81ec17829578e16f6860fc770a9656d65378bb"
+    }
+  ],
+  "complete_metadata_corroboration": true,
+  "environment": [
+    {
+      "database_id": "dc8422ac-116a-4ce9-ba5f-1cc6bd1e08ba",
+      "environment": "dev"
+    }
+  ],
+  "explicit_implicit_metadata_locks": "Ordinary short readonlyPostgrescatalog relationlocks only; no application/writer/exclusive lock acquired",
+  "native": {
+    "postgres_migration_checksum": "766df1cc106c2a4acaee3d52c04588ed7277ac07342a2f064c0c34059e79050b",
+    "schema_version": "41",
+    "source_schema_version": "37"
+  },
+  "no_active_FILE_COPY_gate_at": "2026-11-17T06:26:33.31422+00:00",
+  "no_queries_to_worker1_2_or_C696_69_Shared": true,
+  "no_scans_fingerprints_explicitlocks_or_writes": true,
+  "owned0": {
+    "bytes": 1221,
+    "path": "/tmp/swingset-stage2-graph41-midrun-native-readonly-20261117-v1/owned0.stdout",
+    "sha256": "1e49961493c9a1976d2b1cdae114fe52e475ee1390e81c78930c1bf841e6cf2c"
+  },
+  "owned_databases": [
+    {
+      "comment": "swingset-scratch:35f6faf854664e759b0b0f20",
+      "name": "sst_copy_35f6faf854664e759b0b0f20_0",
+      "oid": 8559526,
+      "owner": "postgres"
+    },
+    {
+      "comment": "swingset-scratch:35f6faf854664e759b0b0f20",
+      "name": "sst_copy_35f6faf854664e759b0b0f20_1",
+      "oid": 9009488,
+      "owner": "postgres"
+    },
+    {
+      "comment": "swingset-scratch:35f6faf854664e759b0b0f20",
+      "name": "sst_copy_35f6faf854664e759b0b0f20_2",
+      "oid": 9009489,
+      "owner": "postgres"
+    }
+  ],
+  "preserved_local_only_first_shell_refusal": true,
+  "proc_state_live": "S",
+  "scope": "Bounded publiccatalog and exactlyONEreadonly owned0 metadata connection; no graph-result or fullsourcehash claim",
+  "source_original_catalog_metadata_unchanged": [
+    {
+      "comment": "swingset-scratch:69e883f3dd9b43c5a4ab2468",
+      "name": "sst_copy_69e883f3dd9b43c5a4ab2468_0",
+      "oid": 465992,
+      "owner": "postgres"
+    },
+    {
+      "comment": "swingset-scratch:c696fead2daf4d3c83adfbbe",
+      "name": "sst_copy_c696fead2daf4d3c83adfbbe_0",
+      "oid": 16396,
+      "owner": "postgres"
+    }
+  ],
+  "subject_indexes": [
+    {
+      "attributes": 1,
+      "definition": "CREATE INDEX identity_links_subject_idx ON project.identity_links USING btree (subject_id)",
+      "first_column": "subject_id",
+      "key_attributes": 1,
+      "name": "identity_links_subject_idx",
+      "predicate": null,
+      "ready": true,
+      "table": "identity_links",
+      "table_schema": "project",
+      "unique": false,
+      "valid": true
+    },
+    {
+      "attributes": 1,
+      "definition": "CREATE INDEX link_candidates_subject_idx ON project.link_candidates USING btree (subject_id)",
+      "first_column": "subject_id",
+      "key_attributes": 1,
+      "name": "link_candidates_subject_idx",
+      "predicate": null,
+      "ready": true,
+      "table": "link_candidates",
+      "table_schema": "project",
+      "unique": false,
+      "valid": true
+    }
+  ]
+}

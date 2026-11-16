@@ -1,0 +1,41 @@
+{
+  "binding_unchanged": true,
+  "bound_files": 956,
+  "command": [
+    "mise",
+    "run",
+    "test",
+    "--",
+    "--full-suite",
+    "-n",
+    "4",
+    "--dist=loadfile",
+    "--no-loadscope-reorder",
+    "--max-worker-restart=0",
+    "--junitxml=/tmp/swingset-stage2-closed-session-full-20261117-v1/junit.xml"
+  ],
+  "errors": 0,
+  "exit_code": 0,
+  "failed": 0,
+  "final_free_bytes": 113005694976,
+  "format": "swingset-closed-session-correctness-full-validation-v1",
+  "hashes": {
+    "after.json": "307f748e8bcbbc47db3771d29c8a614355b70ae3d3ace8f145687571db00d067",
+    "before.json": "3c9df682cfe90605d341aed02e0324736c6491a2ae6a39200bbcf09f1a986b00",
+    "full.log": "e2bd621a87889d97822978cb2e8bb0949b328e840afcc1b037753b8f82970f19",
+    "junit.xml": "0af363b021d60144d9cbc95364a432194bed687c8940112c4f5c346024e7f5bc"
+  },
+  "initial_free_bytes": 145585926144,
+  "observed_free_floor_bytes": 85899345920,
+  "passed": 5293,
+  "qualification": "Local current-source correctness only; no server activation, graph acceptance, rekey or deadline-performance proof. Qualified862 producer remains unchanged for attribution.",
+  "raw_packet": "/tmp/swingset-stage2-closed-session-full-20261117-v1",
+  "recorded_at": "2026-11-17T00:48:34.149943+00:00",
+  "remaining_owner_records": 0,
+  "reported_seconds": 1516.0,
+  "scoped_copy_registry_empty": true,
+  "skipped": 0,
+  "source_binding_sha256": "32203bc64e4b2df6687aa4d73046729c31e49014c37ce43c9344d3a288bab8ca",
+  "source_revision": "source-sha256:b06416a20d69bd860db4f933e47cae6556614f1c5cb3f55429f48f897790a315",
+  "workers": 4
+}

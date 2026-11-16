@@ -60,11 +60,18 @@ def test_real_verify_transaction_preserves_error_and_rolls_back(tmp_path, monkey
         assert written == ["must roll back"]
         assert report["unit_result"]["state"] == "failed"
         expected = {
-            "normal": "transform returned without completing its unit",
-            "error": "RuntimeError: inventory transform original cause",
-            "deadline": "WriteDeadlineExceeded: injected ordinary atomic deadline",
+            "normal": "unclassified",
+            "error": "RuntimeError",
+            "deadline": "WriteDeadlineExceeded",
         }
-        assert report["unit_result"]["error"] == expected[outcome]
+        assert report["unit_result"]["error_type"] == expected[outcome]
+        assert "original cause" not in json.dumps(report)
+        assert report["observer"]["native_entry_count"] > 0
+        assert (
+            report["writer_before"]
+            == report["writer_after"]
+            == {"closed": False, "in_transaction": False}
+        )
         assert report["rollback_fingerprint_equal"] and report["observer_complete"]
         assert report["rollback_run_rows_equal"]
         assert report["write_budget_seconds"] == write_deadline.WRITE_SECONDS == 75
@@ -123,9 +130,8 @@ def test_inventory_observation_keeps_the_real_recording_entry_point(tmp_path, mo
     monkeypatch.setattr(history, "prepare_inventory", body)
     with open_database(tmp_path / "state", lock=False) as database:
         report = diagnostic.profile_derivation(database, bundle, FakeClock())
-        assert report["unit_result"]["error"] == (
-            "RuntimeError: observed through the real recording entry point"
-        )
+        assert report["unit_result"]["error_type"] == "RuntimeError"
+        assert report["primary_failure"]["chain"][0]["error_type"] == "RuntimeError"
         assert (
             database.connection.execute(
                 "SELECT value FROM ops.meta WHERE key='observed-entry-witness'"
@@ -188,7 +194,7 @@ def test_observer_passes_helper_completions_and_labels_without_altering_producer
     assert report["observer"]["overflow"] and not report["observer_complete"]
     assert report["observer"]["foreign_thread_calls"] == 1
     assert len(report["phases"]) == 64
-    assert report["unit_result"]["error"] == "transform returned without completing its unit"
+    assert report["unit_result"]["error_type"] == "unclassified"
     assert derivations.complete is completion and original_complete is not completion
 
 
@@ -203,7 +209,7 @@ def test_failed_labeling_retains_original_error_and_marks_missing_witness(tmp_pa
     monkeypatch.setattr(verify, "_live_label", failed)
     with open_database(tmp_path / "state", lock=False) as db:
         report = diagnostic.profile_derivation(db, SimpleNamespace(), FakeClock())
-    assert report["unit_result"]["error"] == "ValueError: original inventory label failure"
+    assert report["unit_result"]["error_type"] == "ValueError"
     assert not report["rollback_fingerprint_equal"]
     assert report["rollback_error_type"] == "ValueError"
 
@@ -277,15 +283,20 @@ def test_inventory_subspans_exclude_labels_and_foreign_work_and_restore(monkeypa
     connection = SimpleNamespace(
         execute=lambda *args: SimpleNamespace(fetchone=lambda: ("run",)),
         read_snapshot=contextlib.nullcontext,
+        closed=False,
+        in_transaction=False,
     )
-    report = diagnostic.profile_derivation(SimpleNamespace(connection=connection), None, None)
+    report = diagnostic.profile_derivation(
+        SimpleNamespace(connection=connection, transaction=contextlib.nullcontext), None, None
+    )
     assert report["observer"]["inventory_span_calls"] == {
         "capture": 1,
         "desired": 1,
         "prepare_inventory": 1,
         "post_link_hints": 1,
     }
-    assert report["observer"]["quality"] and report["observer"]["foreign_thread_calls"] == 1
+    assert not report["observer"]["quality"] and report["observer"]["foreign_thread_calls"] == 1
+    assert report["observer"]["native_entry_unknown"]
     assert not report["observer_complete"] and report["rollback_fingerprint_equal"]
     assert calls.count("desired") == 4 and calls.count("prepare") == 5
     assert "private" not in json.dumps(report)
@@ -356,7 +367,10 @@ def test_inventory_finalizer_fault_preserves_original_error_and_restores(
         connection=SimpleNamespace(
             execute=lambda *args: SimpleNamespace(fetchone=lambda: ("run",)),
             read_snapshot=contextlib.nullcontext,
-        )
+            closed=False,
+            in_transaction=False,
+        ),
+        transaction=contextlib.nullcontext,
     )
     report = {}
     expected = (
@@ -464,14 +478,14 @@ def test_wrong_installed_producer_refused_before_any_capture(tmp_path, monkeypat
     assert not (tmp_path / "receipt.json").exists()
 
 
-@pytest.mark.parametrize("budget", [61.0, 74.0, 76.0, float("nan"), True])
+@pytest.mark.parametrize("budget", [60.0, 61.0, 74.0, 76.0, float("nan"), True])
 def test_unknown_installed_write_budget_refuses_before_capture_or_receipt(
     tmp_path, monkeypatch, budget
 ):
     from swingset.state import inputs, write_deadline
 
     monkeypatch.setenv("SWINGSET_COPY_ROOT", str(tmp_path / "registry"))
-    monkeypatch.setattr(diagnostic, "producer_identity", lambda: {"linker_version": "9"})
+    monkeypatch.setattr(diagnostic, "producer_identity", lambda: {"linker_version": "10"})
     monkeypatch.setattr(write_deadline, "WRITE_SECONDS", budget)
     monkeypatch.setattr(inputs, "capture", lambda *args: pytest.fail("captured unknown policy"))
     with pytest.raises(ValueError, match="installed worker write budget"):
@@ -528,11 +542,61 @@ def test_cli_distinguishes_complete_diagnosis_from_unit_success(monkeypatch, cap
     assert report["unit_state"] == "failed" and report["unit_passed"] is False
 
 
+@pytest.mark.parametrize("target", diagnostic.UNITS)
+def test_cli_passes_only_the_two_fixed_targets(monkeypatch, capsys, target):
+    seen = []
+    monkeypatch.setattr(diagnostic, "authorize_installed_verifier", lambda: None)
+
+    def run(*args):
+        seen.append(args[-1])
+        return {
+            "diagnostic_complete": True,
+            "unit_passed": False,
+            "trial": {"unit_result": {"state": "failed"}},
+        }
+
+    monkeypatch.setattr(diagnostic, "run", run)
+    argv = [
+        part
+        for name in (
+            "checkpoint",
+            "capture-state",
+            "receipt",
+            "config",
+            "overrides",
+            "at",
+            "source-checkpoint",
+            "expected-checkpoint",
+        )
+        for part in ("--" + name, "value")
+    ]
+    assert diagnostic.main(argv + ["--unit", target]) == 0
+    assert seen == [target] and json.loads(capsys.readouterr().out)["unit"] == target
+    with pytest.raises(SystemExit) as refused:
+        diagnostic.main(argv + ["--unit", "link/event/arbitrary-event"])
+    assert refused.value.code == 2 and seen == [target]
+
+
+def test_unsupported_direct_target_refuses_before_paths_or_producer(tmp_path, monkeypatch):
+    from swingset.state import input_profile
+
+    monkeypatch.setattr(input_profile, "validate_paths", lambda *a, **k: pytest.fail("path I/O"))
+    monkeypatch.setattr(diagnostic, "producer_identity", lambda: pytest.fail("producer I/O"))
+    with pytest.raises(ValueError, match="two reviewed"):
+        diagnostic.run(
+            *(tmp_path / name for name in ("state", "capture", "receipt", "config", "overrides")),
+            diagnostic.BUSINESS_CLOCK,
+            diagnostic.SOURCE_CHECKPOINT,
+            diagnostic.ACCEPTED_CHECKPOINT,
+            "link/event/arbitrary-event",
+        )
+
+
 @pytest.mark.parametrize(
     "installed_seconds,fault",
-    [(60.0, None), (75.0, None)]
+    [(75.0, None)]
     + [
-        (60.0, fault)
+        (75.0, fault)
         for fault in (
             "source",
             "environment",
@@ -546,8 +610,9 @@ def test_cli_distinguishes_complete_diagnosis_from_unit_success(monkeypatch, cap
         )
     ],
 )
+@pytest.mark.parametrize("target", diagnostic.UNITS)
 def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
-    tmp_path, monkeypatch, installed_seconds, fault
+    tmp_path, monkeypatch, installed_seconds, fault, target
 ):
     import contextlib
 
@@ -566,10 +631,11 @@ def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
     )
     registry = tmp_path / "registry"
     monkeypatch.setenv("SWINGSET_COPY_ROOT", str(registry))
-    monkeypatch.setattr(diagnostic, "producer_identity", lambda: {"linker_version": "9"})
+    monkeypatch.setattr(diagnostic, "producer_identity", lambda: {"linker_version": "10"})
     monkeypatch.setattr(write_deadline, "WRITE_SECONDS", installed_seconds)
     calls = []
     bundle = object()
+    accepted_once = []
 
     class Connection:
         in_transaction = False
@@ -587,9 +653,11 @@ def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
                 self.in_transaction = False
 
     source = SimpleNamespace(
-        connection=Connection(), environment="production" if fault == "environment" else "dev"
+        connection=Connection(),
+        schema_version=38,
+        environment="production" if fault == "environment" else "dev",
     )
-    worker = SimpleNamespace(connection=Connection())
+    worker = SimpleNamespace(connection=Connection(), schema_version=41)
 
     @contextlib.contextmanager
     def database(path, **kwargs):
@@ -629,6 +697,8 @@ def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
         if conn is source.connection:
             return "wrong-source" if fault == "source" else diagnostic.SOURCE_CHECKPOINT
         assert conn is worker.connection
+        if not accepted_once:
+            return diagnostic.SOURCE_CHECKPOINT
         return "wrong-candidate" if fault == "candidate" else diagnostic.ACCEPTED_CHECKPOINT
 
     def capture_inputs(*args):
@@ -644,10 +714,12 @@ def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
         assert not database.connection.in_transaction
         assert clock.now().isoformat() == diagnostic.BUSINESS_CLOCK
         calls.append(("accept",))
+        accepted_once.append(True)
         if fault == "fatal_observer_fault":
             raise KeyboardInterrupt("original application interruption")
 
-    def trial(database, accepted, clock, report):
+    def trial(database, accepted, clock, report, *, unit_name=diagnostic.UNIT):
+        assert unit_name == target
         assert write_deadline.WRITE_SECONDS == diagnostic.WRITE_SECONDS == 75.0
         assert database is worker and accepted is bundle
         calls.append(("trial",))
@@ -669,34 +741,39 @@ def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
         diagnostic.Observations, "acceptance", lambda self: contextlib.nullcontext()
     )
     monkeypatch.setattr(verify_graph, "checkpoint_identity", identity)
-    full = [diagnostic.UNIT, "link/event/example"]
-    binding = {
-        "format": "swingset-input-checkpoint-binding-v1",
-        "source_checkpoint": diagnostic.SOURCE_CHECKPOINT,
-        "checkpoint": diagnostic.ACCEPTED_CHECKPOINT,
-        "inputs": {"recipe/code/project/inventory": "original-captured-input"},
-    }
+    full = [diagnostic.UNIT, "link/event/example", diagnostic.LINK_UNIT]
+    context = {"audit": {"a": "a"}, "versions": {"v": "v"}, "inputs": {"i": "i"}}
     monkeypatch.setattr(diagnostic, "EXPECTED_UNITS", len(full))
     monkeypatch.setattr(diagnostic, "UNIT_SET_SHA256", digest(canonical(full)))
-    monkeypatch.setattr(diagnostic, "INPUTS_SHA256", digest(canonical(binding["inputs"])))
-    monkeypatch.setattr(diagnostic, "BINDING_SHA256", digest(canonical(binding)))
+    monkeypatch.setattr(
+        diagnostic,
+        "CONTEXT",
+        {name: (len(value), digest(canonical(value))) for name, value in context.items()},
+    )
+    monkeypatch.setattr(diagnostic, "CONTEXT_SHA256", digest(canonical(context)))
 
     def projection(conn, accepted, clock):
         assert conn is worker.connection and conn.in_transaction and accepted is bundle
         calls.append(("projection",))
-        return {**binding, "checkpoint": "wrong"} if fault == "projection" else binding
+        if fault == "projection":
+            return {"checkpoint": "unexpected supported prediction"}
+        raise checkpoint_binding.UnsupportedCheckpointTransition(diagnostic.PROJECTION_UNAVAILABLE)
 
     monkeypatch.setattr(checkpoint_binding, "input_acceptance_binding", projection)
     monkeypatch.setattr(
         verify_graph,
         "context",
-        lambda conn: {"inputs": {} if fault == "inputs" else binding["inputs"]},
+        lambda conn: {**context, "inputs": {}} if fault == "inputs" else context,
     )
     monkeypatch.setattr(
         verify_graph,
         "enumerate_units",
         lambda conn, scopes=None: (
-            [] if fault == "selection" else full if scopes is None else [diagnostic.UNIT]
+            []
+            if fault == "selection"
+            else full
+            if scopes is None
+            else [name for name in full if name.startswith(scopes[0] + "/")]
         ),
     )
     monkeypatch.setattr(diagnostic, "profile_derivation", trial)
@@ -724,12 +801,17 @@ def test_one_copy_flow_never_adopts_or_templates_and_keeps_failure_receipt(
         diagnostic.BUSINESS_CLOCK,
         diagnostic.SOURCE_CHECKPOINT,
         diagnostic.ACCEPTED_CHECKPOINT,
+        target,
     )
     if fault is None:
         result = diagnostic.run(*args)
         assert result["diagnostic_complete"] and result["owned_database_cleanup_complete"]
         assert result["trial"]["unit_result"]["state"] == "failed"
         assert result["graph_proof"] is False
+        assert result["input_acceptance_binding"] is None
+        assert result["input_acceptance_binding_unavailable"] == diagnostic.PROJECTION_UNAVAILABLE
+        assert result["accepted_binding"]["checkpoint"] == diagnostic.ACCEPTED_CHECKPOINT
+        assert result["source_post_checkpoint"] == diagnostic.SOURCE_CHECKPOINT
         assert [row[0] for row in calls].count("freeze") == 1
         assert [row[0] for row in calls].count("trial") == 1
     else:
@@ -961,64 +1043,88 @@ def test_observer_finish_fault_never_replaces_application_success_or_fatal_error
     assert caught.value is error
 
 
-@pytest.mark.parametrize(
-    "fault", ["count", "membership", "source", "candidate", "inputs", "component", "unsupported"]
-)
-def test_destination_prelude_refuses_semantic_drift_before_any_write(monkeypatch, fault):
-    import contextlib
-
+@pytest.mark.parametrize("fault", ["count", "membership", "source", "supported", "reason", None])
+def test_destination_prelude_keeps_unsupported_prediction_and_checks_source(monkeypatch, fault):
     from swingset.fetch.archive import canonical, digest
     from swingset.state import checkpoint_binding, verify_graph
 
-    class Connection:
-        readonly = False
-
-        @contextlib.contextmanager
-        def read_snapshot(self):
-            self.readonly = True
-            try:
-                yield
-            finally:
-                self.readonly = False
-
-    conn = Connection()
+    conn = SimpleNamespace(read_snapshot=contextlib.nullcontext)
     expected = [diagnostic.UNIT, "link/event/example"]
-    binding = {
-        "format": "swingset-input-checkpoint-binding-v1",
-        "source_checkpoint": diagnostic.SOURCE_CHECKPOINT,
-        "checkpoint": diagnostic.ACCEPTED_CHECKPOINT,
-        "inputs": {"accepted": "original"},
-        "components": {"unchanged": 1},
-    }
     monkeypatch.setattr(diagnostic, "EXPECTED_UNITS", 3 if fault == "count" else 2)
     monkeypatch.setattr(diagnostic, "UNIT_SET_SHA256", digest(canonical(expected)))
-    monkeypatch.setattr(diagnostic, "INPUTS_SHA256", digest(canonical(binding["inputs"])))
-    monkeypatch.setattr(diagnostic, "BINDING_SHA256", digest(canonical(binding)))
     monkeypatch.setattr(
         verify_graph,
         "enumerate_units",
         lambda connection: expected[:1] + ["changed"] if fault == "membership" else expected,
     )
+    monkeypatch.setattr(
+        verify_graph,
+        "checkpoint_identity",
+        lambda conn: "wrong" if fault == "source" else diagnostic.SOURCE_CHECKPOINT,
+    )
 
-    def projection(connection, bundle, clock):
-        assert connection is conn and conn.readonly
-        if fault == "unsupported":
-            raise checkpoint_binding.UnsupportedCheckpointTransition("unsupported change")
-        key = {
-            "source": "source_checkpoint",
-            "candidate": "checkpoint",
-            "inputs": "inputs",
-            "component": "components",
-        }.get(fault)
-        return binding if key is None else {**binding, key: "changed"}
+    def projection(*args):
+        if fault == "supported":
+            return {"checkpoint": diagnostic.ACCEPTED_CHECKPOINT}
+        raise checkpoint_binding.UnsupportedCheckpointTransition(
+            "other refusal" if fault == "reason" else diagnostic.PROJECTION_UNAVAILABLE
+        )
 
     monkeypatch.setattr(checkpoint_binding, "input_acceptance_binding", projection)
-    with pytest.raises(ValueError):
-        diagnostic.destination_binding(SimpleNamespace(connection=conn), object(), object())
-    assert not conn.readonly
+    if fault is None:
+        binding = diagnostic.destination_binding(
+            SimpleNamespace(connection=conn), object(), object()
+        )
+        assert binding["input_acceptance_binding"] is None
+        assert binding["source_checkpoint"] == diagnostic.SOURCE_CHECKPOINT
+    else:
+        with pytest.raises(ValueError):
+            diagnostic.destination_binding(SimpleNamespace(connection=conn), object(), object())
 
 
-@pytest.mark.parametrize("reference", ["artifact", "image_id"])
+@pytest.mark.parametrize(
+    "fault", ["checkpoint", "audit", "versions", "inputs", "units", "combined", None]
+)
+def test_actual_acceptance_binding_requires_every_observed_component(monkeypatch, fault):
+    from swingset.fetch.archive import canonical, digest
+    from swingset.state import verify_graph
+
+    context = {"audit": {"a": "1"}, "versions": {"v": "2"}, "inputs": {"i": "3"}}
+    expected = [diagnostic.UNIT]
+    monkeypatch.setattr(
+        diagnostic,
+        "CONTEXT",
+        {name: (len(value), digest(canonical(value))) for name, value in context.items()},
+    )
+    monkeypatch.setattr(
+        diagnostic, "CONTEXT_SHA256", "wrong" if fault == "combined" else digest(canonical(context))
+    )
+    monkeypatch.setattr(diagnostic, "EXPECTED_UNITS", 1)
+    monkeypatch.setattr(diagnostic, "UNIT_SET_SHA256", digest(canonical(expected)))
+    monkeypatch.setattr(
+        verify_graph,
+        "checkpoint_identity",
+        lambda conn: "wrong" if fault == "checkpoint" else diagnostic.ACCEPTED_CHECKPOINT,
+    )
+    monkeypatch.setattr(
+        verify_graph,
+        "context",
+        lambda conn: {**context, fault: {}} if fault in context else context,
+    )
+    monkeypatch.setattr(
+        verify_graph, "enumerate_units", lambda conn: [] if fault == "units" else expected
+    )
+    if fault is None:
+        assert (
+            diagnostic.accepted_binding(SimpleNamespace(connection=None))["checkpoint"]
+            == diagnostic.ACCEPTED_CHECKPOINT
+        )
+    else:
+        with pytest.raises(ValueError):
+            diagnostic.accepted_binding(SimpleNamespace(connection=None))
+
+
+@pytest.mark.parametrize("reference", ["artifact", "image_id", "old_artifact", "old_linker"])
 def test_installed_byte_proof_and_oci_reference_have_separate_identities(
     tmp_path, monkeypatch, reference
 ):
@@ -1042,15 +1148,22 @@ def test_installed_byte_proof_and_oci_reference_have_separate_identities(
     )
     monkeypatch.setattr(swingset, "__file__", str(source))
     monkeypatch.setattr(diagnostic, "SOURCE", expected)
-    monkeypatch.setattr(service, "LINKER_VERSION", "9")
+    monkeypatch.setattr(service, "LINKER_VERSION", "9" if reference == "old_linker" else "10")
+    monkeypatch.setattr(diagnostic, "INSTALLED_PYTHON_FILES", 1)
     monkeypatch.setenv(
         "SWINGSET_REVISION", "a stale label cannot establish installed byte identity"
     )
     monkeypatch.setenv(
         "SWINGSET_RUNTIME_IMAGE",
-        diagnostic.RUNTIME_ARTIFACT if reference == "artifact" else diagnostic.IMAGE,
+        (
+            "swingset-runtime@sha256:5f9b83c510d8af3870cf3b20d3319fb9dff83c91e1c4eadb4fe03134ce0b4cf9"
+            if reference == "old_artifact"
+            else diagnostic.IMAGE
+            if reference == "image_id"
+            else diagnostic.RUNTIME_ARTIFACT
+        ),
     )
-    if reference == "image_id":
+    if reference != "artifact":
         with pytest.raises(ValueError, match="producer differs"):
             diagnostic.producer_identity()
     else:
@@ -1349,3 +1462,425 @@ def test_acceptance_callee_bound_marks_overflow_and_still_calls_original(
     assert observed.value["overflow"] and not value["quality"] and value["hooks_restored"]
     assert value["rows"]["recipe_audit"]["calls"] == 1
     assert value["rows"]["recipe_audit"]["normal_returns"] == 1
+
+
+@pytest.mark.parametrize("target", diagnostic.UNITS)
+def test_native_write_entry_refusal_is_incomplete_and_restores_hooks(tmp_path, monkeypatch, target):
+    from swingset.clock import FakeClock
+    from swingset.state import verify, write_deadline
+    from swingset.state.db import open_database
+
+    original_live = verify._live_label
+
+    @contextlib.contextmanager
+    def refusal(*args, **kwargs):
+        raise RuntimeError("private native boundary refusal")
+        yield
+
+    monkeypatch.setattr(write_deadline, "bounded_write", refusal)
+    with open_database(tmp_path / "state", lock=False) as database:
+        original_transaction = database.transaction
+        report = diagnostic.profile_derivation(
+            database, SimpleNamespace(), FakeClock(), unit_name=target
+        )
+        assert database.transaction == original_transaction
+        assert not database.connection.in_transaction
+    assert report["unit_result"]["error_type"] == "RuntimeError"
+    assert report["observer"]["native_entry_count"] == 0
+    assert not report["observer_complete"] and not report["rollback_fingerprint_equal"]
+    assert verify._live_label is original_live
+    assert "private native" not in json.dumps(report)
+
+
+def test_trial_records_safe_exception_chain_before_verifier_conversion(tmp_path, monkeypatch):
+    import psycopg
+
+    from swingset.clock import FakeClock
+    from swingset.project import process
+    from swingset.state import verify
+    from swingset.state.db import open_database
+
+    cause = psycopg.errors.QueryCanceled("SELECT password FROM secret; postgres://private")
+    primary = RuntimeError("private application message")
+
+    def failed(*args, **kwargs):
+        raise primary from cause
+
+    monkeypatch.setattr(process, "process_unit", failed)
+    with open_database(tmp_path / "state", lock=False) as database:
+        report = diagnostic.profile_derivation(database, SimpleNamespace(), FakeClock())
+    assert report["observer_complete"] and report["rollback_fingerprint_equal"]
+    chain = report["primary_failure"]["chain"]
+    assert [row["error_type"] for row in chain] == ["RuntimeError", "QueryCanceled"]
+    assert [row["relation"] for row in chain] == ["primary", "cause"]
+    assert chain[1]["sqlstate"] == "57014"
+    assert chain[0]["frames"]
+    assert all(
+        frame["file"].startswith("installed/swingset/") for row in chain for frame in row["frames"]
+    )
+    assert all(
+        set(frame) == {"file", "function", "line"} for row in chain for frame in row["frames"]
+    )
+    body = json.dumps(report)
+    assert all(
+        secret not in body
+        for secret in ["password", "postgres://", "private application", "SELECT"]
+    )
+    assert report["unit_result"] == {
+        "unit": diagnostic.UNIT,
+        "state": "failed",
+        "error_type": "RuntimeError",
+    }
+    assert verify._live_label.__name__ == "_live_label"
+
+
+@pytest.mark.parametrize("primary_kind", [ValueError, KeyboardInterrupt, SystemExit, "uncertain"])
+@pytest.mark.parametrize("secondary_kind", [OSError, KeyboardInterrupt])
+def test_trial_writer_finalization_never_replaces_primary(
+    monkeypatch, primary_kind, secondary_kind
+):
+    from swingset.state import verify
+    from swingset.state.engine import CommitUncertain
+
+    primary_kind = CommitUncertain if primary_kind == "uncertain" else primary_kind
+    primary = primary_kind("private primary")
+    secondary = secondary_kind("private writer-state observer")
+
+    class Connection:
+        failed = False
+        in_transaction = False
+        read_snapshot = staticmethod(contextlib.nullcontext)
+
+        @property
+        def closed(self):
+            if self.failed:
+                raise secondary
+            return False
+
+        def execute(self, *args):
+            return SimpleNamespace(fetchone=lambda: ("run",))
+
+    connection = Connection()
+    database = SimpleNamespace(connection=connection, transaction=contextlib.nullcontext)
+    original_transaction = database.transaction
+    original_live = verify._live_label
+
+    def fail(*args):
+        connection.failed = True
+        raise primary
+
+    monkeypatch.setattr(verify, "verify_unit", fail)
+    monkeypatch.setattr(verify, "_pointer_label", lambda *args: "pointer")
+    report = {}
+    with pytest.raises(primary_kind) as caught:
+        diagnostic.profile_derivation(database, None, None, report)
+    assert caught.value is primary
+    assert database.transaction is original_transaction and verify._live_label is original_live
+    assert not report["observer_complete"] and not report["observer"]["quality"]
+    assert report["observer"]["finalization_errors"] == 1
+    assert "private" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("target", diagnostic.UNITS)
+def test_closed_writer_is_observed_without_reconnect_or_rollback_query(monkeypatch, target):
+    from swingset.state import verify
+
+    calls = []
+    connection = SimpleNamespace(closed=False, in_transaction=False)
+    connection.execute = lambda *args: (
+        calls.append("read") or SimpleNamespace(fetchone=lambda: ("run",))
+    )
+    connection.read_snapshot = lambda: pytest.fail("queried a closed writer")
+    database = SimpleNamespace(connection=connection, transaction=contextlib.nullcontext)
+
+    def fail(*args):
+        connection.closed = True
+        return {"state": "failed", "error": "ConnectionLost: private session error"}
+
+    monkeypatch.setattr(verify, "verify_unit", fail)
+    monkeypatch.setattr(verify, "_pointer_label", lambda *args: "pointer")
+    report = diagnostic.profile_derivation(database, None, None, unit_name=target)
+    assert report["writer_before"]["closed"] is False and report["writer_after"]["closed"] is True
+    assert report["unit_result"]["error_type"] == "ConnectionLost"
+    assert not report["observer_complete"] and not report["rollback_fingerprint_equal"]
+    assert calls == ["read"] and "private" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("observer_kind", [OSError, KeyboardInterrupt])
+def test_failure_metadata_fault_keeps_real_application_error(tmp_path, monkeypatch, observer_kind):
+    from swingset.clock import FakeClock
+    from swingset.project import process
+    from swingset.state.db import open_database
+
+    primary = RuntimeError("private producer error")
+    secondary = observer_kind("private metadata error")
+
+    def fail(*args, **kwargs):
+        raise primary
+
+    def observer(*args):
+        raise secondary
+
+    monkeypatch.setattr(process, "process_unit", fail)
+    monkeypatch.setattr(diagnostic, "failure_metadata", observer)
+    with open_database(tmp_path / "state", lock=False) as database:
+        report = diagnostic.profile_derivation(database, SimpleNamespace(), FakeClock())
+        assert not database.connection.in_transaction
+    assert report["unit_result"]["error_type"] == "RuntimeError"
+    assert not report["observer_complete"] and report["observer"]["finalization_errors"] == 1
+    assert "private" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("secondary_kind", [OSError, KeyboardInterrupt, SystemExit])
+def test_caught_failure_keeps_metadata_but_fresh_interruption_survives(monkeypatch, secondary_kind):
+    from swingset.project import history, process
+    from swingset.state import derivations, verify
+
+    primary = RuntimeError("private original application failure")
+    secondary = secondary_kind("private final observation")
+
+    class Connection:
+        failed = False
+        in_transaction = False
+        read_snapshot = staticmethod(contextlib.nullcontext)
+
+        @property
+        def closed(self):
+            if self.failed:
+                raise secondary
+            return False
+
+        def execute(self, *args):
+            return SimpleNamespace(fetchone=lambda: ("run",))
+
+    connection = Connection()
+
+    @contextlib.contextmanager
+    def transaction():
+        yield connection
+        raise primary
+
+    database = SimpleNamespace(connection=connection, transaction=transaction)
+
+    def verifier(*args):
+        try:
+            with database.transaction():
+                pass
+        except RuntimeError as caught:
+            assert caught is primary
+            connection.failed = True
+            return {
+                "state": "failed",
+                "error": "RuntimeError: private original application failure",
+            }
+
+    monkeypatch.setattr(verify, "verify_unit", verifier)
+    monkeypatch.setattr(verify, "_pointer_label", lambda *args: "pointer")
+    hooks = [
+        (module, name, getattr(module, name))
+        for module, name in (
+            (verify, "_live_label"),
+            (process, "process_unit"),
+            (derivations, "capture"),
+            (derivations, "desired"),
+            (history, "prepare_inventory"),
+            (process, "_hint_links"),
+            (derivations, "complete"),
+        )
+    ]
+    report = {}
+    if secondary_kind is OSError:
+        assert diagnostic.profile_derivation(database, None, None, report) is report
+    else:
+        with pytest.raises(secondary_kind) as caught:
+            diagnostic.profile_derivation(database, None, None, report)
+        assert caught.value is secondary
+        assert report["terminal_failure"]["chain"][0]["error_type"] == secondary_kind.__name__
+    assert report["unit_result"]["error_type"] == "RuntimeError"
+    assert report["primary_failure"]["chain"][0]["error_type"] == "RuntimeError"
+    assert report["writer_after"] is None and not report["observer_complete"]
+    assert database.transaction is transaction
+    assert all(getattr(module, name) is original for module, name, original in hooks)
+    assert "private" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("depth", [15, 20])
+def test_deep_real_graph_transfer_trace_reports_frame_clipping_without_values(depth):
+    from swingset.state import verify_graph
+
+    class RefusingMapping(dict):
+        def items(self):
+            raise RuntimeError("SELECT private_password FROM secrets; postgres://private")
+
+    value = RefusingMapping(private_key="private_value")
+    for _ in range(depth):
+        value = {"private_bundle_key": value}
+    try:
+        verify_graph._transferable(value)
+    except RuntimeError as error:
+        trace = error.__traceback__
+        traversed = 0
+        while trace is not None:
+            traversed += 1
+            trace = trace.tb_next
+        # Exercise the trusted-output cap independently of the traversal cap.
+        assert traversed < 64
+        metadata = diagnostic.failure_metadata(error)
+    else:
+        pytest.fail("nested graph bundle did not reach the failing mapping")
+    row = metadata["chain"][0]
+    assert len(row["frames"]) == min(depth + 1, 16)
+    assert row["traceback_truncated"] is (depth + 1 > 16)
+    assert not metadata["chain_truncated"]
+    assert row["error_type"] == "RuntimeError" and row["sqlstate"] is None
+    assert all(
+        frame["file"] == "installed/swingset/state/verify_graph.py"
+        and frame["function"] == "_transferable"
+        and isinstance(frame["line"], int)
+        for frame in row["frames"]
+    )
+    assert all(set(frame) == {"file", "function", "line"} for frame in row["frames"])
+    body = json.dumps(metadata)
+    assert all(secret not in body for secret in ("private", "SELECT", "postgres://", __file__))
+
+
+@pytest.mark.parametrize("outcome", ["normal", "error", "deadline", "fatal_finalizer", "foreign"])
+def test_budafest_uses_real_link_service_aliases_and_native_rollback(
+    tmp_path, monkeypatch, outcome
+):
+    from swingset import link
+    from swingset.clock import FakeClock
+    from swingset.link import service
+    from swingset.project import process
+    from swingset.state import derivations, read_sets, verify
+    from swingset.state.db import open_database
+    from swingset.state.work import WorkUnit
+    from swingset.state.write_deadline import WriteDeadlineExceeded
+
+    unit = WorkUnit(*diagnostic.LINK_UNIT.split("/", 2))
+    bundle = SimpleNamespace(
+        files={}, config=SimpleNamespace(derivation=SimpleNamespace(cutoff=False))
+    )
+    selection = SimpleNamespace(unit=unit, dependencies=())
+    calls, finalized = [], []
+    primary = KeyboardInterrupt("private primary")
+    native = service.link_event
+    monkeypatch.setattr(process, "process_unit", lambda *a, **k: pytest.fail("project dispatch"))
+
+    def desired(*args, **kwargs):
+        calls.append("desired")
+        return selection
+
+    def capture(conn, selected, **kwargs):
+        assert selected == unit and conn.in_transaction
+        calls.append("capture")
+        return derivations.desired(conn, selected)
+
+    def load(conn, event_id, accepted, selected):
+        assert event_id == unit.unit_id and accepted is bundle and selected is selection
+        assert read_sets.active(conn).unit == unit
+        assert 0 < signal.getitimer(signal.ITIMER_REAL)[0] <= 75
+        calls.append("load")
+        if outcome == "foreign":
+            thread = threading.Thread(
+                target=service.resolve_event, args=("private evidence", "private rules")
+            )
+            thread.start()
+            thread.join()
+        return SimpleNamespace(evidence="private evidence", rules="private rules", basis=object())
+
+    def resolve(evidence, rules):
+        assert (evidence, rules) == ("private evidence", "private rules")
+        calls.append("resolve")
+        return object()
+
+    def complete(conn, selected, **kwargs):
+        assert selected is selection
+        calls.append("complete")
+
+    def commit(database, *args, **kwargs):
+        calls.append("commit")
+        database.connection.execute(
+            "INSERT INTO ops.meta(key,value) VALUES('link-diagnostic','private')"
+        )
+        if outcome == "error":
+            raise RuntimeError("private application error")
+        if outcome == "deadline":
+            raise WriteDeadlineExceeded("private deadline")
+        if outcome == "fatal_finalizer":
+            finalized.append(True)
+            raise primary
+        derivations.complete(database.connection, selection)
+        return True
+
+    monkeypatch.setattr(derivations, "capture", capture)
+    monkeypatch.setattr(derivations, "desired", desired)
+    monkeypatch.setattr(derivations, "complete", complete)
+    monkeypatch.setattr(service, "load_linking_snapshot", load)
+    monkeypatch.setattr(service, "resolve_event", resolve)
+    monkeypatch.setattr(service, "commit_resolution", commit)
+    monkeypatch.setattr(service, "read_set", lambda *a: ())
+    if outcome == "fatal_finalizer":
+        cpu = diagnostic.time.thread_time
+
+        def failing_final_clock():
+            if finalized:
+                raise SystemExit("private secondary finalizer")
+            return cpu()
+
+        monkeypatch.setattr(diagnostic.time, "thread_time", failing_final_clock)
+    hooks = [
+        (module, name, getattr(module, name))
+        for module, name in (
+            (link, "link_event"),
+            (service, "link_event"),
+            (service, "load_linking_snapshot"),
+            (service, "resolve_event"),
+            (service, "commit_resolution"),
+            (derivations, "capture"),
+            (derivations, "desired"),
+            (derivations, "complete"),
+            (verify, "_live_label"),
+            (process, "process_unit"),
+        )
+    ]
+    report = {}
+    with open_database(tmp_path / "state", lock=False) as database:
+        if outcome == "fatal_finalizer":
+            with pytest.raises(KeyboardInterrupt) as caught:
+                diagnostic.profile_derivation(
+                    database, bundle, FakeClock(), report, unit_name=diagnostic.LINK_UNIT
+                )
+            assert caught.value is primary
+        else:
+            diagnostic.profile_derivation(
+                database, bundle, FakeClock(), report, unit_name=diagnostic.LINK_UNIT
+            )
+            assert report["rollback_fingerprint_equal"] and report["rollback_run_rows_equal"]
+            assert report["observer_complete"] is (outcome != "foreign")
+            if outcome in {"error", "deadline"}:
+                assert report["unit_result"]["error_type"] == (
+                    "RuntimeError" if outcome == "error" else "WriteDeadlineExceeded"
+                )
+                assert (
+                    report["primary_failure"]["chain"][0]["error_type"]
+                    == report["unit_result"]["error_type"]
+                )
+        assert (
+            database.connection.execute(
+                "SELECT 1 FROM ops.meta WHERE key='link-diagnostic'"
+            ).fetchone()
+            is None
+        )
+        assert report["writer_after"] == {"closed": False, "in_transaction": False}
+    assert link.link_event is service.link_event is native
+    assert all(getattr(module, name) is original for module, name, original in hooks)
+    assert calls[:3] == ["capture", "desired", "load"] and "commit" in calls
+    phases = {row["name"] for row in report["phases"]}
+    assert {"capture", "desired", "load_linking_snapshot", "resolve_event"} <= phases
+    if outcome != "fatal_finalizer":
+        assert {"commit_resolution", "link_event"} <= phases
+    else:
+        assert not report["observer_complete"] and not report["observer"]["quality"]
+    assert report["observer"]["native_entry_count"] > 0
+    assert report["unit"] == diagnostic.LINK_UNIT and "private" not in json.dumps(report)

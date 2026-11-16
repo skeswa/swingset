@@ -1,0 +1,73 @@
+{
+  "before_source_snapshot_sha256": "73bcd49b1ba08e0c59721c9091deffad6599171f42809854c6c43066cf724107",
+  "command_context": {
+    "actual_exit_codes": {
+      "archive": 0,
+      "dependencies": 0,
+      "proof_copy4": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "proof_create": 0,
+      "runtime": 0
+    },
+    "build_log_sha256": {
+      "dependencies": "ae7d15da281e8cc1c790479096d30470786a6890067baf2eb3b15fee7905c4b3",
+      "runtime": "63c50bc1e50ed1177c25dcb55aaf8f51378272522801febb310d80df0a3da793"
+    },
+    "operations": [
+      "ordinary dependency and runtime Docker builds for linux/amd64",
+      "one never-started byte-proof container and four copy readbacks",
+      "runtime OCI archive and manifest/config/layer verification"
+    ]
+  },
+  "format": "swingset-local-amd64-runtime-qualification-v1",
+  "metadata_sha256": {
+    "dependencies": "eb36d9b9e8d6f8ade5250b08b495bd2ba38dda63ddda5ac9cd7876b644eac492",
+    "runtime": "ecb521bb36d07b2b3822f8256313387a695e785a3f48a166af9b19440159a7c1"
+  },
+  "packet": "/tmp/swingset-stage2-runtime862-amd64-build-20261116-v1",
+  "qualification": {
+    "all956_inputs_unchanged": true,
+    "app_src_duplicate_matches": true,
+    "architecture": "linux/amd64",
+    "at": "2026-11-16T18:45:11.899651+00:00",
+    "binding_sha256": "8e83714209c94b9b4353cb21c3afcbf31c23529dba739744314d1d9a2b1ce367",
+    "build_exit_codes": {
+      "archive": 0,
+      "dependencies": 0,
+      "proof_copy4": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "proof_create": 0,
+      "runtime": 0
+    },
+    "byte_proof_container_id": "a5b32724c434d81e2b2865538d0e59b78c67adb5de0a1c8b1aa967ecc4405af9",
+    "byte_proof_container_never_started": true,
+    "complete": true,
+    "dependency_artifact": "sha256:b70650ada9a4fe70720360023a53809dac115aa4a49f43aa28daaab4d67d402d",
+    "dependency_image_id": "sha256:b70650ada9a4fe70720360023a53809dac115aa4a49f43aa28daaab4d67d402d",
+    "dependency_rootfs_prefix_pass": true,
+    "installed_exact_file_set_and_hashes_match": true,
+    "installed_public_file_count": 569,
+    "installed_python_count": 376,
+    "local_runtime_id": "sha256:08df0ebcf24c3def6233bfb297cb8378412cb982129f9ced6d359d4fe5ea4859",
+    "mac_free_bytes": 147551715328,
+    "oci_manifest_config_and_all_layer_hashes_pass": true,
+    "oci_manifest_digest": "sha256:08df0ebcf24c3def6233bfb297cb8378412cb982129f9ced6d359d4fe5ea4859",
+    "portable_config_digest": "sha256:e68aa1274c16eb2a445f7ebec921ca175cb57dc0bf627fab6b00bb30695aa276",
+    "qualified_artifact": "swingset-runtime@sha256:08df0ebcf24c3def6233bfb297cb8378412cb982129f9ced6d359d4fe5ea4859",
+    "runtime_archive_bytes": 248929280,
+    "runtime_archive_sha256": "8c2947f47ce3cd1f3a97396cd57d9ca8b3f0ee926650570fdbc449d7832bd532",
+    "server_activated": false,
+    "server_loaded": false,
+    "source": "source-sha256:862bbd75c9a7496e0d297147c8a9192b1acd759917a90ac6d16f04d331118e3c"
+  },
+  "qualification_sha256": "13271be51fe40acc365c946f324f28f2a3ffcd5d8500d565512c57fc94176776",
+  "scope": "Local immutable artifact and installed-byte qualification only; no server load, image transition, graph, database, publication or deployment. Existing frozen346 diagnostic continues unchanged."
+}

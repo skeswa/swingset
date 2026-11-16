@@ -1,0 +1,121 @@
+{
+  "acceptance_passed": false,
+  "actor_incarnation": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "cgroup": "/system.slice/docker-24154fe5cb93df1dc4c4f64232b6f7d73c440c106179f4908781066c8f6d2311.scope",
+    "container_id": "24154fe5cb93df1dc4c4f64232b6f7d73c440c106179f4908781066c8f6d2311",
+    "network_inode": 4026533551,
+    "pid": 3116755,
+    "start_ticks": "1025042875",
+    "started_at": "2026-11-16T18:33:10.216488566Z"
+  },
+  "actual_operator": {
+    "diagnostic_complete": false,
+    "format": "swingset-one-unit-rollback-diagnostic-v1",
+    "operator_sha256": "614d3bd152d1108af091169aa47536c26fc60c357bf630ca836760d81acd3545",
+    "phase": "freeze_one_new_owned_database",
+    "worker_write_policy": {
+      "applied_seconds": null,
+      "authorized_seconds": 75.0,
+      "installed_seconds": 60.0,
+      "restored": null,
+      "scope": "Postfreeze owned-copy acceptance and ordinary inventory trial only; installed producer bytes unchanged."
+    }
+  },
+  "cleanup_complete": false,
+  "command_context": {
+    "command": "maintained swingset unit-diagnostic-job / python -m swingset.deploy.unit_diagnostic_job",
+    "foreground_command_template_sha256": "b9c0369d69e84687c03aa67d7c062e71b7fa166911e623b07bda4e081e87643f",
+    "localSSH": {
+      "birth": "Mon Nov 16 13:33:08 2026",
+      "pgid": 46604,
+      "pid": 46604,
+      "tool_session_root_reported": 13584
+    }
+  },
+  "copy_ready": false,
+  "diagnostic_complete": false,
+  "format": "swingset-inventory75-diagnostic-startup-v1",
+  "hashes": {
+    "action_review": "17873f6090bd33f903690332796e278eb9eae06e0011dddc01a0dae645ba23fc",
+    "independent_startup": "eb0d64628b4ef93d2f34b5983c2e1892df380cf2ad73b4cac3dba9e3afb15307",
+    "plan": "8ea259130245b49dbd2851810fcff37a3d19794178227bf7b1fcca89d46a7fa2",
+    "public_observation": "821273d2a27274ad00b65b0b308ef27627e38c5bc8fea0ccb7f0741d29f23d90",
+    "root_go": "f8af4f9b9ba03297f19299d82c1ac9185fb4820e5922854031bfa8f96106bd16",
+    "stage_pulse_result": "fca3a0143489889d9f4c4ad5e6a873dde212e86ea832ea8df7a2ece3d34a2b59"
+  },
+  "hold_chain": {
+    "continuous_currentinterval_separately_verified": true,
+    "current_hold_sha256": "41f2b246b874aa66e3d2abcaffff95bf155c5a04145fecac2cfbb567ea2011e4",
+    "renewal5_terminal_review_sha256": "448803349ce2bf815b1937bc370fdf6c08bedc8ef2a99360e6def885b830e1ee",
+    "review_at": "2026-11-16T19:35:51.076328+00:00"
+  },
+  "independent_verdict": "ACCEPT_RUNNING_BOUND_STARTUP_GUARDED_ONE_OWNED_FREEZE_IN_PROGRESS",
+  "limits": [
+    "Actualphasefreeze_one_new_owned_database withoneallocatedexact_0 DB; COPYNOTREADY. No prelude/acceptance/trial/75applied/restored/cleanup/unit/graph/runtimequalification claim.",
+    "Installed60/authorized75/appliedNone/restoredNone expectedBEFOREpostfreezeownedpolicy; laterreceiptmustprove75application/restoration.",
+    "Newownledger projectedinremoteRAM, endpoint/connectionvalues omitted. No private.env/unknown9e6ledgerbody/Config.Env/SQLquerytext/parameter export/hash.",
+    "Prefreeze00cguard passage inferredfromactualfreezephase infixed614dcode, not reviewerfullsourcefingerprint. Sourcefinalpostidentity andownedcleanup remainterminalrequirements.",
+    "Initial<=120s startupgate is maintainedfixedcode proof plus persistedliveidentity, parent observed at18:33:52. Independentreadback18:39 confirms sameincarnation/authorization; no false earlytimestamp.",
+    "NoOOM isnotnopressure/nocongestionclaim; cgroupcounters retainedwithoutcausalinterpretation.",
+    "No reviewer actorstart/stop/retry/SQLmutation/cleanup/source/VC/evidence writes ornewtests. Same17873/currentreviewedholdchaincontinues; same-reviewerterminalboundary stillmandatory."
+  ],
+  "observed_at": "2026-11-16T18:50:21.720107+00:00",
+  "observed_interval": [
+    "2026-11-16T18:39:26.386486+00:00",
+    "2026-11-16T18:39:28.757558+00:00"
+  ],
+  "one_owned_database": {
+    "comment": "swingset-scratch:1d527dbfd220474abcd80cec",
+    "name": "sst_copy_1d527dbfd220474abcd80cec_0",
+    "oid": 7209713,
+    "owner": "postgres"
+  },
+  "owner_token": "1d527dbfd220474abcd80cec",
+  "remote_supervisor": {
+    "argv_exact": true,
+    "cgroup": "0::/user.slice/user-1000.slice/session-28165.scope\n",
+    "netns": "net:[4026531840]",
+    "pgid": 3116243,
+    "pid": 3116243,
+    "pidns": "pid:[4026531836]",
+    "start_ticks": "1025042784"
+  },
+  "resource_observation": {
+    "cpu.max": "600000 100000\n",
+    "memory.current": "999481344\n",
+    "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+    "memory.max": "8589934592\n",
+    "memory.peak": "2236772352\n",
+    "memory.swap.max": "0\n",
+    "pids.max": "256\n"
+  },
+  "runtime_normalizations": [
+    {
+      "field": "publicMounts_and_HostConfigMounts_order",
+      "rule": "Completeobjects keyedbyuniqueDestination/Target; originalraworders retained."
+    },
+    {
+      "cold": false,
+      "field": "HostConfig.OomKillDisable",
+      "rule": "Unconfiguredoptionalvalue only: exactcreatevector has no --oom-kill-disable; neither observedvalue istrue. NormalizeFalse/null solelyforthisunconfiguredfield; allothercompleteHCkeys exact. No causeclaimedforDockerrepresentationchange, noflag/resource relaxation.",
+      "running": null
+    }
+  ],
+  "trial_passed": false,
+  "verified": {
+    "IPv4_SQL6_proxy2_DNS4_only_thenREJECT_firstOUTPUTjump": true,
+    "IPv6_lo_established_REJECT_firstOUTPUTjump_disabled1": true,
+    "UID10001_caps0_NNP1_Seccomp2_PID1": true,
+    "actor_birth_boot_netns_pidns_cgroup_stable_before_after": true,
+    "exactUID1000_supervisor_argv_birth_namespace": true,
+    "freshprotected12_native87_guardian_match": true,
+    "fullConfig_HC_11mounts_except_runningstate_and_explicit_normalizations": true,
+    "kernel8GiB_noswap_6CPU_256": true,
+    "maintainedstartup_identity_dev_C696_UUID_match": true,
+    "publicoperator614d_andhost6_hashes_match": true,
+    "root444h1_auth_matches_actor_boot_birth_netns_policy": true,
+    "runtimefreefloor_noerror_stop_OOM": true,
+    "sourceC696_69_catalog_schema38_UUID_checksum_basebytes_unchanged": true
+  }
+}

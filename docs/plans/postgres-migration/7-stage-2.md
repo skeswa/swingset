@@ -2,12 +2,432 @@
 
 Read [6. Stage 1](6-stage-1.md) first; next is [8. Stage 3](8-stage-3.md).
 
-November 16 resume: prepare a fresh 75-second diagnostic packet on the
-qualified host source, then reopen the expired rehearsal hold and obtain fresh
-read-only admission before cold preparation or execution. The tested current
-revision has only 101 bytes of its evidence budget left; closing it needs
-owner approval before new operation receipts. No new worker has started
-([resume](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-16-stage-2-resume)).
+November 17 native41 normal graph ends naturally at 10:56:37 UTC, exit1,
+on qualified source `be56773b…` / CONFIG `2eb802d9…`. It returns 107,674
+unique results against 108,390 expected: 107,007 match, 653 mismatch and
+14 fail. Thirteen link units exceed the unchanged 75-second write limit.
+`project/inventory/all` loses its connection; shard1 stops and leaves exactly
+716 units unattempted. No OOM or supervisor stop is observed. Independent
+terminal review accepts the protected-source boundary and automatic owned
+cleanup only, rejecting the graph, Gate2 and re-key. Raw receipt and review
+stay in scratch under the evidence rules
+([terminal outcome](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#native41-normal-graph-terminal-2026-11-17)).
+
+This normal failure selects one bounded current-producer inventory
+attribution before any further optimization. Reuse the maintained
+`unit-diagnostic` operator and host supervisor, updating their fixed producer
+to immutable BE567 / CONFIG2eb / 570 installed files / Linker10. Pin the
+actual graph clock `2026-11-17T05:20:58.846978+00:00`, source00c, accepted5039
+and actual audit/version/input context. Mirror ordinary committed input
+acceptance; the graph's unsupported predictive binding stays null. Do not
+invent a projected binding or overlay business code in `/app`.
+
+Select only `project/inventory/all` on one fresh owned copy. Keep native75,
+all resource and statement limits, rollback-only verification, source
+fingerprints and owned cleanup. Record bounded owner wall/CPU spans and the
+original exception class/SQLSTATE and connection state at loss, without
+messages, arguments, SQL, locals or secrets. Observation and restoration
+must preserve primary failures. Promote the necessary tested diagnostics
+into the existing maintained modules; do not retarget the executed scratch
+helper or add a general controller. Concrete admission and sole review
+precede execution. One isolated sample does not prove the historical loss
+cause. The 13 link overruns and all 653 mismatches remain unaccepted; no
+unchanged whole-graph retry, limit raise, Shared migration, re-key, backup,
+publication or recovery is selected before the measured failures are fixed.
+
+For the observed link-label differences, select a bounded read-only
+counterfactual witness. Current output labels include
+`identity_links.linker_version`; test whether changing only recorded 9 to 10
+predicts each actual found label. First reproduce every original label,
+preserve all other payload values and ordering, and retain exact unmatched
+units. No database write or version-only explanation is authorized by the
+aggregate counts. Dependency-only differences still require closed queue
+exclusions; no bump or tolerance waiver follows without its witness.
+
+Use the original native38 C696 copy through one repeatable-read, read-only
+snapshot for that witness. The proposed SQLite reader remains stopped:
+host permissions prevent proving that its source has no writer. No SQLite
+source hash or reader execution occurred. Stream typed rows only through a
+server-local pipe to the isolated reader; export only hashes, counts and
+unit names. Both processes must exit zero after the committed footer and
+EOF. Exact source identity, cold helper profile, independent review and
+one execution intent precede the query. This route grants no host-wide
+privilege and changes no graph acceptance rule.
+
+The first actual native witness reproduces all 405 original labels and
+explains 401 through that single version field. Four remain: July 2025
+Midwest Westie Fest, February 2026 Rose City Swing, May 2026 SoSwing and
+July 2026 Midwest Westie Fest. Keep every residual blocked; do not infer
+its cause from the majority. The graph still has 13 link overruns, the
+inventory failure, 716 unattempted units and 248 dependency-only differences
+([witness](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#native-link-version-witness-2026-11-17)).
+
+Select a narrow hash-only path in the existing maintained forensic command
+before another capture. Start with the 248 dependency differences: 191
+distinct expected roots, plus the checkpoint's selected inventory group,
+split into packets of at most 128 top-level roots. Read no nested scan or
+assumed rolled-back found manifest. First prove each original root digest,
+unit pointer and label. Then replace only the inventory selection and use
+the existing canonical outer-list sort to test the complete found digest.
+Keep every failed reconstruction blocked.
+
+Raw rows, root bodies and names stay in server RAM. Preserve the existing
+source, time, resource, byte and root limits. Promote repeated stream
+validation into `metadata_capture.py` and its existing tests; do not run
+the one-off reader again or add a launcher/framework. Implement and test
+locally while the inventory sample runs; no forensic server operation or
+source connection precedes that sample's terminal cleanup review. The
+four numerical differences still need closed current pair sets and full
+label reconstructions; old missing captures supply hypotheses only.
+
+The current inventory sample completes its diagnostic and owned cleanup,
+but the write fails at 75.038 seconds. Source fingerprints and rollback
+match, the connection remains open/idle, and observer quality passes.
+Capture takes 33.159 seconds, including a 32.429-second desired selection;
+inventory preparation takes 23.818 seconds. Completion is interrupted
+during its repeated desired selection, in the per-member generation-pointer
+lookup. These nested spans are not additive and identify no exact timed
+SQL statement. This does not reproduce the normal graph's connection loss
+([measurement](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#current-inventory-diagnostic-outcome-2026-11-17)).
+
+That measured overrun selects bounded pointer reads through the existing
+`selected_generations` module interface. Resolve each dependency cohort
+in batches, preserving missing pointers, group overrides, duplicate input
+members, canonical member ordering and exact digests. Keep both fresh
+selection checks, all mutation/rollback protections, and the 75-second
+limit. Add no cache, schema change or version bump. Query-count and
+semantic-equivalence tests precede qualification and actual timing; the
+13 link overruns and all other graph blockers remain open.
+
+Before another whole graph, select one bounded attribution of the current
+first failed link, `link/event/2020-01-budafest-open-wcs-championships`,
+on qualified BE567. Its normal graph overrun is the trigger; the earlier
+West-in-Lyon sample predates the native41 indexes and is not its proof.
+Extend the existing maintained diagnostic to this explicit target while
+preserving the inventory default, one owned copy, ordinary committed
+acceptance, exact current context, native75, rollback and source checks.
+Observe bounded evidence/resolve/commit and completion spans with the same
+safe exception metadata; do not change scoring, matching or caller checks.
+No arbitrary target, one-off script, new launcher or unbounded profile is
+selected. Qualification and separate concrete review still precede a
+single actual invocation. Local preparation may run in parallel with the
+pointer fix; no new server action follows from this plan edit.
+
+November 16 current normal graph fails. Source `862bbd75…` / CONFIG
+`e68aa127…`, Linker 10 and 75-second writes end naturally at 23:34:02 UTC,
+exit 1/PID0, no OOM or restart. The 108,390 unique expected identities all
+return: 38,070 match, 107 mismatch without declared bumps and 70,213 fail.
+Of the failures, 67 exceed the unchanged 75-second write bound; 70,146 are
+ConnectionLost. Complete and clean remain false. Empty shard-level errors
+do not erase unit failures. The source/current checkpoint `00c831a4…` /
+`5039effb…`, D58 and actual audit/version/input context remain captured;
+unsupported predicted binding remains null. Sole terminal review accepts
+only source/protected preservation and automatic owned cleanup, rejecting
+graph, Gate 2 and re-key acceptance
+([terminal receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/normal75-graph-d1f0059d2cc2-terminal.json)).
+
+Each shard keeps one Database. Once its final deadline leaves that session
+closed, roughly 35,000 following units per shard return the same ConnectionLost.
+That cascade is established; the initial session-closure cause is not yet
+proved. The 67 actual overruns remain failed. The generic supervisor
+ValueError/peer-or-disk stop label supplies no precise cause, and no supervisor
+stop is attempted. The normal failure now triggers bounded current-runtime
+attribution; no limit raise, optimization, unchanged replay, shared migration,
+input acceptance or re-key is selected. All three owned databases/backends,
+ledger, processes, cgroup and authorization are retired automatically. Source
+C696/69, native38, protected14 and the original five-database catalog remain
+preserved. No observed OOM establishes no stronger memory-pressure claim.
+
+Two local correctness fixes now stop a shard on session loss, preserve its
+completed prefix and mark remaining work unattempted. Expired writes on a
+closed session report ConnectionLost with rollback unconfirmed, preserving
+commit uncertainty and external interruptions. The existing verifier and
+deadline test files pass all 32 and 35 cases. The complete core check passes
+all 3,713 cases in 249.48 seconds under 300 seconds; Ruff and mypy pass on
+source `b06416a2…`
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/closed-session-correctness-core.json)).
+The extended suite also passes all 5,293 cases with four workers in 1,516
+seconds, with zero failures, errors or skips and unchanged source binding
+([full receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/closed-session-correctness-full.json)).
+These fixes change neither the 75-second limit nor link computation. They are
+not deployed and do not resolve the 67 measured overruns. A read-only copy of
+all 956 qualified inputs preserves source `862bbd75…` for current-runtime
+attribution while the working copy changes.
+
+The failed normal graph selects one bounded attribution of
+`link/event/2019-03-west-in-lyon`, a real 75-second overrun followed by
+461 successful comparisons in its shard. Use the unchanged qualified862
+producer and Linker 10, one fresh owned copy of protected C696, ordinary
+input acceptance and one real verifier rollback. Preserve the 75-second
+write limit; measure elapsed time, owner CPU and nested driver spans.
+No shared writes, provider access, retries or session repair are selected.
+The measurement must prove entry into the real native write boundary,
+preserve primary failures through observer cleanup and reject incomplete
+quality. Corrected diagnostic source and actual container pass sole review. Actor
+`b2819cfa…` starts once at November 17 01:33:52 UTC, PID 2471234 / birth 1027567070. Its exact owned `2db67a13…_0`, OID 8109605, is freezing;
+source C696 remains read-only. Independent startup review accepts the
+incarnation, authorization, firewall, resource and protected-source boundary
+([startup](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/one-link-b2819cfa7563-startup.json)).
+No copy-ready, accepted checkpoint, trial or cleanup result exists yet. This
+selects measurement, not an optimization or another whole-graph replay.
+
+The one-link diagnostic ends naturally at November 17 02:14:32 UTC.
+Actual input acceptance5039, native-entry1, complete measurement quality,
+rollback equality and healthy writer are proved; the unit still fails75.
+Persistence spans40.088 seconds (2.176 ownerCPU), before any `_write_subject`
+entry; its old-row deletion loop is therefore the next measured target.
+Loading spans21.049 seconds and resolution11.593; timings overlap and include
+observer cost. Full source00c post-binding and automatic owned cleanup pass
+sole terminal review
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/one-link-b2819cfa7563-terminal.json)).
+The 67 normal overruns and this failed native75 sample select a bounded
+read-only catalog/EXPLAIN check of the two existing subject-ID deletes. Use
+plain EXPLAIN without ANALYZE and read-only PostgreSQL sessions; preserve
+every query, write order, history, transaction and75-second limit. Do not
+choose an index or SQL rewrite until those actual plans identify a target.
+
+The read-only source catalog and plain EXPLAIN confirm sequential scans
+for both subject-only deletes, over about214,000 rows each. Existing keys
+lead with subject_kind, not subject_id. Native39/40 leave these table/index
+definitions unchanged. This measured target selects native migration41: add
+one nonunique subject_id index to each table. Preserve the existing delete
+predicates, subject order, row triggers/history and transactions; do not
+batch or narrow the deletes. No index is installed on the server by this
+read-only check, and no speedup is yet proved
+([plans](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/link-subject-delete-plans.json)).
+
+Recovery C's failed provisioning partial has been reconciled without
+regenerating credentials, roles or its database. All three scoped logins
+authenticate; the remaining public-schema CREATE grant is revoked, and
+initial empty tables are prepared in the same database, OID 16394.
+The owned PG stops cleanly with no running volume mounters. Failed actors
+and receipts remain. This is limited empty preparation on frozen source862:
+fsync and full_page_writes are still disabled, so it proves no durability,
+restore, rebuild or current native41 runtime. A durable configuration needs
+separate admission before recovery
+([preparation](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/recovery-C-empty-preparation.json)).
+
+The prepared C comment still binds the full native40 migration checksum.
+Current native41 adoption must refuse it, despite identical empty table and
+role definitions. Before current-source restore, flush the owned C data directory while its
+PG is stopped, using the pinned PG image's `initdb --sync-only`. Require a
+natural-zero result; normal initialization is forbidden. Then start a new
+owned actor with durable settings, retaining the old actor stopped.
+Changing settings alone does not flush earlier kernel buffers
+([PostgreSQL 17 fsync](https://www.postgresql.org/docs/17/runtime-config-wal.html#GUC-FSYNC),
+[sync-only](https://www.postgresql.org/docs/17/app-initdb.html)). Then separately
+admit an explicit empty-marker rebind: prove the old comment, same database,
+roles, grants, table phase, complete catalog and zero rows; change only the
+prepared comment to the actual native41 checksum and verify normal adoption.
+Do not relax the ordinary adoption check or edit old receipts. Any physical
+or role difference refuses this route and requires a fresh-database plan.
+No such operation has run.
+
+Local native41 validation passes all 47 schema cases and3,716 core cases
+in 198.79 seconds under 300, with Ruff/mypy/formatting clean. The guarded
+read-only native38 path explicitly admits index-only41; unknown future
+versions still refuse and ordinary workers still require the current schema.
+Source BE567 and its 957-input binding16e74b75 remain unchanged. The full
+suite passes all 5,296 cases in 1,272.28 seconds. The corrected AMD64 runtime
+is byte-qualified and cached inactive, with baseline dependencies unchanged.
+The image-only guard transition is independently accepted; new guardian
+`0d9661f9…` authorizes CONFIG2eb and retains A30 stopped. The later normal
+graph fails as recorded above; remaining failures are unresolved ([core](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/native41-core-validation.json),
+[full](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/native41-full-validation.json),
+[runtime](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/native41-runtime-qualification-cache.json),
+[guard](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/native41-guard-image-transition.json)).
+
+Before terminal, the 22:16 UTC observer records the graph running and incomplete,
+with five databases and no result. Separately, shared read-only audit
+actor `8e89e54f…` is cold-prepared at 22:13 UTC: all 65 transport outcomes
+and six helper exits pass, the two public files are sealed, and the fresh
+output volume is private. The actor remains Created/PID0 and has never started.
+Its three RAM-only environment comparisons pass. Only the original host
+worker DSN is mounted; numeric metadata is verified, not its endpoint or role.
+The audit program differs from unexecuted V2 only in three distinct SQL column
+aliases. Its selected 7,200-second whole-actor ceiling includes authorization
+wait and changes no reader, statement, lock or 75-second write policy.
+Actual checkpoint timing and all-141-table typed parity wait for graph
+completion, owned cleanup and fresh admission. No scan, migration, acceptance,
+re-key or deletion is performed by this preparation
+([cold audit receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/shared-readonly-audit-b96f3fe7b551-cold-preparation.json)).
+
+November 16 diagnostic outcome: the actor ends naturally at 19:19 UTC,
+exit zero, with the diagnostic complete but inventory unit failed.
+Input acceptance takes 59.692 seconds under the 75-second policy. The
+instrumented inventory trial reaches `WriteDeadlineExceeded` at 75.004
+seconds; rollback and observer checks pass. Capture takes 40.239 seconds,
+including desired selection at 39.496 seconds; inventory preparation takes
+31.484 seconds. Nested timings overlap and include observer overhead.
+The original policy is restored, full source post-binding passes, and the
+operator completes owned cleanup. Sole terminal review accepts the exact
+source/protected boundary, owner database/backend/registry removal and retired
+processes/auth, while explicitly retaining the failed inventory result
+([terminal receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/inventory75-diagnostic-92900be19500-terminal.json)).
+
+Keep 75 seconds. The qualified current runtime's first normal, uninstrumented
+whole-graph run is now terminal failed through the existing two-process supervisor.
+The earlier instrumented failure does not predict normal
+runtime timing. Do not repeat the instrumented trial or select an optimization
+from these coarse spans alone. A normal 75-second failure is the trigger for
+further bounded current-runtime attribution before a source fix. Linker 10
+and dependency-closed re-key exclusions use the existing automatic bump checks;
+no new supervisor flag is needed. The later authoritative migration and re-key
+target is shared `swingset_dryrun`, OID 16398 / UUID `9bccc2d4…`; private C696
+and 69 remain protected bases. The reviewed image-only guard transition
+completes at 20:00 UTC: all 49 vectors and four fresh pre-go reads pass their
+declared outcomes; independent terminal review accepts the result. New guardian
+`a30fa116…` / PID 3777145 / network inode 4026533272 runs CONFIG `e68aa127…`;
+old CB is intentionally stopped, exit 143, and retained. Policy canonical
+`49f56776…` changes only the image; source, catalog and 12 applications remain
+preserved. Held inventory is incomplete (37), not a normal-health pass.
+The earlier pre-go parser refusal remains preserved without effect replay.
+That guard operation grants no graph or SQL authority; the later independent
+graph action review covers the running verifier.
+The actual graph admission binds the new guardian's incarnation; its normal
+whole graph is now terminal failed. Hold `248f8cf1…` is independently
+renewed to November 17 03:58:57 UTC; only its current interval is continuous
+([guard receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/runtime862-guard-transition-20261116.json),
+[renewal](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-025857.json)).
+Renewal packet `203956` preserves both installer and rename transport timeouts.
+Exact helper terminal checks establish natural exit zero; maintained remaining-only
+continuations complete without replay. Rename finishes at 20:44:36 UTC, before
+the previous expiry. Independent terminal review accepts the installed hold,
+three remote receipts, pointer and unchanged protected services.
+The next routine renewal activates at 21:16:30 UTC before that expiry. All
+seven transports and both helpers exit zero; independent terminal review
+accepts installed hold `f88d3447…`, readbacks, pointer and protected services.
+No timeout or additional runtime authority is attributed to this renewal.
+The next routine renewal activates at 21:50:37 UTC, before the previous
+22:15:40 expiry. Seven transports, both natural-zero helpers, protected12,
+three receipt readbacks and pointer pass independent terminal review. Current
+hold `2f654459…` is due at 22:50:26 UTC; earlier expired gaps remain historical.
+Renewal 11 activates at 22:27:19 UTC before that expiry, setting hold
+`ba19b2bf…` due at 23:27:08 UTC. All seven transports, both exact
+natural-zero helpers, protected services and three receipt readbacks pass
+independent terminal review. This current interval is continuous, with no
+additional graph authority or change to R0's conditional comparison contract.
+
+Renewal 12 activates at 22:55:09 UTC before the preceding expiry. All seven
+transports, both exact natural-zero helpers, protected12, three receipts and
+pointer pass independent review. Hold `759cc94b…` is due at 23:54:58 UTC;
+this renews the current interval without adding runtime or cleanup authority.
+
+Renewal 13 activates at 23:18:49 UTC before the preceding expiry, setting
+hold `d4a95834…` due November 17 00:18:39 UTC. Seven transports, two
+natural-zero helpers, protected12, three receipts and pointer pass sole
+terminal review. This administrative renewal adds no runtime authority.
+
+Renewal 14 activates at 23:54:04 UTC before the preceding expiry, setting
+hold `7f59242e…` due November 17 00:53:53 UTC. All seven transports,
+both exact natural-zero helpers, protected12, three receipts and pointer
+pass independent terminal review. Only the unchanged hold protocol is
+qualified; the new correctness fixes are still under local validation.
+
+Renewal 15 activates at November 17 00:35:23 UTC before the preceding
+expiry. Hold `17bd0c09…` is due at 01:35:13 UTC. Seven transports, both
+natural-zero helpers, protected12, three receipts and pointer pass the sole
+terminal review. Historical gaps remain; no runtime authority is added.
+
+A separate ARM64 build completes at 21:15 UTC on the same source and all 956
+unchanged inputs. Its 569 public files and 376 Python files, duplicate app
+source, OCI layers and dependency prefix match. ARM dependencies `63354d08…`,
+artifact `dd7ff201…` and portable CONFIG `f620b010…` remain separate from the
+running AMD64 producer. The byte-proof container never starts. This is an
+inactive qualified artifact, not a VM activation, reference result or proof of
+B/C/R parity. A second full current-ARM replay remains unselected: C is the
+one full recovery re-derivation, while R is the frozen production-code control.
+Fresh public-code hashing confirms R0's unchanged `b6cc9c28…` source across
+290 Python files; preserved export, BUILT, manifest, full result and policy
+match their original hashes. R0 is eligible only conditionally on the actual
+strict B/C/R published-table comparison. Its manifest records ordinary
+`built_at` November 5 23:52:36 UTC and evidence cutoff 03:53:55 UTC; neither
+is relabeled a sealed rendering clock, and no identical-clock gate is added.
+At 22:36 UTC, fresh hashing of all 59 exported files (381,686,344 bytes)
+matches the original export, including every Parquet file. Actual B/C/R
+comparison remains pending. A real business-column mismatch blocks acceptance regardless of
+clock or floating-point explanation; a necessary fresh legacy rerender would
+need its own reviewed route, never a waiver
+([ARM qualification](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/runtime862-arm64-qualification-20261116.json),
+[R0 source/control recheck](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/reference-R0-source-control-recheck-20261116.json),
+[payload freshness](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/reference-R0-payload-freshness-20261116.json)).
+
+November 16 resume: the owner approves closing tested revision `rnmoupss`
+as `ec2e7f13`; fresh revision `ouvlzsyr` has a new 200 KiB evidence budget.
+Earlier launch observations: the reviewed diagnostic starts at 18:33 UTC on frozen
+producer `8aae03bf…` / image `346f30a4…`; it remains running without reported
+error at 19:02. Independent review accepts actual startup; renewal `41f2b246…` is independently
+accepted, with review due at 19:35:51 UTC. The observed operator phase is
+the destination graph prelude at 19:05: the one owned freeze has returned and
+the owned-copy 75-second override is applied. No acceptance, trial,
+cleanup or migration success was established at that observation. The producer
+stays fixed through its terminal result above.
+
+Select qualified source `862bbd75…` for the next actual runtime and whole-graph
+proof after this diagnostic is terminal. Ordinary dependency/runtime AMD64
+builds complete locally at 18:45 UTC, with all 956 source inputs unchanged.
+All 569 public files and 376 Python files match, including duplicate app source;
+OCI manifest/config/layer and dependency-rootfs-prefix checks pass. Artifact
+`08df0ebc…` and portable CONFIG `e68aa127…` are distinct identities; archive
+size is 248,929,280 bytes. Separate cache-only server transfer/load completes
+at 18:52 UTC: all 15 transports exit zero, archive readback and CONFIG
+`e68aa127…` / linux-amd64 labels/rootfs match the qualified local artifact.
+Pre/post protected 14 containers, running old diagnostic incarnation, hold
+and capacity remain preserved. The image is cached inactive, not activated
+or deployed; no server installed-file proof is claimed.
+The byte-proof container is never started. The build uses the existing
+`swingset-stage1-final` builder, bounded to 2 CPUs, 2 GiB RAM, 4 GiB swap and
+256 PIDs; measured host free space is 143,641,060 KiB, above the 80 GiB floor,
+with no full-suite scratch active. Preserve the qualified OCI artifact, Docker
+CONFIG, dependencies and source identities.
+No image replacement or server transition occurs before diagnostic terminal;
+fresh actual runtime admission and whole-graph review remain required
+([launch and direction](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-16-75-second-diagnostic-starts),
+[local runtime qualification](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/runtime862-amd64-qualification-20261116.json),
+[actual startup](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/inventory75-diagnostic-92900be19500-startup.json),
+[inactive server cache](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/runtime862-server-cache-20261116.json)).
+
+Earlier preparation sequence:
+The new 75-second packet passes local static review and all 26 scoped
+read-only transports finish at 16:15 UTC. Independent review accepts those
+observations, not full admission: held status has incomplete inventory (36).
+Capacity is 579,074,048,000 bytes against a 508,224,930,112-byte requirement.
+Subsequent ordinary renewals preserve current validity; hold `3ce1251b…`
+activates at 17:50 UTC, with review due at 18:50:30 UTC. Only the renewed
+intervals are continuous; retain the earlier 318,292.82-second expired gap.
+No worker had started at these observations. The subsequent 35 missing-metadata
+checks pass at 16:31 UTC: 25 exact named Docker absences exit one and ten
+positive checks exit zero, with no unknown outcomes. These establish observed
+name/root/IP and host-timeout metadata, not reservations or preparation.
+Rows 0–78 then complete at 16:52 UTC after the bound fresh 27-read pulse and
+exclusive root go: all 79 contracts validate, with seven source-read-only
+helpers and four public-seal helpers exiting naturally. The public operator
+is sealed. Independent terminal review accepts the prefix. Preserve the earlier
+before-row-79 refusal: its local validator expected nine hashes from the
+seven-Python-file command; all seven match, without server drift. The corrected
+remaining-only boundary adds two missing JSON hashes and the original 38
+unattempted reads, replaying none of the completed 16. Rows 79–145 then pass
+all 67 outcomes at 17:27 UTC under separate review and root go. Independent
+terminal review accepts all 24 helper profiles, three fresh owned volumes,
+numeric settings metadata and the 1,689-file/69,548,306-byte input closure.
+The final three post-cold reads then complete at 17:42 UTC. Independent terminal
+review accepts all 147 preparation rows: container `24154fe5…` is Created,
+PID zero and never started, with complete public Config/HostConfig, 11 mounts
+and six RAM-only comparisons passing. Preserve every helper, volume, proof and
+the original refusal; no failed read is replayed. No database freeze or worker
+had run at preparation completion. The source volume's numeric DSN guard is row 42; final actor Env is
+checked only in RAM. A separately reviewed actual 75-second execution plan,
+fresh complete boundary and explicit root go are required before start.
+There is no `--env-file` dependency or reason to read host `private.env`.
+Obtain complete preparation admission before effects, recheck the boundary
+before allocation, then separately review actual cold execution
+([collection](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/scoped-readonly26-20261116-161535.json),
+[renewal](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/hold-review-20261116-175030.json),
+[missing metadata](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/scoped-missing35-20261116-163101.json),
+[prefix progress](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-16-preparation-prefix-completes),
+[boundary refusal](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-16-before-allocation-boundary-refusal),
+[phase-two progress](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-16-preparation-rows-79-to-145-complete),
+[completed preparation](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/cold-unit-preparation-92900be19500.json)).
 
 November 13 core policy update: the owner raises the complete local core
 gate to 300 seconds (five minutes). This supersedes earlier instructions
@@ -207,8 +627,9 @@ reviewed callee observer. Its 26 selected read-only checks complete with exit
 zero; review `c0aa2ce5…` accepts the scoped observations. The existing held
 inventory limitation remains explicit. No new root, volume, actor or database
 has been created. Exact preparation admission and immediate fresh proofs are
-still required. The current change has only 101 bytes of its evidence budget
-left; approval to close this unfinished Stage 2 checkpoint is pending.
+still required. That checkpoint's evidence budget had only 101 bytes left;
+the owner subsequently approves closing it as `ec2e7f13` on November 16.
+The fresh revision does not inherit operational admission from these old reads.
 
 Earlier measurement direction: independent audit `441a2c16…`
 accepts the export-digest observations while preserving the 187-second
@@ -1259,6 +1680,17 @@ flowchart LR
 
    Record both times.
 
+   The real derive scheduler and rehearsal publication both honor the
+   out-of-band hold. After receipt-bound re-key passes, keep every background
+   scheduler stopped and retire only the exact owned import-hold marker into
+   its private review archive. Fresh admission must verify its identity, the
+   empty hold directory and ordinary control scopes. The selected derive and
+   B actors use explicit `SWINGSET_OOB_HOLD=0`; a remaining or unrelated hold
+   blocks the operation. The CLI's artifact `hold remove` does not remove this
+   marker. Recovery C keeps its separate out-of-band hold enabled: public
+   verification and downloads work, while `RehearsalHub.create_commit` refuses
+   publication. Scoped provider credentials remain server-only.
+
 6. **Back up, then publish once to the rehearsal dataset.** The rehearsal
    dataset preserves the live history, and its configured rehearsal branch
    carries the checkpoint's baseline commit, A; check the complete ancestry
@@ -1321,7 +1753,14 @@ flowchart LR
      a baseline with missing files fails here. Build release R with
      today's code on the worker VM from the same checkpoint. B, C and R
      must be byte-identical in every published table, except a named list
-     of columns such as run ids;
+     of columns such as run ids. Here R is the checkpoint's frozen production
+     code control under step 3, not a second full current-port replay. The
+     existing R0 may serve if its source/checkpoint/control identity and actual
+     published bytes pass that comparison. No equal-clock prerequisite is
+     inferred from this rule; any actual clock-driven business-column
+     mismatch still blocks and may require a reviewed fresh legacy rerender.
+     Fresh source/control checks do not establish payload freshness or parity
+     ([recheck](../../../journal/evidence/runtime/postgres-stage2-2026-11-16/reference-R0-source-control-recheck-20261116.json));
    - **every table, by its class** ([4. Hosting](4-hosting.md#backups-and-recovery)),
      `swingset_drill` against `swingset_dryrun`:
 

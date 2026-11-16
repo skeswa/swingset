@@ -1,5 +1,8 @@
 """A metadata collector owns only its reviewed query client, never an actor."""
 
+import base64
+import copy
+import hashlib
 import io
 import json
 import os
@@ -13,6 +16,392 @@ from types import SimpleNamespace
 import pytest
 
 from swingset.deploy import metadata_capture as capture
+
+
+@pytest.fixture
+def dependency_packet(tmp_path):
+    # Golden witness: substituting inventory moves its entry ahead of the
+    # unmodified entry. Float 1.0, negative zero, bool and null stay distinct.
+    raw = (
+        '[{"fingerprint":"' + "8" * 64 + '","key":"unmodified",'
+        '"kind":"dependency_set","note":"DO_NOT_EXPORT_PERSON_OR_SQL",'
+        '"typed":[true,1,1.0,-0.0,null]},'
+        '{"fingerprint":"' + "f" * 64 + '","key":"selected_project_inventory",'
+        '"kind":"dependency_set"}]'
+    ).encode()
+    root = "98bdcd58584b938cbfdbbab26349b2d1d3e78c59cd8040c32ce4210e8b2e9f8c"
+    assert hashlib.sha256(raw).hexdigest() == root
+    unit = {
+        "unit": "project/resolution/example-event",
+        "generation_id": "dg_" + "1" * 64,
+        "label": ["3" * 64, 2],
+        "graph_found_label": ["3" * 64, 2],
+        "expected_root": root,
+        "found_root": "5bc182c8588c90f28e9f0fe4f521009071328e997a26e56d8fd2a9610581cd2a",
+        "stored_versions": {
+            "recipe/code/project/resolution": "5a79f84d820d759357fd719f286d7ba18341406645535e99982ad1d30f93f000"
+        },
+    }
+    request = {
+        "format": "swingset-inventory-dependency-request-v1",
+        "graph_receipt_sha256": capture.DEPENDENCY_RECEIPT,
+        "graph_context_sha256": capture.DEPENDENCY_CONTEXT,
+        "source_checkpoint": capture.DEPENDENCY_CHECKPOINT,
+        "source_boundary_sha256": "4" * 64,
+        "inventory_generation_id": "dg_" + "2" * 64,
+        "inventory_group_sha256": "1d1027958ec9a5c7c17c34486012e854ea5f32e511fa3fa6ad4b205625d2a66a",
+        "roots": [root],
+        "units": [unit],
+    }
+    frames = [
+        {
+            "kind": "header",
+            "format": "swingset-inventory-dependency-stream-v1",
+            "request_sha256": "pending",
+            "source": dict(capture.DEPENDENCY_SOURCE),
+            "snapshot": {
+                "backend_pid": 123,
+                "pg_snapshot": "10:10:",
+                "default_transaction_read_only": "on",
+                "transaction_read_only": "on",
+                "isolation": "repeatable read",
+                "statement_timeout": "15s",
+                "lock_timeout": "2s",
+                "transaction_timeout": "10min",
+            },
+        },
+        {
+            "kind": "inventory",
+            "pointer_generation_id": "dg_" + "2" * 64,
+            "selected_generation_id": "dg_" + "2" * 64,
+        },
+        {"kind": "root_begin", "id": root, "raw_bytes": len(raw)},
+        {"kind": "root_chunk", "offset": 0, "base64": base64.b64encode(raw).decode()},
+        {"kind": "root_end", "id": root},
+        {
+            "kind": "unit",
+            "unit": unit["unit"],
+            "pointer_generation_id": unit["generation_id"],
+            "generation_id": unit["generation_id"],
+            "label": unit["label"],
+            "dependency_id": root,
+            "stored_versions": unit["stored_versions"],
+        },
+        {"kind": "committed", "request_sha256": "pending", "roots": 1, "units": 1},
+    ]
+
+    def encode(changed_request=None, changed_frames=None):
+        req = request if changed_request is None else changed_request
+        rows = copy.deepcopy(frames if changed_frames is None else changed_frames)
+        body = json.dumps(req, sort_keys=True).encode()
+        expected = hashlib.sha256(body).hexdigest()
+        for frame in rows:
+            if frame.get("request_sha256") == "pending":
+                frame["request_sha256"] = expected
+        wire = b"".join(json.dumps(frame).encode() + b"\n" for frame in rows)
+        return body, expected, wire
+
+    return SimpleNamespace(
+        request=request, frames=frames, encode=encode, path=tmp_path / "request.json"
+    )
+
+
+def test_dependency_witness_proves_whole_hash_and_outer_sort_without_exporting_payload(
+    dependency_packet,
+):
+    raw, sha, wire = dependency_packet.encode()
+    report = capture._dependency_witness(raw, sha, io.BytesIO(wire))
+    assert report["complete"] and report["remaining_units"] == []
+    assert report["units"][0]["explained"] is True
+    assert (
+        report["units"][0]["counterfactual_root"]
+        == dependency_packet.request["units"][0]["found_root"]
+    )
+    assert report["operation_authority"] is False and report["source_process_exit_not_observed"]
+    assert report["source_checkpoint"]["basis"] == "accepted_prior_boundary"
+    assert "source_scope_pointer" in report["inventory_basis"]
+    text = json.dumps(report)
+    assert "DO_NOT_EXPORT" not in text and "typed" not in text and "manifest" not in text
+    assert report["graph_context_sha256"] == capture.DEPENDENCY_CONTEXT
+    assert "graph_context_sha256" not in report["source"]
+
+
+def test_dependency_counterfactual_failure_stays_named_and_does_not_become_a_waiver(
+    dependency_packet,
+):
+    request = copy.deepcopy(dependency_packet.request)
+    request["units"][0]["found_root"] = "5" * 64
+    raw, sha, wire = dependency_packet.encode(request)
+    report = capture._dependency_witness(raw, sha, io.BytesIO(wire))
+    assert report["complete"] and report["units"][0]["explained"] is False
+    assert report["remaining_units"] == ["project/resolution/example-event"]
+    assert report["operation_authority"] is False
+
+
+@pytest.mark.parametrize(
+    "change", ["duplicate", "reordered", "truncated", "uncommitted", "extra", "offset"]
+)
+def test_dependency_stream_order_and_commit_EOF_are_mandatory(dependency_packet, change):
+    frames = copy.deepcopy(dependency_packet.frames)
+    if change == "duplicate":
+        frames.insert(1, frames[0])
+    elif change == "reordered":
+        frames[1], frames[2] = frames[2], frames[1]
+    elif change == "truncated":
+        frames = frames[:4]
+    elif change == "uncommitted":
+        frames = frames[:-1]
+    elif change == "extra":
+        frames.append(frames[-1])
+    else:
+        frames[3]["offset"] = 1
+    raw, sha, wire = dependency_packet.encode(changed_frames=frames)
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(wire))
+
+
+@pytest.mark.parametrize(
+    "change", ["source", "snapshot", "pointer", "label", "recipe", "root", "frame_type"]
+)
+def test_dependency_original_binding_refuses_tampering_before_reconstruction(
+    dependency_packet, change
+):
+    frames = copy.deepcopy(dependency_packet.frames)
+    if change == "source":
+        frames[0]["source"]["database_id"] = "foreign"
+    elif change == "snapshot":
+        frames[0]["snapshot"]["transaction_read_only"] = "off"
+    elif change == "pointer":
+        frames[5]["pointer_generation_id"] = "dg_" + "6" * 64
+    elif change == "label":
+        frames[5]["label"] = ["3" * 64, True]
+    elif change == "recipe":
+        frames[5]["stored_versions"] = {}
+    elif change == "root":
+        frames[3]["base64"] = base64.b64encode(b"DO_NOT_EXPORT_PRIVATE_SQL").decode()
+    else:
+        frames[6]["roots"] = True
+    raw, sha, wire = dependency_packet.encode(changed_frames=frames)
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(wire))
+
+
+@pytest.mark.parametrize(
+    "change", ["sha", "context", "checkpoint", "bound", "duplicate", "type", "foreign_unit"]
+)
+def test_dependency_request_is_fixed_and_independently_hash_bound(dependency_packet, change):
+    req = copy.deepcopy(dependency_packet.request)
+    if change == "context":
+        req["graph_context_sha256"] = "5cc5" + "0" * 60
+    elif change == "checkpoint":
+        req["source_checkpoint"] = "0" * 64
+    elif change == "bound":
+        req["roots"] = ["0" * 64] * 129
+    elif change == "duplicate":
+        req["units"] *= 2
+    elif change == "type":
+        req["units"][0]["label"][1] = 2.0
+    elif change == "foreign_unit":
+        req["units"][0]["unit"] = "link/event/foreign"
+    raw, sha, wire = dependency_packet.encode(req)
+    if change == "sha":
+        sha = "0" * 64
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(wire))
+
+
+def test_dependency_root_budget_includes_the_selected_inventory_group(dependency_packet):
+    for count in [127, 128]:
+        request = copy.deepcopy(dependency_packet.request)
+        request["roots"] = [f"{i:064x}" for i in range(count)]
+        request["units"] = [
+            dict(request["units"][0], unit=f"project/resolution/event-{i:03d}", expected_root=root)
+            for i, root in enumerate(request["roots"])
+        ]
+        raw, sha, _ = dependency_packet.encode(request)
+        if count == 127:
+            assert len(capture._dependency_request(raw, sha)["roots"]) + 1 == 128
+        else:
+            with pytest.raises(capture.DependencyWitnessRefused):
+                capture._dependency_request(raw, sha)
+
+
+def test_dependency_framing_duplicate_keys_and_oversize_never_reach_report(dependency_packet):
+    raw, sha, wire = dependency_packet.encode()
+    duplicate = wire.replace(b'"kind": "header"', b'"kind": "header", "kind": "header"', 1)
+    for bad in [duplicate, b" " * 65536 + b"\n", wire[:-1]]:
+        with pytest.raises(capture.DependencyWitnessRefused):
+            capture._dependency_witness(raw, sha, io.BytesIO(bad))
+    frames = copy.deepcopy(dependency_packet.frames)
+    frames[2]["raw_bytes"] = 262145
+    raw, sha, wire = dependency_packet.encode(changed_frames=frames)
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(wire))
+
+
+def _dependency_changed_root(packet, body):
+    request = copy.deepcopy(packet.request)
+    root = hashlib.sha256(body).hexdigest()
+    request["roots"] = [root]
+    request["units"][0]["expected_root"] = root
+    frames = copy.deepcopy(packet.frames[:2])
+    frames.append({"kind": "root_begin", "id": root, "raw_bytes": len(body)})
+    for offset in range(0, len(body), 32768):
+        frames.append(
+            {
+                "kind": "root_chunk",
+                "offset": offset,
+                "base64": base64.b64encode(body[offset : offset + 32768]).decode(),
+            }
+        )
+    frames.append({"kind": "root_end", "id": root})
+    unit = dict(packet.frames[5], dependency_id=root)
+    frames.extend([unit, packet.frames[-1]])
+    return packet.encode(request, frames)
+
+
+def test_dependency_missing_inventory_is_an_explicit_residual_not_silently_dropped(
+    dependency_packet,
+):
+    raw, sha, wire = _dependency_changed_root(dependency_packet, b"[]")
+    report = capture._dependency_witness(raw, sha, io.BytesIO(wire))
+    assert report["remaining_units"] == ["project/resolution/example-event"]
+    assert report["units"][0]["counterfactual_root"] is None
+    assert report["units"][0]["inventory_entry_count"] == 0
+
+
+@pytest.mark.parametrize("body", [b'[ {"kind":"replay"} ]', b'[{"kind":"a","kind":"b"}]'])
+def test_dependency_raw_hash_does_not_waive_canonical_or_duplicate_key_proof(
+    dependency_packet, body
+):
+    raw, sha, wire = _dependency_changed_root(dependency_packet, body)
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(wire))
+
+
+def test_dependency_root_chunks_are_bounded_and_lossless_across_UTF8_boundaries(dependency_packet):
+    members = [
+        {
+            "kind": "dependency_set",
+            "key": "unmodified",
+            "fingerprint": "8" * 64,
+            "private": "É" * 20000,
+        }
+    ]
+    body = json.dumps(members, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    raw, sha, wire = _dependency_changed_root(dependency_packet, body)
+    report = capture._dependency_witness(raw, sha, io.BytesIO(wire))
+    assert report["roots"] == 1 and report["remaining_units"]
+    assert "É" not in json.dumps(report, ensure_ascii=False)
+    # A duplicate chunk cannot be accepted as a valid continuation offset.
+    frames = [json.loads(line) for line in wire.splitlines()]
+    frames[4]["offset"] = 0
+    changed = b"".join(json.dumps(frame).encode() + b"\n" for frame in frames)
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(changed))
+
+
+def test_dependency_elapsed_and_report_bounds_refuse_without_partial_success(
+    monkeypatch, dependency_packet
+):
+    raw, sha, wire = dependency_packet.encode()
+    readings = iter([0, 601])
+    with monkeypatch.context() as scoped:
+        scoped.setattr(time, "monotonic", lambda: next(readings))
+        with pytest.raises(capture.DependencyWitnessRefused):
+            capture._dependency_witness(raw, sha, io.BytesIO(wire))
+    monkeypatch.setattr(capture, "DEPENDENCY_REPORT_BYTES", 100)
+    with pytest.raises(capture.DependencyWitnessRefused):
+        capture._dependency_witness(raw, sha, io.BytesIO(wire))
+
+
+def test_dependency_worker_preserves_primary_fatal_and_restores_alarm(dependency_packet):
+    raw, sha, _ = dependency_packet.encode()
+    dependency_packet.path.write_bytes(raw)
+    failure = KeyboardInterrupt("DO_NOT_EXPORT_PRIVATE_SQL")
+    previous = signal.getsignal(signal.SIGALRM)
+
+    class Interrupted(io.BytesIO):
+        def readline(self, size=-1):
+            raise failure
+
+    with pytest.raises(KeyboardInterrupt) as caught:
+        capture.dependency_witness(dependency_packet.path, sha, Interrupted())
+    assert caught.value is failure
+    assert signal.getsignal(signal.SIGALRM) == previous
+    assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)
+
+
+def test_dependency_blocked_reader_alarm_is_finite_and_does_not_publish_success(dependency_packet):
+    raw, sha, _ = dependency_packet.encode()
+    dependency_packet.path.write_bytes(raw)
+    previous = signal.getsignal(signal.SIGALRM)
+
+    class Expired(io.BytesIO):
+        def readline(self, size=-1):
+            signal.getsignal(signal.SIGALRM)(signal.SIGALRM, None)
+            pytest.fail("alarm returned")
+
+    with pytest.raises(TimeoutError):
+        capture.dependency_witness(dependency_packet.path, sha, Expired())
+    assert signal.getsignal(signal.SIGALRM) == previous
+    assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)
+
+
+def test_dependency_existing_alarm_refuses_without_opening_request(monkeypatch, dependency_packet):
+    prior = signal.setitimer(signal.ITIMER_REAL, 60)
+    try:
+        with monkeypatch.context() as scoped:
+            scoped.setattr(os, "open", lambda *a, **k: pytest.fail("opened request"))
+            with pytest.raises(capture.DependencyWitnessRefused):
+                capture.dependency_witness(dependency_packet.path, "0" * 64, io.BytesIO())
+        assert 55 < signal.getitimer(signal.ITIMER_REAL)[0] <= 60
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, *prior)
+
+
+def test_dependency_absolute_alarm_covers_report_encoding_and_flush(monkeypatch, dependency_packet):
+    raw, sha, wire = dependency_packet.encode()
+    dependency_packet.path.write_bytes(raw)
+    previous = signal.getsignal(signal.SIGALRM)
+    failure = KeyboardInterrupt("DO_NOT_EXPORT_REPORT_FAILURE")
+
+    class Blocked:
+        def write(self, value):
+            assert signal.getsignal(signal.SIGALRM) != previous
+            assert 0 < signal.getitimer(signal.ITIMER_REAL)[0] <= 600
+            raise failure
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(sys, "stdout", Blocked())
+        with pytest.raises(KeyboardInterrupt) as caught:
+            capture.dependency_witness(dependency_packet.path, sha, io.BytesIO(wire), emit=True)
+    assert caught.value is failure
+    assert signal.getsignal(signal.SIGALRM) == previous
+    assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)
+
+
+def test_dependency_cli_has_hash_only_stdout_and_sanitized_failure(
+    monkeypatch, capsys, dependency_packet
+):
+    raw, sha, wire = dependency_packet.encode()
+    dependency_packet.path.write_bytes(raw)
+    monkeypatch.setattr(sys, "stdin", SimpleNamespace(buffer=io.BytesIO(wire)))
+    argv = ["--dependency-request", str(dependency_packet.path), "--request-sha256", sha]
+    assert capture.main(argv) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["complete"] and report["units"][0]["explained"]
+    assert list(dependency_packet.path.parent.iterdir()) == [dependency_packet.path]
+
+    class Failed(io.BytesIO):
+        def readline(self, size=-1):
+            raise ValueError("DO_NOT_EXPORT_PRIVATE_SQL")
+
+    monkeypatch.setattr(sys, "stdin", SimpleNamespace(buffer=Failed()))
+    assert capture.main(argv) == 1
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {"complete": False, "error_type": "ValueError"}
+    assert captured.err == "" and "DO_NOT_EXPORT" not in captured.out
 
 
 @pytest.fixture

@@ -1,0 +1,146 @@
+{
+  "actual_activation": {
+    "activation_finished_at": "2026-11-16T20:44:36.188326159Z",
+    "activation_started_at": "2026-11-16T20:44:35.992754126Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-16T20:53:23.777023+00:00"
+  },
+  "after_hold_sha256": "75de783d37422ae734e9b130173eff49acb179d8efc37d30a4cfecc8071b32f7",
+  "before_hold_sha256": "e7cc00da88587b142959f10623d4ffc48102128c9e769d2681ec8fe0d16193d2",
+  "command_context": {
+    "admin_commands_sha256": "b1dacc5e2bf1ea6799c9c2c10b8733c98dbc569c9fd2a59002d4f1467cf01ae0",
+    "argv": [
+      "/tmp/swingset-stage2-mise-env-20261111/bin/python",
+      "-m",
+      "swingset.deploy.hold_review",
+      "--current",
+      "/tmp/swingset-stage2-current-hold.json"
+    ],
+    "continuations": [
+      {
+        "authorized_remaining_indices": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "review_sha256": "bfd22c5a1b4b5c9beaf78cc285fa02c6fe6ce74d7be4cec7b7febca0fd2f1802"
+      },
+      {
+        "authorized_remaining_indices": [
+          6
+        ],
+        "review_sha256": "80a94bdbfdeef42c438bfb66f73d364fbc8e6c1145bd5bf7cc1da236c463c31a"
+      }
+    ],
+    "environment": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONOPTIMIZE": "0",
+      "PYTHONPATH": "src"
+    }
+  },
+  "counts": {
+    "exact_helpers_natural_exit0": 2,
+    "protected_services_unchanged": 12,
+    "protocol_steps": 7,
+    "remote_receipt_readbacks": 3,
+    "transport_exit0": 5,
+    "transport_timeout_outcome_unknown": 2
+  },
+  "exit": 0,
+  "format": "swingset-routine-hold-review-v1",
+  "hashes": {
+    "first_remaining_review": "bfd22c5a1b4b5c9beaf78cc285fa02c6fe6ce74d7be4cec7b7febca0fd2f1802",
+    "independent_terminal": "a0c03e8bc499b2bf03f2498532fb8d88eb25be8c32857ecce7286f92905cc010",
+    "plan": "cea073e05ea4d0be124ba9f845315b81149579ded853cb48899d82ac71ab5a8a",
+    "pointer": "e028f0a130edf974adb6c5180f3ac4a28a082ef49b56b037f75674915fe9ee2d",
+    "readbacks": "7cc7f95d9bcaa13f82ad783a2edf794a5c46b07e3d99b64b11ee051f89f328f3",
+    "result": "0ed9b1396169f6310042dd12b639b094ec4842f0a28bcdf885aec36ca0d5fed2",
+    "step6_review": "80a94bdbfdeef42c438bfb66f73d364fbc8e6c1145bd5bf7cc1da236c463c31a"
+  },
+  "helpers": [
+    {
+      "created": "2026-11-16T20:40:02.049693442Z",
+      "exit_code": 0,
+      "finished": "2026-11-16T20:40:31.37712557Z",
+      "id": "d6eafcc8e640abef9630aeedaa86209c29622cff42626945a091df9fc8ef027d",
+      "profile_sha256": "cf572f67886b846fc06e8333ea1d20f4ce5768d1e864081b66ae46694daa20af",
+      "started": "2026-11-16T20:40:31.180037037Z"
+    },
+    {
+      "created": "2026-11-16T20:43:38.395941413Z",
+      "exit_code": 0,
+      "finished": "2026-11-16T20:44:36.188326159Z",
+      "id": "221ec47ad84db9246216c1ba49387ce3228798a6e4f46c2f0d54d466823a8c41",
+      "profile_sha256": "a600aa7c25d97f03523343ad7637bea669e8a8ab9f775b2747c49784143107cc",
+      "started": "2026-11-16T20:44:35.992754126Z"
+    }
+  ],
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-16T21:39:56.272175+00:00",
+    "reviewed_at": "2026-11-16T20:39:56.272175+00:00"
+  },
+  "independent_verdict": "ACCEPT_ORDINARY_HOLD_RENEWAL_TERMINAL_CONTINUOUS_CURRENT_INTERVAL",
+  "limits": {
+    "additional_actor_start_SQL_or_runtime_authority": false,
+    "continuous_only_this_interval": true,
+    "earlier_expired_gap_seconds": 318292.822363,
+    "no_helper_replay": true,
+    "ongoing_graph_scope_sha256": "491b2f902b27ad6c612227f4402b814e14bb22bc2a6d9d2b4a0e689558918e82"
+  },
+  "observed_at": "2026-11-16T20:48:06.649704+00:00",
+  "packet": "/tmp/swingset-stage2-hold-review-20261116-203956",
+  "source_sha256": "3a4845a2e1933cc4f18d92817a247e0aeda455c1f8f71f5b1a867e6a496e01a7",
+  "transport_outcomes": [
+    {
+      "step": 0,
+      "transport_error_type": null,
+      "transport_exit_code": 0
+    },
+    {
+      "step": 1,
+      "transport_error_type": null,
+      "transport_exit_code": 0
+    },
+    {
+      "step": 2,
+      "transport_error_type": "TimeoutExpired",
+      "transport_exit_code": null
+    },
+    {
+      "step": 3,
+      "transport_error_type": null,
+      "transport_exit_code": 0
+    },
+    {
+      "step": 4,
+      "transport_error_type": null,
+      "transport_exit_code": 0
+    },
+    {
+      "step": 5,
+      "transport_error_type": "TimeoutExpired",
+      "transport_exit_code": null
+    },
+    {
+      "step": 6,
+      "transport_error_type": null,
+      "transport_exit_code": 0
+    }
+  ],
+  "verified": {
+    "continuous_current_interval": true,
+    "historical_gaps_preserved": true,
+    "installedroot0_444_h1_exactSHA": true,
+    "pointer_exact": true,
+    "protected12_fresh_exact": true,
+    "remaining3_6_and6_only_consumed_without_replay": true,
+    "steps0_1_3_4_6_transport0": true,
+    "steps2_5_original_transportTimeout_null_preserved": true,
+    "three_remote_receipt_bytes_modes_hash_before_after_exact": true,
+    "two_exact_helpers_natural0_PID0_noOOM_complete_profiles": true
+  }
+}

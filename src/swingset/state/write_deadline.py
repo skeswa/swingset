@@ -10,7 +10,7 @@ import time
 from collections.abc import Iterator
 from types import FrameType
 
-from .engine import CommitUncertain, Connection, WriteTimeout
+from .engine import CommitUncertain, Connection, ConnectionLost, WriteTimeout
 
 # A safety net, not the bound: every write is small by construction (I2), so
 # a firing is an alarm (D-0217). No unit gets a longer limit.
@@ -136,8 +136,9 @@ def bounded_write(conn: Connection, *, seconds: float | None = None) -> Iterator
             # Its context still carries an in-flight fatal failure; do not
             # downgrade that failure into an ordinary retriable deadline.
             interrupted = error.__context__
-            if isinstance(interrupted, CommitUncertain) or (
-                isinstance(interrupted, KeyboardInterrupt) and not isinstance(interrupted, _Expired)
+            if isinstance(interrupted, ConnectionLost) or (
+                isinstance(interrupted, (KeyboardInterrupt, SystemExit))
+                and not isinstance(interrupted, _Expired)
             ):
                 error = interrupted
         if isinstance(error, CommitUncertain):
@@ -147,8 +148,14 @@ def bounded_write(conn: Connection, *, seconds: float | None = None) -> Iterator
             raise CommitUncertain(
                 "database commit crossed its acknowledgement deadline; reconcile retained state"
             ) from error
-        if isinstance(error, KeyboardInterrupt) and not isinstance(error, _Expired):
+        if isinstance(error, (KeyboardInterrupt, SystemExit)) and not isinstance(error, _Expired):
             raise error
+        if isinstance(error, ConnectionLost):
+            raise error
+        if conn.closed:
+            raise ConnectionLost(
+                "database session lost during write deadline; rollback could not be confirmed"
+            ) from error
         raise WriteDeadlineExceeded(
             f"atomic write exceeded {limit:g} seconds; output rolled back"
         ) from error

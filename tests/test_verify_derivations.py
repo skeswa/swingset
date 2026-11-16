@@ -515,6 +515,106 @@ def test_graph_verification_runs_on_copies_and_binds_dependencies(world, tmp_pat
     assert json.loads((tmp_path / "receipt.json").read_text()) == receipt
 
 
+@pytest.mark.parametrize("failure", ["backend_death", "closed_deadline"])
+def test_graph_lost_session_preserves_prefix_and_aborts_unattempted_units(
+    world, tmp_path, monkeypatch, failure
+):
+    from swingset import link
+    from swingset.dev.services import ensure_service
+    from swingset.state import verify_graph
+    from swingset.state.write_deadline import WriteDeadlineExceeded
+
+    original = link.link_event
+    calls = []
+    expected = verify_graph.enumerate_units(world.conn, ["link"])
+    before = _state(world.conn)
+
+    def lose_session(database, event_id, *args, **kwargs):
+        calls.append(f"link/event/{event_id}")
+        if len(calls) == 1:
+            return original(database, event_id, *args, **kwargs)
+        assert len(calls) == 2, "the shard executed another unit after session loss"
+        conn = database.connection
+        conn.execute("INSERT INTO meta(key,value) VALUES('graph_partial','uncommitted')")
+        if failure == "closed_deadline":
+            # Reproduce the reported boundary: verify_unit returns a failed
+            # deadline, but its real PostgreSQL connection is already closed.
+            conn.close()
+            raise WriteDeadlineExceeded("controlled deadline after session loss")
+        with ensure_service().connect(conn.info.dbname) as admin:
+            assert admin.execute(
+                "SELECT pg_terminate_backend(%s)", (conn.info.backend_pid,)
+            ).fetchone()[0]
+        conn.execute("SELECT 1 AS alive")
+        pytest.fail("the terminated backend remained usable")
+
+    monkeypatch.setattr(link, "link_event", lose_session)
+    path = tmp_path / "receipt.json"
+    receipt = verify_graph.run(
+        world.db.state_dir, linked.Bundle(), scopes=["link"], receipt_path=path
+    )
+
+    assert calls == expected[:2]
+    assert [r["unit"] for r in receipt["results"]] == expected[:2]
+    assert receipt["results"][0]["state"] == "match"
+    failed = receipt["results"][1]
+    assert failed["state"] == "failed"
+    category = "ConnectionLost" if failure == "backend_death" else "WriteDeadlineExceeded"
+    assert failed["error"].startswith(category + ":")
+    assert receipt["aborted_shards"] == [
+        {
+            "shard": 0,
+            "failed_unit": expected[1],
+            "reason": "connection_lost",
+            "unattempted_units": expected[2:],
+        }
+    ]
+    assert receipt["errors"] == [
+        f"shard 0 stopped after connection loss; {len(expected) - 2} units unattempted"
+    ]
+    assert not receipt["complete"] and not receipt["clean"]
+    assert not verify_graph.validate_receipt(receipt)
+    assert json.loads(path.read_text()) == receipt
+    assert _state(world.conn) == before
+
+
+def test_graph_recoverable_deadline_rolls_back_and_continues(world, monkeypatch):
+    import signal
+
+    from swingset import link
+    from swingset.state import verify_graph
+
+    original = link.link_event
+    calls = []
+    expected = verify_graph.enumerate_units(world.conn, ["link"])
+    before = _state(world.conn)
+
+    def expire_first(database, event_id, *args, **kwargs):
+        calls.append(f"link/event/{event_id}")
+        conn = database.connection
+        assert not conn.closed
+        if len(calls) == 1:
+            conn.execute("INSERT INTO meta(key,value) VALUES('graph_partial','uncommitted')")
+            assert conn._write_deadline is not None
+            signal.raise_signal(signal.SIGALRM)
+            pytest.fail("the active write deadline did not interrupt the unit")
+        assert conn.execute("SELECT 1 FROM meta WHERE key='graph_partial'").fetchone() is None
+        return original(database, event_id, *args, **kwargs)
+
+    monkeypatch.setattr(link, "link_event", expire_first)
+    receipt = verify_graph.run(world.db.state_dir, linked.Bundle(), scopes=["link"])
+
+    assert calls == expected
+    assert [r["unit"] for r in receipt["results"]] == expected
+    assert receipt["results"][0]["state"] == "failed"
+    assert receipt["results"][0]["error"].startswith("WriteDeadlineExceeded:")
+    assert all(r["state"] == "match" for r in receipt["results"][1:])
+    assert receipt["aborted_shards"] == [] and receipt["errors"] == []
+    assert not receipt["complete"] and not receipt["clean"]
+    assert not verify_graph.validate_receipt(receipt)
+    assert _state(world.conn) == before
+
+
 @pytest.mark.parametrize("source_version", [None, 38])
 def test_graph_source_replay_compares_extract_and_parse_and_shards(
     tmp_path, monkeypatch, source_version
@@ -716,7 +816,14 @@ def test_graph_new_dependency_is_difference_even_with_identical_output(world, mo
     def extra(conn, unit, selected, **kwargs):
         dependencies, groups = original(conn, unit, selected, **kwargs)
         if unit.stage == "link":
-            dependencies.append(selected(conn, WorkUnit("project", "dancer", "never-present")))
+            extra = WorkUnit("project", "dancer", "never-present")
+            dependencies.append(
+                {
+                    "kind": "derivation",
+                    "key": [extra.stage, extra.unit_kind, extra.unit_id],
+                    "generation_id": selected(conn, (extra,))[extra],
+                }
+            )
         return dependencies, groups
 
     monkeypatch.setattr(derivation_dependencies, "dependencies", extra)

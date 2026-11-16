@@ -53,6 +53,12 @@ Each changed unit still increments once; a missing generation is inserted only
 for a new pending row. Retry fields and generation-insert row fences are
 preserved ([D-0286](../../journal/decisions/0286-batch-pending-work-generation-updates.md)).
 
+Native migration 41 adds nonunique `subject_id` indexes on `identity_links`
+and `link_candidates`. Subject-only replacement deletes can locate their
+rows without repeated whole-table scans. Their predicates, statement order,
+history and transaction boundaries are unchanged
+([measurement](../../journal/evidence/runtime/postgres-stage2-2026-11-17/link-subject-delete-plans.json)).
+
 PostgreSQL worker writes keep the 75-second absolute deadline and check it
 before every statement. Server statement and lock timeouts round the
 remaining budget down to 10 milliseconds above one second, retaining exact

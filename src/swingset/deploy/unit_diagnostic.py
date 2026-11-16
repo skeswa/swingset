@@ -1,4 +1,4 @@
-"""Diagnose one inventory transform on a new owned copy of a reviewed checkpoint.
+"""Diagnose one fixed transform on a new owned copy of a reviewed checkpoint.
 
 Stage this separately from /app only after promotion, testing and review. Imports
 use the installed, verified producer package; this operator is not that package.
@@ -12,6 +12,7 @@ import datetime as dt
 import hashlib
 import inspect
 import json
+import math
 import os
 import signal
 import sys
@@ -24,22 +25,37 @@ from typing import Any
 from unittest.mock import patch
 
 UNIT = "project/inventory/all"
+LINK_UNIT = "link/event/2020-01-budafest-open-wcs-championships"
+UNITS = (UNIT, LINK_UNIT)
 FORMAT = "swingset-one-unit-rollback-diagnostic-v1"
 RUN_ID = "graph_verify"
 WRITE_SECONDS = 75.0
-IMAGE = "sha256:346f30a492e7263c77e7c4346595e5a28e01bb1957ce6ee7e16be4f5c0f74f89"
+IMAGE = "sha256:2eb802d9b34b5c009bbd97eab69d67180d980057bcb82a92c3a3d049a77e7095"
 RUNTIME_ARTIFACT = (
-    "swingset-runtime@sha256:5f9b83c510d8af3870cf3b20d3319fb9dff83c91e1c4eadb4fe03134ce0b4cf9"
+    "swingset-runtime@sha256:449b669716b0c4b98c5fc43082779a6ce5dc8a509b426a68980cd25d147baad6"
 )
-SOURCE = "source-sha256:8aae03bf38566229a30475acadaf0ea659cff843166d6c40b31883cb6e8e3c2a"
-INSTALLED_PROOF = "d13c0e3f4688c6bbcc51a8339266487cda96a86d20cc9f441c3d5ca92180cd74"
-BUSINESS_CLOCK = "2026-11-11T13:03:02.488396+00:00"
+SOURCE = "source-sha256:be56773ba60c98b301a8b3b181a3ce6c5e252b37bfa6e3642498d853de56110f"
+INSTALLED_PROOF = "b0845ac59dd09f0aae68ef1aba7a5d7ffa5546b5a28586b6051b9c0982462568"
+BUSINESS_CLOCK = "2026-11-17T05:20:58.846978+00:00"
 SOURCE_CHECKPOINT = "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37"
 ACCEPTED_CHECKPOINT = "5039effbf0b79dbb5cef98fb2001e7142be18ec8a80eaf75a8ea9dc233351a61"
+INSTALLED_PYTHON_FILES = 376
 EXPECTED_UNITS = 108390
 UNIT_SET_SHA256 = "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228"
-INPUTS_SHA256 = "63c46b8dd4890849edb6cd1f549f80518a067f8ebd7c102e792ee0d47b988fe8"
-BINDING_SHA256 = "1ffa96ed76243926c62d2e98b8c34d7042fc080b46d0dc82c03973a21847010e"
+# Actual emitted context, not an unsupported prediction across Linker 9 -> 10.
+CONTEXT = {
+    "audit": (52, "5cc5f8358b5d73f833ddeb47fe02ce14f747cfb9a04f9931d7b0391bafe5f8d6"),
+    "versions": (98, "86db48110b9c13105d95dd6bff5e12f6882823b05b9bcdc5c0c2b07242c3753d"),
+    "inputs": (113, "d66a72cf5a637065611c7b5d3d5c3793178bc02ac3d66902b4db8180153551a0"),
+}
+CONTEXT_SHA256 = "2dd0e1133c969450da13c7ae0ddcc40ec62f29d7cb2ffe76cecb9ccea846a336"
+PROJECTION_UNAVAILABLE = "checkpoint projection supports only code-input changes"
+
+
+def selected_unit(name: str) -> str:
+    if name not in UNITS:
+        raise ValueError("unit diagnostic target is not one of the two reviewed units")
+    return name
 
 
 _ACCEPT_CALL_LIMIT = 8192
@@ -51,12 +67,12 @@ _ACCEPT_SOURCE = {
 
 
 def _acceptance_bindings() -> tuple[list[tuple[Any, str, Any]], dict[str, dict[Any, str]]]:
-    """Bind already-loaded eager held8 functions, without importing or calling them."""
+    """Bind already-loaded eager qualified functions, without importing or calling them."""
     modules = []
     for name, expected in _ACCEPT_SOURCE.items():
         module = sys.modules.get("swingset.state." + name)
         if not inspect.ismodule(module) or module.__file__ is None:
-            raise ValueError("acceptance observer requires the loaded held producer")
+            raise ValueError("acceptance observer requires the loaded qualified producer")
         if hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() != expected:
             raise ValueError("acceptance observer business source differs")
         modules.append(module)
@@ -126,6 +142,7 @@ class Observations:
             "accept",
             "post_acceptance_binding",
             "inventory_trial",
+            "link_trial",
             "post_source_identity",
         }
     )
@@ -290,7 +307,7 @@ class Observations:
                 }
                 for label in ("recipe_pipeline", "recipe_audit", "affected_work", "enqueue")
             },
-            "scope": "Original held8 eager functions, exact owner/caller only. Callee and coarse execute spans are inclusive and overlap; do not sum. No argument, result, frame, error value, SQL or per-yield observation. Identity-journal enqueue aliases are outside the enqueue label. Partial failure remains a prefix, not completed acceptance.",
+            "scope": "Original qualified eager functions, exact owner/caller only. Callee and coarse execute spans are inclusive and overlap; do not sum. No argument, result, frame, error value, SQL or per-yield observation. Identity-journal enqueue aliases are outside the enqueue label. Partial failure remains a prefix, not completed acceptance.",
         }
         self.value["acceptance_callees"] = value
         self._acceptance_active = True
@@ -432,29 +449,75 @@ class Observations:
         self.value["failure_frames"] = frames
 
 
-def destination_binding(database: Any, bundle: Any, clock: Any) -> dict[str, Any]:
-    """Reproduce G's semantic prelude, before any acceptance write."""
+def destination_binding(
+    database: Any, bundle: Any, clock: Any, unit_name: str = UNIT
+) -> dict[str, Any]:
+    """Reproduce the ordinary graph prelude without predicting an unsupported bump."""
     from swingset.fetch.archive import canonical, digest
     from swingset.state import verify_graph
-    from swingset.state.checkpoint_binding import input_acceptance_binding
+    from swingset.state.checkpoint_binding import (
+        UnsupportedCheckpointTransition,
+        input_acceptance_binding,
+    )
 
+    selected_unit(unit_name)
     expected = verify_graph.enumerate_units(database.connection)
     if (len(expected), digest(canonical(expected))) != (
         EXPECTED_UNITS,
         UNIT_SET_SHA256,
-    ) or UNIT not in expected:
+    ) or unit_name not in expected:
         raise ValueError("frozen unit inventory differs from the failed graph")
     with database.connection.read_snapshot():
-        binding = input_acceptance_binding(database.connection, bundle, clock)
+        try:
+            input_acceptance_binding(database.connection, bundle, clock)
+        except UnsupportedCheckpointTransition as error:
+            if str(error) != PROJECTION_UNAVAILABLE:
+                raise ValueError(
+                    "input projection refusal differs from the failed graph"
+                ) from error
+        else:
+            raise ValueError("failed graph requires an explicitly unsupported projection")
+        source = verify_graph.checkpoint_identity(database.connection)
+    if source != SOURCE_CHECKPOINT:
+        raise ValueError("destination source checkpoint differs from the failed graph")
+    return {
+        "source_checkpoint": source,
+        "input_acceptance_binding": None,
+        "input_acceptance_binding_unavailable": PROJECTION_UNAVAILABLE,
+        "expected_unit_count": EXPECTED_UNITS,
+        "unit_set_sha256": UNIT_SET_SHA256,
+    }
+
+
+def accepted_binding(database: Any) -> dict[str, Any]:
+    """Bind the actual ordinary committed acceptance to the observed failed graph."""
+    from swingset.fetch.archive import canonical, digest
+    from swingset.state import verify_graph
+
+    identity = verify_graph.checkpoint_identity(database.connection)
+    accepted = verify_graph.context(database.connection)
     if (
-        binding.get("format") != "swingset-input-checkpoint-binding-v1"
-        or binding.get("source_checkpoint") != SOURCE_CHECKPOINT
-        or binding.get("checkpoint") != ACCEPTED_CHECKPOINT
-        or digest(canonical(binding.get("inputs"))) != INPUTS_SHA256
-        or digest(canonical(binding)) != BINDING_SHA256
+        identity != ACCEPTED_CHECKPOINT
+        or any(
+            (len(accepted[name]), digest(canonical(accepted[name]))) != expected
+            for name, expected in CONTEXT.items()
+        )
+        or digest(canonical(accepted)) != CONTEXT_SHA256
     ):
-        raise ValueError("input acceptance projection differs from the failed graph")
-    return binding
+        raise ValueError("candidate context differs from failed graph context")
+    expected = verify_graph.enumerate_units(database.connection)
+    if (len(expected), digest(canonical(expected))) != (EXPECTED_UNITS, UNIT_SET_SHA256):
+        raise ValueError("accepted unit inventory differs from the failed graph")
+    return {
+        "checkpoint": identity,
+        "context_sha256": CONTEXT_SHA256,
+        "context": {
+            name: {"count": count, "sha256": checksum}
+            for name, (count, checksum) in CONTEXT.items()
+        },
+        "expected_unit_count": len(expected),
+        "unit_set_sha256": UNIT_SET_SHA256,
+    }
 
 
 class _PhaseExpired(KeyboardInterrupt):
@@ -488,18 +551,90 @@ def phase_deadline(seconds: float) -> Iterator[None]:
             )
 
 
+def failure_metadata(error: BaseException) -> dict[str, Any]:
+    """Bounded exception identities and installed code locations, never values."""
+    import swingset
+
+    installed = Path(swingset.__file__).resolve().parent if swingset.__file__ else None
+    chain: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    current: BaseException | None = error
+    relation = "primary"
+    while current is not None and id(current) not in seen and len(chain) < 4:
+        seen.add(id(current))
+        name = type(current).__name__
+        state = getattr(current, "sqlstate", None)
+        frames: list[dict[str, str | int]] = []
+        frames_clipped = False
+        trace = current.__traceback__
+        for _ in range(64):
+            if trace is None:
+                break
+            code = trace.tb_frame.f_code
+            path = Path(code.co_filename).resolve()
+            if (
+                installed is not None
+                and path.is_relative_to(installed)
+                and code.co_name.isidentifier()
+            ):
+                if len(frames) < 16:
+                    frames.append(
+                        {
+                            "file": "installed/swingset/" + path.relative_to(installed).as_posix(),
+                            "function": code.co_name,
+                            "line": trace.tb_lineno,
+                        }
+                    )
+                else:
+                    frames_clipped = True
+            trace = trace.tb_next
+        chain.append(
+            {
+                "relation": relation,
+                "error_type": name if name.isidentifier() and len(name) <= 128 else "unclassified",
+                "sqlstate": state
+                if isinstance(state, str)
+                and len(state) == 5
+                and state.isascii()
+                and state.isalnum()
+                and state.upper() == state
+                else None,
+                "frames": frames,
+                "traceback_truncated": frames_clipped or trace is not None,
+            }
+        )
+        if current.__cause__ is not None:
+            current, relation = current.__cause__, "cause"
+        elif not current.__suppress_context__:
+            current, relation = current.__context__, "context"
+        else:
+            current = None
+    return {"chain": chain, "chain_truncated": current is not None}
+
+
 def profile_derivation(
-    database: Any, bundle: Any, clock: Any, report: dict[str, Any] | None = None
+    database: Any,
+    bundle: Any,
+    clock: Any,
+    report: dict[str, Any] | None = None,
+    *,
+    unit_name: str = UNIT,
 ) -> dict[str, Any]:
     """Use real installed verify_unit; never call its old error-overwriting wrapper."""
+    from swingset import link
+    from swingset.link import service as link_service
     from swingset.project import history, process
     from swingset.state import derivations, verify, write_deadline
     from swingset.state.work import WorkUnit
 
-    unit = WorkUnit(*UNIT.split("/", 2))
+    report = {} if report is None else report
+    unit = WorkUnit(*selected_unit(unit_name).split("/", 2))
+    inventory = unit_name == UNIT
+    if not inventory and link.link_event is not link_service.link_event:
+        raise ValueError("installed link entry aliases differ")
     identity, wall_clock, cpu_clock = threading.get_ident, time.monotonic, time.thread_time
     owner = identity()
-    inventory_active = False
+    transform_active = False
     phases: list[dict[str, Any]] = []
     completions: list[str] = []
     labels: list[tuple[str, int]] = []
@@ -517,7 +652,82 @@ def profile_derivation(
             "post_link_hints": 0,
         },
     }
+    if not inventory:
+        del observer["inventory_span_calls"]
+        observer["link_span_calls"] = {
+            "capture": 0,
+            "desired": 0,
+            "load_linking_snapshot": 0,
+            "resolve_event": 0,
+            "commit_resolution": 0,
+        }
+    span_calls = observer["inventory_span_calls" if inventory else "link_span_calls"]
     original_live = verify._live_label
+    original_transaction = database.transaction
+    observer.update(native_entry_count=0, native_entry_unknown=False, finalization_errors=0)
+
+    def observe_failure(error: BaseException) -> None:
+        try:
+            key = "terminal_failure" if "primary_failure" in report else "primary_failure"
+            report[key] = failure_metadata(error)
+        except BaseException:
+            # This observer runs while an application exception is already active.
+            observer["quality"] = False
+            observer["finalization_errors"] += 1
+
+    @contextlib.contextmanager
+    def transaction(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        if identity() != owner:
+            observer["foreign_thread_calls"] += 1
+            with original_transaction(*args, **kwargs) as connection:
+                yield connection
+            return
+        try:
+            with original_transaction(*args, **kwargs) as connection:
+                yield connection
+        except BaseException as error:
+            if not isinstance(error, verify._RollBack):
+                observe_failure(error)
+            raise
+
+    def writer_state() -> dict[str, bool]:
+        return {
+            "closed": bool(database.connection.closed),
+            "in_transaction": bool(database.connection.in_transaction),
+        }
+
+    @contextlib.contextmanager
+    def finalize_trial() -> Iterator[None]:
+        report["writer_before"] = None
+        try:
+            report["writer_before"] = writer_state()
+        except BaseException as error:
+            observer["quality"] = False
+            if not isinstance(error, Exception):
+                raise
+        try:
+            yield
+        except BaseException as error:
+            observe_failure(error)
+            raise
+        finally:
+            primary = sys.exc_info()[1]
+            report["writer_after"] = None
+            try:
+                report["writer_after"] = writer_state()
+            except BaseException as error:
+                observer["quality"] = False
+                observer["finalization_errors"] += 1
+                if primary is None and not isinstance(error, Exception):
+                    raise
+            finally:
+                report["observer_complete"] = bool(
+                    observer["quality"]
+                    and not observer["overflow"]
+                    and not observer["foreign_thread_calls"]
+                    and observer["native_entry_count"] > 0
+                    and not observer["native_entry_unknown"]
+                )
 
     def run_label() -> Any:
         row = database.connection.execute(
@@ -535,10 +745,10 @@ def profile_derivation(
             if not owned:
                 observer["foreign_thread_calls"] += 1
                 return function(*args, **kwargs)
-            if name in observer["inventory_span_calls"]:
-                count = observer["inventory_span_calls"][name]
+            if name in span_calls:
+                count = span_calls[name]
                 if count < 2**63 - 1:
-                    observer["inventory_span_calls"][name] = count + 1
+                    span_calls[name] = count + 1
                 else:
                     observer.update(quality=False, overflow=True)
             try:
@@ -581,39 +791,72 @@ def profile_derivation(
 
         return call
 
-    original_process = process.process_unit
-    measured_process = measured("process", original_process)
+    original_process = process.process_unit if inventory else link_service.link_event
+    measured_process = measured("process" if inventory else "link_event", original_process)
 
     def processing(*args: Any, **kwargs: Any) -> Any:
-        nonlocal inventory_active
-        selected = args[1] if len(args) > 1 else kwargs.get("unit")
+        nonlocal transform_active
+        selected = args[1] if len(args) > 1 else kwargs.get("unit" if inventory else "event_id")
         try:
             owned = identity() == owner
         except Exception:
             observer["quality"] = False
             owned = False
-        if selected != unit or not owned:
+        if selected != (unit if inventory else unit.unit_id) or not owned:
             return measured_process(*args, **kwargs)
-        previous, inventory_active = inventory_active, True
+        previous, transform_active = transform_active, True
         try:
             return measured_process(*args, **kwargs)
         finally:
-            inventory_active = previous
+            transform_active = previous
 
-    def inventory_span(name: str, function: Callable[..., Any]) -> Callable[..., Any]:
+    def transform_span(name: str, function: Callable[..., Any]) -> Callable[..., Any]:
         timed = measured(name, function)
 
         def call(*args: Any, **kwargs: Any) -> Any:
-            if inventory_active:
+            if transform_active:
                 return timed(*args, **kwargs)
             return function(*args, **kwargs)
 
         return call
 
+    def link_capture(*args: Any, **kwargs: Any) -> Any:
+        nonlocal transform_active
+        selected = args[1] if len(args) > 1 else kwargs.get("unit")
+        if identity() != owner:
+            return measured("capture", original_capture)(*args, **kwargs)
+        previous = transform_active
+        if selected == unit:
+            transform_active = True
+        try:
+            return transform_span("capture", original_capture)(*args, **kwargs)
+        finally:
+            transform_active = previous
+
     def live(conn: Any, selected: Any) -> Any:
         if selected != unit:
             observer["other_labels"] += 1
             return measured("helper_label", original_live)(conn, selected)
+        if identity() == owner:
+            try:
+                remaining, interval = signal.getitimer(signal.ITIMER_REAL)
+                deadline = conn._write_deadline
+                now = wall_clock()
+                if not (
+                    conn is database.connection
+                    and conn.in_transaction
+                    and type(deadline) in (int, float)
+                    and math.isfinite(deadline)
+                    and 0 < deadline - now <= WRITE_SECONDS + 0.01
+                    and interval == 0
+                    and 0 < remaining <= WRITE_SECONDS + 0.01
+                ):
+                    raise ValueError("native write entry was not observed")
+                observer["native_entry_count"] += 1
+            except BaseException as error:
+                observer.update(quality=False, native_entry_unknown=True)
+                if not isinstance(error, Exception):
+                    raise
         name = "initial_live_label" if not labels else "output_label"
         label = measured(name, original_live)(conn, selected)
         if len(labels) < 64:
@@ -634,10 +877,9 @@ def profile_derivation(
             observer["overflow"] = True
         return measured("complete", original_complete)(conn, selected, **kwargs)
 
-    report = {} if report is None else report
     report.update(
         {
-            "unit": UNIT,
+            "unit": unit_name,
             "unit_result": None,
             "phases": phases,
             "completion_dependencies": completions,
@@ -648,37 +890,86 @@ def profile_derivation(
             "limitations": [
                 "Nested completed-function timings overlap; do not sum them.",
                 "Only the calling thread is timed; foreign calls are passed through.",
-                "Inventory subspans run only inside its process call, excluding all live labels. Capture and desired overlap. Post-link-hints covers only _hint_links; year hints, enqueue and pending deletion remain unassigned process work.",
+                (
+                    "Inventory subspans run only inside its process call, excluding all live labels. Capture and desired overlap. Post-link-hints covers only _hint_links; year hints, enqueue and pending deletion remain unassigned process work."
+                    if inventory
+                    else "Link subspans measure the installed service aliases; capture and desired overlap. All timings are inclusive and live-label work is separate."
+                ),
                 "This unit-scoped rollback witness is not a full history audit or graph proof.",
+                "Exception classes, SQLSTATE and installed-code frames describe this observation only; no historical-cause proof, SQL, error messages, locals or secret values.",
             ],
         }
     )
-    with phase_deadline(90):
+    if write_deadline.WRITE_SECONDS != WRITE_SECONDS:
+        raise ValueError("installed worker write budget differs")
+    with finalize_trial(), phase_deadline(90):
         pointer = verify._pointer_label(database.connection, unit)
         before_runs = run_label()
-        with (
-            patch.object(verify, "_live_label", live),
-            patch.object(process, "process_unit", processing),
-            patch.object(derivations, "capture", inventory_span("capture", derivations.capture)),
-            patch.object(derivations, "desired", inventory_span("desired", derivations.desired)),
-            patch.object(
-                history,
-                "prepare_inventory",
-                inventory_span("prepare_inventory", history.prepare_inventory),
+        original_capture = derivations.capture
+        hooks = [
+            (database, "transaction", transaction),
+            (verify, "_live_label", live),
+            (
+                derivations,
+                "capture",
+                transform_span("capture", original_capture) if inventory else link_capture,
             ),
-            patch.object(
-                process, "_hint_links", inventory_span("post_link_hints", process._hint_links)
-            ),
-            patch.object(derivations, "complete", complete),
-        ):
+            (derivations, "desired", transform_span("desired", derivations.desired)),
+            (derivations, "complete", complete),
+        ]
+        if inventory:
+            hooks.extend(
+                [
+                    (process, "process_unit", processing),
+                ]
+            )
+        else:
+            hooks.extend(
+                [
+                    (link, "link_event", processing),
+                    (link_service, "link_event", processing),
+                ]
+            )
+            for name in ("load_linking_snapshot", "resolve_event", "commit_resolution"):
+                hooks.append(
+                    (link_service, name, transform_span(name, getattr(link_service, name)))
+                )
+        with contextlib.ExitStack() as patches:
+            for module, name, function in hooks:
+                patches.enter_context(patch.object(module, name, function))
+            if inventory:
+                patches.enter_context(
+                    patch.object(
+                        history,
+                        "prepare_inventory",
+                        transform_span("prepare_inventory", history.prepare_inventory),
+                    )
+                )
+                patches.enter_context(
+                    patch.object(
+                        process,
+                        "_hint_links",
+                        transform_span("post_link_hints", process._hint_links),
+                    )
+                )
             result = measured("verify_unit", verify.verify_unit)(
                 database, unit, bundle, clock, RUN_ID
             )
         if not completions:
             result["state"] = "failed"
             result.setdefault("error", "transform returned without completing its unit")
-        report["unit_result"] = result
+        # verify_unit returns a message-bearing error; receipts retain only its class.
+        report["unit_result"] = {key: value for key, value in result.items() if key != "error"}
+        if "error" in result:
+            error_type = result["error"].split(":", 1)[0]
+            report["unit_result"]["error_type"] = (
+                error_type
+                if error_type.isidentifier() and len(error_type) <= 128
+                else "unclassified"
+            )
         try:
+            if database.connection.closed:
+                raise ValueError("trial writer closed; rollback observation unavailable")
             with database.connection.read_snapshot():
                 after = measured("rollback_live_label", original_live)(database.connection, unit)
                 after_pointer = verify._pointer_label(database.connection, unit)
@@ -692,13 +983,13 @@ def profile_derivation(
                 and after_pointer == pointer
                 and before_runs == after_runs,
             )
-        except Exception as error:
-            # Preserve the transform's original error even if labeling itself
-            # failed. An incomplete witness never becomes an accepted diagnosis.
+        except BaseException as error:
+            # Preserve a failed result across ordinary observer errors. A fresh
+            # external interruption after verify_unit returns must still propagate.
+            observer["quality"] = False
             report["rollback_error_type"] = type(error).__name__
-    report["observer_complete"] = (
-        observer["quality"] and not observer["overflow"] and not observer["foreign_thread_calls"]
-    )
+            if not isinstance(error, Exception):
+                raise
     return report
 
 
@@ -711,7 +1002,12 @@ def producer_identity() -> dict[str, Any]:
         raise ValueError("diagnostic requires a regular installed producer")
     root = Path(swingset.__file__).resolve().parent
     digest = hashlib.sha256()
-    for path in sorted(root.rglob("*.py")):
+    paths = sorted(root.rglob("*.py"))
+    if len(paths) != INSTALLED_PYTHON_FILES or any(
+        not path.is_file() or path.is_symlink() for path in paths
+    ):
+        raise ValueError("installed diagnostic producer differs")
+    for path in paths:
         name, body = path.relative_to(root).as_posix().encode(), path.read_bytes()
         digest.update(len(name).to_bytes(4, "big"))
         digest.update(name)
@@ -720,17 +1016,17 @@ def producer_identity() -> dict[str, Any]:
     source = "source-sha256:" + digest.hexdigest()
     if (
         source != SOURCE
-        or str(LINKER_VERSION) != "9"
+        or str(LINKER_VERSION) != "10"
         or os.environ.get("SWINGSET_RUNTIME_IMAGE") != RUNTIME_ARTIFACT
     ):
         raise ValueError("installed diagnostic producer differs")
     return {
         "source_revision": source,
-        "linker_version": "9",
+        "linker_version": "10",
         "image": IMAGE,
         "runtime_artifact": RUNTIME_ARTIFACT,
         "installed_proof_sha256": INSTALLED_PROOF,
-        "installed_file_count": 560,
+        "installed_file_count": 570,
     }
 
 
@@ -743,14 +1039,16 @@ def run(
     at: str,
     expected_source: str,
     expected_checkpoint: str,
+    unit_name: str = UNIT,
 ) -> dict[str, Any]:
     from swingset.clock import FakeClock
-    from swingset.fetch.archive import canonical, digest, durable_write
+    from swingset.fetch.archive import canonical, durable_write
     from swingset.state import input_profile, inputs, verify_graph, write_deadline
     from swingset.state.db import open_database
     from swingset.state.postgres_copy import Copies
     from swingset.versions import versions
 
+    selected_unit(unit_name)
     input_profile.validate_paths(checkpoint, receipt, capture_state=capture_state)
     if (at, expected_source, expected_checkpoint) != (
         BUSINESS_CLOCK,
@@ -760,9 +1058,9 @@ def run(
         raise ValueError("diagnostic context differs from the reviewed failed graph")
     producer = producer_identity()
     installed_write_seconds = write_deadline.WRITE_SECONDS
-    if type(installed_write_seconds) not in (int, float) or installed_write_seconds not in (
-        60.0,
-        WRITE_SECONDS,
+    if (
+        type(installed_write_seconds) not in (int, float)
+        or installed_write_seconds != WRITE_SECONDS
     ):
         raise ValueError("installed worker write budget differs from the known producer policy")
     write_policy: dict[str, Any] = {
@@ -770,7 +1068,7 @@ def run(
         "authorized_seconds": WRITE_SECONDS,
         "applied_seconds": None,
         "restored": None,
-        "scope": "Postfreeze owned-copy acceptance and ordinary inventory trial only; installed producer bytes unchanged.",
+        "scope": "Installed 75-second policy asserted without modification; owned-copy acceptance and rollback trial only.",
     }
     observations = Observations()
     clock = FakeClock(dt.datetime.fromisoformat(at))
@@ -778,7 +1076,7 @@ def run(
         "format": FORMAT,
         "graph_proof": False,
         "diagnostic_complete": False,
-        "unit": UNIT,
+        "unit": unit_name,
         "business_clock": at,
         "operator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "producer": producer,
@@ -804,7 +1102,7 @@ def run(
     try:
         with contextlib.ExitStack() as contexts:
             with phase_deadline(2700):
-                record("capture_old_installed_inputs")
+                record("capture_current_installed_inputs")
                 with observations.phase("capture"):
                     bundle = inputs.capture(config, overrides, capture_state, versions())
                 source = contexts.enter_context(
@@ -812,8 +1110,8 @@ def run(
                         checkpoint, read_only=True, lock=False, allow_checkpoint_schema=True
                     )
                 )
-                if source.environment != "dev":
-                    raise ValueError("unit diagnostic requires a private dev source")
+                if source.environment != "dev" or source.schema_version != 38:
+                    raise ValueError("unit diagnostic requires its private native38 dev source")
                 copies = contexts.enter_context(Copies(checkpoint))
                 frozen = receipt.parent / "owned-copy"
                 if frozen.exists() or frozen.is_symlink():
@@ -831,59 +1129,52 @@ def run(
                 ].endswith("_0"):
                     raise ValueError("unit diagnostic requires exactly its new owned_0 database")
                 result.update(owner_token=copies.identifier, source_checkpoint=source_identity)
-            # The old installed bytes keep their identity. Apply the authorized
-            # runtime policy only to the owned copy, independently of its 90s
-            # trial ceiling; the original module constant is always restored.
+            # Assert the installed policy; never patch the producer's deadline.
+            write_policy["applied_seconds"] = installed_write_seconds
             try:
-                with patch.object(write_deadline, "WRITE_SECONDS", WRITE_SECONDS):
-                    write_policy["applied_seconds"] = write_deadline.WRITE_SECONDS
-                    with open_database(frozen, lock=False) as database:
-                        record("destination_graph_prelude")
-                        with observations.phase("destination_prelude"):
-                            binding = destination_binding(database, bundle, clock)
-                        result["input_acceptance_binding"] = {
-                            "sha256": digest(canonical(binding)),
-                            "inputs_sha256": digest(canonical(binding["inputs"])),
-                            "source_checkpoint": binding["source_checkpoint"],
-                            "checkpoint": binding["checkpoint"],
-                            "expected_unit_count": EXPECTED_UNITS,
-                            "unit_set_sha256": UNIT_SET_SHA256,
-                        }
-                        record("accept_old_installed_inputs_on_copy_only")
-                        # This is the ordinary top-level accept and commit, with no
-                        # profiling transaction, extra SQL or receipt I/O in the write.
-                        with (
-                            observations.acceptance(),
-                            observations.phase("accept"),
-                            observations.connection(database.connection),
-                        ):
-                            inputs.accept(database, bundle, clock)
-                        with observations.phase("post_acceptance_binding"):
-                            identity = verify_graph.checkpoint_identity(database.connection)
-                            accepted = verify_graph.context(database.connection)
-                            if (
-                                identity != binding["checkpoint"]
-                                or accepted["inputs"] != binding["inputs"]
-                            ):
-                                raise ValueError(
-                                    "candidate context differs from failed graph context"
-                                )
-                        expected = verify_graph.enumerate_units(
-                            database.connection, ["project/inventory"]
-                        )
-                        if expected != [UNIT]:
-                            raise ValueError("unit diagnostic selection differs")
-                        record("one_real_rollback_trial")
-                        result["trial"] = {}
-                        with observations.phase("inventory_trial"):
+                with open_database(frozen, lock=False) as database:
+                    if database.schema_version != 41:
+                        raise ValueError("unit diagnostic requires the current native41 copy")
+                    record("destination_graph_prelude")
+                    with observations.phase("destination_prelude"):
+                        prelude = destination_binding(database, bundle, clock, unit_name)
+                    result.update(prelude)
+                    record("accept_current_installed_inputs_on_copy_only")
+                    # Ordinary top-level acceptance commits before the actual binding.
+                    with (
+                        observations.acceptance(),
+                        observations.phase("accept"),
+                        observations.connection(database.connection),
+                    ):
+                        inputs.accept(database, bundle, clock)
+                    with observations.phase("post_acceptance_binding"):
+                        result["accepted_binding"] = accepted_binding(database)
+                    expected = verify_graph.enumerate_units(
+                        database.connection, [unit_name.rsplit("/", 1)[0]]
+                    )
+                    if unit_name not in expected or (unit_name == UNIT and expected != [UNIT]):
+                        raise ValueError("unit diagnostic selection differs")
+                    record("one_real_rollback_trial")
+                    result["trial"] = {}
+                    with observations.phase(
+                        "inventory_trial" if unit_name == UNIT else "link_trial"
+                    ):
+                        if unit_name == UNIT:
                             profile_derivation(database, bundle, clock, result["trial"])
-                        record("close_owned_copy")
+                        else:
+                            profile_derivation(
+                                database, bundle, clock, result["trial"], unit_name=unit_name
+                            )
+                    record("close_owned_copy")
             finally:
                 write_policy["restored"] = write_deadline.WRITE_SECONDS == installed_write_seconds
             # Source is still readonly. No checkpoint, database or actor is adopted.
             with source.connection.read_snapshot():
                 with observations.phase("post_source_identity"):
-                    if verify_graph.checkpoint_identity(source.connection) != expected_source:
+                    result["source_post_checkpoint"] = verify_graph.checkpoint_identity(
+                        source.connection
+                    )
+                    if result["source_post_checkpoint"] != expected_source:
                         raise ValueError("source checkpoint changed")
             record("owned_cleanup")
         result["owned_database_cleanup_complete"] = True
@@ -928,6 +1219,7 @@ def authorize_installed_verifier() -> None:
 def arguments(parser: argparse.ArgumentParser) -> None:
     for name in ("checkpoint", "capture-state", "receipt", "config", "overrides"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--unit", choices=UNITS, default=UNIT)
     parser.add_argument("--at", required=True)
     parser.add_argument("--source-checkpoint", required=True)
     parser.add_argument("--expected-checkpoint", required=True)
@@ -946,6 +1238,7 @@ def execute(args: argparse.Namespace) -> int:
             args.at,
             args.source_checkpoint,
             args.expected_checkpoint,
+            args.unit,
         )
     except BaseException as error:
         print(json.dumps({"diagnostic_complete": False, "error_type": type(error).__name__}))
@@ -956,7 +1249,7 @@ def execute(args: argparse.Namespace) -> int:
         json.dumps(
             {
                 "diagnostic_complete": result["diagnostic_complete"],
-                "unit": UNIT,
+                "unit": args.unit,
                 "graph_proof": False,
                 "unit_state": result["trial"]["unit_result"]["state"],
                 "unit_passed": result["unit_passed"],

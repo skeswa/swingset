@@ -1,0 +1,78 @@
+{
+  "actual_activation": {
+    "activation_finished_at": "2026-11-16T19:11:41.221852049Z",
+    "activation_started_at": "2026-11-16T19:11:41.035435907Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-16T19:35:51.076328+00:00"
+  },
+  "after_hold_sha256": "30d84bfe95169cb0c4aacd41effe0aeaebeabdaa2fe38c707d0901aa898603f2",
+  "before_hold_sha256": "41f2b246b874aa66e3d2abcaffff95bf155c5a04145fecac2cfbb567ea2011e4",
+  "command_context": {
+    "admin_commands_sha256": "5ef05c2f1dc8f7d17b02f65a0ad9ac505f55f29dba61e0feab7e81e1518533bf",
+    "command": "swingset review-rehearsal-hold",
+    "current": "/tmp/swingset-stage2-current-hold.json",
+    "protocol": "six administrative argv plus receipt/pointer finalization"
+  },
+  "counts": {
+    "exact_helpers_natural_exit0": 2,
+    "protected_services_unchanged": 12,
+    "protocol_steps": 7,
+    "remote_receipt_readbacks": 3,
+    "transport_exit0": 7
+  },
+  "exit": 0,
+  "format": "swingset-routine-hold-review-v1",
+  "hashes": {
+    "independent_terminal": "ae10a286e37a7fd2655864e789c6712cadcf01fbbf450391b135a72641917fe7",
+    "operation_fence": "fc31405b97746466ce85b9667a1c5753ab9e50a931f2bbaecd06393a4450da03",
+    "plan": "90b3ecc8804566acfe82e7412583bb26477b8c1f13ae65d7f97485ae2565cfde",
+    "pointer": "9d19aaf2bc0bc5866a6bef82e77a7b247e59a908a37a79c4cb2f63727b6b47f3",
+    "readbacks": "1845c73d0d4ed7977df0d790d03b16b8576928d26b50839e38c4702f7b4cd167",
+    "result": "5e7f46a93b5a7e59ba839eda01c6935b6842a8f1828514de4994af08b8899fa9"
+  },
+  "helpers": [
+    {
+      "created": "2026-11-16T19:11:35.149148947Z",
+      "exit_code": 0,
+      "finished": "2026-11-16T19:11:35.560598453Z",
+      "id": "31d5aeb830cfa09aee03267e6791186af699c30d042dc5ba4b197157fa9655c8",
+      "profile_sha256": "d25bc305765a66cf3a0029eea99e7ac81c7c57e2cbe460f889d981c9f017cbb2",
+      "started": "2026-11-16T19:11:35.392582661Z"
+    },
+    {
+      "created": "2026-11-16T19:11:40.754543708Z",
+      "exit_code": 0,
+      "finished": "2026-11-16T19:11:41.221852049Z",
+      "id": "c29c9c6f8ff11742381442bc4e88ec553773e85f6bf9204b0c98ffb4a91e7150",
+      "profile_sha256": "1e834cbc68dd40ebe7a520cf32b95279a01496b6f43ea9d84c5bb8049faf5bb3",
+      "started": "2026-11-16T19:11:41.035435907Z"
+    }
+  ],
+  "hold": {
+    "created_at": "2026-11-06T20:46:24.758465+00:00",
+    "owner": "codex-stage2-resume",
+    "reason": "Stage 2 checkpoint import and validation; pipeline schedulers remain unstarted",
+    "review_at": "2026-11-16T20:11:29.608151+00:00",
+    "reviewed_at": "2026-11-16T19:11:29.608151+00:00"
+  },
+  "independent_verdict": "ACCEPT_ORDINARY_HOLD_RENEWAL_TERMINAL_CONTINUOUS_CURRENT_INTERVAL",
+  "limits": {
+    "additional_actor_start_SQL_or_runtime_authority": false,
+    "continuous_only_this_interval": true,
+    "earlier_expired_gap_seconds": 318292.822363
+  },
+  "observed_at": "2026-11-16T19:14:39.105664+00:00",
+  "packet": "/tmp/swingset-stage2-hold-review-20261116-191129",
+  "source_sha256": "3a4845a2e1933cc4f18d92817a247e0aeda455c1f8f71f5b1a867e6a496e01a7",
+  "verified": {
+    "2freshfullprofile_natural0_PID0_noOOM": true,
+    "7exactintents_transports0_noUnknown": true,
+    "continuous_currentinterval": true,
+    "historicalgaps_retained": true,
+    "identitysame_fixedhour": true,
+    "installedroot0_444_h1_exactSHA": true,
+    "pointer_exact": true,
+    "protected12_fresh_exact": true,
+    "remote3receiptsmetadata_size_SHA_before_after_exact": true
+  }
+}

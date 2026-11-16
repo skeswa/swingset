@@ -1,0 +1,110 @@
+{
+  "SQL_write_authorized": false,
+  "cleanup_performed": false,
+  "command_context": {
+    "command_vectors_sha256": "c25cbdf7637bb43a5a11c6a59bbe0b4dd585022b35aeca7b633ec50760ca741a",
+    "execution_review_sha256": "aa2b6a725bb31d2489003bfbbc2e776338730861abe3394a62df726d7fcef6e8",
+    "executor_sha256": "2bb3558eb240c577985c8a444765a89a700b1db29e57ff883f599d16c3018b23",
+    "fresh_preGO_result_sha256": "5decfd68c2ca931ef16050d7abf775a41dc97ce250d6944623b835f6fc7e60fa",
+    "operation": "49 unchanged fixed stock CLI vectors plus bounded status polls and4freshpreGOreads",
+    "plan_sha256": "d790a6723c04b026ff745cd070fb503face4c20499e9324883933a64a42fdcd6",
+    "root_go_sha256": "03f900a4db2821d2ca05a3db1e70cc54b9827e99f56256c0526efcac2bf44ab9"
+  },
+  "completed_at": "2026-11-16T20:00:22.690076+00:00",
+  "counts": {
+    "additional_fresh_preGO_reads": 4,
+    "bounded_status_poll_reads": 14,
+    "exact_named_absence_exit1": 3,
+    "main_exit0": 46,
+    "main_vectors_validated_once": 49,
+    "protected_apps": 12,
+    "recorded_transport_exit0": 60,
+    "recorded_transport_exit1": 3,
+    "retained_catalog_databases": 5,
+    "seal_helpers_natural_exit0": 2,
+    "unchanged_bound_source_files": 956,
+    "unknown": 0
+  },
+  "format": "swingset-image-only-guard-transition-v1",
+  "graph_or_ordinary_worker_started": false,
+  "hashes": {
+    "independent_observation": "8261e2512aa11a4ddd8f2855d0609b849252bd1589c6b024e63f6c506f50d542",
+    "independent_terminal": "e5899f0895f48021f231c12493c700c7a98d0c1e9386db4b27e5d430b8338b9d",
+    "summary": "8d7c3c7eee7673aa9b6904539fca5e7dfab86b7f9ba2da23e81d9729c21f153e"
+  },
+  "held_status": {
+    "complete_inventory": false,
+    "inventory_count": 37,
+    "observation_error": null,
+    "policy_sha256": "49f56776a4ff76384ba3eaf00bfbc96bad19fa612f5ff9362c96c22aa0da07cc",
+    "resource_exit": 0,
+    "utc": 1794859341.7114384
+  },
+  "helper_cids": {
+    "/swingset-guard862-4e943002cd2a-seal-chmod": "37828897bbc924ad08e167136ee12d95c89b7d13436f28bc554d1d3b39b05abf",
+    "/swingset-guard862-4e943002cd2a-seal-chown": "bef1e8a2bfddb9b61d0ef5b82325bfa30eb4db9188af3dffd57c584ab5fce780"
+  },
+  "hold_sha256": "e7cc00da88587b142959f10623d4ffc48102128c9e769d2681ec8fe0d16193d2",
+  "independent_verdict": "ACCEPT_IMAGE_ONLY_GUARD_TRANSITION_TERMINAL",
+  "limits": [
+    "Accepts only image policy/guardian transition; no graph, worker, DB write, migration, cleanup, adoption or publication authority.",
+    "Held complete_inventory=false/count37 is preserved as a limited observation, not normal application health.",
+    "Old75 inventory trial remains FAILED despite successful diagnostic and owned cleanup.",
+    "No raw Env, credentials, private.env or unknown ledger bodies were read."
+  ],
+  "new_current_platform": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "cgroup": "/system.slice/docker-a30fa1168013f8967cddd756f11a84086fdfa8fca9ddf03c717141d3b0b3e646.scope",
+    "container_id": "a30fa1168013f8967cddd756f11a84086fdfa8fca9ddf03c717141d3b0b3e646",
+    "kernel_caps": {
+      "CapBnd": "0000000000281000",
+      "CapEff": "0000000000281000",
+      "CapPrm": "0000000000281000"
+    },
+    "name": "swingset-namespace-4e943002cd2a",
+    "network_inode": 4026533272,
+    "pid": 3777145,
+    "start_ticks": "1025562858",
+    "started_at": "2026-11-16T19:59:50.047393731Z"
+  },
+  "old_guard_retained": {
+    "exit": 143,
+    "id": "cbcb3ef851e568ae852afd7f884f31df2e09ff37193a7b034eb674f65c791ea2",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "running": false
+  },
+  "pointer_sha256": "dce482e75942170f274a822bcd64ff199f6cb1122964adcccf1554e78e0a9e57",
+  "policy": {
+    "atomic_inode_device": {
+      "device": 2050,
+      "inode": 17862046,
+      "previous_B4_sealed_copy_retained": true
+    },
+    "canonical_sha256": "49f56776a4ff76384ba3eaf00bfbc96bad19fa612f5ff9362c96c22aa0da07cc",
+    "only_change": "runtime image346f30a4 to e68aa127; allotherpolicyfieldsexact",
+    "raw_sha256": "cb6d548c295b28fc9bc738c0308e179aa2b92a3cd0372f36bb53e8e1e227bb96",
+    "sealed_links": 1,
+    "sealed_mode": "0444",
+    "sealed_uid": 0
+  },
+  "post_free_bytes": 578141212672,
+  "prior_preGO_refusal": {
+    "completed_effects_replayed": false,
+    "fresh_v3_preGO_used_after_hold_successor": true,
+    "local_named_NoSuchObject_newline_predicate": true,
+    "path": "/tmp/swingset-stage2-guard862-executor-20261116-v2/pre-effect-refusal.json",
+    "root_go_absent_and_all49_effects_unattempted": true,
+    "sha256": "d9d86425dc2bcc0b6ca8e7dda3908f981b57e348211c8367049e48da5ec0d583"
+  },
+  "protected_source_native_catalog_guardedworkers": {
+    "no_guarded_workers": true,
+    "unchanged": true
+  },
+  "raw_packet": "/tmp/swingset-stage2-guard862-executor-20261116-v3",
+  "reviewed_at": "2026-11-16T20:03:38.779874+00:00",
+  "security_source_sha256": "abbfc554583f1ce8a2d9d9d2e5f33cb1ddfc0292348439d954ea95dd8d198fab",
+  "source": "source-sha256:862bbd75c9a7496e0d297147c8a9192b1acd759917a90ac6d16f04d331118e3c",
+  "source_binding_sha256": "8e83714209c94b9b4353cb21c3afcbf31c23529dba739744314d1d9a2b1ce367"
+}

@@ -1,4 +1,4 @@
-"""The composed diagnostic keeps the old producer and one audited operator separate."""
+"""The composed diagnostic keeps the qualified producer and one audited operator separate."""
 
 import copy
 import hashlib
@@ -15,8 +15,9 @@ from swingset.deploy import unit_diagnostic_job as supervisor
 
 
 @pytest.fixture
-def diagnostic(graph, monkeypatch):
+def diagnostic(graph, monkeypatch, request):
     original, backend, files = graph
+    target = getattr(request, "param", operator.UNIT)
     policy = copy.deepcopy(original.policy)
     body = Path(operator.__file__).read_bytes()
     checksum = hashlib.sha256(body).hexdigest()
@@ -25,8 +26,8 @@ def diagnostic(graph, monkeypatch):
         "runtime_artifact": operator.RUNTIME_ARTIFACT,
         "source_revision": operator.SOURCE,
         "installed_proof_sha256": operator.INSTALLED_PROOF,
-        "installed_file_count": 560,
-        "linker_version": "9",
+        "installed_file_count": 570,
+        "linker_version": "10",
     }
     policy.update(
         format=supervisor.UnitDiagnosticJob.FORMAT,
@@ -34,10 +35,11 @@ def diagnostic(graph, monkeypatch):
         source_sha256="ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
         producer=producer,
         operator_sha256=checksum,
-        unit=operator.UNIT,
+        unit=target,
         business_clock=operator.BUSINESS_CLOCK,
         source_checkpoint=operator.SOURCE_CHECKPOINT,
         expected_checkpoint=operator.ACCEPTED_CHECKPOINT,
+        input_acceptance_binding=None,
         freeze_seconds=2700,
         write_seconds=operator.WRITE_SECONDS,
         report_seconds=90,
@@ -56,7 +58,7 @@ def diagnostic(graph, monkeypatch):
         "SWINGSET_RUNTIME_IMAGE=" + operator.RUNTIME_ARTIFACT,
     ]
     image_index = policy["verifier_argv"].index(operator.IMAGE)
-    policy["verifier_argv"][image_index + 1 :] = supervisor.UnitDiagnosticJob.utility_command()
+    policy["verifier_argv"][image_index + 1 :] = supervisor.diagnostic_command(target)
     directory = original.root / "operator"
     directory.mkdir(mode=0o555)
     # Root ownership is tested separately; this fixture runs as the local user.
@@ -91,7 +93,7 @@ def diagnostic(graph, monkeypatch):
         "SWINGSET_RUNTIME_IMAGE=" + operator.RUNTIME_ARTIFACT,
     ]
     backend.application["Image"] = operator.IMAGE
-    backend.application["Config"]["Cmd"] = supervisor.UnitDiagnosticJob.utility_command()
+    backend.application["Config"]["Cmd"] = supervisor.diagnostic_command(target)
     backend.application["Mounts"][index] = {
         "Type": "bind",
         "Source": mount["source"],
@@ -120,7 +122,7 @@ def diagnostic(graph, monkeypatch):
             "base_cleanup_authorized": False,
             "producer": producer,
             "operator_sha256": checksum,
-            "unit": operator.UNIT,
+            "unit": target,
         }
         review = original.root / "diagnostic-review.json"
         review.write_text(json.dumps(verdict))
@@ -149,13 +151,40 @@ def test_composed_job_checks_mount_then_preserves_resources_and_one_copy_contrac
     instance.sample()
     result = instance.run()
     assert result["complete"] and result["graph_proof"] is False, result
-    assert result["producer"]["linker_version"] == "9"
+    assert result["producer"]["linker_version"] == "10"
     assert result["write_budget_seconds"] == instance.policy["write_seconds"] == 75
     assert result["unit"] == "project/inventory/all"
     assert result["protected12_unchanged"]
     assert sum(call[1] == "start" for call in backend.calls) == 1
     assert len(instance.bound()["Mounts"]) == 11
     assert instance.DEADLINES == {3600} and instance.policy["owned_database_limit"] == 1
+
+
+@pytest.mark.parametrize("graph", [True], indirect=True)
+@pytest.mark.parametrize("diagnostic", [operator.LINK_UNIT], indirect=True)
+def test_fixed_link_target_binds_review_policy_and_actual_command(diagnostic):
+    create, backend, _ = diagnostic
+    instance = create()
+    command = instance.utility_command()
+    assert command == supervisor.diagnostic_command() + ["--unit", operator.LINK_UNIT]
+    assert "--unit" not in supervisor.diagnostic_command()
+    assert instance.result["unit"] == operator.LINK_UNIT
+    instance.bound()
+    backend.application["Config"]["Cmd"] = supervisor.diagnostic_command()
+    with pytest.raises(ValueError):
+        instance.bound()
+    assert not any(call[1] == "start" for call in backend.calls)
+
+
+@pytest.mark.parametrize("graph", [True], indirect=True)
+@pytest.mark.parametrize("target", [operator.LINK_UNIT, "link/event/arbitrary-event"])
+def test_policy_target_cannot_disagree_with_review_or_expand_fixed_scope(diagnostic, target):
+    create, backend, _ = diagnostic
+    with pytest.raises(ValueError):
+        create(unit=target)
+    assert not any(call[1] == "start" for call in backend.calls)
+    with pytest.raises(ValueError):
+        supervisor.diagnostic_command("link/event/arbitrary-event")
 
 
 @pytest.mark.parametrize("graph", [True], indirect=True)
@@ -194,6 +223,11 @@ def test_invalid_composition_never_starts_or_stops_an_actor(diagnostic, fault):
     "field,value",
     [
         ("runtime_image", "sha256:" + "f" * 64),
+        (
+            "runtime_image",
+            "sha256:346f30a492e7263c77e7c4346595e5a28e01bb1957ce6ee7e16be4f5c0f74f89",
+        ),
+        ("input_acceptance_binding", {"checkpoint": "unsupported prediction"}),
         ("owned_database_limit", 2),
         ("unit", "project/year/2026"),
         ("freeze_seconds", 2701),

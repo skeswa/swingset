@@ -7,6 +7,7 @@ namespace signal script, policy and acceptance remain private operation inputs.
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import hashlib
 import json
@@ -19,7 +20,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 
 def digest(b: bytes) -> str:
@@ -813,11 +814,395 @@ def run(directory: Path, review: Path) -> dict[str, Any]:
         os.umask(previous_umask)
 
 
+DEPENDENCY_RECEIPT = "1368526ea8a0eb64540b8aa8994948059316a966d98a909e93c2970f6b1f7fe4"
+DEPENDENCY_CONTEXT = "2dd0e1133c969450da13c7ae0ddcc40ec62f29d7cb2ffe76cecb9ccea846a336"
+DEPENDENCY_CHECKPOINT = "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37"
+DEPENDENCY_SOURCE = {
+    "database": "sst_copy_c696fead2daf4d3c83adfbbe_0",
+    "oid": 16396,
+    "owner": "postgres",
+    "comment": "swingset-scratch:c696fead2daf4d3c83adfbbe",
+    "environment": "dev",
+    "database_id": "2f58b861-ebd6-4fd6-a9aa-44a020589439",
+    "schema_version": "38",
+    "source_schema_version": "37",
+    "postgres_migration_checksum": "f3ff9118fc0c0ac721e24336208397318fbca72773fc9939099422a9749d3c68",
+}
+DEPENDENCY_REQUEST = "swingset-inventory-dependency-request-v1"
+DEPENDENCY_STREAM = "swingset-inventory-dependency-stream-v1"
+DEPENDENCY_ROOT_BYTES = 262144
+DEPENDENCY_CHUNK_BYTES = 32768
+DEPENDENCY_REPORT_BYTES = 262144
+
+
+class DependencyWitnessRefused(ValueError):
+    """A fixed dependency witness failed without exposing its input."""
+
+
+def _dependency_require(value: object) -> None:
+    if not value:
+        raise DependencyWitnessRefused()
+
+
+def _dependency_unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        _dependency_require(key not in value)
+        value[key] = item
+    return value
+
+
+def _dependency_constant(value: str) -> None:
+    raise DependencyWitnessRefused()
+
+
+def _dependency_canonical(value: object) -> str:
+    # Match derivations.canonical, including float/int spelling and allow_nan.
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _dependency_digest(value: object) -> str:
+    return digest(_dependency_canonical(value).encode())
+
+
+def _dependency_hash(value: Any) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+def _dependency_generation(value: Any) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"dg_[0-9a-f]{64}", value) is not None
+
+
+def _dependency_fields(value: Any, fields: set[str]) -> None:
+    _dependency_require(type(value) is dict and set(value) == fields)
+
+
+def _dependency_label(value: Any) -> None:
+    _dependency_require(
+        type(value) is list
+        and len(value) == 2
+        and _dependency_hash(value[0])
+        and type(value[1]) is int
+        and 0 <= value[1] < 2**63
+    )
+
+
+def _dependency_request(raw: bytes, expected: str) -> dict[str, Any]:
+    _dependency_require(_dependency_hash(expected) and len(raw) <= 1048576)
+    _dependency_require(digest(raw) == expected)
+    request: dict[str, Any] = json.loads(
+        raw, object_pairs_hook=_dependency_unique, parse_constant=_dependency_constant
+    )
+    _dependency_fields(
+        request,
+        {
+            "format",
+            "graph_receipt_sha256",
+            "graph_context_sha256",
+            "source_checkpoint",
+            "source_boundary_sha256",
+            "inventory_generation_id",
+            "inventory_group_sha256",
+            "roots",
+            "units",
+        },
+    )
+    _dependency_require(
+        request["format"] == DEPENDENCY_REQUEST
+        and request["graph_receipt_sha256"] == DEPENDENCY_RECEIPT
+        and request["graph_context_sha256"] == DEPENDENCY_CONTEXT
+        and request["source_checkpoint"] == DEPENDENCY_CHECKPOINT
+        and _dependency_hash(request["source_boundary_sha256"])
+        and _dependency_generation(request["inventory_generation_id"])
+    )
+    selected = [
+        {
+            "kind": "derivation",
+            "key": ["project", "inventory", "all"],
+            "generation_id": request["inventory_generation_id"],
+        }
+    ]
+    _dependency_require(request["inventory_group_sha256"] == _dependency_digest(selected))
+    roots, units = request["roots"], request["units"]
+    # The selected inventory group also consumes one top-level root slot.
+    _dependency_require(type(roots) is list and 0 < len(roots) < 128)
+    _dependency_require(all(_dependency_hash(root) for root in roots))
+    _dependency_require(roots == sorted(set(roots)))
+    _dependency_require(type(units) is list and 0 < len(units) <= 248)
+    names = []
+    for unit in units:
+        _dependency_fields(
+            unit,
+            {
+                "unit",
+                "generation_id",
+                "label",
+                "graph_found_label",
+                "expected_root",
+                "found_root",
+                "stored_versions",
+            },
+        )
+        name = unit["unit"]
+        _dependency_require(
+            isinstance(name, str)
+            and re.fullmatch(r"project/(?:resolution/[a-z0-9][a-z0-9-]{0,255}|year/202[35])", name)
+            and _dependency_generation(unit["generation_id"])
+            and _dependency_hash(unit["expected_root"])
+            and _dependency_hash(unit["found_root"])
+            and unit["expected_root"] != unit["found_root"]
+        )
+        _dependency_label(unit["label"])
+        _dependency_label(unit["graph_found_label"])
+        recipe = "recipe/code/" + "/".join(name.split("/")[:2])
+        _dependency_require(
+            unit["label"] == unit["graph_found_label"]
+            and unit["stored_versions"]
+            == {recipe: "5a79f84d820d759357fd719f286d7ba18341406645535e99982ad1d30f93f000"}
+        )
+        names.append(name)
+    _dependency_require(names == sorted(set(names)))
+    _dependency_require(set(roots) == {unit["expected_root"] for unit in units})
+    return request
+
+
+class _DependencyStream:
+    """The one fixed dependency protocol; root bodies never survive one root."""
+
+    def __init__(self, stream: BinaryIO) -> None:
+        self.stream = stream
+        self.started = time.monotonic()
+        self.bytes = 0
+
+    def frame(self, kind: str, fields: set[str]) -> dict[str, Any]:
+        _dependency_require(time.monotonic() - self.started < 600)
+        raw = self.stream.readline(65537)
+        self.bytes += len(raw)
+        _dependency_require(
+            0 < len(raw) <= 65536
+            and raw.endswith(b"\n")
+            and self.bytes <= 64 * 1024 * 1024
+            and time.monotonic() - self.started < 600
+        )
+        value: dict[str, Any] = json.loads(
+            raw, object_pairs_hook=_dependency_unique, parse_constant=_dependency_constant
+        )
+        _dependency_fields(value, fields | {"kind"})
+        _dependency_require(value["kind"] == kind)
+        return value
+
+    def root(self, expected: str, inventory: str) -> tuple[str | None, int]:
+        begin = self.frame("root_begin", {"id", "raw_bytes"})
+        size = begin["raw_bytes"]
+        _dependency_require(
+            begin["id"] == expected and type(size) is int and 2 <= size <= DEPENDENCY_ROOT_BYTES
+        )
+        raw = bytearray()
+        while len(raw) < size:
+            chunk = self.frame("root_chunk", {"offset", "base64"})
+            _dependency_require(type(chunk["offset"]) is int and chunk["offset"] == len(raw))
+            _dependency_require(isinstance(chunk["base64"], str))
+            part = base64.b64decode(chunk["base64"], validate=True)
+            _dependency_require(len(part) == min(DEPENDENCY_CHUNK_BYTES, size - len(raw)))
+            raw.extend(part)
+        end = self.frame("root_end", {"id"})
+        _dependency_require(end["id"] == expected and digest(bytes(raw)) == expected)
+        # Framing rejects nonfinite constants; retained canonical TEXT keeps the
+        # pipeline's original JSON number semantics, without normalization.
+        members = json.loads(raw, object_pairs_hook=_dependency_unique)
+        _dependency_require(type(members) is list and all(type(x) is dict for x in members))
+        ordered = sorted(members, key=_dependency_canonical)
+        _dependency_require(_dependency_digest(members) == expected)
+        _dependency_require(_dependency_digest(ordered) == expected)
+        selected = [
+            x
+            for x in members
+            if x.get("kind") == "dependency_set" and x.get("key") == "selected_project_inventory"
+        ]
+        if len(selected) != 1:
+            return None, len(selected)
+        _dependency_fields(selected[0], {"kind", "key", "fingerprint"})
+        _dependency_require(_dependency_hash(selected[0]["fingerprint"]))
+        changed = [dict(x, fingerprint=inventory) if x is selected[0] else x for x in members]
+        return _dependency_digest(sorted(changed, key=_dependency_canonical)), 1
+
+
+def _dependency_witness(raw: bytes, expected: str, stream: BinaryIO) -> dict[str, Any]:
+    request = _dependency_request(raw, expected)
+    reader = _DependencyStream(stream)
+    header = reader.frame("header", {"format", "request_sha256", "source", "snapshot"})
+    snapshot = header["snapshot"]
+    _dependency_fields(
+        snapshot,
+        {
+            "backend_pid",
+            "pg_snapshot",
+            "default_transaction_read_only",
+            "transaction_read_only",
+            "isolation",
+            "statement_timeout",
+            "lock_timeout",
+            "transaction_timeout",
+        },
+    )
+    _dependency_require(
+        header["format"] == DEPENDENCY_STREAM
+        and header["request_sha256"] == expected
+        and header["source"] == DEPENDENCY_SOURCE
+        and type(snapshot["backend_pid"]) is int
+        and snapshot["backend_pid"] > 0
+        and isinstance(snapshot["pg_snapshot"], str)
+        and re.fullmatch(r"[0-9]+:[0-9]+:(?:[0-9]+(?:,[0-9]+)*)?", snapshot["pg_snapshot"])
+        and snapshot["default_transaction_read_only"] == snapshot["transaction_read_only"] == "on"
+        and snapshot["isolation"] == "repeatable read"
+        and snapshot["statement_timeout"] == "15s"
+        and snapshot["lock_timeout"] == "2s"
+        and snapshot["transaction_timeout"] == "10min"
+    )
+    inventory = reader.frame("inventory", {"pointer_generation_id", "selected_generation_id"})
+    _dependency_require(
+        inventory["pointer_generation_id"]
+        == inventory["selected_generation_id"]
+        == request["inventory_generation_id"]
+    )
+    roots = {
+        root: reader.root(root, request["inventory_group_sha256"]) for root in request["roots"]
+    }
+    results = []
+    for unit in request["units"]:
+        actual = reader.frame(
+            "unit",
+            {
+                "unit",
+                "pointer_generation_id",
+                "generation_id",
+                "label",
+                "dependency_id",
+                "stored_versions",
+            },
+        )
+        _dependency_require(
+            actual["unit"] == unit["unit"]
+            and actual["pointer_generation_id"] == actual["generation_id"] == unit["generation_id"]
+            and type(actual["label"]) is list
+            and actual["label"] == unit["label"]
+            and actual["dependency_id"] == unit["expected_root"]
+            and actual["stored_versions"] == unit["stored_versions"]
+        )
+        _dependency_label(actual["label"])
+        candidate, count = roots[unit["expected_root"]]
+        results.append(
+            {
+                "unit": unit["unit"],
+                "original_binding_sha256": _dependency_digest(actual),
+                "original_root": unit["expected_root"],
+                "counterfactual_root": candidate,
+                "found_root": unit["found_root"],
+                "inventory_entry_count": count,
+                "explained": candidate == unit["found_root"],
+            }
+        )
+    footer = reader.frame("committed", {"request_sha256", "roots", "units"})
+    _dependency_require(
+        footer["request_sha256"] == expected
+        and type(footer["roots"]) is int
+        and type(footer["units"]) is int
+        and footer["roots"] == len(roots)
+        and footer["units"] == len(results)
+        and stream.read(1) == b""
+        and time.monotonic() - reader.started < 600
+    )
+    report = {
+        "format": "swingset-inventory-dependency-witness-v1",
+        "complete": True,
+        "request_sha256": expected,
+        "graph_receipt_sha256": DEPENDENCY_RECEIPT,
+        "graph_context_sha256": DEPENDENCY_CONTEXT,
+        "source": DEPENDENCY_SOURCE,
+        "source_checkpoint": {
+            "sha256": DEPENDENCY_CHECKPOINT,
+            "basis": "accepted_prior_boundary",
+            "boundary_sha256": request["source_boundary_sha256"],
+        },
+        "inventory_group_sha256": request["inventory_group_sha256"],
+        "inventory_basis": "source_scope_pointer_not_runtime_active_group",
+        "original_label_basis": "stored_generation_metadata_and_reviewed_prior_source_boundary",
+        "roots": len(roots),
+        "top_level_roots_including_inventory": len(roots) + 1,
+        "units": results,
+        "remaining_units": [row["unit"] for row in results if not row["explained"]],
+        "committed_footer_and_EOF": True,
+        "source_process_exit_not_observed": True,
+        "operation_authority": False,
+    }
+    _dependency_require(
+        len(json.dumps(report, sort_keys=True).encode()) + 1 <= DEPENDENCY_REPORT_BYTES
+    )
+    return report
+
+
+def dependency_witness(
+    path: Path, expected: str, stream: BinaryIO, *, emit: bool = False
+) -> dict[str, Any]:
+    """Read only public request bytes and stdin; never open a database or output file.
+
+    A reviewed operation must additionally prove source/reader exits zero and
+    that the footer follows SQL COMMIT. This worker grants no operation authority.
+    """
+    if sys.flags.optimize or signal.getitimer(signal.ITIMER_REAL)[0]:
+        raise DependencyWitnessRefused()
+    previous = signal.getsignal(signal.SIGALRM)
+
+    def expired(signum: int, frame: Any) -> None:
+        raise TimeoutError()
+
+    signal.signal(signal.SIGALRM, expired)
+    signal.setitimer(signal.ITIMER_REAL, 600)
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(descriptor, "rb") as request:
+            info = os.fstat(request.fileno())
+            _dependency_require(
+                stat.S_ISREG(info.st_mode)
+                and info.st_nlink == 1
+                and info.st_size <= 1048576
+                and info.st_uid in {0, os.geteuid()}
+                and not info.st_mode & 0o022
+            )
+            raw = request.read(1048577)
+        report = _dependency_witness(raw, expected, stream)
+        if emit:
+            # Keep the absolute worker alarm through encoding and stdout flush,
+            # including a blocked downstream report consumer.
+            print(json.dumps(report, sort_keys=True), flush=True)
+        return report
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--directory", required=True, type=Path)
-    parser.add_argument("--review", required=True, type=Path)
+    parser.add_argument("--directory", type=Path)
+    parser.add_argument("--review", type=Path)
+    parser.add_argument("--dependency-request", type=Path)
+    parser.add_argument("--request-sha256")
     args = parser.parse_args(argv)
+    if args.dependency_request is not None:
+        if args.directory is not None or args.review is not None or args.request_sha256 is None:
+            parser.error("Dependency stdin mode requires only its request and SHA256")
+        try:
+            dependency_witness(
+                args.dependency_request, args.request_sha256, sys.stdin.buffer, emit=True
+            )
+        except Exception as error:
+            print(
+                json.dumps({"complete": False, "error_type": type(error).__name__}, sort_keys=True)
+            )
+            return 1
+        return 0
+    if args.directory is None or args.review is None or args.request_sha256 is not None:
+        parser.error("Capture mode requires its directory and review")
     try:
         result = run(args.directory, args.review)
     except Exception as error:

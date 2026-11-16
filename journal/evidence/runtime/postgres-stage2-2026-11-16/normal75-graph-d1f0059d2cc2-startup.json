@@ -1,0 +1,193 @@
+{
+  "at": "2026-11-16T20:43:03.712432+00:00",
+  "checkpoint_contract": "Linker9-to10 projection unsupported; require actual source/checkpoint/audit/versions/inputs and preserve unavailable reason. Never reuse old5039.",
+  "cold_preparation": {
+    "commands": 108,
+    "exit0": 91,
+    "expected_named_absence_exit1": 17,
+    "fresh_owned_volumes": 4,
+    "helpers_natural0": 16,
+    "input_closure": {
+      "bytes": 69548306,
+      "diff_equal": true,
+      "files": 1689
+    },
+    "mount_reconciliation": "Only three regular read-only DSN file-bind Propagation fields: draft rprivate, actual rslave. Full HostConfig and every other public field equal; sole independent reconciliation accepted.",
+    "private_numeric_metadata_only": true,
+    "raw_inputs": {
+      "action_review": {
+        "bytes": 7028,
+        "path": "/tmp/swingset-stage2-graph862-final-20261116-v1/graph-review.json",
+        "sha256": "491b2f902b27ad6c612227f4402b814e14bb22bc2a6d9d2b4a0e689558918e82"
+      },
+      "cold_summary": {
+        "bytes": 9615,
+        "path": "/tmp/swingset-stage2-graph862-final-20261116-v1/cold-summary-reconciled.json",
+        "sha256": "aa9d8ac830f4998f0f2ac5913b19ee67b18514b6d4c934ec67164d382598922e"
+      },
+      "plan": {
+        "bytes": 27093,
+        "path": "/tmp/swingset-stage2-graph862-final-20261116-v1/graph-plan.json",
+        "sha256": "51968e1a94318233d858e94f3e792302c82b0d10b2e31c01ef8db910c01ba417"
+      },
+      "reconciliation": {
+        "bytes": 1421,
+        "path": "/tmp/swingset-stage2-graph862-final-20261116-v1/cold-readback-reconciliation.json",
+        "sha256": "d5645ee1b8742583b59fc900cb83651700ff5a1c3a9267e7b2b17855582ea1a0"
+      },
+      "startup_review": {
+        "bytes": 3409,
+        "path": "/tmp/swingset-stage2-graph862-independent-startup-20261116/independent-startup-review.json",
+        "sha256": "8b395f28c60a728cec8ebfaec3aa2ae4422e243ab510e510584e22769f83fa38"
+      }
+    },
+    "replay": false,
+    "result_records_sha256": "9b45a4aa01f016ce12043d9b2889cb2c3cb09d689391acdca331a61c0979acfe",
+    "sealed_public_modules": 4,
+    "stock_argv_sha256": "186eb7f805a4e716040b236985ce9ab2fcc32a94830b1c4f94cc59396112484a",
+    "two_initial_predicate_refusals_preserved": true,
+    "unknown": 0
+  },
+  "command": [
+    "ssh",
+    "-T",
+    "-oBatchMode=yes",
+    "-oStrictHostKeyChecking=yes",
+    "-oConnectTimeout=10",
+    "-oServerAliveInterval=10",
+    "-oServerAliveCountMax=3",
+    "rhuidean",
+    "cd /var/tmp/swingset-stage2-graph-job-d1f0059d2cc2 && umask 077 && set -C && exec env -i PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 python3 -m swingset.deploy.verification_job --plan /var/tmp/swingset-stage2-graph-job-d1f0059d2cc2/graph-plan.json --plan-sha256 51968e1a94318233d858e94f3e792302c82b0d10b2e31c01ef8db910c01ba417 --container c962d408eb5259803eb5941b6c4951b25ec941decde75adc54f1f57b1dcc7d53 --platform a30fa1168013f8967cddd756f11a84086fdfa8fca9ddf03c717141d3b0b3e646 --review /var/tmp/swingset-stage2-graph-job-d1f0059d2cc2/graph-review.json --review-sha256 491b2f902b27ad6c612227f4402b814e14bb22bc2a6d9d2b4a0e689558918e82 > /var/tmp/swingset-stage2-graph-job-d1f0059d2cc2/verification-supervisor.stdout 2> /var/tmp/swingset-stage2-graph-job-d1f0059d2cc2/verification-supervisor.stderr"
+  ],
+  "execution": {
+    "actor": {
+      "birth": "1025771591",
+      "boot": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+      "cgroup": "0::/system.slice/docker-c962d408eb5259803eb5941b6c4951b25ec941decde75adc54f1f57b1dcc7d53.scope",
+      "container_id": "c962d408eb5259803eb5941b6c4951b25ec941decde75adc54f1f57b1dcc7d53",
+      "network_inode": 4026533552,
+      "pid": 4038335,
+      "pid_namespace_inode": 4026533550,
+      "started_at": "2026-11-16T20:34:37.369380721Z"
+    },
+    "base_cleanup_authorized": false,
+    "exit_code": null,
+    "foreground_tool_session": 25648,
+    "only_recorded_token_comment_guarded_cleanup_authorized": true,
+    "owned_database": {
+      "comment": "swingset-scratch:2340bacbea074f148234acf0",
+      "name": "sst_copy_2340bacbea074f148234acf0_0",
+      "oid": 7659662,
+      "owner": "postgres"
+    },
+    "owned_database_limit": 3,
+    "owner_registry_token": "2340bacbea074f148234acf0",
+    "state": "running at independent startup observation",
+    "supervisor": {
+      "argv_exact": true,
+      "cgroup": "0::/user.slice/user-1000.slice/session-28565.scope\n",
+      "netns": "net:[4026531840]",
+      "pgid": 4037849,
+      "pid": 4037849,
+      "pidns": "pid:[4026531836]",
+      "ppid": 4037826,
+      "start_ticks": "1025771506",
+      "state": "S",
+      "uid": 1000
+    }
+  },
+  "expected_checkpoint_prediction": null,
+  "format": "swingset-stage2-normal75-graph-startup-v1",
+  "guardian": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "cgroup": "/system.slice/docker-a30fa1168013f8967cddd756f11a84086fdfa8fca9ddf03c717141d3b0b3e646.scope",
+    "container_id": "a30fa1168013f8967cddd756f11a84086fdfa8fca9ddf03c717141d3b0b3e646",
+    "kernel_caps": {
+      "CapBnd": "0000000000281000",
+      "CapEff": "0000000000281000",
+      "CapPrm": "0000000000281000"
+    },
+    "name": "swingset-namespace-4e943002cd2a",
+    "network_inode": 4026533272,
+    "pid": 3777145,
+    "start_ticks": "1025562858",
+    "started_at": "2026-11-16T19:59:50.047393731Z"
+  },
+  "limits": {
+    "clone_lock_seconds": 10,
+    "clone_seconds": 1200,
+    "processes": 2,
+    "runtime_floor_bytes": 200000000000,
+    "whole_job_seconds": 86400,
+    "write_seconds": 75
+  },
+  "not_proved": [
+    "freeze complete",
+    "schema40 destination ready",
+    "actual accepted checkpoint",
+    "graph coverage or unit results",
+    "graph acceptance",
+    "rekey",
+    "Gate2"
+  ],
+  "operation": "Prepare and start one first normal current-runtime whole-graph verifier",
+  "prelaunch": {
+    "all_predicates_passed": true,
+    "fresh_pulse_reads": 6,
+    "initial_hold_sha256": "e7cc00da88587b142959f10623d4ffc48102128c9e769d2681ec8fe0d16193d2",
+    "pulse_sha256": "058a357a83e33580a17a05a82ed6b53848aae0270c9d96eba436c15e4ada09bc",
+    "root_go_sha256": "bfa9fabb25eb93e9bfc74ed5be1650f9e1f00c2f5de05f413c624d1d5a4dba8c",
+    "staging_commands": 9,
+    "staging_sha256": "44bcc8fbc0abb5472087e6216f7a2ca0c0630d8747cda852a88483a851f02837"
+  },
+  "raw_artifacts_stay_in_scratch": true,
+  "result_contract": "Preserve actual process exit and complete/clean/match/mismatch/failed counts; mismatch does not mean match and failed units block.",
+  "runtime": {
+    "artifact": "swingset-runtime@sha256:08df0ebcf24c3def6233bfb297cb8378412cb982129f9ced6d359d4fe5ea4859",
+    "image": "sha256:e68aa1274c16eb2a445f7ebec921ca175cb57dc0bf627fab6b00bb30695aa276",
+    "installed_public_files": 569,
+    "installed_python_files": 376,
+    "linker_version": "10",
+    "qualification": {
+      "bytes": 1731,
+      "path": "/tmp/swingset-stage2-runtime862-amd64-build-20261116-v1/qualification.json",
+      "sha256": "13271be51fe40acc365c946f324f28f2a3ffcd5d8500d565512c57fc94176776"
+    },
+    "source_revision": "source-sha256:862bbd75c9a7496e0d297147c8a9192b1acd759917a90ac6d16f04d331118e3c"
+  },
+  "source": {
+    "checkpoint": "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37",
+    "database": "sst_copy_c696fead2daf4d3c83adfbbe_0",
+    "database_id": "2f58b861-ebd6-4fd6-a9aa-44a020589439",
+    "native_schema": 38,
+    "protected_bases_retained": [
+      "C696",
+      "69"
+    ],
+    "shared_authoritative_import_untouched": true
+  },
+  "source_binding_sha256": "8e83714209c94b9b4353cb21c3afcbf31c23529dba739744314d1d9a2b1ce367",
+  "source_revision": "source-sha256:862bbd75c9a7496e0d297147c8a9192b1acd759917a90ac6d16f04d331118e3c",
+  "startup": {
+    "UID10001_caps0_NNP1_seccomp2": true,
+    "authorization_and_firewalls": true,
+    "full_public_profile_equal": true,
+    "memory_swap_CPU_PIDs_noOOM": true,
+    "observation_interval": [
+      "2026-11-16T20:37:12.725762+00:00",
+      "2026-11-16T20:37:16.182291+00:00"
+    ],
+    "protected_boundary": {
+      "C696_69_UUID_native38_source37_checksum_unchanged": true,
+      "base_bytes_unchanged": true,
+      "four_public_host_modules_exact": true,
+      "hold_sha256": "e7cc00da88587b142959f10623d4ffc48102128c9e769d2681ec8fe0d16193d2",
+      "hold_unexpired": true,
+      "minimum_free_bytes": 573187321856,
+      "original_catalog_five_unchanged": true,
+      "protected12_native87_oldguard_stopped_newguard_incarnation_unchanged": true
+    },
+    "state": "One new owned_0 database allocated; source and copy sessions active. Freeze is in progress, not proof of completed copy, acceptance, schema40 readiness or graph coverage.",
+    "verdict": "ACCEPT_ACTUAL_STARTUP_COPY_NOT_READY_NO_GRAPH_RESULT"
+  }
+}

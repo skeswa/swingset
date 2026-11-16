@@ -131,6 +131,7 @@ def validate_receipt(
             receipt.get("complete") is not True
             or receipt.get("clean") is not clean
             or receipt.get("errors")
+            or receipt.get("aborted_shards")
         ):
             return False
         if not all(isinstance(receipt[k], dict) for k in ("audit", "versions", "inputs")):
@@ -387,37 +388,52 @@ def _shard(
     clone: str, archive_root: str, units: list[str], bundle: Any, now: str
 ) -> dict[str, Any]:
     results = []
+    aborted = None
     with open_database(Path(clone), lock=False) as database:
-        for name in units:
+        for index, name in enumerate(units):
+            lost = False
             try:
                 result = (
                     _source(database, name, Archive(Path(archive_root)))
                     if name.startswith(("extract/", "parse/"))
                     else _derive(database, name, bundle, FakeClock(datetime.fromisoformat(now)))
                 )
+                if result["state"] in {"match", "mismatch"}:
+                    result["stored_versions"], result["stored_legacy_recipe"] = (
+                        _historical_versions(database.connection, name)
+                    )
+                    live_versions = context(database.connection)["versions"]
+                    result["declared_bump"] = any(
+                        version in live_versions
+                        and old != live_versions[version]
+                        and (
+                            not result["stored_legacy_recipe"]
+                            or not version.startswith("recipe/code/")
+                        )
+                        for version, old in result["stored_versions"].items()
+                    )
             except Exception as exc:
+                lost = isinstance(exc, engine.ConnectionLost)
                 result = {
                     "unit": name,
                     "state": "failed",
                     "error": f"{type(exc).__name__}: {exc}"[:500],
                 }
-            if result["state"] in {"match", "mismatch"}:
-                result["stored_versions"], result["stored_legacy_recipe"] = _historical_versions(
-                    database.connection, name
-                )
-                live_versions = context(database.connection)["versions"]
-                result["declared_bump"] = any(
-                    version in live_versions
-                    and old != live_versions[version]
-                    and (
-                        not result["stored_legacy_recipe"] or not version.startswith("recipe/code/")
-                    )
-                    for version, old in result["stored_versions"].items()
-                )
             results.append(result)
+            # verify_unit can return a failed deadline after libpq has already
+            # closed its session. Neither that result nor a caught fatal loss
+            # permits another unit on the same connection or an implicit retry.
+            if lost or database.connection.closed:
+                aborted = {
+                    "failed_unit": name,
+                    "reason": "connection_lost",
+                    "unattempted_units": units[index + 1 :],
+                }
+                break
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return {
         "results": results,
+        "aborted": aborted,
         "peak_rss_bytes": int(peak if sys.platform == "darwin" else peak * 1024),
     }
 
@@ -554,6 +570,7 @@ def run(
             "started_at": now,
             "results": [],
             "errors": errors,
+            "aborted_shards": [],
             "complete": False,
             "clean": False,
         }
@@ -566,7 +583,7 @@ def run(
             receipt["clone_methods"].append({"shard": index, "method": "postgres_template"})
             jobs.append((str(clone), str(archive_root), expected[index::processes], bundle, now))
         if processes == 1:
-            outputs = [_shard(*jobs[0])]
+            outputs = [(0, _shard(*jobs[0]))]
         else:
             outputs = []
             try:
@@ -577,16 +594,23 @@ def run(
                         pool.submit(_shard, job[0], job[1], job[2], _transferable(job[3]), job[4])
                         for job in jobs
                     ]
-                    for future in futures:
+                    for index, future in enumerate(futures):
                         try:
-                            outputs.append(future.result())
+                            outputs.append((index, future.result()))
                         except Exception as exc:
                             errors.append(f"shard failed: {type(exc).__name__}: {exc}")
             except KeyboardInterrupt:
                 errors.append("interrupted")
-        for output in outputs:
+        for index, output in outputs:
             results.extend(output["results"])
             peak = max(peak, output["peak_rss_bytes"])
+            if output["aborted"] is not None:
+                aborted = {"shard": index, **output["aborted"]}
+                receipt["aborted_shards"].append(aborted)
+                errors.append(
+                    f"shard {index} stopped after connection loss; "
+                    f"{len(aborted['unattempted_units'])} units unattempted"
+                )
         receipt.update(
             results=sorted(results, key=lambda r: r["unit"]),
             seconds=round(time.monotonic() - started, 3),

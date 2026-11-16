@@ -122,8 +122,7 @@ class VerificationJob(ImportJob):
             and verdict["base_cleanup_authorized"] is False
         )
 
-    @staticmethod
-    def utility_command() -> list[str]:
+    def utility_command(self) -> list[str]:
         return [
             "-m",
             "swingset.deploy.utility",
@@ -545,26 +544,30 @@ class InputProfileJob(VerificationJob):
             and self.policy["diagnostic_only"] is True
         )
 
-    @staticmethod
-    def utility_command() -> list[str]:
-        return [
-            "-m",
-            "swingset.deploy.utility",
-            "--role",
-            "verifier",
-            "--",
-            "profile-input-acceptance",
-            "--state",
-            "/var/lib/swingset-runtime/capture",
-            "--checkpoint",
-            "/var/lib/swingset",
-            "--config",
-            "/app/config",
-            "--overrides",
-            "/app/overrides",
-            "--receipt",
-            "/var/lib/swingset-runtime/input-profile.json",
-        ]
+    def utility_command(self) -> list[str]:
+        return input_profile_command()
+
+
+def input_profile_command() -> list[str]:
+    """The fixed input-profile argv, also used to prepare its cold actor."""
+    return [
+        "-m",
+        "swingset.deploy.utility",
+        "--role",
+        "verifier",
+        "--",
+        "profile-input-acceptance",
+        "--state",
+        "/var/lib/swingset-runtime/capture",
+        "--checkpoint",
+        "/var/lib/swingset",
+        "--config",
+        "/app/config",
+        "--overrides",
+        "/app/overrides",
+        "--receipt",
+        "/var/lib/swingset-runtime/input-profile.json",
+    ]
 
 
 def arguments(parser: argparse.ArgumentParser) -> None:

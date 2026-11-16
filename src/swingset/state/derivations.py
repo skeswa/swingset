@@ -408,11 +408,6 @@ def cycle_progress(
     return result
 
 
-def selected_dependency(conn: engine.Connection, unit: WorkUnit) -> dict[str, Any]:
-    generation = selected_generation(conn, unit)
-    return {"kind": "derivation", "key": list(_key(unit)), "generation_id": generation}
-
-
 def desired(
     conn: engine.Connection,
     unit: WorkUnit,
@@ -477,7 +472,7 @@ def desired(
             read_set = tuple(
                 sorted(set(reads) if reads is not None else recorded_reads(conn, unit))
             )
-        manifest, sets = dependencies(conn, unit, selected_dependency, reads=read_set)
+        manifest, sets = dependencies(conn, unit, selected_generations, reads=read_set)
     ordered = tuple(sorted(manifest, key=canonical))
     captured_context = dict(context or {})
     fingerprint = digest(

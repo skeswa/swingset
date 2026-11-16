@@ -1,0 +1,230 @@
+{
+  "admission_sha256": "3418b38e057ca0a5b828ee8f496dff48d855db06f9061a32ba9a881ab80bf57d",
+  "authority": {
+    "preparation": false,
+    "worker_or_database_operation": false
+  },
+  "capacity": {
+    "available": 579074048000,
+    "required": 508224930112
+  },
+  "collection_boundary": {
+    "all26_exit0_empty_stderr_unknownNone": true,
+    "all52raw_payload_hashes_sizes_and104file_metadata": true,
+    "completed_at": "2026-11-16T16:15:35.652741+00:00",
+    "exact26record_order_and_remote_argv": true,
+    "fresh_capacity": {
+      "available": 579074048000,
+      "required": 508224930112
+    },
+    "hold_exact_through_collection": "2b66cc2c166fcd6d89daf43d695f3b7afe6e5dc40507066918f3489b2f798f97",
+    "minimum_remaining_seconds_at_completion": 998.567528,
+    "no_renewal_adopted_midcollection": true,
+    "pointer_at_collection": "d24741fe674b78de82113a7ad21f00f47913e0f750555a41f15b8c88aaa45e85",
+    "remote30plus10_bound_unchanged_outerSSH60_finite": true,
+    "started_at": "2026-11-16T16:15:17.367732+00:00",
+    "stat29_before_projection13": true,
+    "status_projection_age_seconds": 44.79244112968445,
+    "status_root_regular0444_singlelink_bytes": 169536
+  },
+  "command_context": {
+    "argv": [
+      "/tmp/swingset-stage2-mise-env-20261111/bin/python",
+      "/private/tmp/swingset-stage2-readonly26-collector-20261116-v1/collect.py",
+      "--output",
+      "/private/tmp/swingset-stage2-readonly26-collector-20261116-v1/attempt-001"
+    ],
+    "collector": "/tmp/swingset-stage2-readonly26-collector-20261116-v1/collect.py",
+    "invocation_provenance": "Root tool trace: SHA-checked canonical script, no prior fence/output directory, os.execv with pinned environment Python; no mise exec wrapper in successful invocation.",
+    "outer_ssh_seconds": 60,
+    "remote_kill_after_seconds": 10,
+    "remote_timeout_seconds": 30,
+    "source_table_sha256": "24382353e702fe50eb02297bda66bdbd9096b9aa9004a68cd7ca5fe4315c9038"
+  },
+  "commands": [
+    {
+      "command_sha256": "9c4b108377f18077c1596f069161cba8168a8b0c56fba2f7c87c94791f0806e7",
+      "index": 0,
+      "name": "containers"
+    },
+    {
+      "command_sha256": "001a5ea7761c1fe4c25077d99a0d6861337cf73a0780aa76f50f6647e9d70a0d",
+      "index": 1,
+      "name": "private-catalog"
+    },
+    {
+      "command_sha256": "e22ab0546672e88d67533794550b1326cdf2144eac87657b993d11099b6b3b4d",
+      "index": 2,
+      "name": "private-identity"
+    },
+    {
+      "command_sha256": "83b6d8150168fdb0550c0c8d39efc6f1c8d53d36d574014778d37d423aaae266",
+      "index": 3,
+      "name": "shared-size"
+    },
+    {
+      "command_sha256": "6b8ff9aee350e4131110a6b0a33594d5883c24d7c3e7cbbb96f5fd582c5778d6",
+      "index": 4,
+      "name": "disk"
+    },
+    {
+      "command_sha256": "be81a8240afc36c3e930e277e17eafe3de3407c93b2f92e5c4dcbccf2df2d967",
+      "index": 5,
+      "name": "workers"
+    },
+    {
+      "command_sha256": "c632b11fe5a81eda264d6c71b535b710c0f5db64a39e256ac42baa104abc8f78",
+      "index": 6,
+      "name": "boot"
+    },
+    {
+      "command_sha256": "af0745527f89cf16869cce5505deb0947f974c892d1f5f600af95c6bd6166225",
+      "index": 7,
+      "name": "guard-start"
+    },
+    {
+      "command_sha256": "e2af1f3115a0147c3539b16ecda9757105bba4a1faa76ce2eae881b8503df9ef",
+      "index": 8,
+      "name": "public-hashes"
+    },
+    {
+      "command_sha256": "9c23464bf9182f73ac3fe9d66b2bec5286009855ae4245fd041baa3c8c372493",
+      "index": 9,
+      "name": "public-modes"
+    },
+    {
+      "command_sha256": "5ef8a9346c7f4d13f2e0f0df1ea1f413e458497a84f82f96c3657fcf2e5590c0",
+      "index": 10,
+      "name": "guard-netns"
+    },
+    {
+      "command_sha256": "9e814883c453d15d95de4ddae5b5094d6bbefae6b93c43171818facc99cd0444",
+      "index": 11,
+      "name": "hold-hash"
+    },
+    {
+      "command_sha256": "fe36efe339a4a8f58895cfab9854b259e51238cd2726c051a11a6e80abf61963",
+      "index": 12,
+      "name": "hold"
+    },
+    {
+      "command_sha256": "d56783f36fbc4ccb0b19d5d48516ff3e6af34d25df85ebe42f8a859a836db370",
+      "index": 29,
+      "name": "status-root-stat"
+    },
+    {
+      "command_sha256": "d2ad73f32ad09c452077c3bb7df3406c27c72e489f2871c7100d56beb218c300",
+      "index": 13,
+      "name": "status-projection"
+    },
+    {
+      "command_sha256": "7e3ffa6a58ea257ec27430ce2d5298cc73ae93eafee9f5ce2db59591e358f5d1",
+      "index": 14,
+      "name": "preseal-public-hashes"
+    },
+    {
+      "command_sha256": "42cdd0eba048a101a7d876779b793372377dd8490364f9661f75693957475bbe",
+      "index": 15,
+      "name": "native87-terminal"
+    },
+    {
+      "command_sha256": "517055a23a966772d820a3183597e42c7a11639733684ad12e43037b625b0d44",
+      "index": 16,
+      "name": "e79-active-mount-users"
+    },
+    {
+      "command_sha256": "baa4e6ffa97b5a2c1351b2c8bab71678f7b90937c43a0781d969033a3fc2f2e9",
+      "index": 17,
+      "name": "guardian-safe-profile"
+    },
+    {
+      "command_sha256": "eee765d5df741de66fc2f44e336ad1420b6a75775393156fde02859aa37eeaa9",
+      "index": 25,
+      "name": "original-e79-volume-identity"
+    },
+    {
+      "command_sha256": "d7f40114102fdcbf8b2eab8259879b299ffef685dd987afd025b5c2f7cd6df31",
+      "index": 26,
+      "name": "private-network"
+    },
+    {
+      "command_sha256": "24ec3fad948806618ecf2e3adbde782cd662b1177cccf992c8334c3a9ba899f0",
+      "index": 27,
+      "name": "immutable-producer-image"
+    },
+    {
+      "command_sha256": "160c2741caa67e60ce0b5f5e5f1a8859d31f59af804bb7fece73d66f9fcbf101",
+      "index": 28,
+      "name": "source-holder-safe"
+    },
+    {
+      "command_sha256": "f3f75b573198036fa143211ac9ad8865f3243a4469048ac33ba0cd7d00f387a9",
+      "index": 30,
+      "name": "guard-cgroup"
+    },
+    {
+      "command_sha256": "7826d73410bae50c554dee0cd3b27c218534ec2a1c0b130af809373f18708333",
+      "index": 31,
+      "name": "helper-image"
+    },
+    {
+      "command_sha256": "b14cbc4b6f62f74ca614114abbd420f787f3e99efe2f9631d042efc78a665752",
+      "index": 37,
+      "name": "private-pg-profile"
+    }
+  ],
+  "completed_at": "2026-11-16T16:15:35.652741+00:00",
+  "counts": {
+    "command_result_output_files_bound_by_review": 104,
+    "empty_stderr": 26,
+    "exit0": 26,
+    "raw_payloads_bound_by_admission": 52,
+    "reads": 26,
+    "unknown": 0
+  },
+  "exit": 0,
+  "format": "swingset-scoped-readonly26-v1",
+  "hashes": {
+    "candidate_manifest_sha256": "bb9d89aaa1fbc7b3062619f0ac1861389667d6142bfea43775dee819c0cf1086",
+    "collection_authorization_sha256": "3e6a8b5b71ff3dcf4f5a5464e4d94a2149e5cac4161d13e0e5de8217d683c0f9",
+    "collector_sha256": "a3183ed5eb416e600e7e2b8ef630905beb6f92b5e0391f09ca133e66e34851ca",
+    "expectations_sha256": "f64e7572ebe4692994943986f933f68d6d1c89324a91fa5aef2bb593aab2784b",
+    "intent_sha256": "71a9d1880aae7adf5d69e845ef374d1d7e85cff8841db9b0998e4c9d274a5123",
+    "proposed_boundary_sha256": "008d8c84d56d245e875f709b25ecad513a53612466ac0fd03c4964495a47757e"
+  },
+  "hold_sha256": "2b66cc2c166fcd6d89daf43d695f3b7afe6e5dc40507066918f3489b2f798f97",
+  "independent_terminal_sha256": "ed7fed29e13fc0c0ce817e77cfd2c95c38ac87f24600faaa2577a59d333c4941",
+  "independent_verdict": "ACCEPT_SCOPED26_READONLY_OBSERVATIONS_NO_PREPARATION_AUTHORITY",
+  "initial_refusal": "Root reports first invocation used/tmp alias while collector ROOT resolves/private/tmp; source checks output.parent==ROOT before outputmkdir,oncefence orSSH. Canonical subsequent invocation used same pinnedsource and one actualcollection fence; not a repeated26execution. Roottooltrace remains the provenance for the initial refusal.",
+  "packet": "/tmp/swingset-stage2-readonly26-collector-20261116-v1/attempt-001",
+  "pointer_sha256": "d24741fe674b78de82113a7ad21f00f47913e0f750555a41f15b8c88aaa45e85",
+  "raw_outputs": "private scratch only",
+  "remaining": {
+    "cold_copy_and_final_Env_RAM_proofs": "pending",
+    "first7_source_filesystem_helpers": "conditional after preparation review and root GO",
+    "host_private_env_file": "not a dependency; no env-file in actor argv",
+    "new_names_root_IP_absence_and_source_numeric_metadata": "pending"
+  },
+  "retained_boundary": {
+    "C69669_retained5catalog_sourceclient0": true,
+    "e79_original_volume_stopped_holder_no_active_mounter": true,
+    "guardian_boot_birth_netns_cgroup_exact": true,
+    "guardian_complete_safe_Config_HostConfig_mounts_equal_prior": true,
+    "immutable_security_network_preseal_public_pins": true,
+    "no_running_guarded_workers": true,
+    "private_PG_8GiB6CPU256_noOOM_flag": true,
+    "producer8_image346_560_LINKER9_contract_unchanged": true,
+    "protected12_and_guardian_native_safe_state_exact": true,
+    "source_UUID_native38_source37_checksum_exact": true
+  },
+  "started_at": "2026-11-16T16:15:17.367732+00:00",
+  "status": {
+    "complete_inventory": false,
+    "inventory_count": 36,
+    "observation_error": null,
+    "policy_sha256": "a4ebe3e9b551c009017f0a56e7fee67c365e2e0128ef2a2305291a6c85e2f61d",
+    "resource_exit": 0,
+    "utc": 1794845683.0427918
+  },
+  "status_limit": "Same prior held limitation: security complete_inventory requires exactly one running container per required pipeline role. This selectedprojection does not prove exactmissing/duplicatecounts, normalmonitoring success or absence of allrole-specific faults. Resource0/noobservationerror/canonicalfreshness do not override incompleteinventory."
+}

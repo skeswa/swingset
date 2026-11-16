@@ -199,7 +199,7 @@ def graph(job, monkeypatch, request):
     original, _ = job
     profile = getattr(request, "param", False)
     job_class = verification_job.InputProfileJob if profile else verification_job.VerificationJob
-    command = verification_job.InputProfileJob.utility_command() if profile else COMMAND
+    command = verification_job.input_profile_command() if profile else COMMAND
     policy = copy.deepcopy(original.policy)
     private = DEPLOYMENT + "-000000000001-private-state"
     app = "/var/tmp/" + DEPLOYMENT

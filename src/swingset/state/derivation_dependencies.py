@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from functools import partial
 from typing import Any
 
@@ -616,7 +616,7 @@ def replayed_kinds(unit: WorkUnit) -> set[tuple[str, str]]:
 def dependencies(
     conn: engine.Connection,
     unit: WorkUnit,
-    selected: Callable[[engine.Connection, WorkUnit], dict[str, Any]],
+    selected: Callable[[engine.Connection, Iterable[WorkUnit]], Mapping[WorkUnit, str | None]],
     *,
     reads: Iterable[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, tuple[dict[str, Any], ...]]]:
@@ -624,6 +624,8 @@ def dependencies(
 
     A link's come from its read set (``reads``, else its recorded one):
     one entry per read key, and its source observations (plan F20).
+    ``selected`` resolves a whole cohort, including None for missing pointers;
+    the manifest retains the cohort's duplicate members and canonical order.
     """
     if unit.stage == "link":
         return _link_dependencies(conn, unit, reads)
@@ -796,9 +798,22 @@ def replay_versions(conn: engine.Connection) -> dict[tuple[str, str], int]:
 def _selected_members(
     conn: engine.Connection,
     members: tuple[WorkUnit, ...],
-    selected: Callable[[engine.Connection, WorkUnit], dict[str, Any]],
+    selected: Callable[[engine.Connection, Iterable[WorkUnit]], Mapping[WorkUnit, str | None]],
 ) -> tuple[tuple[dict[str, Any], ...], str]:
-    ordered = tuple(sorted((selected(conn, item) for item in members), key=_canonical))
+    generations = selected(conn, members)
+    ordered = tuple(
+        sorted(
+            (
+                {
+                    "kind": "derivation",
+                    "key": [item.stage, item.unit_kind, item.unit_id],
+                    "generation_id": generations[item],
+                }
+                for item in members
+            ),
+            key=_canonical,
+        )
+    )
     return ordered, _digest(ordered)
 
 

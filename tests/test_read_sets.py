@@ -540,7 +540,7 @@ def _observation_only(graph, referrer, target):
     registration = parents.get(timed)
     alias, member, span = specification
     expected = ast.parse(
-        f"patch.object({alias}, {member!r}, inventory_span({span!r}, {alias}.{member}))",
+        f"patch.object({alias}, {member!r}, transform_span({span!r}, {alias}.{member}))",
         mode="eval",
     ).body
     return registration is not None and ast.dump(registration) == ast.dump(expected)

@@ -1,0 +1,33 @@
+{
+  "budget_seconds": 300,
+  "changed_file_hashes": {
+    "src/swingset/state/verify_graph.py": "185c7a374f7588d4962ec5947f91a083fbef1fd68c5a56ad5b6af140d26ea8ef",
+    "src/swingset/state/write_deadline.py": "32397a79af24c6e8a7ae7d16497885e2e37fe0ca30a607b0549a8d287db78db1",
+    "tests/test_verify_derivations.py": "559dbaaa1cc24953093d45f02a9683f8be342905976237c18dc2ee9a17ad3904",
+    "tests/test_write_deadline.py": "f55f6094f1387eceef5f51d695b25c9ee4b005dac071e25ac31fead7f1b31b1d"
+  },
+  "checks_passed": true,
+  "command": "mise run check",
+  "exit_code": 0,
+  "focused_files": {
+    "tests/test_verify_derivations.py": 32,
+    "tests/test_write_deadline.py": 35
+  },
+  "format": "swingset-closed-session-correctness-core-validation-v1",
+  "formatting": "mise run fmt passed before check",
+  "limits": "Local correctness qualification only. Full extended suite remains required before a migration change lands; no new runtime or full graph is established.",
+  "mypy_source_files": 376,
+  "performance_67_overruns_resolved": false,
+  "qualified862_retained_unchanged_for_attribution": true,
+  "recorded_at": "2026-11-17T00:12:15.747502+00:00",
+  "reported_seconds": 249.48,
+  "ruff_passed": true,
+  "runner_seconds": 249.3796663330868,
+  "selected_count": 3713,
+  "server_deployment_or_graph_success": false,
+  "source_binding_sha256": "32203bc64e4b2df6687aa4d73046729c31e49014c37ce43c9344d3a288bab8ca",
+  "source_revision": "source-sha256:b06416a20d69bd860db4f933e47cae6556614f1c5cb3f55429f48f897790a315",
+  "summary_path": "/Users/skeswa/.local/share/swingset/core-runs/a16c8d0f46374304bc6aab72/summary.json",
+  "summary_sha256": "c20ee414566058298b5512f28ea989b6610b43e14f040e6e36463d2f46547c0c",
+  "within_budget": true
+}
