@@ -1,0 +1,29 @@
+{
+  "operation": "Offline image load and never-started inspection container",
+  "at": "2026-11-19T19:41:16.980724+00:00",
+  "commands": [
+    "docker load",
+    "docker create --pull=never",
+    "docker container inspect"
+  ],
+  "command_intent_sha256": [
+    "6341c8168e1d25fc2043e5ac5be6a66c437bb3aa0f3081179f72a0a03f1534d5",
+    "5bccff544e66350901693e210a60f34648ed998dd550507c335648b8d77e9dd7"
+  ],
+  "archive_sha256": "06d5c0d737d93bc1cca7f05985a0f2bb1c336b1e37cef9a44fd1d179c5dc3040",
+  "image": "sha256:524991480e371864d74e8a187e35ee8e9b06c812213977e4284a820c012c28b9",
+  "container": "f96a134cc790c4445775824efebc1e5aafa3d2aafbf32c372df1d9ec3b696c88",
+  "load_exit": 0,
+  "create_exit": 0,
+  "status": "created",
+  "pid": 0,
+  "started_at": "0001-01-01T00:00:00Z",
+  "partial_review_sha256": "934ff5ae6b2734ace36e8d86e942b0b065316c46f2353bc93e4e78ac2fc7131b",
+  "root_go_sha256": "f751e520b4f3a45749f34516fea9bcacd610066c75dc81cb1b50babe247f2c70",
+  "image_layers": 15,
+  "blocked_at": "Complete proof container Config comparison before public byte readback",
+  "expected_args_escaped": true,
+  "actual_args_escaped_field_present": false,
+  "byte_qualification_complete": false,
+  "rehearsal_launched": false
+}

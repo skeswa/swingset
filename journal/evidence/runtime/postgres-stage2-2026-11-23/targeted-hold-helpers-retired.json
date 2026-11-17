@@ -1,0 +1,24 @@
+{
+  "operation": "Retire three exited hold helpers to make room for the two-unit worker in guardian status",
+  "checked_at": "2026-11-23T16:27:24.506420+00:00",
+  "command": [
+    "docker",
+    "rm",
+    "2cd715b2c8653a066573593049e0c68553c1ec92adeb3627c17ac061f8f603ae",
+    "4c5a136a5738e861c680c0fe978a653c894a88dfce0ce2aa68692b27bb2e49f5",
+    "c750f77e4206b8175e333f1b310e5d4300b005a953c170bc13de291b3025ee55"
+  ],
+  "exit": 0,
+  "before_headroom": 2081,
+  "after_headroom": 3147,
+  "required_headroom": 2957,
+  "status_cap": 262144,
+  "other_inventory_preserved": true,
+  "archives_preserved": true,
+  "review_sha256": {
+    "action-review.json": "fd424adf6200cfce49eb2451de5d5a2f2e55492141397b552bf3788383e4b6bc",
+    "execute/result.json": "15e7af17d2fb03ad23e3f2bfe9678d9eb5ca15df22bee3ae3b0c0acc35ad1e7f",
+    "post/result.json": "38cf9336dabb42b28c5f8347305969f96aec29960a684e999abdb9a3f7c18af9",
+    "independent-terminal-review.json": "eb1c011e1fb1fd7972e6cb69098171b829d2e468dfeff412978b679c65742937"
+  }
+}

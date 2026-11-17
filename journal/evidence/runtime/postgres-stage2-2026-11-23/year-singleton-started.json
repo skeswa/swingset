@@ -1,0 +1,28 @@
+{
+  "operation": "Start the historical project/year/2026 replay with a singleton supervisor",
+  "at": "2026-11-23T17:42:23.171581+00:00",
+  "actor": {
+    "exit": 0,
+    "finished_at": "0001-01-01T00:00:00Z",
+    "id": "b57ee87f47c79a91600785a911df35e7301dc60c6f1a812fd68e6799c935aa0e",
+    "oom": false,
+    "pid": 3942348,
+    "restart": 0,
+    "started_at": "2026-11-23T17:40:39.367109531Z",
+    "state": "running"
+  },
+  "selected_unit": "project/year/2026",
+  "prior_easter_review": "53e5d69ccddc3ccdde0c60635115fa4ce0741dbf66a598e40c1dd2fd3e94806c",
+  "owned_database_oid": 11709325,
+  "source_readers_at_sample": 1,
+  "new_unit_verdicts": 0,
+  "hashes": {
+    "singleton-cold-late-reconciliation/terminal.json": "56f755d9e9e858bc6318a9519276979a34b12359b4b88d6f62dda159fe157a89",
+    "singleton-cold-late-reconciliation/independent-terminal-review.json": "4c9e17694e3c6d7156c9644f3130381f60529922882caac6d55fc5b99b636049",
+    "singleton-launch-facts/actual-constructor-fixture.json": "adc7e49c4e10f08a6bef12dd9d9fdeadc84d5626799cfbdc50bcf67ade23eb29",
+    "singleton-launch-facts/independent-launch-review.json": "8dbd509e2887beb1eab500c9fa24445123690e3dd3ba3b4e208944f2527801bd",
+    "singleton-launch-start/dispatch.json": "02ee084c9c45f690a8196b53ceb570a4a6b13069eeed50f0816c0c5eccb8e936",
+    "singleton-independent-startup/independent-startup-review.json": "affd6ff83ce1b34ab357c14cdddfe9615840a94404d838fbea12c208dfaa94e3",
+    "singleton-initial-settled/boundary.json": "5e7b481ee2e18de596f4ac5bede4b18f7fba8d0e92c82c15ede8a11fad78068a"
+  }
+}

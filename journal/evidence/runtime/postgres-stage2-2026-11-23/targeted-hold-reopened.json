@@ -1,0 +1,45 @@
+{
+  "operation": "Reopen the expired Stage 2 attendance interval for the two-unit replay",
+  "checked_at": "2026-11-23T16:23:07.148697+00:00",
+  "verdict": "ACCEPT_EXPIRED_HOLD_REOPEN_TERMINAL_IDLE_ADMIN_ONLY",
+  "review_at": "2026-11-23T17:19:44.996238+00:00",
+  "review_expiry_gap": {
+    "activation_finished_at": "2026-11-23T16:22:24.602038655Z",
+    "activation_started_at": "2026-11-23T16:22:24.443665667Z",
+    "continuous_validity_proven": false,
+    "expired_seconds": 320536.351752,
+    "old_review_at": "2026-11-19T23:20:08.250286+00:00"
+  },
+  "hold_sha256": "34fb7375b17805e76daa715b1069f4b4f91c1eb0209b89c256c0b3526df57b99",
+  "commands_completed": 3,
+  "managed_services_unchanged": true,
+  "catalog": {
+    "owned": [],
+    "owned_stats": [],
+    "sessions": [],
+    "source_readers": 0
+  },
+  "replay_worker": {
+    "id": "05d60c8da7b3ba0cc9d7512880ddff888bb39b8668354d875a09fa769ddd4d93",
+    "image": "sha256:524991480e371864d74e8a187e35ee8e9b06c812213977e4284a820c012c28b9",
+    "name": "/swingset-stage2-app-cc89f18f5c31-verifier-c060ca773192",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "role": "verifier",
+    "run_started": "0001-01-01T00:00:00Z",
+    "running": false,
+    "state": "created"
+  },
+  "replay_units_completed": 0,
+  "guardian_id": "30972f8fae3d576296330d4344fb212b35b01ef1fa0adc24a639590a9b962e54",
+  "idle_before_sha256": "61ba95aad01e856c3faadfa5338d17e600c1e3a82e273e39002b51ab21624f8a",
+  "idle_after_sha256": "08ebc5168769ed3b37f4a9d9f98efabe787761b28f3c9ab8dc3879bb852df02c",
+  "hashes": {
+    "admin-commands.json": "ff809a388418e1e8933b1871389c87d2515452cdb673423c84831ff907413888",
+    "reopen-admission.json": "01800faa38ad6b788fa2f022738149d49fdb9b9ed3e13ec3d44bd060a4b67993",
+    "independent-reopen-review.json": "1886d1c01e9e7b126ebba5380cb6c2a7713e415dca34a0fe072bda683778b3ab",
+    "result.json": "86a384da8e3739f1161b7f5d0cf1510418e43df4ae6524f4034ae4cf279a6c2f",
+    "independent-terminal-review.json": "6b073832ec8a8bdfa761a7fbce80632579767de0824c544cf407dbf03aeabd38"
+  }
+}

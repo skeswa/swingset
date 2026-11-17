@@ -1,0 +1,18 @@
+{
+  "operation": "hold_review --prepare-reopen / --reopen",
+  "exit": 0,
+  "steps": 7,
+  "owner": "codex-stage2-resume",
+  "activation_utc": "2026-11-19T19:31:27.083189593Z",
+  "expired_gap_seconds": 5576.998498,
+  "review_at_utc": "2026-11-19T20:28:36.776430+00:00",
+  "installed_sha256": "1bd1b743640130c3ece2e3bc85241348577a0843a898336ea0df09310ac3fb1b",
+  "terminal_sha256": "248f728802c881bbbeba76cfe384b4982a8de72b8612b6c3729eaa0c224c1503",
+  "independent_sha256": "acbfb8d2f86935788113ec93fbb037e37983b37171bece7daed4884c61d5b84e",
+  "independent_checks": 51,
+  "protected_services": 14,
+  "original_catalog_rows": 5,
+  "owned_databases": 0,
+  "source_size_bytes": 38409934515,
+  "scope": "administrative checks with verifier stopped"
+}

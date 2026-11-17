@@ -8462,3 +8462,332 @@ Keep all 903 units outside clean re-key and use the normal re-derivation queue.
 This investigation grants no graph acceptance. The 13 rolled-back writes
 still need a successful run
 ([November 18 receipt](../../evidence/runtime/postgres-stage2-2026-11-19/normal668f-terminal.json)).
+
+## Historical replay inputs and reopened hold, 2026-11-19
+
+The tested retained-output changes closed locally in `96b5fba9`. A tree comparison
+confirmed that the split preserved every file. The core-runner timing change
+remains open. The compact receipts record the [901 dispositions](../../evidence/runtime/postgres-stage2-2026-11-19/normal668f-mismatch-accounting.json)
+and the [six approved deletions](../../evidence/runtime/postgres-stage2-2026-11-19/mismatch-local-export-removal.json).
+
+The stopped November 18 verifier retained its public input manifest.
+Reconstructing its 576 public members from the qualified installation reproduced
+the 68,592-byte manifest, SHA-256
+`822365d3b59420fbe26b6e2bcb992aa96e36631ff1b5a0b691f2dedf6ca27b63`.
+All 52 audit values matched. Easter Swing and the year projection still require
+a server-local replay at the original business clock on an owned Postgres copy.
+
+The [hold reopened](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-192836.json)
+at 19:31:27 UTC after 5,576.998498 seconds without a current review.
+Administrative queries confirmed the five original catalog entries, zero
+owned databases and a source size of 38,409,934,515 bytes.
+
+At 19:41 UTC Docker loaded candidate `52499148…` and created inspection
+container `f96a134c…`. Both commands exited zero. The candidate image
+matched all 15 layers. Native and formatted inspection of the container
+showed PID zero, zero start and finish times, and no mounts. The first
+check expected `ArgsEscaped: true` in the container config. Docker omitted
+the field there. The image retained it. Independent review accepted the
+[load and create](../../evidence/runtime/postgres-stage2-2026-11-19/waived-verifier-cache-partial.json).
+All six reads of installed files were still pending at that checkpoint.
+
+The reviewer accepted the [offline image qualification](../../evidence/runtime/postgres-stage2-2026-11-19/waived-verifier-image-qualified.json).
+Six public reads from the same unstarted container reproduced 561 installed
+project files, their 561 source copies, two configuration files, eight override
+files, the 299-byte console script and all 571 installer records. All 377 Python
+modules compiled. The first local comparison used different spellings of the
+Mac temporary directory. The corrected lookup verified both paths identify
+the same directory and reused the six saved reads. The final check at
+19:49 UTC confirmed the original container identity and unchanged protected
+services. No verifier process or database replay ran during image qualification.
+
+The [rehearsal guardian](../../evidence/runtime/postgres-stage2-2026-11-19/waived-verifier-guardian.json)
+started at 20:00:56 UTC with the candidate image ID in its policy. The
+transition took 111.1 seconds. The prior guardian remained stopped, the
+new guardian reported the new policy, and all 14 protected services and
+five original catalog entries matched. Independent review accepted the
+transition at 20:04 UTC. It started no verifier worker.
+
+The next [attended review](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-200447.json)
+renewed the hold at 20:04:58 UTC before its previous review expired. The
+new guardian, stopped verifier, source and protected services passed independent
+checks. A bounded read from administrative `postgres` established the worker,
+control and copy-admin roles for the new owned-copy replay.
+
+### Two-unit replay setup stopped before PostgreSQL, 2026-11-19
+
+At 20:24 UTC the setup created the public job directory, uploaded the
+24,207,360-byte package and created three empty volumes. The isolated
+helper `b1ac99a5…` ran once, from 20:24:50 to 20:24:55 UTC, and
+returned exit 1. Its only result said setup was incomplete. The replay
+container had not been created. A read-only check at 20:26 UTC found
+the same 14 protected services, five original catalog entries, no
+source clients and no owned replay database. The source measured
+38,409,934,515 bytes.
+
+An offline reproduction with the actual helper command, capability list
+and public package found an ownership-order error. After writing the
+public files, the helper gives the empty database-settings mountpoint
+to UID 10001, then attempts to change its mode while lacking the Linux
+`FOWNER` capability. Changing the mode first passed the reproduction.
+The helper returned no failing line. At 20:33 UTC independent review
+accepted the [failed setup and readback](../../evidence/runtime/postgres-stage2-2026-11-19/replay-setup-helper-partial.json).
+The public archive and all 592 extracted files matched their hashes, modes
+and owners. Docker reported a zero-byte mountpoint with mode `0600` and
+returned 404 for the three later paths. The readback could not establish
+the numeric owner of the mountpoint or list the volumes. The replay worker
+had never been created, and the volumes had no running users. Easter Swing
+and the year projection still require actual replay results.
+
+At 20:41 UTC a separately reviewed repair helper confirmed that UID and
+GID 10001 owned the zero-byte file at mode `0600`. It changed the mode to
+`0400`, finished the three volume directories, rechecked all 592 public
+files and exited zero. The replay worker `085d59ea…` was created once.
+The controller first refused its environment array order. A read-only
+check at 20:44 UTC matched all 16 explicit assignments, the ordered
+10-entry image remainder and all 12 mounts. The actor remained in
+Docker's Created state with PID zero. Neither helper opened a database.
+
+[Independent cold acceptance](../../evidence/runtime/postgres-stage2-2026-11-19/two-unit-replay-cold-preparation.json) covered the repaired volumes and never-started worker after 310 checks.
+
+### Two-unit worker rejected at network authorization, 2026-11-19
+
+The supervisor started worker `085d59ea…` once at 20:54:55 UTC. The
+rehearsal guardian rejected the nested read-only mount at
+`/var/lib/swingset/database.json` and exited 1 at 20:54:57 UTC. Its
+deployed mount allowlist accepts the state directory and the three
+secret files but excludes that nested file. Cold verification had matched
+the intended Docker profile without testing it against the deployed
+guardian's mount check.
+
+The worker exited 1 at 20:56:58 UTC. Its receipt contains only
+`reserved` and `failed`. The supervisor recorded a stop attempt and
+confirmed the stop. Both process groups retired, the actor had no network
+authorization, and the administrative catalog still held the five
+original databases. The protected source measured 38,409,934,515 bytes
+with zero clients. The 14 protected service observations matched. The
+attempt ran neither derivation. At the 21:00 UTC ordinary hold renewal
+the rehearsal guardian was still stopped. Its last status had 3,235 bytes
+of headroom. At 21:06 UTC the independent reviewer accepted the [administrative
+hold renewal](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-210026.json)
+with the guardian stopped. The preflight for restoring the same guardian
+passed with the original policy, five catalog entries and 12 active peers.
+The independent [failed-start reconciliation](../../evidence/runtime/postgres-stage2-2026-11-19/two-unit-replay-denied-mount.json)
+accepted the worker and supervisor shutdown after 39 checks. It preserved
+the original failed receipt and the first unsuccessful receipt-reader
+observation.
+
+At 21:10:24 UTC the operator started the same guardian container once
+under its existing policy. It obtained PID 1090709 and published a fresh
+260,019-byte status. The stopped worker retained its original exit time.
+The independent action review required a new guardian process, new status,
+unchanged policy and protected-service checks before accepting recovery.
+The new worker layout passed offline validation against the deployed
+mount check. Its cold admission needs 2,957 bytes of fixed status capacity.
+
+Independent review accepted the [guardian restoration](../../evidence/runtime/postgres-stage2-2026-11-19/retained-guardian-restored.json) after 96 checks. Six observations during startup still saw the earlier status. The seventh saw the new guardian publication.
+
+Three old hold helpers occupied 1,064 bytes in the status file. A fresh
+measurement found 2,124 bytes free against a requirement of 2,957.
+After independent review, the operator removed those three exited
+containers. The first readback still saw the preceding status generation.
+The next showed 3,185 bytes free. All 718 other containers, 126 volumes
+and 37 images remained. Independent review accepted the [retirement and
+post-check](../../evidence/runtime/postgres-stage2-2026-11-19/hold-helpers-63-64-retired.json).
+
+The fresh worker `8ded0687…` has 11 mounts. Its read-only state contains
+the archive link. Its three approved credential files retain their original
+mount destinations. Setup helper `a97a4e61…` validated all 592 public
+files and finished with exit zero. At the end of [cold preparation](../../evidence/runtime/postgres-stage2-2026-11-19/two-unit-replay-guardian-compatible-worker.json),
+the worker remained in Created state with PID zero. The independent
+reviewer accepted that result after 398 checks. The deployed validator
+also accepted the native mount profile in a pre-start check. Live network
+authorization and the two derivations still require a separate start.
+
+At 21:31:44 UTC the approved worker started once. The running guardian
+issued the authorization for the new worker. The worker reported
+`source_freeze_ready` with the approved authority hash. This checkpoint
+precedes the creation of its owned database copy and both derivations.
+
+At 21:32 UTC the admin catalog showed the one owned copy, OID 10809480.
+A single authorized worker connection held the source snapshot. Later
+observations found PostgreSQL autovacuum workers on the owned copy.
+The first observer rejected those workers. Its successor accepted the
+specific native session type on the proven owned database and kept
+the original source and foreign-session checks.
+
+The November 19 [21:50 UTC hold renewal](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-214548.json)
+completed while the same worker was active. Both helper connections
+timed out. Each retained helper later showed exit zero. After separate
+remaining-step reviews, the operator resumed only steps 3–6 and then
+step 6. The new hold took effect before expiry. Independent review
+accepted administrative attendance and continued monitoring of this
+worker. Its two derivation results were still pending.
+
+The worker exited 1 at 22:13:21 UTC. The supervisor recorded no stop attempt.
+Docker reported no OOM and no restart. The public receipt reached historical
+input acceptance, replay and close, then recorded failure. It saved neither
+unit verdict. The rollback checkpoint check precedes close. The worker did
+not record which later check failed. Easter Swing and the 2026 projection
+remain open. The operator began a separate readback of owned-copy cleanup
+and source preservation.
+
+At 22:17 UTC, the [terminal readback](../../evidence/runtime/postgres-stage2-2026-11-19/two-unit-replay-failed-after-close.json)
+found the owned database and its registry entry gone. The original five
+database catalog entries remained present. The source measured 38,409,934,515
+bytes and had zero sessions. All 14 protected services passed their checks.
+The independent reviewer accepted the failed outcome and owned-copy cleanup
+after 94 checks. The prior watch's missing cleanup proof remains recorded.
+
+The [22:20 UTC hold renewal](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-222008.json)
+completed all seven steps. Both failed workers remained stopped. A fresh
+guardian observation followed activation, with zero owned databases and zero
+source sessions in the accompanying catalog check. Independent review
+accepted continued attendance through 23:20:08 UTC.
+
+At 22:25 UTC, the guardian status file had 1,009 bytes free under its
+262,144-byte limit. The next replay needs 2,957 bytes. Six exited helpers
+from holds 64–67 were the smallest eligible set that covered the shortfall.
+The [retirement receipt](../../evidence/runtime/postgres-stage2-2026-11-19/hold-helpers-64-67-retired.json)
+records all six identities. The next guardian observation had 3,139 bytes
+free. Independent review accepted the removal and the preservation checks.
+
+The [new verifier](../../evidence/runtime/postgres-stage2-2026-11-19/two-unit-replay-per-unit-worker.json)
+passed cold preparation at 22:35 UTC. It saves a successful unit's proof
+after checking its rollback and records the failed check when its sibling
+refuses. Offline fixtures exercised both mixed outcomes and a full diagnostic
+buffer. The setup helper verified 592 public files and exited zero. At the
+end of preparation the actor was in Created state with 11 mounts and PID
+zero. Independent review accepted that result after 434 checks.
+
+The first launch proposal for this worker stopped in review. The exact
+eight sealed host modules serialized to 131,542 bytes. The launcher allowed
+124,000 bytes in a single argument. No launch authorization was issued
+and the worker stayed in Created state. Its cold preparation remains valid.
+
+### November 20 attended recovery
+
+The corrected launcher passed an isolated child-process test with the same
+eight sealed modules. Its argument was 52,160 bytes and all eight original
+hashes matched. A fresh read-only launch survey lost its SSH connection
+during image inspection. It produced no launch plan. The previous hold
+expired on November 19 at 23:20:08 UTC during an attendance gap. The cold
+worker's sealed launch authority expired with it.
+
+At 01:30 UTC on November 20, the server confirmed the worker was still
+in Created state with PID zero and no start or finish time. Its launch,
+dispatch and supervisor-result files were absent. The guardian had the
+same running process. All 14 protected services matched the prior check.
+The original five databases were present, the source size was unchanged
+and there were zero source sessions. The operator prepared a fresh
+administrative reopen and started a new finite awake helper.
+
+The proposed reopening interval expired at 02:28:56 UTC before independent
+review could authorize installation. The Mac was on battery with its lid
+closed. Its power log recorded repeated maintenance sleep during the
+finite awake assertion. At 03:18:22 UTC the [server readback](../../evidence/runtime/postgres-stage2-2026-11-20/two-unit-replay-held-after-attendance-gap.json)
+found the same expired hold installed, the candidate still in Created
+state with zero starts, and no dispatch files. Neither replay ran.
+Continued work needs an uninterrupted attended connection and a new
+reviewed launch authority. The two unresolved units and the full graph
+remain open.
+
+The 52,160-byte launch transport passed its source review
+(`dc7cd47329dcebffd8e8c6ac0f0a41032417b8b072a085f6d4d2bd328f31b0fd`).
+The successor template in `/tmp/swingset-sol-target-reopen-BlZLPrvn`
+keeps the two failed actors and the never-started worker in its checks.
+A future operator must bind the actual accepted reopen. The expired
+01:28 proposal is closed.
+
+### November 23 targeted replay
+
+At 16:22 UTC the [attended review reopened](../../evidence/runtime/postgres-stage2-2026-11-23/targeted-hold-reopened.json) after 320,536 seconds without a current review.
+The prior worker was still in Created state, with zero starts. The admin catalog
+showed no owned replay database or source reader. The guardian kept the same
+process identity across the reopening. Independent review accepted the
+administrative operation. The two unit verdicts remained pending. The owner
+deferred the full graph.
+
+The compact reopen receipt's `commands_completed` field counts the three final
+readback commands. The maintained command journal and terminal review confirm
+that all seven administrative steps completed.
+
+The guardian had 2,081 bytes free after it reported the new hold helpers.
+The [retirement receipt](../../evidence/runtime/postgres-stage2-2026-11-23/targeted-hold-helpers-retired.json)
+records the three exited helpers from November 18 that were removed.
+The next guardian report had 3,147 bytes free against 2,957 required.
+Independent review checked the remaining inventory and archived receipts.
+
+The new [two-unit worker](../../evidence/runtime/postgres-stage2-2026-11-23/two-unit-worker-prepared.json)
+was created once. The initial final check refused a guardian report that still
+listed the setup helper as Created. Docker had already recorded its zero exit.
+A later readback saw the same helper exited and the worker still unstarted,
+with all eleven mounts. Independent review accepted the preparation.
+
+The [two-unit replay](../../evidence/runtime/postgres-stage2-2026-11-23/two-unit-replay-started.json)
+started once at 16:33:33 UTC. At 16:41 UTC the worker adopted the
+[renewed hold](../../evidence/runtime/postgres-stage2-2026-11-23/targeted-hold-renewed.json)
+while copying the input snapshot to its one owned database. The setup helper
+for the renewal timed out at the client and later showed exit zero. Only the
+four outstanding steps ran after that reconciliation.
+
+At 17:13 UTC the [two-unit replay](../../evidence/runtime/postgres-stage2-2026-11-23/two-unit-replay-easter-accepted.json)
+exited 1 after 39 minutes 58 seconds. Easter Swing's 5,759 rows reproduced
+both labels when only the linker version changed from 9 to 10 on 1,339
+identity links. The dependency hash stayed the same, and rollback passed.
+The year diagnostic reproduced the new dependency root but required the
+changed inventory member to keep its relative position. The transform sorts
+by the whole member, including its fingerprint. The diagnostic stopped
+before observing the year's new output. Independent review accepted the
+Easter result and cleanup. All five original databases remained and there
+were no source sessions.
+
+The year-only diagnostic passed its [cold preparation](../../evidence/runtime/postgres-stage2-2026-11-23/year-worker-prepared.json).
+The [first year-only dispatch](../../evidence/runtime/postgres-stage2-2026-11-23/year-supervisor-no-start.json)
+consumed its start record but the worker never started. The diagnostic
+required exactly one selected unit. Its inherited host supervisor constructor
+required two or more. Independent review verified zero worker starts and
+no new database. The source and protected services were unchanged.
+
+The corrected supervisor accepts exactly the year projection. It passed
+initialization and the full mount check using the actual launch plan and
+profile, and rejected thirteen altered inputs. Independent review confirmed
+that the [year-only worker](../../evidence/runtime/postgres-stage2-2026-11-23/year-singleton-started.json)
+started at 17:40 UTC and held its source snapshot. The initial catalog
+read showed one owned database, OID 11709325.
+
+The [attended review](../../evidence/runtime/postgres-stage2-2026-11-23/year-active-hold-renewed.json)
+for the year replay renewed at 17:48 UTC while the prior review was current.
+Two client calls timed out. Both helpers had exited zero when checked.
+The remaining steps completed, and independent review confirmed that the
+worker adopted the new interval through 18:46 UTC.
+
+### All 903 November 18 mismatches accounted for
+
+The [year-only replay](../../evidence/runtime/postgres-stage2-2026-11-23/year-singleton-terminal.json)
+exited zero at 18:20 UTC on November 23 after 39 minutes 24 seconds. It
+reproduced both historical output hashes. Of the 15,140 year rows, two
+coverage rows changed. The WSDC calendar via Wayback went from 9 listed-only
+events to 8. The WSDC registry via origin went from 1 to 0. Both took the
+verifier's historical change timestamp. All 202 event rows and 14,931
+placement associations matched. One of the 13 dependency members changed.
+The inventory moved from index 6 to 4 when sorted by its new fingerprint.
+Substitution in both directions reproduced the two dependency hashes.
+
+Independent review accepted the year proof, rollback and removal of the
+owned database. The original five catalog entries and 14 protected services
+matched, the source measured 38,409,934,515 bytes, and there were zero
+source sessions. The historical event behind the two old coverage counts
+is still unknown.
+
+The 899 verified explanations cover 402 linker-version changes, 496
+dependency-only changes and the 2026 year projection. The remaining four
+links retain their owner-approved disposition for later data QA. All 903
+stay outside clean re-key. The 13 separate rolled-back writes still need
+successful results. The owner deferred the full graph.
+
+The updated per-unit list is
+`/tmp/swingset-stage2-nov23-target/mismatches-903-reviewed.csv`, SHA-256
+`38a3920b7187bf924cc3c8eef3a2e666c57232d1477c3c11f3875a7e89291595`.
+Only the evidence references for Easter Swing and the year projection
+changed from the [November 19 accounting](#november-18-verifier-mismatch-accounting-2026-11-19).

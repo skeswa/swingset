@@ -1,0 +1,76 @@
+{
+  "operation": "ordinary hold_review during owned replay",
+  "exit": 0,
+  "steps": 7,
+  "hold_sha256": "90a4e38ca8cfd8a83b794e9acaa4031f59eded6e7f1dedcf7c223c92f25cd34a",
+  "previous_hold_sha256": "347822f41893a3572111e7d732d8a9d52f448f887bc51e1a73253ee67ccb7b72",
+  "review_due": "2026-11-19T22:45:48.388987+00:00",
+  "activation": {
+    "activation_finished_at": "2026-11-19T21:50:48.890160914Z",
+    "activation_started_at": "2026-11-19T21:50:48.694302637Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-19T22:00:26.120291+00:00"
+  },
+  "result_sha256": "334a61342b919ae17cbaab228e3ed9aa3410df76cebdcd66d360accf488f1f43",
+  "independent_sha256": "64291484adc82fa76aa8cede8deb44c96cd1973f2db7f0cb2de1a0bd9124f5f7",
+  "checks": 123,
+  "verdict": "ACCEPT_ORDINARY_HOLD_TERMINAL_ACTIVE_TARGETED_MONITORING_ONLY",
+  "worker": "8ded06878b83b1a0f46a78c7dc0e85d9e97f905e779516ea177788c3b51ef904",
+  "owned_oid": 10809480,
+  "authorized_source_readers": 1,
+  "positive_owned_progress": true,
+  "headroom": 1353,
+  "fixed_cap": 262144,
+  "protected_service_count": 14,
+  "original_databases": 5,
+  "source_size_bytes": 38409934515,
+  "helper_outcomes": [
+    {
+      "index": 2,
+      "transport": {
+        "transport_error_type": "TimeoutExpired",
+        "transport_exit_code": null
+      },
+      "actual": {
+        "created": "2026-11-19T21:45:53.741116841Z",
+        "exit_code": 0,
+        "finished": "2026-11-19T21:46:57.798682666Z",
+        "id": "35e1341b12ec092edb4e2f4a682863f66bf37372d9b401fb194987227d8724f8",
+        "profile_sha256": "73824b797c8bd3c594c622063136d1b241ff07913a763d30fdc4024256344a17",
+        "started": "2026-11-19T21:46:57.377369887Z"
+      }
+    },
+    {
+      "index": 5,
+      "transport": {
+        "transport_error_type": "TimeoutExpired",
+        "transport_exit_code": null
+      },
+      "actual": {
+        "created": "2026-11-19T21:50:01.058523119Z",
+        "exit_code": 0,
+        "finished": "2026-11-19T21:50:48.890160914Z",
+        "id": "37aef7ec82fb4434bee127f3dc446a38b702e80c3dda6144f5e770f50f0f6106",
+        "profile_sha256": "980318b65515e09607eb2c144380dc3e1f9dda59b98644fe6a872fe4a90ffde5",
+        "started": "2026-11-19T21:50:48.694302637Z"
+      }
+    }
+  ],
+  "continuations": [
+    {
+      "steps": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "review_sha256": "97f1127130779b894ecddb437240390bf6adc127716bad6e916b8ba70c3f25db"
+    },
+    {
+      "steps": [
+        6
+      ],
+      "review_sha256": "b3d074edbfd94de3f8a61bcc20808478698983b812ba0dfff896f0005b9a4ba8"
+    }
+  ]
+}

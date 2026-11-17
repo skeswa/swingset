@@ -1,0 +1,29 @@
+{
+  "operation": "Retire six exited hold helpers to make room for the year-only diagnostic",
+  "at": "2026-11-23T17:23:12.599798+00:00",
+  "verdict": "ACCEPT_EXACT_SIX_HISTORICAL_HOLD_HELPERS_RETIREMENT_TERMINAL_ONLY",
+  "command": [
+    "docker",
+    "rm",
+    "912de8f6eee033ad67acadb9b70815ccfdc3fb4fb321fa711d0e6a56503121ab",
+    "37ea6c15b7f99dbc300893cbfb3c6836522b56b6457e992a38ead6f43e7791ef",
+    "eaee1ae5c8ff96fd5ff484d334d4ca7f67517805b5db14719222203225a83d96",
+    "11f87370807165a6fdbb426cc918b771be68e9148add9ba6911c31af7bbc178b",
+    "7feb2e576f1a92f207333bc736d29b5879ac33c9c69ae6e67267378d065ab00a",
+    "e6245e6f7226f31931a8174ead5bdab8521796cc95de45e96b0e11709ef5230c"
+  ],
+  "exit": 0,
+  "before": 973,
+  "after": 3100,
+  "required": 2957,
+  "cap": 262144,
+  "archives_preserved": true,
+  "other_inventory_preserved": true,
+  "h79_helpers_preserved": true,
+  "hashes": {
+    "action-review.json": "7b66610a97a4e01f00a02c86eddb8a64f8d738f57da194aa792d919aa9a7ada8",
+    "execute/result.json": "b8e7f7ecd38a4d0efc51ed875be65d0de35183ff37c85b1527154221b453f1bf",
+    "post/result.json": "80e2c84c0375da4fb3ccb8b0cdbc374f1a8605d9e9d6967792ae9511878fe9e2",
+    "independent-terminal-review.json": "ffe853fdf51681b759590729044726db07c320a2aa83cdecdcb0eeb6e7364001"
+  }
+}

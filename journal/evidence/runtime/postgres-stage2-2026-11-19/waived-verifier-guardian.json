@@ -1,0 +1,27 @@
+{
+  "operation": "Rehearsal guardian image authorization",
+  "commands": [
+    "seal two public policy files",
+    "stop exact previous guardian",
+    "replace network policy by same-filesystem rename",
+    "create and start replacement guardian",
+    "check status, protected services and database catalog"
+  ],
+  "exit": 0,
+  "started_at": "2026-11-19T20:00:56.561207891Z",
+  "old_guardian": "c153a4bc68df17ed10618025a269c3e74ea70a8ac47c853c932addcc8c106ed8",
+  "new_guardian": "30972f8fae3d576296330d4344fb212b35b01ef1fa0adc24a639590a9b962e54",
+  "image_authorized": "sha256:524991480e371864d74e8a187e35ee8e9b06c812213977e4284a820c012c28b9",
+  "policy_sha256": "9da665e8db6ceb86cebdb48a85a896c68ddd477f82e2462fa425d07571a98d98",
+  "action_seconds": 111.05530145857483,
+  "original_services": 14,
+  "source_bytes": 38409934515,
+  "owned_databases": 0,
+  "status_headroom": 4647,
+  "action_review_sha256": "b94ddd55983a4a9c61a4e9dfb6c8606dd0ca8f941f0ee31c80a24747449c16a5",
+  "terminal_sha256": "d579bddd6efd0c24b1c1204a3bb258f3a9d222b50df78a53d80ca2eeeb51b691",
+  "postcheck_sha256": "54c3c118a71edeb93959a74e23f01ac7cc1a0fd6a5ca6681d7617974b93e379b",
+  "independent_terminal_sha256": "f0466574279e3f88e8f293dffb09de4f7f39809c24a5bfb0d668247e9c8600f0",
+  "independent_checks": 645,
+  "worker_started": false
+}

@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-23T17:18:39.320108+00:00",
+  "review_at": "2026-11-23T18:16:24.749583+00:00",
+  "verdict": "ACCEPT_ORDINARY_HOLD_TERMINAL_IDLE_ADMIN_ONLY",
+  "result_sha256": "d272e3b909e778259a082ab84236823b08aa77dff5335419266b49d29dee543e",
+  "hold_sha256": "0597f3e90509406f68c94d6e8455e5cb9260bc1891a57d1e2857564bbf39ce7c",
+  "operation": "Renew attendance after the two-unit worker retired",
+  "review_expiry_gap": {
+    "activation_finished_at": "2026-11-23T17:16:34.895778767Z",
+    "activation_started_at": "2026-11-23T17:16:34.713087016Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-23T17:38:38.110915+00:00"
+  },
+  "reviewed_steps": 7,
+  "independent_terminal_sha256": "2197f822c0ac4bc445effa45ae24188049768a61342db2dc35fc994e1da2b6b7",
+  "idle_post_readback_sha256": "b6d27429cb6976ffcec1c3b888820b2a8016050db0a12dcc2e597bde5ab807f3",
+  "new_unit_verdicts": 0
+}

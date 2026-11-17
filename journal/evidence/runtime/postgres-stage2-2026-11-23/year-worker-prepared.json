@@ -1,0 +1,16 @@
+{
+  "operation": "Prepare a year-only replay worker while preserving the accepted Easter proof",
+  "at": "2026-11-23T17:26:50.182404+00:00",
+  "actor": "707a0c2f603fe13434bd7b78a7611822a5d4e1562201e1d2549db19df9611337",
+  "helper": "64a850fae6747f69baf3da587615dea284dfa459f00cbd0f560750f54b602fe7",
+  "actor_started": false,
+  "helper_exit": 0,
+  "effect_count": 8,
+  "prior_easter_review_sha256": "53e5d69ccddc3ccdde0c60635115fa4ce0741dbf66a598e40c1dd2fd3e94806c",
+  "initial_terminal_check": "terminal preservation",
+  "initial_failure_sha256": "2e8c953f4aa091365d666e92b7c4bcad7bba84b3d1aa2d008030405fb998eb1b",
+  "settled_post_sha256": "09fe086b44797ff460ca002e0775bf64ad05f66fd091105a16f585b5bdfe745d",
+  "review_sha256": "70caed3e3d3a4805d6fe4b953c3d6efd388946f3b4cd37978fdf77a8fef6a5e6",
+  "review": "ACCEPT_EXACT_3561CB4433E2_YEAR_COLD_PREPARATION_ONLY",
+  "late_readback_effects": 0
+}

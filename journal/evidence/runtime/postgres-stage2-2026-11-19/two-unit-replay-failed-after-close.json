@@ -1,0 +1,55 @@
+{
+  "operation": "Historical two-unit PostgreSQL replay and independent read-only reconciliation",
+  "observed_at": "2026-11-19T22:17:21.397368+00:00",
+  "actor": {
+    "exit": 1,
+    "finished_at": "2026-11-19T22:13:21.786045507Z",
+    "id": "8ded06878b83b1a0f46a78c7dc0e85d9e97f905e779516ea177788c3b51ef904",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "started_at": "2026-11-19T21:31:44.64501857Z",
+    "state": "exited"
+  },
+  "phases": [
+    "reserved",
+    "source_catalog",
+    "freeze",
+    "accept",
+    "replay",
+    "close",
+    "failed"
+  ],
+  "worker_receipt_sha256": "a55d86cebd650db70bd696769c04f12d6a8bd291ec5b4bea65a6a8403c55d930",
+  "supervisor_stop_attempted": false,
+  "supervisor_result_sha256": "cd114f20866c8b724c5eb8fc3189ca836718dbbc7d7f44ec6ce67daf77f7c8ba",
+  "terminal_unit_results": 0,
+  "historical_checkpoint_and_context_passed": true,
+  "rollback_checkpoint_checked_before_close": true,
+  "failure_predicate": "unknown",
+  "terminal_watch_cleanup_proven": false,
+  "subsequent_readback": {
+    "owned_database": {
+      "absent": true,
+      "name": "sst_copy_a3f358c72c6647a68c7ec3fb_0",
+      "oid": 10809480,
+      "token": "a3f358c72c6647a68c7ec3fb"
+    },
+    "owned_registry_empty": true,
+    "original_database_count": 5,
+    "original_catalog_preserved": true,
+    "source_size_bytes": 38409934515,
+    "source_sessions": 0,
+    "protected_14_preserved": true,
+    "guardian_cid": "30972f8fae3d576296330d4344fb212b35b01ef1fa0adc24a639590a9b962e54",
+    "supervisor_retired": true,
+    "cleanup_performed_by_reconciliation": false
+  },
+  "reconcile_source_sha256": "cde130b9c1705aebe1be31d43abf913319867332bc90fb75a3d73c4438126111",
+  "read_only_probe_sha256": "e465e0d12cbeddfa19eecf3475e3dee63f5b73da23a7edf73e83575ad73e3593",
+  "terminal_sha256": "dbb6c075028ac8bbd1e496b1710f7412bb14e268211ade272e2cdb1d72f3f4cb",
+  "review_sha256": "225ccd12535674f1bcaab0e080f947f2955faa413420d18ab6d12994a871a49c",
+  "verdict": "ACCEPT_FAILED_8DED_TARGETED_OUTCOME_AND_OWNED_RETIREMENT_ONLY",
+  "review_checks": 94,
+  "gate_2_accepted": false
+}

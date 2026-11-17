@@ -1,0 +1,33 @@
+{
+  "operation": "ordinary attended hold review with both historical replay workers stopped",
+  "steps": 7,
+  "exit": 0,
+  "hold_sha256": "5fec1fe022a61dccfbd4f6bb171b506dea80f77b60be53b4b20400d02ca246ce",
+  "previous_hold_sha256": "90a4e38ca8cfd8a83b794e9acaa4031f59eded6e7f1dedcf7c223c92f25cd34a",
+  "activation": {
+    "activation_finished_at": "2026-11-19T22:20:19.638563806Z",
+    "activation_started_at": "2026-11-19T22:20:19.468542499Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-19T22:45:48.388987+00:00"
+  },
+  "review_due": "2026-11-19T23:20:08.250286+00:00",
+  "result_sha256": "2e4b7a10b4a692feac10e6b716fa016253f71ccc42e63de4124c307a5374b96d",
+  "independent_sha256": "fbb3c12f15609234345e06e87a880dcd0e2fceabcd228d1f2cb136fecd81f5ee",
+  "verdict": "ACCEPT_ORDINARY_HOLD_TERMINAL_IDLE_ADMIN_ONLY",
+  "checks": 142,
+  "original_databases": 5,
+  "source_sessions": 0,
+  "source_size_bytes": 38409934515,
+  "owned_databases": 0,
+  "guardian": "30972f8fae3d576296330d4344fb212b35b01ef1fa0adc24a639590a9b962e54",
+  "protected_service_count": 14,
+  "failed_offline_actors": [
+    "8ded06878b83b1a0f46a78c7dc0e85d9e97f905e779516ea177788c3b51ef904",
+    "085d59eac3f0b47b05b2a8be42bf52d6351ee2a3bbc5bd43a82bdb3b036640e2"
+  ],
+  "status_bytes": 260427,
+  "fixed_cap": 262144,
+  "headroom": 1717,
+  "reviewed_sample_sha256": "04de3d387d8b9fddb755aa2d50037efb770360e978015b028f49fbfdd92987c0",
+  "next_target_admitted": false
+}

@@ -1,0 +1,31 @@
+{
+  "at": "2026-11-23T17:50:28.235686+00:00",
+  "verdict": "ACCEPT_ORDINARY_HOLD_TERMINAL_ACTIVE_TARGETED_MONITORING_ONLY",
+  "hold_sha256": "13bba84ddddce993d7fcb6f19572cdcb11b9af00e999ba3fffef05ed3221db0e",
+  "result_sha256": "9aa4eec51b8450e255753546e747bf06b74ae549452cf769dca0ea0c4cded919",
+  "review_at": "2026-11-23T18:46:47.889243+00:00",
+  "active_before_sha256": "7a7e6b27cf8ef18b264a70644c488f612b3188390e6cf2de87ccbf755f4f33d1",
+  "active_after_sha256": "0297ad18b72bd018b690af8a30a5c1c3d7fb3623df21e00021efcbdcabdd4e2a",
+  "owned_oid": 11709325,
+  "operation": "Renew the attended review during the year-only replay",
+  "steps_confirmed": 7,
+  "helper_transports_timed_out": [
+    2,
+    5
+  ],
+  "helper_terminal_exits": [
+    0,
+    0
+  ],
+  "expiry_gap": {
+    "activation_finished_at": "2026-11-23T17:48:45.238788907Z",
+    "activation_started_at": "2026-11-23T17:48:45.049994394Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-23T18:16:24.749583+00:00"
+  },
+  "hashes": {
+    "independent-remaining-3-review.json": "3bd429ebbdef390c3fcfe2df6d80dfbb2bc92351e9992d08ee07c87391f47541",
+    "independent-remaining-6-review.json": "b4eaf092073ee4746e27a8dcdc15abc784c82eef1fd45fbb095087dbe7b3c32b",
+    "independent-terminal-review.json": "084050515734e3e06fa8dca869145c3178daf9ec8b0bb52ce3502f3f02a04ad0"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "operation": "retire three stopped rehearsal hold helpers",
+  "command": [
+    "docker",
+    "rm",
+    "7f60f8dce1d0641ecaa25576d8ea71c20966695908f21d237955dde550bb0a64",
+    "feeae1fd46ce74fa4dc53b49a9ea113207829a07c2bdfdcd78a4acffd4bd0323",
+    "027b6e399068c3e452ef5a75efa634e818e8d57d467ee238ea0fe8dccf627716"
+  ],
+  "exit": 0,
+  "helpers_per_hold": {
+    "63": 2,
+    "64": 1
+  },
+  "admission_sha256": "dcbd0f23ea79faadfdde178bc881fc57d0d6ad5a453d59cfc55418c109bcab71",
+  "action_review_sha256": "b3f392f5192f7909513a272e2eb85f79a2871ef0184b0d146d00718555e1b13f",
+  "go_sha256": "3dbc8b06536be01e28204f4a669fa8cd2f707b0fa61920dc2c8d9a101bee59e5",
+  "execution_sha256": "32f744fe6b63f8993731cb347ec0e2621dd29f4af8d427a04e106754550b2111",
+  "terminal_sha256": "cf7919268b85687cc2431585ec83f1958e4929fea174a22dfe41d4a4f4c5adaa",
+  "independent_sha256": "8dc772e7b093d68c03cc0555fd0da716b1b301923da117adbaae903a72825441",
+  "checks": 86,
+  "reserve_bytes": 2957,
+  "limit_bytes": 262144,
+  "before_status_bytes": 260020,
+  "after_status_bytes": 258959,
+  "after_headroom": 3185,
+  "container_count_before": 721,
+  "container_count_after": 718,
+  "images_retained": 37,
+  "volumes_retained": 126,
+  "active_roster_retained": 13,
+  "protected_service_count": 14,
+  "original_database_count": 5,
+  "source_size_bytes": 38409934515
+}

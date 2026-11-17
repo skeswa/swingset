@@ -1,0 +1,61 @@
+{
+  "at": "2026-11-23T17:16:12.247896+00:00",
+  "verdict": "ACCEPT_EASTER_SWING_PARTIAL_PROOF_YEAR_REFUSAL_AND_OWNED_RETIREMENT",
+  "actor": {
+    "exit": 1,
+    "finished_at": "2026-11-23T17:13:31.629013049Z",
+    "id": "9f9fd8717b5c07eb5eb4c0a209b1834cd405b99e596bf88891f2fade0be8c9c3",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "started_at": "2026-11-23T16:33:33.305643386Z",
+    "state": "exited"
+  },
+  "owned_oid": 11259388,
+  "owned_database_absent": true,
+  "owned_registry_empty": true,
+  "source_original_five_preserved": true,
+  "source_size_bytes": 38409934515,
+  "source_sessions": 0,
+  "protected14_sha256": "d0d901f20ef5d1b3cd047834fe67243946df64d9626b1b568db339636d20c6d6",
+  "year_proof_accepted": false,
+  "year_refusal": "year_dependency_common_order",
+  "terminal_reconciliation_sha256": "41ee4c8cb740793dcf419efdfa97fc42f6e638da78f6bdf6357c019b6047dd45",
+  "watch_terminal_sha256": "fa1e4e3d34c4f199fa42bdb2cd916fe7ac9767a52f443a5050427dae6d822ef5",
+  "operation": "Replay Easter Swing 2026 and year 2026 on an owned copy at the November 18 verifier clock",
+  "elapsed_seconds": 2398.32337,
+  "unit_proofs": [
+    {
+      "delta": {
+        "count": 1339,
+        "expected": "9",
+        "field": "linker_version",
+        "found": "10",
+        "table": "identity_links",
+        "type": "string"
+      },
+      "dependency_digest": "29a62ebd77f5e4e6b27c2387d33ad0b9b5dd531529a2840312e3f30e5c9d32ab",
+      "expected": [
+        "e398905af6392a0f91a167fbbd66e5291d6428f0d26084281f4a037e426ceb69",
+        5759
+      ],
+      "found": [
+        "f1124917ac17f9efc73bd068e605188db0649109accf0fa790efdaaff646eec8",
+        5759
+      ],
+      "generation_id": "dg_07483197ccbc94a69922e4bd8cf28ae4030b32100811431bf01e09d75521d0ba",
+      "rows_by_table": {
+        "entries": 1306,
+        "identity_link_resolutions": 1339,
+        "identity_links": 1339,
+        "judges": 33,
+        "link_candidates": 1610,
+        "placements": 132
+      },
+      "unit": "link/event/2026-04-easter-swing"
+    }
+  ],
+  "checkpoint_rollback_verified": true,
+  "supervisor_stop_attempted": false,
+  "independent_review_sha256": "53e5d69ccddc3ccdde0c60635115fa4ce0741dbf66a598e40c1dd2fd3e94806c"
+}

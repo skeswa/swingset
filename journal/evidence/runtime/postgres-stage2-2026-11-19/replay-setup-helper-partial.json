@@ -1,0 +1,43 @@
+{
+  "operation": "Prepare isolated server volumes for two owned-copy replays",
+  "commands": [
+    "create job directory and transfer public archive",
+    "create three rehearsal volumes",
+    "create and start isolated public-file helper once",
+    "inspect stopped helper, public files, volume metadata and protected catalog"
+  ],
+  "finished_at": "2026-11-19T20:24:55.956355788Z",
+  "started_at": "2026-11-19T20:24:50.773858885Z",
+  "exit": 1,
+  "helper_cid": "b1ac99a5a5069cf4e332d3e8ca443c975f6e2e226c76b7140575d7a3ca719e47",
+  "restart_count": 0,
+  "oom": false,
+  "pid": 0,
+  "actor_created": false,
+  "actor_started": false,
+  "public_files": 592,
+  "archive_bytes": 24207360,
+  "archive_sha256": "1416c5942b5e142d8d795b5a6ac6635a41a636f3057b375d3ac35b6f845ebd15",
+  "archived_and_extracted_files": 593,
+  "public_extras": 0,
+  "retained_volumes": 3,
+  "owned_replay_databases": 0,
+  "source_bytes": 38409934515,
+  "source_clients": 0,
+  "protected_services": 14,
+  "status_headroom": 3586,
+  "placeholder": {
+    "bytes": 0,
+    "mode": "0600",
+    "ownership_observed": false
+  },
+  "later_paths_head_status": 404,
+  "action_review_sha256": "b69173044bca6a058bc30d63e6ab4dcc84b92e64be9abf940cba526f52776846",
+  "action_go_sha256": "6009bf30830dcc3deb73d00b865ff2a4ade6b080dda7459c506acabb651b4312",
+  "blocked_sha256": "d7d976ba16206b76c04d8e0a3c3a584c085475b8247cf8b672283eda24bb811a",
+  "readback_sha256": "f073463bac875d8972a901e5a956c84eb3d53676fc8c4f9f4e296ff896fe6813",
+  "independent_partial_sha256": "cf81fb5bae2650dba3b930ffd5d1e32bac837c52ccd76db541c48210fdc2c796",
+  "independent_checks": 427,
+  "independent_transports": 104,
+  "verdict": "ACCEPT_FAILED_HELPER_STOPPED_AND_OBSERVED_PARTIAL_PUBLIC_SEALS_ONLY"
+}

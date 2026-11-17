@@ -20,20 +20,33 @@ settings.
 
 The November 18 verifier returned all 108,390 units. Thirteen writes timed
 out and rolled back. Independent review accepted the failed measurement
-and scratch cleanup. The next graph still needs a qualified rehearsal image
-and a fresh launch ([terminal receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-19/normal668f-terminal.json)).
+and scratch cleanup. The rehearsal image has passed its offline check.
+The next full graph still needs a fresh launch ([terminal receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-19/normal668f-terminal.json),
+[image qualification](../../../journal/evidence/runtime/postgres-stage2-2026-11-19/waived-verifier-image-qualified.json)).
 For the next run, validate and remove only the timing field before comparing
 the full set of semantic results. Keep the raw receipt. Gate 2 still needs
 a disposition for each mismatch and proof that every unit completed, the
 source was preserved and the temporary databases were cleaned up.
 
-For the November 18 mismatches, use the [per-unit accounting](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-18-verifier-mismatch-accounting-2026-11-19).
-Confirm the Easter Swing 2026 and year 2026 results on an admitted owned
-copy using the original verifier clock and accepted inputs. Keep raw rows
-on the server. Compare complete output and dependency hashes, check the
-rollback and report only unit names, hashes and aggregate counts. A
+On November 23 the owner deferred the full graph. The two-unit replay
+confirmed Easter Swing. A year-only replay confirmed the two changed coverage
+rows and the change to the inventory dependency's position in the sorted
+manifest. Both used the historical inputs and clock, verified rollback and
+removed their temporary copies. Shared migration and re-key still require an
+accepted full graph
+([Easter receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-23/two-unit-replay-easter-accepted.json),
+[year receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-23/year-singleton-terminal.json)).
+
+The [per-unit accounting](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#all-903-november-18-mismatches-accounted-for)
+covers all 903 November 18 mismatches. Keep raw rows on the server. A
 later graph has its own clock and needs its own comparison. All changed
 units and their unresolved consumers remain outside clean re-key.
+
+The November 19 two-unit replay verified the historical inputs and reached
+the rollback checkpoint. It exited without saving either unit verdict.
+Save each unit's hash-and-count witness after checking its rollback so
+one failure cannot erase the other result. Record whole-copy cleanup
+separately ([failed replay and cleanup](../../../journal/evidence/runtime/postgres-stage2-2026-11-19/two-unit-replay-failed-after-close.json)).
 
 The November 17 cold preparation passes all 108 commands, sixteen helper
 profiles, the copied-input closure and six in-memory configuration checks.

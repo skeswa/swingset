@@ -1,0 +1,22 @@
+{
+  "verdict": "ACCEPT_ORDINARY_HOLD_TERMINAL_ACTIVE_TARGETED_MONITORING_ONLY",
+  "at": "2026-11-23T16:41:51.125013+00:00",
+  "review_at": "2026-11-23T17:38:38.110915+00:00",
+  "result_sha256": "c686d90266bf0ba23f988c328d395ebb74c45582cb156bc8bbcbd4593a69b8b4",
+  "hold_sha256": "7e6b9036a2eac028628475f3d2a31cf51045046db6d4b4eada8dd81f67d8ba8b",
+  "owned_oid": 11259388,
+  "active_before_sha256": "b330cf25ddcc81a4f3ce514dc3aeca552545eb8cee42e3754852f4dff45b9eef",
+  "active_after_sha256": "fb10045eebae49686dde8b506be0cd24410ee35efbe6acceb0299ec7462f0c2a",
+  "review_expiry_gap": {
+    "activation_finished_at": "2026-11-23T16:41:06.610708868Z",
+    "activation_started_at": "2026-11-23T16:41:06.420919124Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-23T17:19:44.996238+00:00"
+  },
+  "operation": "Renew Stage 2 attendance while the two-unit worker copies its inputs",
+  "transport_step_2": "timeout; helper confirmed exited zero; resumed only indices 3 through 6",
+  "reviewed_steps": 7,
+  "independent_terminal_sha256": "3d16795f2f2e63de3f6c3da6b335296c7ef916267304ff386db7d9eaffa6b770",
+  "remaining_only_review_sha256": "a6a0301b9edd7b2af851ce6cd37864e70db783e19267d2ef429ea95fc4b7129d",
+  "unit_verdicts": 0
+}

@@ -1,0 +1,22 @@
+{
+  "operation": "Retire one exited H72 helper before the corrected year-only worker",
+  "at": "2026-11-23T17:35:04.304010+00:00",
+  "command": [
+    "docker",
+    "rm",
+    "4610f6e0bda506c0b6899a5c65e1f0b36dd0dabbd874c1d5caa277d53909fcf6"
+  ],
+  "exit": 0,
+  "before": 2751,
+  "after": 3106,
+  "cap": 262144,
+  "reserve": 2957,
+  "other_inventory_preserved": true,
+  "archives_preserved": true,
+  "hashes": {
+    "action-review.json": "49737c8e87362139f4c3cb4ea19bbdc0472f7fe3ea3469e2419ad4e753169f23",
+    "execute/result.json": "6c8f6021bdc018a2e4fc627a3a6be4236aa3570f3d18613081bb32cf5d997b1c",
+    "post/result.json": "9255e5223cff052b29ea1bb0d903261334a68dc27e2cd66dd28d0a04e540e0c1",
+    "independent-terminal-review.json": "ad4c97a8acb4772e8eb15c519a2ced687db3df4f9336ec2840b89b5ea448eaae"
+  }
+}

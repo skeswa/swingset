@@ -1,0 +1,17 @@
+{
+  "operation": "ordinary hold_review",
+  "exit": 0,
+  "steps": 7,
+  "activation_utc": "2026-11-19T20:04:58.53208314Z",
+  "review_at_utc": "2026-11-19T21:04:47.970438+00:00",
+  "hold_sha256": "fbbb4edaea73ef5aae2498f781a147912931579ed4a19284e4e37c6923154d50",
+  "result_sha256": "72ad3037946d7783d940ef259271cbc53be543ac20b54e8bccd4a7326b8a4e19",
+  "independent_sha256": "ee274f26531e7a1e9782c8a549e97e763be3727176bf269a7288cfa1fe313255",
+  "independent_checks": 76,
+  "previous_review_still_valid_at_activation": true,
+  "guardian": "30972f8fae3d576296330d4344fb212b35b01ef1fa0adc24a639590a9b962e54",
+  "scope": "attended administrative hold with stopped worker",
+  "protected_services": 14,
+  "original_databases": 5,
+  "source_size_bytes": 38409934515
+}

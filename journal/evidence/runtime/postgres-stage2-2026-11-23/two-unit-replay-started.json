@@ -1,0 +1,25 @@
+{
+  "operation": "Start the two-unit historical replay",
+  "actor": {
+    "exit": 0,
+    "finished_at": "0001-01-01T00:00:00Z",
+    "id": "9f9fd8717b5c07eb5eb4c0a209b1834cd405b99e596bf88891f2fade0be8c9c3",
+    "oom": false,
+    "pid": 3237149,
+    "restart": 0,
+    "started_at": "2026-11-23T16:33:33.305643386Z",
+    "state": "running"
+  },
+  "dispatched_once": true,
+  "supervisor_pid": 3236884,
+  "supervisor_birth": "1084805092",
+  "frozen_source_observed": true,
+  "proof_scope": "startup only",
+  "unit_verdicts": 0,
+  "review": "ACCEPT_EXACT_TARGETED_FREEZE_STARTUP_ONLY",
+  "hashes": {
+    "launch-start/dispatch.json": "bc45896cb90b5856a729ac871ec85101c28c8e52274fc9fbe6cd212aa8f48e86",
+    "launch-watch/observe-0.stdout": "498b1e90330c9b91a3dcbfad3f24e4765c58309312b535dcde912efe6e0d6c4e",
+    "independent-startup/independent-startup-review.json": "e16dc6bc5154d24a37be44d7826c0af9623e20ef22210aa0dfbbf910391dcebe"
+  }
+}

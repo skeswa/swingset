@@ -1,0 +1,26 @@
+{
+  "operation": "Prepare the historical two-unit diagnostic replay worker",
+  "at": "2026-11-23T16:31:38.984656+00:00",
+  "review": "ACCEPT_EXACT_45782401F30D_COLD_PREPARATION_ONLY",
+  "setup_effects": 8,
+  "source_connections": 0,
+  "actor_cid": "9f9fd8717b5c07eb5eb4c0a209b1834cd405b99e596bf88891f2fade0be8c9c3",
+  "actor_started": false,
+  "helper_cid": "517a4eda7a13c3dc46d1bff4bc4b1af364260bad895121af1d1c291f30b9055f",
+  "mount_count": 11,
+  "original_final_check": {
+    "complete": false,
+    "stage": "terminal preservation",
+    "helper_descriptor_at_first_read": "created",
+    "sha256": "94ee2aa316328d657c2a171229c7610cd6c6f618fdcd1ebea800fe49d83b80a8"
+  },
+  "later_readback": {
+    "terminal_sha256": "17ed161849f8c5bff5c8d434a13ff807c42a3f2f0c715bc7dc10ac2ffffdc72a",
+    "independent_review_sha256": "71b7b3584e3b85aafc81889e435fb2cc1429de22c48abbab90f4eff4930c98c0",
+    "guardian_headroom": 2801,
+    "helper_state": "exited",
+    "helper_exit": 0,
+    "new_effects": 0
+  },
+  "unit_verdicts": 0
+}

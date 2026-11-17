@@ -1,0 +1,52 @@
+{
+  "operation": "Finish isolated rehearsal volumes and create the two-unit replay worker",
+  "commands": [
+    "verify owned volume metadata and public packet in isolated repair helper",
+    "set zero-byte mountpoint mode, create blob link and two spill directories",
+    "create replay worker once",
+    "read stopped and created profiles, source catalog, protected services and guard"
+  ],
+  "reviewed_at": "2026-11-19T20:48:30.392924+00:00",
+  "repair_helper": "a2076f5a3fc0d7b4d86d816ab6574a28a3925fb13d09322f150acc9ab806b3db",
+  "repair_exit": 0,
+  "original_helper": "b1ac99a5a5069cf4e332d3e8ca443c975f6e2e226c76b7140575d7a3ca719e47",
+  "original_helper_exit": 1,
+  "worker": "085d59eac3f0b47b05b2a8be42bf52d6351ee2a3bbc5bd43a82bdb3b036640e2",
+  "worker_started": false,
+  "before": {
+    "gid": 10001,
+    "ino": 25821210,
+    "kind": 32768,
+    "links": 1,
+    "mode": 384,
+    "size": 0,
+    "uid": 10001
+  },
+  "after": {
+    "cold_continuation_only": true,
+    "complete": true,
+    "database_connections": 0,
+    "database_mountpoint_bytes": 0,
+    "database_mountpoint_mode": "0400",
+    "public_files_revalidated": 592,
+    "public_package_sha256": "1416c5942b5e142d8d795b5a6ac6635a41a636f3057b375d3ac35b6f845ebd15",
+    "runtime_empty": true,
+    "secret_or_source_mounts": 0,
+    "spill_directories": 2
+  },
+  "native_mounts": 12,
+  "explicit_env_matches": 16,
+  "ordered_inherited_env_matches": 10,
+  "source_bytes": 38409934515,
+  "source_clients": 0,
+  "owned_databases": 0,
+  "protected_services": 14,
+  "status_headroom": 3235,
+  "action_review_sha256": "9d12d1d1834d729e4b0c9a8000fa93f66b976783368a7497cbf9ef639e25bdc1",
+  "action_go_sha256": "48214e5b1ebd9eec02188e3f2a865c9376c63faa574d5b8f867b757c501edae4",
+  "intermediate_refusal_sha256": "2709a8d6d8728cd0eebdc8d5b1ba055e1bcecb3e39f5e7206d9f54fbcf019687",
+  "readback_sha256": "6225c9abba11c3be88857e6367160733eaa760b618c2afcfa3d0e961675b12d8",
+  "independent_terminal_sha256": "98ef4edf3816830a665f3213392536f86318c76cef5e37e70369ae120fe645e9",
+  "independent_checks": 310,
+  "independent_transports": 102
+}

@@ -933,6 +933,7 @@ def _run_locked(root: Path | None = None) -> int:
         },
         "wall_seconds": wall,
         "budget_seconds": BUDGET_SECONDS,
+        "budget_enforced": False,  # Stage 2 timing waiver.
         "within_budget": wall <= BUDGET_SECONDS,
         "checks_passed": not verified["errors"],
         "clients": reports,
@@ -961,9 +962,7 @@ def _run_locked(root: Path | None = None) -> int:
     for issue in verified["errors"]:
         print("Core check failed: " + issue, flush=True)
     if wall > BUDGET_SECONDS:
-        print(f"Core exceeded the {BUDGET_SECONDS}-second development budget", flush=True)
-    return (
-        130
-        if aborted == "interrupted"
-        else (0 if not verified["errors"] and wall <= BUDGET_SECONDS else 1)
-    )
+        print(f"Core exceeded the {BUDGET_SECONDS}-second reference time", flush=True)
+    if aborted == "interrupted":
+        return 130
+    return int(bool(verified["errors"]))

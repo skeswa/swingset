@@ -1,0 +1,66 @@
+{
+  "operation": "offline verifier byte qualification",
+  "completed_at": "2026-11-19T19:49:12.458815+00:00",
+  "commands": [
+    "six docker cp reads of public installation",
+    "native and formatted inspection",
+    "administrative postgres and protected service postchecks"
+  ],
+  "public_reads": [
+    {
+      "name": "app_src_package",
+      "exit": 0,
+      "bytes": 23383040,
+      "sha256": "5e92376a3e2b946ddd0ee69e3ce60caa226fbb7e7b8c62a3dd8963c99de9f0ce"
+    },
+    {
+      "name": "config",
+      "exit": 0,
+      "bytes": 9728,
+      "sha256": "ce765a5bdbffe6218d6a9e96a6c9ab113e9ec089c9128e3580c0fea1732c02d2"
+    },
+    {
+      "name": "console",
+      "exit": 0,
+      "bytes": 2048,
+      "sha256": "9f38f77932e9d99d2e95d8c408c6a4fa03bd1be955d9534753543623ea0e4b55"
+    },
+    {
+      "name": "dist_info",
+      "exit": 0,
+      "bytes": 67072,
+      "sha256": "506e39e838ae7b0f217be328dd922069f45dfbb5dac5e0a81ff212ade13fbf09"
+    },
+    {
+      "name": "installed_package",
+      "exit": 0,
+      "bytes": 23383040,
+      "sha256": "a3aa1d37e9f1b839bdf022614e55d45ca464645446c1d260aa72e97f57bfdca1"
+    },
+    {
+      "name": "overrides",
+      "exit": 0,
+      "bytes": 153600,
+      "sha256": "0088296be1697cedc41d3c6a065feb5d252d35519f562689e76030e84938c894"
+    }
+  ],
+  "terminal_sha256": "67ad7abc83e2655eb2e0e388ee56eea4ac94bc44465209c8c081c4f6e5261887",
+  "independent_terminal_sha256": "dc173624462b12b6c245791406ad3bd6c4539a5ad94b0d39dff922e7ae708e5e",
+  "independent_checks": 160,
+  "evidence_sha256": "a6c677f6f0358edcebb6611e54456cf981e7bf10f6010d0e684a8df438decaf7",
+  "saved_validator_sha256": "3f8f0e1a04dc68adc14d8e26daed173a817e96deee80cacee98cb5e86ada35a5",
+  "cid": "f96a134cc790c4445775824efebc1e5aafa3d2aafbf32c372df1d9ec3b696c88",
+  "candidate_image": "sha256:524991480e371864d74e8a187e35ee8e9b06c812213977e4284a820c012c28b9",
+  "archive_sha256": "06d5c0d737d93bc1cca7f05985a0f2bb1c336b1e37cef9a44fd1d179c5dc3040",
+  "installed_project_files": 561,
+  "app_src_files": 561,
+  "python_compiled": 377,
+  "record_rows": 571,
+  "config_files": 2,
+  "override_files": 8,
+  "console_bytes": 299,
+  "never_started": true,
+  "protected_services": 14,
+  "status_headroom": 5753,
+  "run_accepted": false
+}

@@ -1,0 +1,96 @@
+{
+  "at": "2026-11-23T18:22:23.509476+00:00",
+  "verdict": "ACCEPT_EXACT_YEAR_PROOF_AND_OWNED_RETIREMENT_ONLY",
+  "actor": {
+    "exit": 0,
+    "finished_at": "2026-11-23T18:20:03.057641733Z",
+    "id": "b57ee87f47c79a91600785a911df35e7301dc60c6f1a812fd68e6799c935aa0e",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "started_at": "2026-11-23T17:40:39.367109531Z",
+    "state": "exited"
+  },
+  "year_receipt_bytes": 6590,
+  "year_receipt_sha256": "fa9821ecec2e7a82b41910566f65e53da1633f1567ff81b58dd209b8eb42da08",
+  "watch_terminal_sha256": "4ee25051675c676728432327616e0596b2b63e2fa13826591c3fec32c7d841b7",
+  "terminal_readback_sha256": "2d7b5f24c31dc29de0dfaed0ff8657eb38f1a33944d349345eaa495e79958fcd",
+  "prior_easter_review_sha256": "53e5d69ccddc3ccdde0c60635115fa4ce0741dbf66a598e40c1dd2fd3e94806c",
+  "owned_catalog": {
+    "database": "sst_copy_f40d6f9d2e7a4e4b948b9eca_0",
+    "oid": 11709325,
+    "token": "f40d6f9d2e7a4e4b948b9eca"
+  },
+  "owned_registry_empty": true,
+  "owned_database_absent": true,
+  "rollback_verified": true,
+  "checkpoint_rollback_verified": true,
+  "source_original_five_preserved": true,
+  "source_sessions": 0,
+  "protected14_sha256": "d0d901f20ef5d1b3cd047834fe67243946df64d9626b1b568db339636d20c6d6",
+  "catalog_readback_sha256": "81abeef590e1fabbcb6be4597a3c69b683cc33f967df16be3af3ec201d3d0d06",
+  "full_graph_accepted": false,
+  "operation": "Verify the November 18 project/year/2026 mismatch on an owned PostgreSQL copy",
+  "elapsed_seconds": 2363.691,
+  "source_size_bytes": 38409934515,
+  "unit_proofs": [
+    {
+      "dependency_proof": {
+        "changed_groups": 1,
+        "changed_top_members": 1,
+        "expected": "cbfcdfd14e541852bff56a73df5a3b6cbffa7992198b543a2faf2fb03984a75c",
+        "found": "8a1ba718d2fad050b6391c4ad780ba424495d434b5cfc21d46819f29f731198c",
+        "member_summary_sha256": "f2b30d19a2897e78a8614ca9b40251f34e31084ff726a226fca074e9f2f2ef4e",
+        "order": {
+          "after_inventory_index": 4,
+          "after_order_sha256": "0b984d56272998edd6a118518cc53320e07a03b633716f055a2d2ef16026a9ae",
+          "basis": "canonical_full_member",
+          "before_inventory_index": 6,
+          "before_order_sha256": "86b64f1a69eb177b25db7d90b599ba59e52b0793bba25c7b1b970ee8981bebbb",
+          "unchanged_order_sha256": "396ba9d4c105aeeb43a2df71020c94707fcda8b62f080005d74bdf51d8a1c812"
+        }
+      },
+      "expected": [
+        "8d83f549c554dbed94e67b433144ad7c834adb05afa3375673765d0b1a7d9f80",
+        15140
+      ],
+      "found": [
+        "d1993123d1f15cd9fec6e4b6b3e1d8c894b3669155b4d2ed22de5036c2709889",
+        15140
+      ],
+      "generation_id": "dg_2f1eed5a73bc4b80dd444384c75e5094b1c690f54c07a9904f41d1b5d81c614a",
+      "unit": "project/year/2026",
+      "coverage_changes": [
+        {
+          "events_listed_only": [
+            9,
+            8
+          ],
+          "last_changed_at_matches_actor_clock": true,
+          "source": "wsdc_calendar",
+          "via": "wayback"
+        },
+        {
+          "events_listed_only": [
+            1,
+            0
+          ],
+          "last_changed_at_matches_actor_clock": true,
+          "source": "wsdc_registry",
+          "via": "origin"
+        }
+      ],
+      "rows_by_table": {
+        "coverage": 7,
+        "events": 202,
+        "registry_placements": 14931
+      },
+      "expected_dependency_members": 13,
+      "found_dependency_members": 13,
+      "dependency_forward_and_reverse_verified": true,
+      "dependency_group_forward_and_reverse_verified": true
+    }
+  ],
+  "independent_review_sha256": "8902fbd4ee51e338177ad363b833e3c264c83bdd09d878c08960da55a18186a3",
+  "supervisor_stop_attempted": false
+}

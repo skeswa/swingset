@@ -1,0 +1,48 @@
+{
+  "operation": "Remove six exited hold helpers to make room for the next verifier in the guardian status file",
+  "at": "2026-11-19T22:31:03.604828+00:00",
+  "exit": 0,
+  "hold": 76,
+  "fixed_cap": 262144,
+  "required_headroom": 2957,
+  "original_headroom": 1009,
+  "shortfall": 1948,
+  "terminal_headroom": 3139,
+  "eligible_count": 7,
+  "removed": [
+    {
+      "hold": 64,
+      "cid": "1bbebc85467bd83b1eda2809f38ff4693ceb61b7728c004b904fc9a02e0c95cf"
+    },
+    {
+      "hold": 65,
+      "cid": "c884ecf73c64d658500abc621aa0d8d384800fddfa5a3e2b71555f25c1c908a4"
+    },
+    {
+      "hold": 65,
+      "cid": "b7f4dcfcd9409d9c5288bf4f6a7ff6df6d4cf9110c4c0c5dab12bfa38ae33c54"
+    },
+    {
+      "hold": 66,
+      "cid": "9d3733a7a2c90c19090964ed1e05e1125c582aaedf94d99af1f5f1a4b4cc5a7f"
+    },
+    {
+      "hold": 66,
+      "cid": "031e8488e88acb0196154d70deaf06abaccf4c0040dcd0bad5910a8e96f06776"
+    },
+    {
+      "hold": 67,
+      "cid": "8fda115dd7e2cbc312a254356d007811f8a9c041e7e4d6fb5aaef4268c3bc205"
+    }
+  ],
+  "other_inventory_preserved": true,
+  "admission_sha256": "96472646311248a73a1e3eadff47b8d3428caceb2023104cf1729f09e9eb350b",
+  "execution_sha256": "9081b97ad71965959919be4d3a2695061d5266ef4e06a431f96eec0c3e61bd2c",
+  "terminal_sha256": "8c59edccbddacc2770b13cdb043bcef205577234f53830eb5ca7f96e1f1d1fd3",
+  "action_review_sha256": "b31812e282e7caadb323142461173506dee5561d3a2a6c5d2578f5ba98053401",
+  "terminal_review_sha256": "ef9f29479cc0d31250802633521ab4ce4166090973da39de5227ca09bdefa372",
+  "checks": 71,
+  "review_verdict": "ACCEPT_EXACT_SIX_HISTORICAL_HOLD_HELPERS_RETIREMENT_ONLY",
+  "worker_started": false,
+  "source_connections": 0
+}

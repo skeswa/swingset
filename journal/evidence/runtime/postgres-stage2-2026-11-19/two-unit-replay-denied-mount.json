@@ -1,0 +1,56 @@
+{
+  "operation": "two-unit historical replay start",
+  "actual_start_calls": 1,
+  "worker": {
+    "exit": 1,
+    "finished_at": "2026-11-19T20:56:58.534795519Z",
+    "id": "085d59eac3f0b47b05b2a8be42bf52d6351ee2a3bbc5bd43a82bdb3b036640e2",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "started_at": "2026-11-19T20:54:55.982186816Z",
+    "state": "exited"
+  },
+  "supervisor": {
+    "supervisor_alive": false,
+    "complete": false,
+    "status": {
+      "error_type": "ValueError",
+      "stop_attempted": true,
+      "stop_confirmed": true,
+      "stop_exit": 0,
+      "start_attempted": true,
+      "no_automatic_retry": true
+    }
+  },
+  "guardian": {
+    "id": "30972f8fae3d576296330d4344fb212b35b01ef1fa0adc24a639590a9b962e54",
+    "exit": 1,
+    "finished_at": "2026-11-19T20:54:57.144780948Z",
+    "oom": false
+  },
+  "denied_mount": "/var/lib/swingset/database.json",
+  "guardian_error": "worker has an unexpected host mount",
+  "worker_receipt_events": [
+    "reserved",
+    "failed"
+  ],
+  "worker_receipt_bytes": 184,
+  "units_run": 0,
+  "authorized": false,
+  "owned_databases_observed": 0,
+  "original_databases": 5,
+  "source_clients": 0,
+  "source_size_bytes": 38409934515,
+  "protected_services": 14,
+  "retry": false,
+  "admission": {
+    "go.json": "8c6262d2fefdaa214f5d4321fd8353e71305cc35db8d855ee96daac28f2afdd5",
+    "plan.json": "4fbbd468e74b2baf3dace697f345bab999b79863acee03ea185031fd8014bd8e",
+    "review.json": "339c596479f9b7bf5166533bc7edfc49d7a274d212596b43e1e0f0b5e895d04a"
+  },
+  "supervisor_sha256": "30918542896e0d4c32ef9b7bd04d382958bafbee1fa7a69454c16df967c7d596",
+  "terminal_observation_sha256": "8cddd5f95925e926f7d6a17192dda08a0ae783aa09e6926008206daae5c49511",
+  "independent_sha256": "8140391756ab11e224af01f448b036b50e17faa60e524f72c032130d6132047b",
+  "scope": "failed bootstrap and preservation"
+}

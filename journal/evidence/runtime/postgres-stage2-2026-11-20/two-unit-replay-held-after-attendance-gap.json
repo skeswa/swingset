@@ -1,0 +1,38 @@
+{
+  "operation": "Reconcile the never-started two-unit worker and expired administrative hold",
+  "server_checked_utc": "Fri Nov 20 03:18:22 UTC 2026",
+  "installed_hold_sha256": "5fec1fe022a61dccfbd4f6bb171b506dea80f77b60be53b4b20400d02ca246ce",
+  "installed_hold_review_expired_at": "2026-11-19T23:20:08.250286+00:00",
+  "never_started_actor": "05d60c8da7b3ba0cc9d7512880ddff888bb39b8668354d875a09fa769ddd4d93",
+  "actor_state": "created",
+  "pid": 0,
+  "restart_count": 0,
+  "dispatch_files_absent": true,
+  "proposed_reopen": {
+    "packet": "swingset-stage2-hold-review-20261120-012856",
+    "review_expired_at": "2026-11-20T02:28:56.205552+00:00",
+    "admission_sha256": "57bac860c4b1bdf39c2edee3e2a62578286f6336ccc170f550e6d39e8ed02d56",
+    "independent_refusal_sha256": "6965c8568f84d8102370222322cc9ffa7d92b74f57d0d7571bed76b2461a4049",
+    "installed": false
+  },
+  "earlier_readback": {
+    "at": "2026-11-20T01:30:30.555081+00:00",
+    "original_catalog_count": 5,
+    "source_size_bytes": 38409934515,
+    "source_sessions": 0,
+    "protected_14_unchanged": true,
+    "restored_guardian_running": true,
+    "verifier_running": false,
+    "readback_sha256": {
+      "preserved-admin-size": "81abeef590e1fabbcb6be4597a3c69b683cc33f967df16be3af3ec201d3d0d06",
+      "preserved-protected14": "d0d901f20ef5d1b3cd047834fe67243946df64d9626b1b568db339636d20c6d6",
+      "c060-guard-state": "672391289c7dd8d193a7103545b061aff4be486eaa3c1a2ab5353476f5692e00",
+      "c060-no-launch-files": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "c060-no-active-verifier": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "final_readback_sha256": "75d8557f01c59ae0445e37cf7a2a47c137720b10ee35db94d84c1a18473b7394",
+  "checks_exit": 0,
+  "remote_mutations": false,
+  "new_unit_verdicts": 0
+}

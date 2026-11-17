@@ -242,14 +242,23 @@ def test_client_ownership_is_recorded_before_a_failed_process_launch(tmp_path, m
 def test_invalid_prologue_stops_before_parallel_launch_and_never_promotes_costs(
     tmp_path, monkeypatch, damage
 ):
-    _failed_phase_cleanup(tmp_path, monkeypatch, damage)
+    _run_phase_fixture(tmp_path, monkeypatch, damage)
 
 
 def test_unclean_physical_inventory_blocks_cache_and_passing_volume_deletion(tmp_path, monkeypatch):
-    _failed_phase_cleanup(tmp_path, monkeypatch, "physical_inventory")
+    _run_phase_fixture(tmp_path, monkeypatch, "physical_inventory")
 
 
-def _failed_phase_cleanup(tmp_path, monkeypatch, damage):
+def test_complete_core_over_300_seconds_passes_during_stage2(tmp_path, monkeypatch):
+    times = iter([0.0, 301.0, 302.0, 303.0])
+    monkeypatch.setattr(core, "time", SimpleNamespace(monotonic=lambda: next(times)))
+    report = _run_phase_fixture(tmp_path, monkeypatch, None)
+    assert report["wall_seconds"] == 302.0
+    assert report["budget_seconds"] == 300
+    assert report["within_budget"] is False and report["budget_enforced"] is False
+
+
+def _run_phase_fixture(tmp_path, monkeypatch, damage):
     home = tmp_path / "private-dev"
     parallel = _clients(4)
     serial = _prologue(parallel)
@@ -265,7 +274,7 @@ def _failed_phase_cleanup(tmp_path, monkeypatch, damage):
 
     def start(clients, index, **kwargs):
         launched.append(index)
-        assert damage == "physical_inventory" or index == "prologue", (
+        assert damage in (None, "physical_inventory") or index == "prologue", (
             "an invalid prologue launched concurrent tests"
         )
         client = {"index": index, "process": SimpleNamespace(returncode=serial["exit_code"])}
@@ -321,22 +330,23 @@ def _failed_phase_cleanup(tmp_path, monkeypatch, damage):
         "_docker",
         lambda *args, **kwargs: (
             subprocess.CompletedProcess(args, 1, "", "")
-            if damage == "physical_inventory" and args[:2] == ("container", "inspect")
+            if damage in (None, "physical_inventory") and args[:2] == ("container", "inspect")
             else pytest.fail("invalid phase reached Docker")
         ),
     )
     monkeypatch.setattr(
         core,
         "_remove_passed_volume",
-        lambda *args: pytest.fail("an unclean job deleted its volume"),
+        lambda *args: pytest.fail("an unclean job deleted its volume") if damage else None,
     )
-    assert core.run(tmp_path) == 1
+    assert core.run(tmp_path) == int(damage is not None)
     assert launched == (
-        ["prologue", 0, 1, 2, 3] if damage == "physical_inventory" else ["prologue"]
+        ["prologue", 0, 1, 2, 3] if damage in (None, "physical_inventory") else ["prologue"]
     )
-    assert not (home / "core-weights.json").exists()
+    assert (home / "core-weights.json").exists() == (damage is None)
     report = json.loads(next((home / "core-runs").glob("*/summary.json")).read_text())
-    assert not report["checks_passed"]
+    assert report["checks_passed"] == (damage is None)
+    return report
 
 
 @pytest.mark.parametrize(

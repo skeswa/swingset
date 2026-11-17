@@ -1,0 +1,25 @@
+{
+  "operation": "Reconcile the year-only supervisor dispatch that never started the worker",
+  "at": "2026-11-23T17:31:06.218248+00:00",
+  "verdict": "ACCEPT_CONSUMED_YEAR_NO_START_AND_IDLE_PRESERVATION_ONLY",
+  "actor": {
+    "exit": 0,
+    "finished_at": "0001-01-01T00:00:00Z",
+    "id": "707a0c2f603fe13434bd7b78a7611822a5d4e1562201e1d2549db19df9611337",
+    "oom": false,
+    "pid": 0,
+    "restart": 0,
+    "started_at": "0001-01-01T00:00:00Z",
+    "state": "created"
+  },
+  "supervisor_dispatched_once": true,
+  "supervisor_retired": true,
+  "unit_count_in_plan": 1,
+  "conflicting_minimum_in_inherited_supervisor": 2,
+  "actor_started": false,
+  "new_unit_verdicts": 0,
+  "owned_databases_created": 0,
+  "source_sessions": 0,
+  "independent_review_sha256": "443482d64db440798ecdaf443ab6a9e3a90c886cce313a5dfc3fd7d60f26a50a",
+  "watch_sha256": "365d2c11f9d9a650ac74a099053f17e219f6e49bc532459ec09c2056b90d5186"
+}

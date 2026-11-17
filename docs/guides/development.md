@@ -46,7 +46,7 @@ turn a development database into production.
 The default test command runs the reviewed core: one isolated deadline
 recovery case, then the remaining cases in four clients with four workers
 each and file affinity. Reports check that every selected case runs exactly
-once, within the same 300-second budget. Focused selections and full runs stay serial unless you
+once. During Stage 2, 300 seconds is a reporting threshold. Focused selections and full runs stay serial unless you
 explicitly supply worker flags. Run the files you changed
 while iterating, then `mise run test -- --full-suite` for a migration, recovery,
 backup or publication change. The [testing guide](testing.md) owns selection

@@ -20,7 +20,9 @@ On `postgres-migration`, use `mise run dev`, `mise run test`,
 Python and uv; tests use separate warm test and durable physical profiles,
 with a private database per case. Native full runs need about 30 GiB of
 scratch; keep the migration plan's 80 GiB free-disk floor. These local
-commands replace the Nix test commands below for this bookmark. Production
+commands replace the Nix test commands below for this bookmark. During Stage 2,
+record elapsed times. The owner waived all Stage 2 time limits until further
+notice, including the five-minute core gate. Production
 continues to use the Nix configuration on `main` until the planned switch.
 See `docs/guides/development.md` and the stage 1 gate in
 `docs/plans/postgres-migration/6-stage-1.md`.
