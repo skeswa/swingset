@@ -728,8 +728,9 @@ def retain_output(
     This is the only writer of derivation output. Each distinct payload is
     stored once and every row keeps one reference to it. The function never
     touches a scope pointer or any scheduling state, so bringing archived output
-    back later calls it exactly as completion does. Rows are read in one pass
-    and never held in memory.
+    back later calls it exactly as completion does. Rows are read in one pass;
+    interned writes buffer at most 256 rows and 1 MiB of canonical payload
+    bytes per batch. An oversized row is written alone.
 
     A generation with no label yet belongs to a caller that is completing it.
     That caller passes ``record_label``, which is handed the digest and row count
@@ -842,32 +843,65 @@ def _store(
     """Write one payload per distinct row and one reference per row, in order.
 
     Before interning there is nothing to share, so each row is written whole
-    into the one table. Either way the stream this yields is the same, and the
-    label is computed from it.
+    into the one table. Interned rows use bounded batches, with at most one
+    additional row awaiting a byte-bound flush. Either way the yielded stream
+    is identical, and each yielded row has already been stored.
     """
-    shared = interned(conn)
-    for ordinal, row in enumerate(rows):
-        payload = canonical(dict(row.payload))
-        if not shared:
+    if not interned(conn):
+        for ordinal, row in enumerate(rows):
+            payload = canonical(dict(row.payload))
             conn.execute(
                 "INSERT INTO derivation_rows VALUES (%s, %s, %s, %s, %s)",
                 (generation_id, ordinal, row.table, row.key, payload),
             )
             yield row.table, row.key, payload
-            continue
-        payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
-        # Both writes complete before yielding this row, without another
-        # round trip or buffering the next row of the output stream.
-        conn.execute(
-            (
-                "WITH stored_payload AS (INSERT INTO derivation_payloads "
-                "(payload_sha256, payload_json) VALUES (%s, %s) ON CONFLICT DO NOTHING) "
-                "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
-                "payload_sha256) VALUES (%s, %s, %s, %s, %s)"
-            ),
-            (payload_sha256, payload, generation_id, ordinal, row.table, row.key, payload_sha256),
-        )
-        yield row.table, row.key, payload
+        return
+
+    batch: list[tuple[str, str, str, str]] = []
+    batch_bytes = 0
+    first = 0
+    for row in rows:
+        payload = canonical(dict(row.payload))
+        encoded = payload.encode()
+        if batch and batch_bytes + len(encoded) > 1024 * 1024:
+            yield from _store_batch(conn, generation_id, first, batch)
+            first += len(batch)
+            batch.clear()
+            batch_bytes = 0
+        batch.append((row.table, row.key, payload, hashlib.sha256(encoded).hexdigest()))
+        batch_bytes += len(encoded)
+        if len(batch) == 256 or batch_bytes >= 1024 * 1024:
+            yield from _store_batch(conn, generation_id, first, batch)
+            first += len(batch)
+            batch.clear()
+            batch_bytes = 0
+    if batch:
+        yield from _store_batch(conn, generation_id, first, batch)
+
+
+def _store_batch(
+    conn: engine.Connection,
+    generation_id: str,
+    first: int,
+    rows: Sequence[tuple[str, str, str, str]],
+) -> Iterator[tuple[str, str, str]]:
+    """Store bounded interned payloads and their ordered references together."""
+    payload_values = ", ".join(["(%s, %s)"] * len(rows))
+    reference_values = ", ".join(["(%s, %s, %s, %s, %s)"] * len(rows))
+    parameters: list[object] = []
+    for _table, _key, payload, sha in rows:
+        parameters.extend((sha, payload))
+    for ordinal, (table, key, _payload, sha) in enumerate(rows, first):
+        parameters.extend((generation_id, ordinal, table, key, sha))
+    conn.execute(
+        "WITH stored_payload AS (INSERT INTO derivation_payloads "
+        f"(payload_sha256, payload_json) VALUES {payload_values} ON CONFLICT DO NOTHING) "
+        "INSERT INTO derivation_row_refs (generation_id, ordinal, table_name, record_key, "
+        f"payload_sha256) VALUES {reference_values}",
+        parameters,
+    )
+    for table, key, payload, _sha in rows:
+        yield table, key, payload
 
 
 def _offered(rows: Iterable[OutputRow]) -> Iterator[tuple[str, str, str]]:
@@ -1182,8 +1216,8 @@ def complete(
                     ),
                 )
 
-            # The rows stream straight into storage and the label is written from
-            # what was stored, so no scope's output is ever held in memory.
+            # Bounded batches stream into storage; the label is written from
+            # what was stored, without retaining the scope's whole output.
             retain_output(conn, selection.generation_id, _once(rows), record_label=record)
     if kept is None:
         _fence(conn, selection, "derivation inputs changed while output rows were being retained")

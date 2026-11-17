@@ -1,0 +1,68 @@
+{
+  "action_review_sha256": "89e133c5de80d00a6c4b0730315c3536be7923423225a9d23b8861d271d5dbc7",
+  "after_sql_run": false,
+  "at": "2026-11-18T19:27:59.519158+00:00",
+  "full_marker_acceptance": false,
+  "helper": {
+    "id": "39d7396989f821d3112e86341b2ccdbc49701198a6c2df5fb9c3b89815c1e83c",
+    "new_migration_sha256": "766df1cc106c2a4acaee3d52c04588ed7277ac07342a2f064c0c34059e79050b",
+    "no_rows_loaded": true,
+    "old_migration_sha256": "1a64cf11ddd21a63fa9486eee54ea76beb5aa6ade71003daf61cd47bada65376",
+    "only_prepared_comment_changed": true,
+    "state": {
+      "exit_code": 0,
+      "finished_at": "2026-11-18T19:27:44.672479396Z",
+      "oom": false,
+      "pid": 0,
+      "running": false,
+      "started_at": "2026-11-18T19:27:42.858408408Z",
+      "status": "exited"
+    }
+  },
+  "operation": "Update the existing empty Recovery C database prepared comment",
+  "original_terminal_config": {
+    "fixed_user_entrypoint_command_hostname_stop_exact": false,
+    "identities_environment_exact": true,
+    "inherited_fields_and_private_key_scope_exact": true
+  },
+  "partial_post_reads": 36,
+  "postgres": {
+    "id": "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+    "state": {
+      "exit_code": 0,
+      "finished_at": "2026-11-18T19:27:49.647353717Z",
+      "oom": false,
+      "pid": 0,
+      "running": false,
+      "started_at": "2026-11-18T19:27:31.05868538Z",
+      "status": "exited"
+    }
+  },
+  "restore_complete": false,
+  "root_go_sha256": "21a76ea7c830479b87007bc3141547d8dc3b63fb456d8d216ddc47e053072669",
+  "separate_four_helper_terminal_read": true,
+  "sequential_before_checks": 4,
+  "source_sha256": {
+    "actual-operation/010-rebind-start.stdout": "eeaded0ec7ca052da20209ea24ca8dafb5a9d67bb55f994a45199f5eda1651fd",
+    "actual-operation/012-rebind-terminal-RAM.stdout": "404371ffe19bf144b443c41a67738af454038ee26419a128733131862f01db6f",
+    "actual-operation/before-marker-SQL-gate.json": "dd58830ac7899318dcc6fdfee57851e9ba907f49e85224e1d889f46d2ce22075",
+    "actual-operation/partial-post/partial-gate-summary.json": "77e5a160577be2ddbf7150f0fbc3186827a896dc63e739f85ff9e74e8d0df194",
+    "terminal-rebind-public-components/all-four-public-terminals.out": "16613943164796d2b3e898af3570644ebfefc319b112b1c4fe7cb1bd180c7987",
+    "terminal-rebind-public-components/components-read.out": "53087ab947ede346fb9a0997e5f8e76fac903eb51ccccf297da9e9678a4e0896"
+  },
+  "terminal_config_components": {
+    "cmd": true,
+    "entry": true,
+    "exited": true,
+    "host_pg": true,
+    "host_self": false,
+    "id": true,
+    "network_pg": true,
+    "stop": true,
+    "user": true
+  },
+  "terminal_review": {
+    "sha256": "229b6187b0341c3caecfc177bf035f51651f145ac9c96ba78b41f3621d86724c",
+    "verdict": "ACCEPT_SAFE_PARTIAL_REBIND_EFFECT_AND_VERIFIED_CLEANSTOP_ONLY"
+  }
+}

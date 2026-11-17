@@ -1,0 +1,45 @@
+{
+  "format": "hold-helper-status-inventory-cleanup-trigger-v1",
+  "inputs": {
+    "bounded-metadata-retirement-candidates-PENDING.json": {
+      "bytes": 4771,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/offline-preflight-v3/bounded-metadata-retirement-candidates-PENDING.json",
+      "sha256": "dda5a374b17003ec3147e15e2871de3e73b7df46cd4e125caa09058ffe13deb5"
+    },
+    "status-inventory-reservation-DRAFT.json": {
+      "bytes": 5990,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/offline-preflight-v3/status-inventory-reservation-DRAFT.json",
+      "sha256": "c3a97a22c34b3c0296d5590e3941fb288a9fca1abdd1ede5becc3575128c7f33"
+    }
+  },
+  "limits_raised": false,
+  "measurement": {
+    "bytes": 257991,
+    "command": "ssh rhuidean stat -c %u_%g_%a_%h_%s_%Y_%d_%i authorization/containers.json",
+    "device": 2050,
+    "exit_code": 0,
+    "fixed_read_bound": 262144,
+    "gid": 0,
+    "headroom_bytes": 4153,
+    "inode": 17731046,
+    "links": 1,
+    "mode": "444",
+    "mtime_epoch": 1794952606,
+    "observed_at": "2026-11-17T21:57:37+00:00",
+    "selected_trigger_bytes": 256000,
+    "uid": 0
+  },
+  "mutation_executed": false,
+  "proposal_not_measured_growth": {
+    "actual_fresh_resource_shape_gate_pending": true,
+    "conservative_projected_bytes": 263806,
+    "counter_and_exit_jitter_bytes": 1024,
+    "deficit_bytes": 1662,
+    "descriptor_bytes": 2617,
+    "new_C_objects": 7,
+    "total_reserve_bytes": 5815,
+    "two_resource_records_max_each": 1087
+  },
+  "selected_scope": "Six literal independently accepted hold48/49/50 helper objects only, natural-zero/stopped; no force/volume deletion. Fresh complete profiles/normal graph and source/perimeter/protected/hold checks, sole independent review and exclusive RootGO precede one rm. Fresh status must prove actual reserve afterwards. All receipt/profile files and installed hold remain.",
+  "timestamp": "2026-11-17T22:09:00.129801+00:00"
+}

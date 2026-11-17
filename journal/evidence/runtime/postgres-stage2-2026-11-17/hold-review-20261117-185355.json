@@ -1,0 +1,48 @@
+{
+  "command": [
+    "python",
+    "-m",
+    "swingset.deploy.hold_review",
+    "--current",
+    "/tmp/swingset-stage2-current-hold.json"
+  ],
+  "exit_code": 0,
+  "format": "swingset-stage2-hold-renewal-receipt-v1",
+  "hold_sha256": "8a31a1a4f1f1513035c07f9e254e6d342ff6db5ae94d0288eff3a52fbdfcb2ba",
+  "independent_verdict_sha256": "7d69958c0a96f48849dd10d15ed3bc90c0565833cde79024c0a7908ef4741a83",
+  "pointer_sha256": "91f48bb10b4e5eab8cad9d9ec5bff97e230f35096092044f95e81d86fb89aae9",
+  "recorded_at": "2026-11-17T19:00:00.371842+00:00",
+  "review_at": "2026-11-17T19:53:55.006229+00:00",
+  "scope": "Same owner, reason and created time. Previous diagnostic terminal accepted before renewal. No new runtime authority.",
+  "scratch_inputs": {
+    "admin-commands.json": {
+      "bytes": 3689,
+      "sha256": "aff7aab74d79eea4269cb3c6c3167fd32477810ad3dae3f79fc3acd0b61b78c8"
+    },
+    "admin-plan.json": {
+      "bytes": 2702,
+      "sha256": "9a52d5388ad0d10e2028b5cecc439c1b266ba09f50dbb6a08632eb90b7550435"
+    },
+    "hold.json": {
+      "bytes": 275,
+      "sha256": "8a31a1a4f1f1513035c07f9e254e6d342ff6db5ae94d0288eff3a52fbdfcb2ba"
+    },
+    "independent-terminal-review.json": {
+      "bytes": 2761,
+      "sha256": "7d69958c0a96f48849dd10d15ed3bc90c0565833cde79024c0a7908ef4741a83"
+    },
+    "result.json": {
+      "bytes": 2213,
+      "sha256": "8d9d5cce50c7e96564676ec0cfde4974048c116b34e4d221c54b3b4717fb5268"
+    }
+  },
+  "scratch_packet": "/tmp/swingset-stage2-hold-review-20261117-185355",
+  "verified": {
+    "current_interval_continuous": true,
+    "exact_helpers_natural_zero": 2,
+    "exact_transports_zero": 7,
+    "installed_root0444_h1": true,
+    "protected_services_unchanged": 12,
+    "receipt_readbacks": 3
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "action_review_sha256": "2d2b11811f89d274f54ed529a6a364978a66d3848d804a655ed464990062b8de",
+  "actor": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "cgroup": "/system.slice/docker-00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555.scope",
+    "container_id": "00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555",
+    "network_inode": 4026533552,
+    "pid": 2356580,
+    "start_ticks": "1041678621",
+    "started_at": "2026-11-18T16:45:47.669505136Z"
+  },
+  "at": "2026-11-18T16:51:49.534193+00:00",
+  "both_shards_ready_at_startup": false,
+  "checks": {
+    "IPv4_IPv6_exactdeny_firewalls_and_disabled": true,
+    "accepted57_current_valid": true,
+    "actual_running_once_incarnation": true,
+    "bounded_inspection0_noerrs_hash": true,
+    "exact_maintained_supervisor_UID_birth_session_cwd": true,
+    "fresh_root444_h1_authorization": true,
+    "fresh_single_owned_registry": true,
+    "frozen_host4_security_policy": true,
+    "full_actor_public_Config_HC_11mounts_immutable": true,
+    "guardian_current_incarnation_hardening": true,
+    "kernel_UID10001_caps0_NNP1_seccomp2": true,
+    "limited_status_fresh_and_cap": true,
+    "local_foreground_exactUID_PID_birth_command": true,
+    "maintained_live_fresh_no_error_or_stop": true,
+    "namespace_boot_cgroup_exact": true,
+    "only_expected_source_and_own_activity": true,
+    "original5_plus_exact_new0_owner_comment_OID": true,
+    "protected14_unchanged": true,
+    "resources_8GiB_swap0_6CPU256_noOOM": true
+  },
+  "command": [
+    "python3",
+    "-m",
+    "swingset.deploy.verification_job",
+    "--plan",
+    "/var/tmp/swingset-stage2-graph-job-668f247f7566/graph-plan.json",
+    "--plan-sha256",
+    "bfa4ccc2a20e3cad852bab2ce4d05bb569e5d399b61c728f09872b96d2921a9d",
+    "--container",
+    "00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555",
+    "--platform",
+    "c153a4bc68df17ed10618025a269c3e74ea70a8ac47c853c932addcc8c106ed8",
+    "--review",
+    "/var/tmp/swingset-stage2-graph-job-668f247f7566/graph-review.json",
+    "--review-sha256",
+    "2d2b11811f89d274f54ed529a6a364978a66d3848d804a655ed464990062b8de"
+  ],
+  "expected_units": 108390,
+  "foreground_go_sha256": "7ebe60588baf0f5a3632244da32508e1c37b961b700f3f662d99d12ed9503071",
+  "format": "stage2-normal-graph-startup-v1",
+  "hold_sha256": "96f66e8cc8f1fbc475d0153a242617e87abb6a18a19dc656fca433e5ee8e8f8d",
+  "inspection_sha256": "0ff72cc847c5ece018fe978690936b54c5e485d93dfa4dcbb02457a52b5c9bfa",
+  "limits": {
+    "FILE_COPY_clone_seconds": 1200,
+    "actor_cpus": 6,
+    "actor_memory_equals_swap": 8589934592,
+    "actor_pids": 256,
+    "clone_lock_seconds": 10,
+    "initial_required_floor_bytes": 508224930112,
+    "normal_write_seconds": 75,
+    "owned_database_peak": 3,
+    "processes": 2,
+    "runtime_floor_bytes": 200000000000,
+    "whole_job_seconds": 86400
+  },
+  "local_foreground": {
+    "birth": "Wed Nov 18 11:45:46 2026",
+    "pid": 74382,
+    "ppid": 74288,
+    "session": 79096,
+    "uid": 501
+  },
+  "observation": [
+    "2026-11-18T16:48:32.427302+00:00",
+    "2026-11-18T16:48:33.789577+00:00"
+  ],
+  "observed_copy_complete": false,
+  "owned_base": {
+    "name": "sst_copy_276fa5f21e33473280bb7724_0",
+    "oid": 10359465
+  },
+  "plan_sha256": "bfa4ccc2a20e3cad852bab2ce4d05bb569e5d399b61c728f09872b96d2921a9d",
+  "qualified_runtime": "sha256:61a239218b5c4bc8e8551499f08ac26decc06b043aad147c344842bdcc9f9d2a",
+  "qualified_source": "ae3bbcd17ae1d4a8af8650bd2fa50afcc36aa622c2280dcfc03825141dbafd17",
+  "runtime_native75_result": null,
+  "startup_read_exit": 0,
+  "startup_review_sha256": "c080b26fa4315ae3ba67386812f28ffbab0203e0441e74db055cd603b37b962b",
+  "supervisor": {
+    "cwd": "/var/tmp/swingset-stage2-graph-job-668f247f7566",
+    "pgid": 2356061,
+    "pid": 2356061,
+    "ppid": 2356034,
+    "start_ticks": "1041678529"
+  },
+  "terminal_status": null,
+  "unit_set_sha256": "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228",
+  "verdict": "ACCEPT_ACTUAL_STARTUP_ONLY"
+}

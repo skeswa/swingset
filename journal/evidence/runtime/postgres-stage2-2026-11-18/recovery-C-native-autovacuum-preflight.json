@@ -1,0 +1,59 @@
+{
+  "action_review_sha256": "7623f508636fc1b6aaf74ae9062381490012c6110402c09822288aff566439f4",
+  "active_create_or_copy": 0,
+  "at": "2026-11-18T19:19:47.763321+00:00",
+  "command": [
+    "fixed_sealed_restart_C_executor.py",
+    "--settings",
+    "Root-actual-settings.json",
+    "--operation",
+    "actual-operation"
+  ],
+  "database": "postgres",
+  "latest_C_state": {
+    "exit_code": 0,
+    "finished_at": "2026-11-18T18:52:26.678019477Z",
+    "oom": false,
+    "pid": 0,
+    "running": false,
+    "started_at": "2026-11-18T18:34:58.626391545Z",
+    "status": "exited"
+  },
+  "mutation_intents": [],
+  "observed_sessions": [
+    {
+      "backend_type": "client backend",
+      "client_addr": "172.30.240.18",
+      "database": "sst_copy_276fa5f21e33473280bb7724_1",
+      "pid": 423958,
+      "state": "idle in transaction",
+      "statement_class": "IDLE",
+      "user": "swingset_verify_worker"
+    },
+    {
+      "backend_type": "client backend",
+      "client_addr": "172.30.240.18",
+      "database": "sst_copy_276fa5f21e33473280bb7724_2",
+      "pid": 423959,
+      "state": "idle in transaction",
+      "statement_class": "IDLE",
+      "user": "swingset_verify_worker"
+    },
+    {
+      "backend_type": "autovacuum worker",
+      "client_addr": null,
+      "database": "sst_copy_276fa5f21e33473280bb7724_1",
+      "pid": 443186,
+      "state": "active",
+      "statement_class": "OTHER_ACTIVE",
+      "user": null
+    }
+  ],
+  "partial_review_sha256": "60e09b04d94270afd2988bcb6146d55e476863027f51db11bbebf8871fa207b1",
+  "post_observation_sha256": "54ca101c2d5037624c499a3e1151b8b4fbd93fc3992ef5aecd8b5fe4bb859970",
+  "refused_predicate": "only_actual_NEW_actor_owned_worker_sessions",
+  "request_sha256": "6d9ccbba588d5947177738d418f637d145bda18211989bc2d9bb4e374227a57f",
+  "runner_exit": 1,
+  "source_clients": 0,
+  "verdict": "ACCEPT_NO_EFFECT_PARTIAL_ONLY_PREFLIGHT_REFUSED"
+}

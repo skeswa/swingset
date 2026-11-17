@@ -2,6 +2,197 @@
 
 Read [6. Stage 1](6-stage-1.md) first; next is [8. Stage 3](8-stage-3.md).
 
+### Stage 2 time limits waived until further notice
+
+On November 19 the owner waived all Stage 2 workload and acceptance time
+limits until further notice. This supersedes the earlier one-run exception
+and applies to subsequent rehearsal and validation runs. Record wall time,
+write, commit and rollback durations, writes over 75 seconds and core runs
+over 300 seconds. Elapsed time alone may neither stop the work nor fail a gate.
+Apply this policy through the worker, database session, host supervisor and
+test runner. Check each new rehearsal operation for inherited time limits.
+
+Continue progress reports, stall alerts and attended reviews. An overdue
+review calls for attention. Verify ownership, disk and resource limits,
+source protection, rollback, cleanup and every expected result. Preserve
+earlier receipts and their original outcomes. Production keeps its deployed
+settings.
+
+The November 18 verifier returned all 108,390 units. Thirteen writes timed
+out and rolled back. Independent review accepted the failed measurement
+and scratch cleanup. The next graph still needs a qualified rehearsal image
+and a fresh launch ([terminal receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-19/normal668f-terminal.json)).
+For the next run, validate and remove only the timing field before comparing
+the full set of semantic results. Keep the raw receipt. Gate 2 still needs
+a disposition for each mismatch and proof that every unit completed, the
+source was preserved and the temporary databases were cleaned up.
+
+For the November 18 mismatches, use the [per-unit accounting](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#november-18-verifier-mismatch-accounting-2026-11-19).
+Confirm the Easter Swing 2026 and year 2026 results on an admitted owned
+copy using the original verifier clock and accepted inputs. Keep raw rows
+on the server. Compare complete output and dependency hashes, check the
+rollback and report only unit names, hashes and aggregate counts. A
+later graph has its own clock and needs its own comparison. All changed
+units and their unresolved consumers remain outside clean re-key.
+
+The November 17 cold preparation passes all 108 commands, sixteen helper
+profiles, the copied-input closure and six in-memory configuration checks.
+Actor `270af083…` passes cold preparation with PID zero
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/normal68dd-cold-preparation.json)).
+Its status inventory is 260,913 bytes against the fixed 262,144-byte
+observation bound. The selected cleanup trigger is 256,000 bytes
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/transient-inventory-cleanup-trigger.json)).
+Before launch, retire only these sixteen successful metadata helper
+containers after their independent terminal acceptance and a separate
+exact-target review. Use no force or volume deletion. Keep the verifier,
+all named volumes, images, copied files, raw receipts and every older
+protected job. This is one bounded cleanup, not a general pruning rule.
+If the aggregate exceeds its bound, do not read its body: cleanup admission
+uses bounded direct source, guard, protected-service and target facts.
+Normal launch still requires a fresh aggregate within the original bound.
+No write, memory, CPU, time or observation limit increases.
+
+The separately reviewed cleanup finishes with all sixteen exact helper
+containers removed and protected resources preserved
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/retire-normal68dd-metadata-helpers.json)).
+The normal graph starts once on November 17 at 21:25:35 UTC, using qualified
+source `194f95d5…`, plan `7134b1bc…` and review `d97bb0c3…`.
+Independent startup inspection passes
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/normal68dd-startup.json)).
+The supervisor stops the actor at 01:19 UTC on November 18 after the hold
+expires. Its receipt still contains the initial manifest of 108,390 units
+and zero results. The three owned databases survived the stop. Keep the stopped
+actor and its evidence. A fresh run needs separate admission, capacity
+and an attended hold. The 75-second bound remains unproved
+([terminal reconciliation](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/normal68dd-terminal-reconciliation.json)).
+
+Independent review accepted the removal of the three owned databases.
+The original five catalog rows remain and the server has 576.7 GB free
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/normal68dd-owned-database-retirement.json)).
+For fresh preparation the status file measures 259,470 bytes, leaving
+2,674 under its fixed limit. The verifier, sixteen preparation helpers,
+resource samples and one hold renewal need an estimated 8,089 bytes.
+Select only the sixteen exited helpers from eight accepted November 17
+hold reviews, 12:03 through 16:39 UTC. Bind their individual IDs and
+profiles before removal and measure the new headroom before admission
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/fresh-graph-status-capacity.json)).
+Independent review accepted the exact removal at 15:59 UTC. The fresh
+status file measures 253,798 bytes and leaves 8,346 bytes free
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/fresh-graph-retired-hold-helpers.json)).
+
+On November 18 at 18:11 UTC the status file measured 257,773 bytes under
+the 262,144-byte cap. The 4,371 bytes left fall short of the 4,865 needed
+for Recovery C and a hold renewal. Eight pairs of exited November 16
+hold helpers account for 5,672 bytes. Bind each ID to its original accepted
+profile and check the running verifier and C before and after any removal.
+The single removal returned all sixteen IDs. Independent review confirmed
+their absence and unchanged image and volume inventories. The status file
+then measured 252,100 bytes with 10,044 free ([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/normal668f-retired-nov16-hold-helpers.json)).
+
+At 20:48 UTC the status file measures 257,467 bytes, leaving 4,677 under
+the same cap. The Shared141 cold profiles require 5,191 with the prior
+965-byte next-pair measurement; that is 514 more than available. Prepare
+only the sixteen completed helpers from accepted hold pairs 55 through 62.
+Each exact ID must still exist, match its original accepted profile and
+pass a new independent action review before one non-force, non-volume
+removal. Preserve current holds 63 onward, every C and graph actor, all
+databases, volumes, images, host files and other inventory. Require fresh
+pre/post preservation and measured capacity; no reclaim is assumed. The
+next-pair estimate must be refreshed at actual cold admission
+([measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/shared141-status-capacity-trigger.json)).
+
+Fresh verifier `00b44f7e…` passed cold preparation on November 18.
+The status file then measured 259,632 bytes. Before launch, retire only
+the sixteen successful preparation helpers for this verifier using the
+same exact-ID review, preservation checks and fixed response limit.
+Keep the created verifier and its four volumes
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/normal668f-cold-preparation.json)).
+
+All sixteen helpers were removed at 16:37 UTC. The other 707 container
+IDs, all 123 volumes and the 36 image rows matched. The status file
+has 7,636 bytes free. The required reserve is 6,157 bytes, including
+410 for the verifier when it starts. The guardian omits an optional
+stopped verifier with exit zero from its status list. Direct Docker
+inspection confirmed the created actor and its configuration
+([receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-18/normal668f-preparation-helper-retirement.json)).
+
+A later measurement is 257,991 status bytes, leaving 4,153 bytes under
+that same bound. Recovery C proposes a conservative 5,815-byte reserve for
+seven objects and at most two running resource records; the resource shape
+still needs fresh confirmation
+([measurement and selection](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/hold-helper-inventory-cleanup-trigger.json)).
+The first six-target preparations end without a removal: all observations
+pass, but local review and a Codex daemon interruption consume the reserved
+post-check window. Their raw attempts remain historical. Select a new,
+separately reviewed retirement of only the eight successful hold 48 through
+51 metadata helpers after renewal 52. The two additional accepted objects
+provide room for renewal 52 while preserving C's 5,041-byte reserve, derived
+from the measured nine-field resource schema. Require their complete fresh profiles and
+independent action review, then one exact-ID removal without force or volume
+deletion. Preserve installed hold files, raw terminal proofs, all databases,
+volumes, images, graph and recovery actors, and every other protected job.
+Fresh post-checks must prove actual reclaimed inventory space and the
+unchanged observation bound before C admission. This adds no general prune.
+
+The eight-object retirement now passes all 60 read-only commands and its
+single removal, with independent terminal acceptance. Status is 256,573
+bytes, leaving 5,571 bytes. It covers the measured-schema 5,041-byte reserve;
+the earlier 5,815-byte projection remains a failed fit
+([outcome](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/retire-eight-hold-metadata-helpers.json)).
+C admission still requires its separate fresh checks and exact helper review.
+
+The current Budafest trial reproduces native75 failure at 75.032 seconds.
+Snapshot loading takes 9.315 seconds and resolution 11.637. The interrupted
+commit span takes 52.716 seconds, including 27.831 seconds in completion;
+the primary expiry is in retained-output `_store` during `_fingerprint`.
+The observer passes and the writer stays open and idle. These spans overlap
+and identify a path, not an exact timed SQL statement
+([terminal measurement](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/budafest-diagnostic-terminal.json)).
+The actor ends naturally at 18:40 UTC. Independent terminal review accepts
+measurement, rollback, unchanged source and automatic owned-copy cleanup;
+the unit fails and supplies no graph or re-key acceptance.
+
+That measured path selects one local candidate: bounded multi-row writes
+inside `_store`'s interned-output path, using normal `conn.execute`. Existing
+`executemany` loops per row and cannot remove those round trips. Keep the
+canonical bytes, hashes, ordinals, deduplicated payloads, duplicate-key
+rejection, deferred labels, transaction rollback, observers and native75.
+The legacy non-interned path, residency and restore paths stay unchanged.
+
+Make the streaming contract explicit: replace immediate per-row writes
+with bounded batches capped by row count and canonical UTF-8 payload bytes;
+one oversized row is handled alone. Consume the stream once and never
+materialize a whole generation. Update the current no-read-ahead test to
+prove the deliberate bounded contract, exact retained tuples and label,
+repeated payloads, duplicate-key failure, partial-iterator failure and full
+rollback across batches. Do not change schema, versions, scoring, queue
+state, engine-wide `executemany`, deadlines or resource caps. No runtime
+replacement or invocation follows before the active probe's terminal
+review, candidate qualification and separate concrete admission.
+
+The bounded candidate passes 39 focused cases and 3,807 core cases in
+198.57 seconds under the unchanged 300-second gate. Formatting preserves
+the code structure. Independent source review finds no material blocker,
+conditional on final qualification. All 5,393 full-suite cases pass in
+1,358.33 seconds. Source `194f95d5…`, its 957-input binding and all 570
+installed public files match the qualified image; no runtime savings are
+claimed ([qualification](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/retention-batch-qualification.json)).
+The combined pointer-read and retained-write candidate selects a fresh
+normal whole-graph rehearsal on its exact new runtime, with unchanged
+gates and separately reviewed admission.
+
+November 17 owner direction accepts the four measured residual link-output
+differences: July 2025 Midwest Westie Fest, February 2026 Rose City Swing,
+May 2026 SoSwing and July 2026 Midwest Westie Fest. Stop the numerical
+investigation and do not require a causal reconstruction for these four.
+The [approval receipt](../../../journal/evidence/runtime/postgres-stage2-2026-11-17/owner-accepted-four-link-differences.json)
+binds their exact observed labels, row counts, dependencies and checkpoint.
+Later data QA is [maintenance item 46](../README.md#maintenance-queue).
+Keep the original mismatch records and leave changed outputs queued for
+ordinary re-derivation rather than clean re-keying. This finite approval
+changes no write deadline, resource cap, source check, required graph unit,
+backup, publication or recovery gate.
+
 November 17 native41 normal graph ends naturally at 10:56:37 UTC, exit1,
 on qualified source `be56773b…` / CONFIG `2eb802d9…`. It returns 107,674
 unique results against 108,390 expected: 107,007 match, 653 mismatch and
@@ -31,7 +222,7 @@ must preserve primary failures. Promote the necessary tested diagnostics
 into the existing maintained modules; do not retarget the executed scratch
 helper or add a general controller. Concrete admission and sole review
 precede execution. One isolated sample does not prove the historical loss
-cause. The 13 link overruns and all 653 mismatches remain unaccepted; no
+cause. The 13 link overruns and inventory failure remain blocked; no
 unchanged whole-graph retry, limit raise, Shared migration, re-key, backup,
 publication or recovery is selected before the measured failures are fixed.
 
@@ -57,9 +248,10 @@ privilege and changes no graph acceptance rule.
 The first actual native witness reproduces all 405 original labels and
 explains 401 through that single version field. Four remain: July 2025
 Midwest Westie Fest, February 2026 Rose City Swing, May 2026 SoSwing and
-July 2026 Midwest Westie Fest. Keep every residual blocked; do not infer
-its cause from the majority. The graph still has 13 link overruns, the
-inventory failure, 716 unattempted units and 248 dependency-only differences
+July 2026 Midwest Westie Fest. The owner's finite approval above accepts
+those four without a causal claim. The graph still has 13 link overruns,
+the inventory failure and 716 unattempted units. The separate dependency
+witness below accounts for all 248 dependency-only differences
 ([witness](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#native-link-version-witness-2026-11-17)).
 
 Select a narrow hash-only path in the existing maintained forensic command
@@ -76,9 +268,14 @@ source, time, resource, byte and root limits. Promote repeated stream
 validation into `metadata_capture.py` and its existing tests; do not run
 the one-off reader again or add a launcher/framework. Implement and test
 locally while the inventory sample runs; no forensic server operation or
-source connection precedes that sample's terminal cleanup review. The
-four numerical differences still need closed current pair sets and full
-label reconstructions; old missing captures supply hypotheses only.
+source connection precedes that sample's terminal cleanup review. Both
+packets now pass independent terminal and union review: all 191 original
+roots and 248 consumer bindings reproduce, and every found dependency
+hash matches the single inventory substitution, with zero residuals
+([complete witness](../../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#dependency-witness-complete-2026-11-17)).
+No further numerical witness is required for the four owner-approved link
+differences. The runtime failures still require resolution and a complete
+normal graph before later Stage 2 operations.
 
 The current inventory sample completes its diagnostic and owned cleanup,
 but the write fails at 75.038 seconds. Source fingerprints and rollback
@@ -1837,9 +2034,10 @@ checks are watched during every heavy step.
 
 - the import's audit passes, and the other apps stayed healthy;
 - the whole-graph verify covers every current unit with no failed units;
-  every mismatch is explained, changed outputs have named version bumps,
-  and stale dependency-only units remain queued; the re-key on the untouched
-  import passes; times recorded;
+  every mismatch is explained or bound to the finite four-event owner
+  approval above; changed outputs have named version bumps, and stale
+  dependency-only units remain queued; the re-key on the untouched import
+  passes; times recorded;
 - both backups' checks pass; their size and time are recorded;
 - B published with its own backup first;
 - the rebuild drill from backup 2, from an empty database and volume,

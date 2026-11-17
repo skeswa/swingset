@@ -1,0 +1,48 @@
+{
+  "command": [
+    "python",
+    "-m",
+    "swingset.deploy.hold_review",
+    "--current",
+    "/tmp/swingset-stage2-current-hold.json"
+  ],
+  "exit_code": 0,
+  "format": "swingset-stage2-hold-renewal-receipt-v1",
+  "hold_sha256": "1e80a856fd06732429cbec7373db35aa8f873839e6ca8b7101573d6c7eca514d",
+  "independent_verdict_sha256": "bba6154b0007a602a5648b8ba98a499f06e19df021d80a4079492260df569b6e",
+  "pointer_sha256": "3ea32963d2a08378673571ad8d5efa494e6e23086baa3758b1e9664a741da6ec",
+  "recorded_at": "2026-11-17T17:38:33.574839+00:00",
+  "review_at": "2026-11-17T18:30:29.104438+00:00",
+  "scope": "Same owner, reason and created time; prior cold preparation closed before renewal; no runtime launch authority.",
+  "scratch_inputs": {
+    "admin-commands.json": {
+      "bytes": 3689,
+      "sha256": "b4a6171275acccd5d2b80a28b090e891e3befd992dab352346737b546cfd20b8"
+    },
+    "admin-plan.json": {
+      "bytes": 2702,
+      "sha256": "51808137815a0e6aa48a9dc2ea1b70bf7526964833260af6ca95cac0908c1c59"
+    },
+    "hold.json": {
+      "bytes": 275,
+      "sha256": "1e80a856fd06732429cbec7373db35aa8f873839e6ca8b7101573d6c7eca514d"
+    },
+    "independent-terminal-review.json": {
+      "bytes": 2659,
+      "sha256": "bba6154b0007a602a5648b8ba98a499f06e19df021d80a4079492260df569b6e"
+    },
+    "result.json": {
+      "bytes": 2214,
+      "sha256": "e83ec85ce448209152000e8e94f91457823b6a00ffe880f7b40417354a04f7bc"
+    }
+  },
+  "scratch_packet": "/tmp/swingset-stage2-hold-review-20261117-173029",
+  "verified": {
+    "current_interval_continuous": true,
+    "exact_helpers_natural_zero": 2,
+    "exact_transports_zero": 7,
+    "installed_root0444_h1": true,
+    "protected_services_unchanged": 12,
+    "receipt_readbacks": 3
+  }
+}

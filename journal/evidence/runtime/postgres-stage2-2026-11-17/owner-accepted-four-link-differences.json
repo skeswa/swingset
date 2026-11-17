@@ -1,0 +1,91 @@
+{
+  "blanket_numeric_or_version_waiver": false,
+  "causal_explanation_claimed": false,
+  "format": "swingset-stage2-owner-accepted-link-differences-v1",
+  "graph_started_at": "2026-11-17T05:20:58.846978+00:00",
+  "observed_results": [
+    {
+      "expected": [
+        "1834b4a139ac2c5a4705b3e0f1e9a8832324b2963bca9c56b753cfb98194ba05",
+        2493
+      ],
+      "expected_dependencies": "4e044587c0f963b983c05049f46f538f2bd6e91cad5a5fa4ea8ed2d6b4c8b1c7",
+      "found": [
+        "2c5a28f0fc568eaa75c14f68adbc4bc0f7e531bea079a2ab67bbc26d0c66d49e",
+        2492
+      ],
+      "found_dependencies": [
+        "5270e34523f617116875066cbb74086b9c5ebe89335261051ec1f9a030661e35"
+      ],
+      "generation_id": "dg_1c2d90c45408e269db6754641abf846cdb19b74bf53f572d870a9f7c2e3fe845",
+      "state": "mismatch",
+      "unit": "link/event/2025-07-midwest-westie-fest"
+    },
+    {
+      "expected": [
+        "613916af79b691849ea8f004dc1b2754dd9e52c8c703cdd180b9293733816c9c",
+        4201
+      ],
+      "expected_dependencies": "8094b1361795cbd627c5386ac2dc8cf59a2220e17ce5ec4e3dec0657a56edde2",
+      "found": [
+        "54103b8534e8495bf9f63f62471c786d1aeacd0abcea27a835d7467ac62432b1",
+        4200
+      ],
+      "found_dependencies": [
+        "61bb9534dc898f82f5c0d5c9f97dc09a81b6aab93fded47957bcd648f2fdfc26"
+      ],
+      "generation_id": "dg_5f6107dee2cd726e8744ced2a200517005f6a8b06933eaf5a92e61ff36e54541",
+      "state": "mismatch",
+      "unit": "link/event/2026-02-rose-city-swing"
+    },
+    {
+      "expected": [
+        "a1e892d03fd6fede52c7a1a3b290b1105a061d955eb32a2ba140deb419963168",
+        3235
+      ],
+      "expected_dependencies": "dee8408903037ea5def156150083ef36005abbf3897374e359e623459a02ce4d",
+      "found": [
+        "aebcb11e5fed4e41e53e069769c922c24da52d4eadce64bb2a97dfe20680f6d7",
+        3235
+      ],
+      "found_dependencies": [
+        "dee8408903037ea5def156150083ef36005abbf3897374e359e623459a02ce4d"
+      ],
+      "generation_id": "dg_226c9b2de3d566637ed180bf6e3f7e5764d6ad7b157dbd59ad5afd59a7ef5324",
+      "state": "mismatch",
+      "unit": "link/event/2026-05-soswing"
+    },
+    {
+      "expected": [
+        "c04281d9690c2769ffdfcdc32e82a5148cf4e4478b126b535ff8239601a62674",
+        2326
+      ],
+      "expected_dependencies": "b2743bd3e5859018f4d674424819a12f6bc5f754fd32d77af139d326f833ad7c",
+      "found": [
+        "445dba080ae1835ec40881831865d06a53fdf80e63d91145b84a76e1b34774e0",
+        2325
+      ],
+      "found_dependencies": [
+        "ebe5338e578eff5c7990768bfe94ee72818500ad48cd60c2b7430b036cf20bac"
+      ],
+      "generation_id": "dg_e4ba7232a81bba91c0ff049ab974e45d1075e71723e4e810962330153b488667",
+      "state": "mismatch",
+      "unit": "link/event/2026-07-midwest-westie-fest"
+    }
+  ],
+  "owner_instruction": "no need to find an explanation - just accept them and move on - we will no doubt have data QA on this data later anyway",
+  "recorded_at": "2026-11-17T17:32:33.553999+00:00",
+  "required_disposition": "Preserve the original mismatch receipts and exclude changed outputs from clean re-keying. Leave them queued for ordinary re-derivation under the named linker version change.",
+  "scope": "Accept exactly these four observed event-specific link output differences for Stage 2 without causal reconstruction. Stop the numerical investigation; later data QA is queued.",
+  "source_checkpoint": "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37",
+  "source_graph_receipt_sha256": "1368526ea8a0eb64540b8aa8994948059316a966d98a909e93c2970f6b1f7fe4",
+  "unchanged_requirements": [
+    "native75write_deadline",
+    "full_normal_graph_and_all_expected_units",
+    "inventory_and_link_failure_resolution",
+    "source_and_rollback_protection",
+    "resource_limits_and_owned_cleanup",
+    "backup_private_publication_recovery_and_lifecycle_gates"
+  ],
+  "unit_set_digest": "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228"
+}

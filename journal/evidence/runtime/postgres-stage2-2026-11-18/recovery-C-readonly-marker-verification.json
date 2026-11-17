@@ -1,0 +1,303 @@
+{
+  "PG": {
+    "RAM3_exact": true,
+    "id": "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+    "selected_previous_finished_at": "2026-11-18T19:27:49.647353717Z",
+    "state": {
+      "exit_code": 0,
+      "finished_at": "2026-11-18T19:56:53.705845952Z",
+      "oom": false,
+      "pid": 0,
+      "running": false,
+      "started_at": "2026-11-18T19:56:47.924505066Z",
+      "status": "exited"
+    }
+  },
+  "all_typed_query_predicates_pass": true,
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "start",
+        "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78"
+      ],
+      "argv_sha256": "3b7f9a43e6f94e12404c732bad2b8d5e8b1dfa472160d28a5cb8980e9881469e",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:47.239749+00:00",
+      "name": "000-PG-start",
+      "stderr_bytes": 0,
+      "stdout_bytes": 65,
+      "stdout_sha256": "56549da6c7eb1c006100f7a4fffc748393992561247187189e1e1006d65b00d7"
+    },
+    {
+      "argv_sha256": "a858803a07f403c47b9d91b38130f79ac76cd8c718e2fb9a88294085d89ed69c",
+      "command_kind": "full public inspect",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:48.182122+00:00",
+      "name": "001-PG-running-full",
+      "stderr_bytes": 0,
+      "stdout_bytes": 3923,
+      "stdout_sha256": "28eb819f7d7562d7f2a342b9de33e8d25d426307f80772c15c78eb62fcebe2da"
+    },
+    {
+      "argv_sha256": "c593fef405369be1e9c15b4e03cefc9dd05c3b9b8fc6c078f94c696c3feb8639",
+      "command_kind": "server RAM-only identity/environment comparison",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:48.813942+00:00",
+      "name": "002-PG-running-RAM",
+      "stderr_bytes": 0,
+      "stdout_bytes": 152,
+      "stdout_sha256": "0d2d8adbe9d0ebb70cc05648766357d6dbabecca9f9480ead079e949c59d8c07"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "exec",
+        "--user",
+        "postgres",
+        "--env",
+        "PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=2000",
+        "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+        "psql",
+        "-X",
+        "-A",
+        "-t",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "stage2_c_admin_f8e49e4f4540",
+        "-d",
+        "postgres",
+        "-c"
+      ],
+      "argv_sha256": "7ed015c3775f7fdeb1fcbda1ad128fe74b73b92084aa1823f9381ad5300af2a6",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:49.668477+00:00",
+      "name": "003-verify-cluster",
+      "sql_bytes": 1240,
+      "sql_sha256": "bf80f0d7807d21d621bbbc798ca2d31a7c479485752ac32e08456949dc38c75a",
+      "stderr_bytes": 0,
+      "stdout_bytes": 1054,
+      "stdout_sha256": "59b94ae6e2f1363081ce0dc854cc245608edaff40d18dff414e9f789eb069c90"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "exec",
+        "--user",
+        "postgres",
+        "--env",
+        "PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=2000",
+        "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+        "psql",
+        "-X",
+        "-A",
+        "-t",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "stage2_c_admin_f8e49e4f4540",
+        "-d",
+        "postgres",
+        "-c"
+      ],
+      "argv_sha256": "fbcf19c6772fe08ec46ff1892a0887fb35b9e413e6dc6bc92ff9bd1091bce655",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:50.554912+00:00",
+      "name": "004-verify-roles",
+      "sql_bytes": 754,
+      "sql_sha256": "0b92c9738af4e6380a21b0c1588e59198818c210032659dc036f24f16505d7c5",
+      "stderr_bytes": 0,
+      "stdout_bytes": 3622,
+      "stdout_sha256": "1e5d674e047aae6c1194e12e688d5c0c7f2f58111b4ae61d5a6930c59cb9a992"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "exec",
+        "--user",
+        "postgres",
+        "--env",
+        "PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=2000",
+        "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+        "psql",
+        "-X",
+        "-A",
+        "-t",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "stage2_c_admin_f8e49e4f4540",
+        "-d",
+        "postgres",
+        "-c"
+      ],
+      "argv_sha256": "89eb7911488648ce159cbdd987a5e34713dc31f57d6d1a2e55e39027ad2ed168",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:51.326362+00:00",
+      "name": "005-verify-durable_GUCs",
+      "sql_bytes": 538,
+      "sql_sha256": "a34d9dc335a6f8bffc1ca4b33d3d99f980f15aef76e1d9f68bb84da057412349",
+      "stderr_bytes": 0,
+      "stdout_bytes": 336,
+      "stdout_sha256": "8b3fed46f3c48fc58bf4421b6e105e9eef54e72320fa23376cd33c6febad3d37"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "exec",
+        "--user",
+        "postgres",
+        "--env",
+        "PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=2000",
+        "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+        "psql",
+        "-X",
+        "-A",
+        "-t",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-U",
+        "stage2_c_admin_f8e49e4f4540",
+        "-d",
+        "swingset_recovery_c_f8e49e4f4540",
+        "-c"
+      ],
+      "argv_sha256": "a301f4d9afb91215679532b5a7569ac5f61e2e0b7f534a0c8982b80d6a0c300f",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:52.125685+00:00",
+      "name": "006-verify-namespace",
+      "sql_bytes": 524,
+      "sql_sha256": "27d9e21392a2a53ef6af86af45661e419568856ab676d81c9ef88f103299165d",
+      "stderr_bytes": 0,
+      "stdout_bytes": 723,
+      "stdout_sha256": "8eaf194fa3835e476e5c2ddd4f06e668f6a47507db9d06f8aa1a6c0f5be07d92"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "150s",
+        "docker",
+        "stop",
+        "--timeout",
+        "120",
+        "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78"
+      ],
+      "argv_sha256": "59a65288c3fca4c33e24fb1eac9b717f525057f104848dc7827894d223f07098",
+      "exit_code": 0,
+      "intent_at": "2026-11-18T19:56:52.928803+00:00",
+      "name": "007-PG-cleanstop",
+      "stderr_bytes": 0,
+      "stdout_bytes": 65,
+      "stdout_sha256": "56549da6c7eb1c006100f7a4fffc748393992561247187189e1e1006d65b00d7"
+    }
+  ],
+  "completed": true,
+  "environment_rows": 0,
+  "format": "stage2-C-readonly-marker-verification-v1",
+  "no_COMMENT_rebind_permissions_setup_or_new_objects": true,
+  "observed_marker": {
+    "catalog_sha256": "9d421ba71b3e1e79ed73c99e6ab81b8c70e24ef2bb7368842c8a72fbe9311234",
+    "database": {
+      "name": "swingset_recovery_c_f8e49e4f4540",
+      "oid": 16394,
+      "owner": "swingset_owner"
+    },
+    "format": 1,
+    "migration_sha256": "766df1cc106c2a4acaee3d52c04588ed7277ac07342a2f064c0c34059e79050b",
+    "owner_wal_execute": true,
+    "owner_wal_grant_option": false,
+    "roles_sha256": "1e0f3376ff9fe830a1f3c562241d6da5070f5c1cc75a2758a746faea564dbc3d",
+    "tables_phase_sha256": "76cf375987a3c77ef5ab2d847d9ff9927735dbb62d3c20097034f73b60e6921b"
+  },
+  "operation": "one existing PG start, four sequential read-only metadata queries, one exact cleanstop",
+  "original_helper_terminal_RAM_failure_preserved": true,
+  "other_C_clients": 0,
+  "post": {
+    "all_pass": true,
+    "descriptor_count": 695,
+    "existing_descriptor_delta": 0,
+    "gate_checks": 77,
+    "graph_actor": "00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555",
+    "hold_sha256": "836e8d67d5c32ad5c1773d80cab767a4b9f5950576fae3dd708f80a54d544ae4",
+    "next_hold_reserve_bytes": 965,
+    "protected_services": 14,
+    "resource_count": 14,
+    "resource_delta": 0,
+    "rows": 37,
+    "status_bytes": 256045,
+    "status_headroom": 6099
+  },
+  "proofs": {
+    "Root_GO": {
+      "bytes": 2372,
+      "path": "/tmp/swingset-stage2-normal68dd-terminal-20261118-1503/C-readonly-marker64-root-1954/Root-GO.json",
+      "sha256": "d8a671a2faaab0850b4565f27bfc848ab8abea47f71d697d027d85b88d8faeb0"
+    },
+    "action_review": {
+      "bytes": 12116,
+      "path": "/tmp/swingset-stage2-normal68dd-terminal-20261118-1503/C-readonly-marker64-root-1954/independent-action-review.json",
+      "sha256": "940f8f35bf6b22ce13760bc3d70a787ef3e43741842e9005588fab45184ac2fd"
+    },
+    "independent_terminal": {
+      "bytes": 25802,
+      "path": "/tmp/swingset-stage2-normal68dd-terminal-20261118-1503/C-readonly-marker64-root-1954/actual-operation/independent-terminal-review.json",
+      "sha256": "733ab55f318a03a5df4075b512a44a6cfab4e833d4c909620a6e8a25e649a426"
+    },
+    "post_gate": {
+      "bytes": 50113,
+      "path": "/tmp/swingset-stage2-normal68dd-terminal-20261118-1503/C-readonly-marker64-root-1954/actual-operation/postflight-data/effect-gate-summary.json",
+      "sha256": "4112c8071abf368064940c16d88e669201fc962a84559190c9685cf240296bd6"
+    },
+    "queries": {
+      "bytes": 686,
+      "path": "/tmp/swingset-stage2-normal68dd-terminal-20261118-1503/C-readonly-marker64-root-1954/actual-operation/READONLY-marker-namespace-GUC-verification.json",
+      "sha256": "a0ca924caae2e653d001078e63154dce18321d078b5bf64845284b0274a66346"
+    },
+    "terminal": {
+      "bytes": 1388,
+      "path": "/tmp/swingset-stage2-normal68dd-terminal-20261118-1503/C-readonly-marker64-root-1954/actual-operation/terminal-local.json",
+      "sha256": "c2256d67daab4d2d3ddca8eac8da95c2916110e32e26746729ecbcd225aa167d"
+    }
+  },
+  "qualification": "marker compatibility and verified clean offline only; no schema41 indexes, restore, recovery, graph or Gate2 acceptance",
+  "readonly_queries": [
+    "cluster",
+    "roles",
+    "durable_GUCs",
+    "namespace"
+  ],
+  "recorded_at": "2026-11-18T20:01:12.009545+00:00",
+  "scope": "remaining-C-readonly-marker-verification-668f",
+  "source_observer_database": "postgres only; namespace read connects only owned C OID16394",
+  "timing": {
+    "elapsed_seconds": 46.60382095724344,
+    "finish_monotonic": 4791982.923789916,
+    "main_stop": 4792776.319968958,
+    "no_clock_reset": true,
+    "start_monotonic": 4791936.319968958,
+    "whole_stop": 4793136.319968958
+  }
+}

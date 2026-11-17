@@ -393,8 +393,8 @@ def test_a_grant_written_with_foreign_keys_off_is_reported_and_cleared(tmp_path,
             database.connection.execute("DELETE FROM derivation_payloads")
 
 
-def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
-    """A scope's whole output must never be held in memory to be fingerprinted."""
+def test_completion_streams_bounded_batches_without_buffering_the_whole_output(tmp_path):
+    """One pass reaches storage before exhausting the output, with fewer round trips."""
     unit = WorkUnit("project", "event", "stream")
     produced: list[int] = []
     stored_after: list[int] = []
@@ -402,10 +402,17 @@ def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
     with open_database(tmp_path / "state", lock=False) as database:
         conn = database.connection
 
-        def streamed():
-            for index in range(200):
-                produced.append(index)
-                yield derivations.OutputRow("entries", f'["s{index}"]', {"i": index})
+        class Stream:
+            iterations = 0
+
+            def __iter__(self):
+                self.iterations += 1
+                assert self.iterations == 1
+                for index in range(700):
+                    produced.append(index)
+                    yield derivations.OutputRow("entries", f'["s{index}"]', {"i": index})
+
+        stream = Stream()
 
         run = database.start_run(NOW)
         with database.transaction():
@@ -425,18 +432,156 @@ def test_completion_stores_rows_as_they_arrive_without_buffering_them(tmp_path):
                     stored_after.append(len(produced))
 
             with observing(conn, store_statement):
-                generation = derivations.complete(
-                    conn, selection, rows=streamed(), now=NOW, run_id=run
-                )
-        # The first reference is written after the first row is produced, not
-        # after the last one.
-        assert stored_after[0] == 1
-        assert len(write_statements) == len(produced) == 200
-        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 200
+                generation = derivations.complete(conn, selection, rows=stream, now=NOW, run_id=run)
+        assert 0 < stored_after[0] <= 256 < len(produced)
+        assert all(
+            0 < end - start <= 256
+            for start, end in zip([0, *stored_after[:-1]], stored_after, strict=True)
+        )
+        assert stream.iterations == 1
+        assert len(write_statements) < len(produced) / 32
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 700
         # The label is written from what was stored, so it cannot be written twice.
         with pytest.raises(SupersededWorkError, match="cannot relabel"):
             with database.transaction():
                 derivations.retain_output(conn, generation, (), record_label=lambda _d, _c: None)
+
+
+def test_batched_retention_preserves_ordered_bytes_labels_and_shared_membership(tmp_path):
+    bodies = [
+        '{"count":1,"flag":true,"name":"Zoë 東京","none":null,"ratio":1.0}',
+        '{"count":0,"flag":false,"name":"😀","none":null,"ratio":-0.0}',
+        '{"items":[1,true,null,2.5],"name":"é"}',
+    ]
+    rows = [
+        derivations.OutputRow("entries", f'["r{index}"]', json.loads(bodies[index % 3]))
+        for index in range(600)
+    ]
+    expected = [(index, "entries", f'["r{index}"]', bodies[index % 3]) for index in range(600)]
+    # Fixed label of the literal UTF-8 stream, including 1.0, -0.0 and decomposed é.
+    golden = ("4bbb0a7c2973acdc9f64d9ec833dcbc83a18e72a13f2f0eb89ee19d55b34b06c", 600)
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        generations = [
+            completed_generation(
+                database, WorkUnit("project", "event", name), rows, {"recipe/test": "one"}
+            )
+            for name in ("first", "second")
+        ]
+        assert generations[0] != generations[1]
+        for name, generation in zip(("first", "second"), generations, strict=True):
+            assert [tuple(row) for row in conn.execute(READER, (generation,))] == expected
+            assert derivations._recorded_label(conn, generation) == golden
+            assert (
+                derivations.selected_generation(conn, WorkUnit("project", "event", name))
+                == generation
+            )
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 3
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 1200
+
+
+def test_retention_batches_bound_utf8_bytes_and_write_an_oversized_row_alone(tmp_path):
+    from postgres_statements import observing
+
+    values = ["é" * 200_000, "東京" * 60_000, "😀" * 100_000, "x" * (1024 * 1024), "tail"]
+    bodies = [
+        json.dumps({"value": value}, separators=(",", ":"), ensure_ascii=False) for value in values
+    ]
+    rows = [
+        derivations.OutputRow("entries", str(index), {"value": value})
+        for index, value in enumerate(values)
+    ]
+    writes: list[list[str]] = []
+
+    def storage(sql, parameters):
+        if "INSERT INTO derivation_payloads" in sql:
+            payloads = [value for value in parameters if isinstance(value, str) and value in bodies]
+            assert 0 < len(payloads) <= 256
+            size = sum(len(value.encode()) for value in payloads)
+            assert size <= 1024 * 1024 or len(payloads) == 1
+            writes.append(payloads)
+
+    with open_database(tmp_path / "state", lock=False) as database:
+        with observing(database.connection, storage):
+            generation = completed_generation(
+                database, WorkUnit("project", "event", "bytes"), rows, {"recipe/test": "one"}
+            )
+        assert [body for batch in writes for body in batch] == bodies
+        assert [bodies[3]] in writes
+        assert [
+            tuple(row)[3] for row in database.connection.execute(READER, (generation,))
+        ] == bodies
+
+
+@pytest.mark.parametrize("duplicate_at", [1, 256])
+def test_duplicate_retained_keys_roll_back_every_batch(tmp_path, duplicate_at):
+    rows = [derivations.OutputRow("entries", str(index), {"index": index}) for index in range(257)]
+    rows[duplicate_at] = derivations.OutputRow("entries", "0", {"index": duplicate_at})
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        tables = (
+            "derivation_payloads",
+            "derivation_row_refs",
+            "derivation_generations",
+            "derivation_scopes",
+            "runs",
+        )
+        before = [conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables]
+        with pytest.raises(engine.IntegrityError):
+            completed_generation(
+                database, WorkUnit("project", "event", "duplicate"), rows, {"recipe/test": "one"}
+            )
+        assert [
+            conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables
+        ] == before
+
+
+def test_later_retention_iterator_failure_preserves_exception_and_rolls_back(tmp_path):
+    primary = RuntimeError("producer interrupted")
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        tables = (
+            "derivation_payloads",
+            "derivation_row_refs",
+            "derivation_generations",
+            "derivation_scopes",
+            "runs",
+        )
+        before = [conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables]
+
+        def rows():
+            for index in range(270):
+                yield derivations.OutputRow("entries", str(index), {"index": index})
+            assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 256
+            raise primary
+
+        with pytest.raises(RuntimeError) as caught:
+            completed_generation(
+                database, WorkUnit("project", "event", "failure"), rows(), {"recipe/test": "one"}
+            )
+        assert caught.value is primary
+        assert [
+            conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables
+        ] == before
+
+
+def test_retention_checks_the_deferred_label_after_all_batches(tmp_path):
+    rows = [derivations.OutputRow("entries", str(index), {"shared": True}) for index in range(257)]
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        recorded = []
+
+        def omit_label(digest, count):
+            recorded.append((digest, count))
+            assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 257
+            assert derivations._recorded_label(conn, "unlabelled") is None
+
+        with pytest.raises(SupersededWorkError, match="does not match its label"):
+            with database.transaction():
+                derivations.retain_output(conn, "unlabelled", rows, record_label=omit_label)
+        assert len(recorded) == 1 and recorded[0][1] == 257
+        assert conn.execute("SELECT COUNT(*) FROM derivation_row_refs").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM derivation_payloads").fetchone()[0] == 0
 
 
 def test_dropping_the_old_table_frees_pages_without_shrinking_the_file(legacy_sqlite):

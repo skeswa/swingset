@@ -1,0 +1,167 @@
+{
+  "format": "swingset-stage2-budafest-retention-measurement-prefix-v1",
+  "inclusive_spans_must_not_be_summed": true,
+  "observer_complete": true,
+  "phases": [
+    {
+      "error_type": null,
+      "name": "initial_live_label",
+      "thread_cpu_seconds": 0.4375371930000256,
+      "wall_seconds": 0.6005396507680416
+    },
+    {
+      "error_type": null,
+      "name": "desired",
+      "thread_cpu_seconds": 0.19427376999988155,
+      "wall_seconds": 0.7053298410028219
+    },
+    {
+      "error_type": null,
+      "name": "capture",
+      "thread_cpu_seconds": 0.20418494399996234,
+      "wall_seconds": 0.7302974872291088
+    },
+    {
+      "error_type": null,
+      "name": "load_linking_snapshot",
+      "thread_cpu_seconds": 5.767566909000152,
+      "wall_seconds": 9.315102983266115
+    },
+    {
+      "error_type": null,
+      "name": "resolve_event",
+      "thread_cpu_seconds": 11.636943950999921,
+      "wall_seconds": 11.637396588921547
+    },
+    {
+      "error_type": null,
+      "name": "desired",
+      "thread_cpu_seconds": 0.1662220769999294,
+      "wall_seconds": 0.2533421441912651
+    },
+    {
+      "error_type": null,
+      "name": "capture",
+      "thread_cpu_seconds": 0.1740186319998429,
+      "wall_seconds": 0.2648883890360594
+    },
+    {
+      "error_type": null,
+      "name": "desired",
+      "thread_cpu_seconds": 0.17449244399995223,
+      "wall_seconds": 0.2558910846710205
+    },
+    {
+      "error_type": null,
+      "name": "desired",
+      "thread_cpu_seconds": 0.1679490030001034,
+      "wall_seconds": 0.2521479222923517
+    },
+    {
+      "error_type": "_Expired",
+      "name": "complete",
+      "thread_cpu_seconds": 3.8366629150000335,
+      "wall_seconds": 27.83088618516922
+    },
+    {
+      "error_type": "_Expired",
+      "name": "commit_resolution",
+      "thread_cpu_seconds": 10.016697141000122,
+      "wall_seconds": 52.71609308756888
+    },
+    {
+      "error_type": "_Expired",
+      "name": "link_event",
+      "thread_cpu_seconds": 27.428484406000052,
+      "wall_seconds": 73.67587901465595
+    },
+    {
+      "error_type": null,
+      "name": "verify_unit",
+      "thread_cpu_seconds": 28.084703493000006,
+      "wall_seconds": 75.03228015266359
+    },
+    {
+      "error_type": null,
+      "name": "rollback_live_label",
+      "thread_cpu_seconds": 0.44523783599993294,
+      "wall_seconds": 0.5990397203713655
+    }
+  ],
+  "primary_failure": {
+    "chain": [
+      {
+        "error_type": "_Expired",
+        "frames": [
+          {
+            "file": "installed/swingset/state/work.py",
+            "function": "complete",
+            "line": 283
+          },
+          {
+            "file": "installed/swingset/link/persistence.py",
+            "function": "write",
+            "line": 67
+          },
+          {
+            "file": "installed/swingset/project/materialization.py",
+            "function": "materializing",
+            "line": 301
+          },
+          {
+            "file": "installed/swingset/state/derivations.py",
+            "function": "complete",
+            "line": 1192
+          },
+          {
+            "file": "installed/swingset/state/derivations.py",
+            "function": "retain_output",
+            "line": 764
+          },
+          {
+            "file": "installed/swingset/state/derivations.py",
+            "function": "_fingerprint",
+            "line": 927
+          },
+          {
+            "file": "installed/swingset/state/derivations.py",
+            "function": "_store",
+            "line": 866
+          },
+          {
+            "file": "installed/swingset/state/engine/connection.py",
+            "function": "execute",
+            "line": 244
+          }
+        ],
+        "relation": "primary",
+        "sqlstate": null,
+        "traceback_truncated": false
+      }
+    ],
+    "chain_truncated": false
+  },
+  "raw_prefix": {
+    "path": "/tmp/swingset-stage2-native41-budafest-cold-cc81666fd6e4-DRAFT-v1/fixed-unit-correction-v2/upload-size-correction-v3/cold-actual-u37grh5e/fresh-continuation42-gfv6vnzo/remaining-cold-actual-fbycd75m/execution-clean-v1/stock-staging-and-pulse-v2/pulse-actual-v1/operator-trial-prefix-1836.json",
+    "sha256": "4df5e7f6b6ab2432053bf94d57f6f87b1a9b5f444b415104731885c51ce5df66"
+  },
+  "recorded_at": "2026-11-17T18:40:03.491592+00:00",
+  "runtime_image": "sha256:2eb802d9b34b5c009bbd97eab69d67180d980057bcb82a92c3a3d049a77e7095",
+  "scope": "Measured prefix only; final source fingerprint, owned cleanup and terminal review remain pending. Local reversible candidate work may proceed; no new runtime operation.",
+  "source_graph_sha256": "1368526ea8a0eb64540b8aa8994948059316a966d98a909e93c2970f6b1f7fe4",
+  "unit": "link/event/2020-01-budafest-open-wcs-championships",
+  "unit_result": {
+    "error_type": "WriteDeadlineExceeded",
+    "state": "failed",
+    "unit": "link/event/2020-01-budafest-open-wcs-championships"
+  },
+  "write_budget_seconds": 75,
+  "writer_after": {
+    "closed": false,
+    "in_transaction": false
+  },
+  "writer_before": {
+    "closed": false,
+    "in_transaction": false
+  }
+}

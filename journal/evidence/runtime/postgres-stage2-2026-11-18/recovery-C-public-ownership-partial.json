@@ -1,0 +1,72 @@
+{
+  "at": "2026-11-18T18:07:20Z",
+  "command": [
+    "fixed668f_C_runner.py",
+    "--settings",
+    "Root-actual-settings.json",
+    "--operation",
+    "actual-operation"
+  ],
+  "files": [
+    {
+      "archive_regular": true,
+      "bytes": 6984,
+      "expected_bytes_match": true,
+      "gid": 0,
+      "mode": "0o600",
+      "name": "rebind-empty-C.py",
+      "sha256": "bb1851be3fc108449a6ac0b9411ab2766cd6f58a567d5797d451f702ea9843b4",
+      "uid": 0
+    },
+    {
+      "archive_regular": true,
+      "bytes": 1695,
+      "expected_bytes_match": true,
+      "gid": 0,
+      "mode": "0o600",
+      "name": "policy.json",
+      "sha256": "e85e3c8c960169e71ae1d2f701b6ea09b34f5cc3f4150ed8a617685467e10495",
+      "uid": 0
+    }
+  ],
+  "fresh_child_host_inode_and_link_count": "unobserved",
+  "full_readbacks_required": 37,
+  "only_effect": {
+    "exit": 0,
+    "finished": "2026-11-18T18:02:04.102671633Z",
+    "id": "cb6e46f6a45bce53dcf7b39d8c599001a5218b605d73bd4eacc41ea0c78814a1",
+    "oom": false,
+    "operation": "chown on public directory and two files",
+    "pid": 0,
+    "started": "2026-11-18T18:02:03.928420283Z"
+  },
+  "original_RAM": [
+    true,
+    false,
+    true
+  ],
+  "partial_readbacks": 34,
+  "preflight": {
+    "checks": 82,
+    "digest": "e621c8b6464383a32455655bd8677a9e518e2f2690686e8f4b6c6e1f7eb8c779",
+    "transport_and_semantics_passed": 40
+  },
+  "public_directory": "2390a9f02c489cda277a5f9def7bc83216f964e7d348ad7e4ed68c001d43d4e9",
+  "remaining_effects": {
+    "no_PG_start_intent": true,
+    "no_cleanup_or_stop_attempt": true,
+    "no_directory_chmod_intent": true,
+    "no_files_chmod_intent": true,
+    "no_rebind_create_start_or_COMMENT_intent": true,
+    "remaining_scope_authorized": false
+  },
+  "request_sha256": "31812ca0bbbacd67c03d781e158cd6e521ac8abc9a1c3fe8edd4d441ded6096d",
+  "review": "ACCEPT_SAFE_PARTIAL_CHOWN_NATURAL0_REMAINING_UNATTEMPTED",
+  "runner_exit": 1,
+  "stop_timeout": {
+    "actual_key_present": false,
+    "expected_seconds": 10,
+    "stock_argv_omits_stop_timeout": true
+  },
+  "terminal_review_sha256": "0277d32fa739f3c97be33f20edb63699c1416f494c4d69f1b3603c14bb67a32d"
+}

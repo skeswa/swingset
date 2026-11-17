@@ -1,0 +1,32 @@
+{
+  "activation": "2026-11-17T18:16:15.035093489Z",
+  "commands": [
+    "hold_review --current CURRENT",
+    "hold_review --current CURRENT --status PACKET",
+    "hold_review --current CURRENT --resume PACKET --review REMAINING3_6",
+    "hold_review --current CURRENT --status PACKET",
+    "hold_review --current CURRENT --resume PACKET --review REMAINING6"
+  ],
+  "final_exit_code": 0,
+  "format": "swingset-stage2-hold-renewal-receipt-v1",
+  "hold_sha256": "a1ff89402801b75ac1c7f42f335761295e6fbe0c091747254070f68b21fdbb4d",
+  "independent_verdict_sha256": "76a1d0a602b34061c589065e11f9878dccf38602cab5277055296221ab63ac46",
+  "pointer_sha256": "318e4cb127c83d1d71eadce2db04a101e4a7bd2f8f1c22b8632a3177361cb9e1",
+  "recorded_at": "2026-11-17T18:21:15.793310+00:00",
+  "review_at": "2026-11-17T19:09:18.369898+00:00",
+  "scope": "Same owner, reason and created time. Attended renewal under existing Budafest action; no new runtime authority.",
+  "scratch_packet": "/tmp/swingset-stage2-hold-review-20261117-180918",
+  "verified": {
+    "current_interval_continuous": true,
+    "natural_zero_helpers": 2,
+    "no_helper_replay": true,
+    "once_commands_complete": 7,
+    "protected_services_unchanged": 12,
+    "receipt_readbacks": 3,
+    "transport_timeouts_preserved": [
+      2,
+      5
+    ],
+    "zero_transports": 5
+  }
+}

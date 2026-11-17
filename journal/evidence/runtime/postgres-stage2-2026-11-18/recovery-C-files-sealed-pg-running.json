@@ -1,0 +1,83 @@
+{
+  "action_review_sha256": "c3948f95fe306deda58161989fc678fb5ed36e0f1c18da79e44ee07d50817a2a",
+  "at": "2026-11-18T18:38:05.049641+00:00",
+  "chmods": [
+    {
+      "exit": 0,
+      "id": "ec2ddf68e6f0fd595d0996e4bde6f824083426b99467a5c0bc1db9dd40703d36"
+    },
+    {
+      "exit": 0,
+      "id": "88ae7106207e4ff1fcfe83f8ee58827cd0108814b906df3b1410c3ad0ae4237f"
+    }
+  ],
+  "command": [
+    "fixed668f_C_runner.py",
+    "--settings",
+    "Root-actual-settings.json",
+    "--operation",
+    "actual-operation"
+  ],
+  "direct_file_check": [
+    {
+      "bytes": 4096,
+      "device": 2050,
+      "gid": 0,
+      "inode": 18379682,
+      "kind": 16749,
+      "links": 2,
+      "mode": "555",
+      "uid": 0
+    },
+    {
+      "bytes": 6984,
+      "device": 2050,
+      "gid": 0,
+      "inode": 18379722,
+      "kind": 33060,
+      "links": 1,
+      "mode": "444",
+      "uid": 0
+    },
+    {
+      "bytes": 1695,
+      "device": 2050,
+      "gid": 0,
+      "inode": 18379723,
+      "kind": 33060,
+      "links": 1,
+      "mode": "444",
+      "uid": 0
+    }
+  ],
+  "hash_check_sha256": "b9ed3cd9aa2a5a94adca9653c7d7305ed74ebf454ab2ced850926f1b8f4e134f",
+  "marker_unchanged_by_this_operation": true,
+  "observed_state": {
+    "exit_code": 0,
+    "finished_at": "2026-11-18T00:11:09.479173459Z",
+    "oom": false,
+    "pid": 3502211,
+    "running": true,
+    "started_at": "2026-11-18T18:34:58.626391545Z",
+    "status": "running"
+  },
+  "original_expected_finished_at": "0001-01-01T00:00:00Z",
+  "partial_RAM": {
+    "fixed_user_entrypoint_command_hostname_stop_exact": true,
+    "identities_environment_exact": true,
+    "inherited_fields_and_private_key_scope_exact": true
+  },
+  "partial_post_count": 36,
+  "pg": "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+  "pg_start_exit": 0,
+  "preflight": 42,
+  "previous_chown_reused": true,
+  "prior_finish_matches_current_report": true,
+  "request_sha256": "65b5810b36e85b21c933800022c80b2aeff7cf0e81766183caf6c88561926248",
+  "runner_exit": 1,
+  "scope": "remaining-C-two-chmod-marker-668f",
+  "sql_dispatched": false,
+  "stop_attempted": false,
+  "terminal_sha256": "9b4711de21abe884c39bfd6d9b618474923ba491f22aaf3fa57ebf6053eb5737",
+  "terminal_verdict": "ACCEPT_PARTIAL_OBSERVATIONS_PG_STILL_RUNNING"
+}

@@ -1,0 +1,139 @@
+{
+  "commands": {
+    "postcheck": {
+      "all_exit0": true,
+      "argv_table": {
+        "bytes": 29767,
+        "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/stock-readonly-postcheck.json",
+        "sha256": "9e5869e0c20d683efa3c28699cca46e1439e28d9912de7690436d8934dbfb16e"
+      },
+      "count": 30
+    },
+    "preflight": {
+      "all_exit0": true,
+      "argv_table": {
+        "bytes": 53880,
+        "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/stock-readonly-preflight.json",
+        "sha256": "22550bada25813498745b84ee3173896a3475c49458e1f461180e94b4396fd67"
+      },
+      "count": 30
+    },
+    "remove": {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "rm",
+        "98d1878a3f38d2c43faadd31cb5b807457b8c6d9b81478f992765e447cf4438e",
+        "df1cde65de60739364dd34ecc1c11b9356d0a11e281e6ec1a5c12c4ba6c2db0c",
+        "684f51a80455dbfea0b88ee465d049fbf69e6d585ca2055fd229cf252e062bf5",
+        "dce120353a55547bab8fec496d6a55799aab4e3e765a4abdbaa62eee2137d44c",
+        "723088cdafada087c4102e9e477a90bc10f13a83e0e7a10e727035cf74ebce46",
+        "d771b60386769fea3a755e785d8eadb1aa5aec58d437ba91ab98ac7f76918036",
+        "271cbc5064debecb67ee6a225f323766b76bfbf69b1976cdbc297cd144888212",
+        "e619c4f1d6b54c38b70d074e5172cab00788627ae4751dd002e165650aca1ca1"
+      ],
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "stdout_bytes": 520,
+      "stdout_sha256": "ea46276841b7c86987122f59254a3a1bbba6682e7d97eaf0bd302b6e275b9ea8"
+    }
+  },
+  "counts": {
+    "absent_after": 8,
+    "original_databases": 5,
+    "post_semantic_checks": 64,
+    "preflight_semantic_checks": 69,
+    "preserved_current_owned_databases": 3,
+    "protected_services": 14,
+    "removed": 8
+  },
+  "format": "eight-successful-hold-metadata-retirement-receipt-v1",
+  "hold_sha256": "80531768709f874deb29214e0da6b6802d9fff7b2884929b0303e0e0aa2cc8c4",
+  "limits": "Metadata cleanup accepted only; no Ccreate/restore/runtimeperformance/graph/rekey/Gate2 acceptance. Observer SQL used administrativepostgres only; no C696 observer connection or secret body/hash export.",
+  "preserved": "All databases, volumes, images, source files, installedhold52, normal270a/incarnation/supervisor/owner registry, c153/perimeter, protected14 and allCobjects. Onlyclosed48\u201351publicholdhelperobjects removed, no force/volume deletion.",
+  "prior_attempts": "Two six-target read-only observations ended without remove.intent or rm. Late assembly and localdaemon restart are preserved in scratch. Unconsumed systemPython3.9 process-relative clock intent was replaced with pinnedPython3.12 globalmonotonic before remote dispatch. No mutation replay.",
+  "scratch_inputs": {
+    "effect-gate-summary.json": {
+      "bytes": 11551,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/preflight-data-v1/effect-gate-summary.json",
+      "sha256": "8be6c1c5609d4781fb2793bbd5322606a331efd9901f55db30059b8c0712cf06"
+    },
+    "independent-conditional-action-review.json": {
+      "bytes": 6378,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/independent-conditional-action-review.json",
+      "sha256": "da429ea9a2ee3d6556f2ee05b4e61a1965cb0be385044299dd4a7d9a429818fc"
+    },
+    "independent-terminal-review.json": {
+      "bytes": 3802,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/independent-terminal-review.json",
+      "sha256": "13a54033077c30a6d162fe14fb738a652be5a7e0f6ba174268a14bae5f86c5f9"
+    },
+    "plan.json": {
+      "bytes": 10223,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/plan.json",
+      "sha256": "90013a82c6a3619ec94d9d3d6f03e49e5fb4ebd67a0d50e8b0f97efca7556a52"
+    },
+    "post-gate-summary.json": {
+      "bytes": 10920,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/postcheck-data-v1/post-gate-summary.json",
+      "sha256": "aa8805ab611cb10f2db10903cc43e5174a3ac7de4f8b48399bb30bc288ae8231"
+    },
+    "preflight-only-intent.json": {
+      "bytes": 1361,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/preflight-only-intent.json",
+      "sha256": "dbd9532d834d5fa9d4f994752a8f98ac77a812f61695079e3e668b61adddecd3"
+    },
+    "remove.intent.json": {
+      "bytes": 1477,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/remove.intent.json",
+      "sha256": "c66de8d24918b82f272f4f132f6a918d4ac595e7f445323a01134bec35edc60b"
+    },
+    "remove.result.json": {
+      "bytes": 559,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/remove.result.json",
+      "sha256": "c4b4bf931b0d4c5e0be42ffde89cbc78a3a2e50ce37b105888c97fa98bf04a63"
+    },
+    "root-final-pulse.json": {
+      "bytes": 16083,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold48-51-eight-v1/operation-root-v1/root-final-pulse.json",
+      "sha256": "75b7f9df4ac82878254d3cfe7bccd9c8d40c03d7b8729344e46a926786204d6d"
+    }
+  },
+  "status": {
+    "C_derived_reserve": 5041,
+    "C_old_5815_reserve_fits": false,
+    "after_bytes": 256573,
+    "after_remove_generation_utc": 1794955631.678597,
+    "before_bytes": 259413,
+    "complete_inventory": false,
+    "current52_included": true,
+    "fixed_cap": 262144,
+    "headroom_bytes": 5571,
+    "observation_error": null,
+    "observed_net_reclaim_bytes": 2840,
+    "resource_exit": 0
+  },
+  "timestamp": "2026-11-17T22:54:53.288242+00:00",
+  "timing": {
+    "absolute_deadline_monotonic": 4716148.175205541,
+    "actual_seconds": 258.5175861673355,
+    "post_finished_monotonic": 4715806.692791708,
+    "preflight_seconds": 95.94277095980942,
+    "remaining_before_once_effect": 471.37954966630787,
+    "required_remaining_before_effect": 360,
+    "whole_limit_seconds": 600
+  },
+  "trigger_command_clarification": {
+    "actual_remote_stat_argv": [
+      "stat",
+      "-c",
+      "%u %g %a %h %s %Y %d %i",
+      "/var/tmp/swingset-stage2-app-cc89f18f5c31/authorization/containers.json"
+    ],
+    "command_field_was": "abbreviated descriptive command",
+    "receipt": "hold-helper-inventory-cleanup-trigger.json"
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "actor": "00980e0e40ec5708475682c7df387eeb0616db063bd6ff2440776b4b5a41e805",
+  "actor_terminal": {
+    "ExitCode": 0,
+    "FinishedAt": "2026-11-17T18:40:22.381716574Z",
+    "OOMKilled": false,
+    "Pid": 0,
+    "Running": false,
+    "StartedAt": "2026-11-17T17:54:30.66904859Z"
+  },
+  "business_clock": "2026-11-17T05:20:58.846978+00:00",
+  "command": [
+    "env",
+    "-i",
+    "PATH=/usr/local/bin:/usr/bin:/bin",
+    "LANG=C.UTF-8",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "python3",
+    "-m",
+    "swingset.deploy.unit_diagnostic_job",
+    "--plan",
+    "/var/tmp/swingset-stage2-unit-diagnostic-job-cc81666fd6e4/execution-plan.json",
+    "--plan-sha256",
+    "d2cc1c00cadf3bd1a5833cfad4bee8bcc856c71cfd4165c3bcd7d73fc3a4fd1b",
+    "--container",
+    "00980e0e40ec5708475682c7df387eeb0616db063bd6ff2440776b4b5a41e805",
+    "--platform",
+    "0d9661f96172fdf376cb54d642b21b34ccae41d09865f9480ecce30e49b42e7b",
+    "--review",
+    "/var/tmp/swingset-stage2-unit-diagnostic-job-cc81666fd6e4/execution-review.json",
+    "--review-sha256",
+    "fe3559840d20e9fff5a4b0309dddc4ca5de619accf098b1bbd50700b0dafd22c"
+  ],
+  "diagnostic_complete": true,
+  "exit_code": 0,
+  "expected_units": 108390,
+  "expiry_path": [
+    "complete",
+    "write",
+    "materializing",
+    "complete",
+    "retain_output",
+    "_fingerprint",
+    "_store",
+    "execute"
+  ],
+  "format": "swingset-stage2-budafest-terminal-v1",
+  "independent_verdict": "ACCEPT_DIAGNOSTIC_MEASUREMENT_ROLLBACK_SOURCE_PROTECTED_AND_OWNED_CLEANUP_ONLY_REJECT_UNIT_GRAPH_GATE2_REKEY",
+  "owned_database_cleanup_complete": true,
+  "primary_error_type": "_Expired",
+  "producer": {
+    "image": "sha256:2eb802d9b34b5c009bbd97eab69d67180d980057bcb82a92c3a3d049a77e7095",
+    "installed_file_count": 570,
+    "installed_proof_sha256": "b0845ac59dd09f0aae68ef1aba7a5d7ffa5546b5a28586b6051b9c0982462568",
+    "linker_version": "10",
+    "runtime_artifact": "swingset-runtime@sha256:449b669716b0c4b98c5fc43082779a6ce5dc8a509b426a68980cd25d147baad6",
+    "source_revision": "source-sha256:be56773ba60c98b301a8b3b181a3ce6c5e252b37bfa6e3642498d853de56110f"
+  },
+  "recorded_at": "2026-11-17T18:55:14.070855+00:00",
+  "scope": "Diagnostic measurement, rollback, unchanged source, protected services and owned-copy cleanup accepted. Unit failed; no graph, Gate 2, migration or re-key acceptance. Timed spans overlap and do not prove one SQL cause or candidate savings.",
+  "scratch_inputs": {
+    "diagnostic-receipt.json": {
+      "bytes": 11070,
+      "path": "/tmp/swingset-stage2-budafest-terminal-20261117-v1/diagnostic-receipt.json",
+      "sha256": "08acf28205b5fe3e3cb725af21d2fb663132e640636523e17cd12da216f17bc1"
+    },
+    "independent-terminal-review.json": {
+      "bytes": 18100,
+      "path": "/tmp/swingset-stage2-budafest-terminal-20261117-v1/independent-terminal-review.json",
+      "sha256": "54243444e7cad79810813fb607781e78d3133e9278cd644d50ddb3f808796ae3"
+    },
+    "unit-diagnostic-supervisor-result.json": {
+      "bytes": 3349,
+      "path": "/tmp/swingset-stage2-budafest-terminal-20261117-v1/unit-diagnostic-supervisor-result.json",
+      "sha256": "afb076051773920465f695bdf6a3003bbe739746e3651a75954e88948a6e0503"
+    }
+  },
+  "source_checkpoint": "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37",
+  "source_post_checkpoint": "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37",
+  "terminal_error_type": "WriteDeadlineExceeded",
+  "trial": {
+    "observer_complete": true,
+    "phases": [
+      {
+        "error_type": null,
+        "name": "initial_live_label",
+        "thread_cpu_seconds": 0.4375371930000256,
+        "wall_seconds": 0.6005396507680416
+      },
+      {
+        "error_type": null,
+        "name": "desired",
+        "thread_cpu_seconds": 0.19427376999988155,
+        "wall_seconds": 0.7053298410028219
+      },
+      {
+        "error_type": null,
+        "name": "capture",
+        "thread_cpu_seconds": 0.20418494399996234,
+        "wall_seconds": 0.7302974872291088
+      },
+      {
+        "error_type": null,
+        "name": "load_linking_snapshot",
+        "thread_cpu_seconds": 5.767566909000152,
+        "wall_seconds": 9.315102983266115
+      },
+      {
+        "error_type": null,
+        "name": "resolve_event",
+        "thread_cpu_seconds": 11.636943950999921,
+        "wall_seconds": 11.637396588921547
+      },
+      {
+        "error_type": null,
+        "name": "desired",
+        "thread_cpu_seconds": 0.1662220769999294,
+        "wall_seconds": 0.2533421441912651
+      },
+      {
+        "error_type": null,
+        "name": "capture",
+        "thread_cpu_seconds": 0.1740186319998429,
+        "wall_seconds": 0.2648883890360594
+      },
+      {
+        "error_type": null,
+        "name": "desired",
+        "thread_cpu_seconds": 0.17449244399995223,
+        "wall_seconds": 0.2558910846710205
+      },
+      {
+        "error_type": null,
+        "name": "desired",
+        "thread_cpu_seconds": 0.1679490030001034,
+        "wall_seconds": 0.2521479222923517
+      },
+      {
+        "error_type": "_Expired",
+        "name": "complete",
+        "thread_cpu_seconds": 3.8366629150000335,
+        "wall_seconds": 27.83088618516922
+      },
+      {
+        "error_type": "_Expired",
+        "name": "commit_resolution",
+        "thread_cpu_seconds": 10.016697141000122,
+        "wall_seconds": 52.71609308756888
+      },
+      {
+        "error_type": "_Expired",
+        "name": "link_event",
+        "thread_cpu_seconds": 27.428484406000052,
+        "wall_seconds": 73.67587901465595
+      },
+      {
+        "error_type": null,
+        "name": "verify_unit",
+        "thread_cpu_seconds": 28.084703493000006,
+        "wall_seconds": 75.03228015266359
+      },
+      {
+        "error_type": null,
+        "name": "rollback_live_label",
+        "thread_cpu_seconds": 0.44523783599993294,
+        "wall_seconds": 0.5990397203713655
+      }
+    ],
+    "rollback_fingerprint_equal": true,
+    "rollback_live_label": [
+      "c9c0ebf5a401b50c96beed20b81f983d183437d033b032a7f8ffb7419d7d6f91",
+      5370
+    ],
+    "rollback_pointer": [
+      "c9c0ebf5a401b50c96beed20b81f983d183437d033b032a7f8ffb7419d7d6f91",
+      5370
+    ],
+    "rollback_run_rows_equal": true,
+    "write_budget_seconds": 75.0,
+    "writer_after": {
+      "closed": false,
+      "in_transaction": false
+    },
+    "writer_before": {
+      "closed": false,
+      "in_transaction": false
+    }
+  },
+  "unit": "link/event/2020-01-budafest-open-wcs-championships",
+  "unit_passed": false,
+  "unit_set_sha256": "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228",
+  "worker_write_policy": {
+    "applied_seconds": 75.0,
+    "authorized_seconds": 75.0,
+    "installed_seconds": 75.0,
+    "restored": true,
+    "scope": "Installed 75-second policy asserted without modification; owned-copy acceptance and rollback trial only."
+  }
+}

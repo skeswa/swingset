@@ -54,7 +54,8 @@ weekly session.
    under 100 GB free. The one open item is the A0/A1 source JSON compression
    benchmark (attempt 003) and its decision, which the owner asked to finish.
 2. [PostgreSQL and Dokploy migration](postgres-migration/README.md): redesigned
-   2026-10-19 (D-0263); the owner's next project, not started. Its
+   2026-10-19 (D-0263); the owner's current project, with Stage 2 rehearsal
+   underway. Its
    [stage 0](postgres-migration/5-stage-0.md) (D-0264) makes declared
    transform versions decide re-derivation, with a verify run after each
    code change; production does not change until the switch, and the
@@ -475,3 +476,9 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     proven empty state from unknown role drift; preserve durable physical and
     development data and live owners
     ([recovery](../../journal/investigations/2026/stage-2-server-rehearsal-2026-11-05.md#numerical-boundary-and-local-profile-recovery)).
+
+46. Review data quality for the four event-specific link differences accepted
+    by the owner during Stage 2: July 2025 and July 2026 Midwest Westie Fest,
+    February 2026 Rose City Swing and May 2026 SoSwing. This follow-up does
+    not block the migration or require another numerical investigation
+    ([exact accepted results](../../journal/evidence/runtime/postgres-stage2-2026-11-17/owner-accepted-four-link-differences.json)).

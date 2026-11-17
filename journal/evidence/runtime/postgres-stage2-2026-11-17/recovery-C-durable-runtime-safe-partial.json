@@ -1,0 +1,151 @@
+{
+  "actual_PG": {
+    "C_oid": 16394,
+    "after": "exited0_PID0_noOOM_restart0",
+    "cluster_roles_grants_UTC_old_prepared_marker_environment0": "readonly_exact",
+    "fsync_full_page_writes_synchronous_commit": "on_observed",
+    "id": "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+    "marker_changed": false,
+    "old05_retained_offline": true,
+    "pid_before_stop": 1736807,
+    "started_at": "2026-11-18T00:03:07.725941539Z",
+    "system_identifier": "7708959291098337318"
+  },
+  "closed_at": "2026-11-18T00:11:09.776958+00:00",
+  "commands": {
+    "PG_cleanstop": [
+      "/usr/bin/timeout",
+      "--foreground",
+      "--kill-after=10s",
+      "150s",
+      "docker",
+      "stop",
+      "--timeout",
+      "120",
+      "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78"
+    ],
+    "PG_start": [
+      "/usr/bin/timeout",
+      "--foreground",
+      "--kill-after=10s",
+      "30s",
+      "docker",
+      "start",
+      "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78"
+    ],
+    "fixed_vector_sha256": {
+      "partial_post38": "811d6e0159714ca77987a07d1036b2aad77bdb504714b6b97414a89477086554",
+      "pre39": "a8079ef691bef04952c4930209f4d5621bf0cafe462ada39d21fb4cb5f4b5e69",
+      "public_stage3": "2ce0d76b89925fb8557707803ce334cd965d4da7420d07f3d3388cb8c607d2de",
+      "runtime_SQL_sequential4": "3be671cb2ff03c19d59c516cbb92449d5ab45f9dd1a2dc4ec46e422045cd901d"
+    },
+    "raw_root_SQL_and_staging_results_stay_scratch": true
+  },
+  "complete_C": false,
+  "effects": {
+    "COMMENT_executed": false,
+    "PG_Create_replayed": false,
+    "PG_started_once": true,
+    "Sync_replayed": false,
+    "public_files_unsealed": true,
+    "public_sealers_created": 0,
+    "public_staging_0_2_only": true,
+    "rebind_created": false,
+    "restore_or_recovery_or_publication": false
+  },
+  "exits": {
+    "PG_cleanstop": 0,
+    "PG_start_confirmed_by_exact_running_fullprofile": true,
+    "PG_start_transport_result_file_present": false,
+    "public_stage": {
+      "all": 0,
+      "commands": 3
+    },
+    "read_only_partial_post": {
+      "all": 0,
+      "commands": 38
+    },
+    "read_only_preflight": {
+      "all": 0,
+      "commands": 39
+    },
+    "runtime_SQL_sequential": {
+      "all": 0,
+      "commands": 4
+    }
+  },
+  "format": "stage2-C-durable-PG-safe-partial-v1",
+  "future_remaining_action_requires_new_plan_fresh_boundaries_review_RootGO": true,
+  "observations": {
+    "initial_parallel_quiet_predicates_failed_preserved": true,
+    "post_status_bytes": 257711,
+    "sequential4_readonly_reconciliation_pass": true,
+    "status_headroom": 4433
+  },
+  "operation_at": "2026-11-18T00:03:07.005369+00:00",
+  "outcome": "safe_partial_PG_clean_offline_no_marker",
+  "preserved": {
+    "C3_metadata_sync_old05_volume_network": true,
+    "C696_observer_connection": false,
+    "current_c153_rawfb30_canonical2a": true,
+    "hold53_f07_unchanged": true,
+    "no_source_or_provider_writes": true,
+    "normal270a_actor_supervisor_owner3branches": true,
+    "original14_privatePG_SourceC69669_Shared": true
+  },
+  "proofs": {
+    "post": {
+      "bytes": 8365,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/operation-root-v1/partial-postcheck-data-v1/partial-post-gate-summary.json",
+      "sha256": "122e6e8f5dbcbede273fe2dc72ab83c82489e8843b8901e98c9803e476c30ff7"
+    },
+    "preflight": {
+      "bytes": 8709,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/operation-root-v1/preflight-data-v1/effect-gate-summary.json",
+      "sha256": "c8c110d6201138da6a8b12fd9eb5137d3d1bbf9478639d614ae4893da1f563e3"
+    },
+    "prior_partial": {
+      "bytes": 5827,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/execution-root-v2/independent-partial-terminal-review.json",
+      "sha256": "8a95555daf0e96dec677a85d22b0cee23c6aa1d31dc1c6c4d650afd1593f66b3"
+    },
+    "raw_index": {
+      "bytes": 86867,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/operation-root-v1/complete-capture-record-index.json",
+      "sha256": "34898acbcab91153cc81c023ea7f0fdbb5f4d4e0cecdb6c209b5f57f565da651"
+    },
+    "review": {
+      "bytes": 9147,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/independent-conditional-action-review.json",
+      "sha256": "60214ae9e2730c791d65199dfd399f9d74aba2f9be1d7134ca7794a6f62f5119"
+    },
+    "runtime_SQL": {
+      "bytes": 771,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/operation-root-v1/PG-runtime-SQL-proof.json",
+      "sha256": "04fdcbc9b3b7bceb877dac793d36305d88635d0064860966266e0a4238d0afb2"
+    },
+    "stopped_full_RAM": {
+      "bytes": 117,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/operation-root-v1/partial-postcheck-data-v1/C-stopped-full-RAM-terminal-proof.json",
+      "sha256": "87358a43e5a6e83665d9cf2380f5163c68ed9b13d8ecce6d409a02d89d6063d1"
+    }
+  },
+  "receipt_at": "2026-11-18T00:17:20.629759+00:00",
+  "terminal_review": {
+    "bytes": 5149,
+    "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/remaining-PG-marker-v2/operation-root-v1/independent-safe-partial-terminal-review.json",
+    "sha256": "18be2ce0a4351681f23cf86a816a305afc615ed1b7152a4e33cc28b99b791ca5",
+    "verdict": "accept safe partial only; reject complete C, marker, recovery, rekey and graph acceptance"
+  },
+  "timing": {
+    "PG_cleanstop_upper": 4720824.440689833,
+    "elapsed_to_post_finish": 769.6298069171607,
+    "main_stop": 4721175.824380708,
+    "no_clock_reset": true,
+    "post_finish": 4720955.454187625,
+    "start_monotonic": 4720185.824380708,
+    "stop_reason": "insufficient conservative main budget for full3sealer+rebind sequence",
+    "whole_stop": 4721385.824380708,
+    "within_original1200": true
+  }
+}

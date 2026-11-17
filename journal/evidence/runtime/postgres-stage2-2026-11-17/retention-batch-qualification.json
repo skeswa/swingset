@@ -1,0 +1,96 @@
+{
+  "all957_inputs_unchanged": true,
+  "complete": true,
+  "core": {
+    "budget_seconds": 300,
+    "command": [
+      "mise",
+      "run",
+      "check"
+    ],
+    "display_elapsed_seconds": 198.57,
+    "exit_code": 0,
+    "mypy_source_files_passed": 376,
+    "passed": 3807,
+    "physical_cleanup_complete": true,
+    "receipt": {
+      "bytes": 13382841,
+      "path": "/Users/skeswa/.local/share/swingset/core-runs/53661e5b77a84f38a926f151/summary.json",
+      "sha256": "ec69a6e40f38cc13aed1c17a92828089dbb9d2ab1eaf720063323642a666705f"
+    },
+    "ruff_passed": true,
+    "wall_seconds": 198.46599137503654,
+    "within_budget": true
+  },
+  "format": {
+    "after": {
+      "bytes": 408556,
+      "path": "/tmp/swingset-stage2-retention-batch-after-fmt-20261117-v1.json",
+      "sha256": "0ea75a009640047aa8d0be2ee02ab0cd1b392f5a202d6145e4d47cdd928b58d9"
+    },
+    "before": {
+      "bytes": 408556,
+      "path": "/tmp/swingset-stage2-retention-batch-before-fmt-20261117-v1.json",
+      "sha256": "74da7cfc738580e0e468907d82226a773d693ad015ac339675f872dcdb7b0890"
+    },
+    "command": [
+      "mise",
+      "run",
+      "fmt"
+    ],
+    "exit_code": 0,
+    "two_changed_python_ASTs_preserved": true
+  },
+  "full": {
+    "command": [
+      "mise",
+      "run",
+      "test",
+      "--",
+      "--full-suite",
+      "-n",
+      "4",
+      "--dist=loadfile",
+      "--no-loadscope-reorder",
+      "--max-worker-restart=0"
+    ],
+    "exit_code": 0,
+    "passed": 5393,
+    "pytest_wall_seconds": 1358.33,
+    "stderr": {
+      "bytes": 137,
+      "path": "/tmp/swingset-stage2-retention-batch-full-20261117-v1.stderr",
+      "sha256": "83129096259c09cdce91b503e3405fc4d1483897a0ad5216d73339b89bdbc0ff"
+    },
+    "stdout": {
+      "bytes": 6346,
+      "path": "/tmp/swingset-stage2-retention-batch-full-20261117-v1.stdout",
+      "sha256": "029d3ab43df624b04680fcbeb7b56d8a976d4e7156f3b45ea9fd2078b7911b94"
+    }
+  },
+  "independent_byte_review": {
+    "bytes": 3535,
+    "path": "/tmp/swingset-stage2-retention-runtime-build-proposal-20261117-aeed817e6dc3/build-after-QA/independent-byte-qualification-review.json",
+    "sha256": "24f71b8caea539aac6906f4785b7142fecdf4498602abfeefc2175d6b32a408b"
+  },
+  "limits": "Local QA and immutable image qualification only. No server activation, timing savings, graph, Gate 2, re-key or production-switch acceptance.",
+  "recorded_at": "2026-11-17T19:18:33.378367+00:00",
+  "runtime_byte_qualification": {
+    "bytes": 2017,
+    "path": "/tmp/swingset-stage2-retention-runtime-build-proposal-20261117-aeed817e6dc3/build-after-QA/byte-qualification.json",
+    "sha256": "bc815cdfb50975cf567fb09a8d8caa45542670f32225335470504f4009358c53"
+  },
+  "source_binding_count": 957,
+  "source_binding_sha256": "a7ff0ec9942b713e6c8eb34841810061eab936baf935262b01ce4001fe482165",
+  "source_files": {
+    "src/swingset/state/derivation_dependencies.py": "4ba6ecda496048952a79a225a29b5ecbe3a42a65f998ccc0da3eb1195f4b2d9b",
+    "src/swingset/state/derivations.py": "14712c05233f55cfcd56a4329bda64f600be0ef88427ba109444a2e224a54c9f",
+    "tests/test_derivation_payloads.py": "b3585ac0efcea554b23fe08d5ec37ea2cbe26e77bcfd85df2efcd96cb97250a5"
+  },
+  "source_review": {
+    "bytes": 4820,
+    "path": "/tmp/swingset-stage2-retention-batch-source-review-20261117-v1/independent-source-review.json",
+    "sha256": "66dd8028571bdab0b1440e052a424c24f8a0af3636a3c6f7edf23e9095cfc0dc"
+  },
+  "source_revision": "source-sha256:194f95d50cacc617fff96a770491607107fca0240e01732431ff4749ffb6b701"
+}

@@ -1,0 +1,163 @@
+{
+  "commands": [
+    {
+      "exit_code": 0,
+      "remote_argv": [
+        "cat",
+        "/var/tmp/swingset-stage2-graph-job-68dd00727099/verification-supervisor-result.json"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "remote_argv": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.State.Status}} {{.State.Running}} {{.State.ExitCode}} {{.State.OOMKilled}} {{.State.FinishedAt}}",
+        "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225"
+      ],
+      "stdout": "exited false 137 false 2026-11-18T01:19:34.59071017Z"
+    },
+    {
+      "exit_code": 0,
+      "remote_argv": [
+        "cat",
+        "/var/tmp/swingset-stage2-app-cc89f18f5c31/holds/stage2-import.json"
+      ],
+      "review_at": "2026-11-18T01:17:20.695034+00:00"
+    }
+  ],
+  "format": "stage2-normal68dd-stopped-status-v1",
+  "interpretation": {
+    "expiry_likely_stop_trigger": true,
+    "hold_expired": true,
+    "new_independent_terminal_acceptance": false,
+    "no_restart_or_cleanup_performed": true,
+    "owned_database_cleanup_unverified": true,
+    "protected12_preserved_at_terminal_sample_only": true,
+    "specific_failed_predicate_unrecorded": true,
+    "verification_complete": false
+  },
+  "observed_at": "2026-11-18T14:59:28.587296+00:00",
+  "result_bytes": 3361,
+  "result_sha256": "dfad255a81270bd44e4e2a0237b0903703cec0390fa49dd034bcb1523e9c2d37",
+  "supervisor_result": {
+    "at": "2026-11-17T21:25:34.344118+00:00",
+    "complete": false,
+    "container_id": "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+    "elapsed_seconds": 13919.6,
+    "error_type": "ValueError",
+    "finished_at": "2026-11-18T01:19:35.138945+00:00",
+    "initial_capacity": {
+      "available_bytes": 575931219968,
+      "required_bytes": 508224930112
+    },
+    "last_observed_at": "2026-11-18T01:17:13.131773+00:00",
+    "last_observed_state": {
+      "ExitCode": 0,
+      "OOMKilled": false,
+      "Pid": 132442,
+      "Running": true,
+      "StartedAt": "2026-11-17T21:25:35.057273687Z"
+    },
+    "last_sample_at": "2026-11-18T01:17:33.974572+00:00",
+    "limits": "Exit0 requires separate receipt, full unit-set and unchanged-base inspection; no base cleanup.",
+    "maximum_observed_cgroup_charge": {
+      "private": 8592953344,
+      "shared": 42323988480,
+      "verifier": 3267428352
+    },
+    "minimum_free_observed": 454951149568,
+    "no_automatic_retry": true,
+    "no_verification_progress_for_60_minutes": false,
+    "operation": "held whole-graph verification supervisor",
+    "original7_apps_unchanged": true,
+    "platform_id": "c153a4bc68df17ed10618025a269c3e74ea70a8ac47c853c932addcc8c106ed8",
+    "policy_sha256": "7134b1bc752613a518302b3f50e69e47f1c230d798c3d0aeeadcc1c90132d21b",
+    "protected12_unchanged": true,
+    "resources": {
+      "private": {
+        "cgroup": "/system.slice/docker-f8a44ca81bdf27e16f4e9ae8cf02a75c9153b618b7503ed86416aff82fcf7465.scope",
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 2677315,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "peak": 8592953344
+      },
+      "shared": {
+        "cgroup": "/system.slice/docker-74c66fa35161b73bd676d5939f510970942146dd128c2049fa7a610f9d1d71e8.scope",
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "peak": 42323988480
+      },
+      "verifier": {
+        "cgroup": "/system.slice/docker-270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225.scope",
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "peak": 3267428352
+      }
+    },
+    "review_sha256": "d97bb0c3262d46c9ea120b38c834ea619b535308312a9f00fca03bbc8780e14e",
+    "samples": 665,
+    "seconds": 14040.795,
+    "start_attempted": true,
+    "state": {
+      "ExitCode": 137,
+      "FinishedAt": "2026-11-18T01:19:34.59071017Z",
+      "OOMKilled": false,
+      "Pid": 0,
+      "Running": false,
+      "StartedAt": "2026-11-17T21:25:35.057273687Z"
+    },
+    "state_observed_at": "2026-11-18T01:19:35.138805+00:00",
+    "stop_attempted": true,
+    "stop_confirmed": true,
+    "stop_exit": 0,
+    "stop_reason": "supervisor, peer or disk failure",
+    "stopped_state": {
+      "ExitCode": 137,
+      "FinishedAt": "2026-11-18T01:19:34.59071017Z",
+      "OOMKilled": false,
+      "Pid": 0,
+      "Running": false,
+      "StartedAt": "2026-11-17T21:25:35.057273687Z"
+    },
+    "terminal_state": "confirmed",
+    "verification_progress": {
+      "databases": 5,
+      "transactions": 560339,
+      "tuples": 4856241572
+    },
+    "verified_startup_identity": {
+      "database": "sst_copy_c696fead2daf4d3c83adfbbe_0",
+      "database_id": "2f58b861-ebd6-4fd6-a9aa-44a020589439",
+      "environment": "dev"
+    },
+    "verifier_cgroup": "/system.slice/docker-270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225.scope",
+    "verifier_incarnation": {
+      "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+      "cgroup": "/system.slice/docker-270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225.scope",
+      "container_id": "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+      "network_inode": 4026533552,
+      "pid": 132442,
+      "start_ticks": "1034717360",
+      "started_at": "2026-11-17T21:25:35.057273687Z"
+    }
+  }
+}

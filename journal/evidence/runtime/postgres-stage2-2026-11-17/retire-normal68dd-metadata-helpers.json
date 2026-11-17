@@ -1,0 +1,114 @@
+{
+  "command": [
+    "/usr/bin/timeout",
+    "--foreground",
+    "--kill-after=10s",
+    "60s",
+    "docker",
+    "container",
+    "rm",
+    "5809930adee68f1350bcd914083ff2e8edd861fe4906429bdb06e282f423bb08",
+    "b79410b0a99002df257ae42cd3ae9fa9ce1f43293c0ba4f41b20318b6e97aee4",
+    "507ddc0b0574c9f97eaa81957a2d24cd6528b44c1ecbec5b63d9992b226e743e",
+    "b57c7e0dea7d38b2b84286f1c64b99c6ee4b83ab8d6936eb979b517de20b5b5d",
+    "804a6a965b016992c77f5614376a36141121c5b0c6bd3d7539bbb5b6d54d62d5",
+    "c0e1a78e865f34beb950304fc161f54ee4644c885e8c1f3ecf0915c5c220bd69",
+    "1f0bd7bfd04619a7fae161298a583936079baf327ca82f020a5bc5a872a3338b",
+    "242b79c77fd4fee8750d615236146ec9da0b47801a463d57a69c497994b3d68f",
+    "2ec4d9fc47cf0b673dcbea2045d23180689dfba80f31c65545f0b2f8125626b7",
+    "cade4525ecf50735660cf4b7814d606635458c00ce3cf68436c9574706cdd51a",
+    "fc1d9b44d456d98180911280fb91230f219ad4295cf6981cc324911e08eebc8e",
+    "58fa5f2ebcf020a7a1227adf4cad88b7a25142bf2fe3434588b2daa3675db8e1",
+    "e992de96cd5ddee99962cea09dee2d6b1b148bf7ee0a161d54be32e438a20dfb",
+    "eaf324268bea054d214870675e189aee090b352e66abc669557ea00ec73f8189",
+    "ef68ec6cfb7007857886bb9258827bb1ffaec8c1af35e0425f7c53cec89f384f",
+    "e26197fe5fca539d65b12e9dd3448b37a04a63b394b42aa0a44d1a7c0fc77f79"
+  ],
+  "counts": {
+    "force_used": 0,
+    "images_deleted": 0,
+    "removed_container_objects": 16,
+    "volumes_deleted": 0
+  },
+  "exit_code": 0,
+  "format": "retire-sixteen-completed-metadata-helpers-receipt-v1",
+  "preserved": [
+    "verifier270a Created/PID0/fullcold",
+    "all four named target volumes and originale79",
+    "host4 bytes/inodes and copied inputs",
+    "source38/catalog5/UUID/checksum/zero sourceclients",
+    "guardc153/policy2a and all protected services",
+    "all prior verifiers/guardians/native87/sourceholder and raw receipts"
+  ],
+  "scope": "Successful temporary metadata helper objects only. No copied files, named volume, image, database, prior protected job or actor deletion; no graph start or Gate2/performance acceptance.",
+  "scratch_inputs": {
+    "independent-conditional-retirement-review.json": {
+      "bytes": 10173,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/independent-conditional-retirement-review.json",
+      "sha256": "fec74dd6ff2cb735bd73ec0a43b83312abbba3252153eb889ee004cb19d30b07"
+    },
+    "independent-terminal-review.json": {
+      "bytes": 7894,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/independent-terminal-review.json",
+      "sha256": "5e718ac6ad58f40a6a019f1c8e95e9eabc5b6b0db8dbbce10dfa0b1cf8eb1cb8"
+    },
+    "plan.json": {
+      "bytes": 12171,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/plan.json",
+      "sha256": "0d290b38a757522c2e2f52ad90b820d875f50ef0090ae097bb2c0cc01090c4d6"
+    },
+    "preflight-validation.json": {
+      "bytes": 896,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/preflight-validation.json",
+      "sha256": "e46ab2fad888f36cdb14344e02c499e5730984f18a89dad678bd05af62d15343"
+    },
+    "remove.intent.json": {
+      "bytes": 1411,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/remove.intent.json",
+      "sha256": "f4f1b61da0cb37977e984c33eab55305f1c9c29f386e43a56e6c065250cc00de"
+    },
+    "remove.result.json": {
+      "bytes": 48,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/remove.result.json",
+      "sha256": "9b3bcd1e80ed88068bd47c7d25fda29b56befd3e425f305e07e226c4dff2bb98"
+    },
+    "result.json": {
+      "bytes": 1132,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/result.json",
+      "sha256": "eaa21ee6ab5db80bb8c4d28b94a3d0e74e21e88e38c126a225160c38d0ea08ea"
+    },
+    "root-GO.json": {
+      "bytes": 930,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/retire-successful-helpers-v1/root-GO.json",
+      "sha256": "72e4ad277b407da8780ec5eb7c9e95c27b22a619b79eab4d556c42fed74cf50e"
+    }
+  },
+  "status": {
+    "after_bytes": 255791,
+    "before_bytes": 261623,
+    "complete_inventory": false,
+    "fixed_cap_bytes": 262144,
+    "limits_unchanged": true,
+    "observation_error": null,
+    "resource_exit": 0
+  },
+  "target_ids": [
+    "5809930adee68f1350bcd914083ff2e8edd861fe4906429bdb06e282f423bb08",
+    "b79410b0a99002df257ae42cd3ae9fa9ce1f43293c0ba4f41b20318b6e97aee4",
+    "507ddc0b0574c9f97eaa81957a2d24cd6528b44c1ecbec5b63d9992b226e743e",
+    "b57c7e0dea7d38b2b84286f1c64b99c6ee4b83ab8d6936eb979b517de20b5b5d",
+    "804a6a965b016992c77f5614376a36141121c5b0c6bd3d7539bbb5b6d54d62d5",
+    "c0e1a78e865f34beb950304fc161f54ee4644c885e8c1f3ecf0915c5c220bd69",
+    "1f0bd7bfd04619a7fae161298a583936079baf327ca82f020a5bc5a872a3338b",
+    "242b79c77fd4fee8750d615236146ec9da0b47801a463d57a69c497994b3d68f",
+    "2ec4d9fc47cf0b673dcbea2045d23180689dfba80f31c65545f0b2f8125626b7",
+    "cade4525ecf50735660cf4b7814d606635458c00ce3cf68436c9574706cdd51a",
+    "fc1d9b44d456d98180911280fb91230f219ad4295cf6981cc324911e08eebc8e",
+    "58fa5f2ebcf020a7a1227adf4cad88b7a25142bf2fe3434588b2daa3675db8e1",
+    "e992de96cd5ddee99962cea09dee2d6b1b148bf7ee0a161d54be32e438a20dfb",
+    "eaf324268bea054d214870675e189aee090b352e66abc669557ea00ec73f8189",
+    "ef68ec6cfb7007857886bb9258827bb1ffaec8c1af35e0425f7c53cec89f384f",
+    "e26197fe5fca539d65b12e9dd3448b37a04a63b394b42aa0a44d1a7c0fc77f79"
+  ],
+  "timestamp": "2026-11-17T21:04:59.703632+00:00"
+}

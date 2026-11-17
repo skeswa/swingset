@@ -1,0 +1,45 @@
+{
+  "action_review_sha256": "b0d8ba253866d8099f877f3d7ac68b817761ca266b3a7da335af711e6ff49d11",
+  "actor_mutations_dispatched": 0,
+  "command": [
+    "fixed668f_C_runner.py",
+    "--settings",
+    "Root-actual-settings.json",
+    "--operation",
+    "actual-operation"
+  ],
+  "exit": 1,
+  "full_preflight_pass": false,
+  "future_authority": false,
+  "partial_followup_transport255_rows": [
+    15,
+    16,
+    17,
+    33
+  ],
+  "preflight": {
+    "collected": 37,
+    "expected": 40,
+    "stat_response_parser_refused_rows": [
+      22,
+      23
+    ],
+    "transport0": 35,
+    "transport255_rows": [
+      28,
+      31
+    ],
+    "uncaptured_rows": [
+      37,
+      38,
+      39
+    ]
+  },
+  "prior_local_path_error_before_go": true,
+  "review_request_sha256": "a3c335e8ee89000b871a570a29ad1044ca585148081ae4982721567650955485",
+  "root_go_sha256": "5ea0360eb1ee968123e735a0bd0e2587f4cf67092ead577d9e0f3f7a1f2d7876",
+  "safe_clean_stop_attempted": false,
+  "terminal_verdict": "ACCEPT_TERMINAL_NO_C_MUTATION_DISPATCHED_PARTIAL_ONLY",
+  "terminal_verdict_sha256": "8b3ce3c8b72955debf9d9914728439aeda96d2ead1864e412b6fa7cc0b75cd10",
+  "utc": "2026-11-18T17:53:28.430308+00:00"
+}

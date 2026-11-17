@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-18T15:49:55.228754+00:00",
+  "calculation": {
+    "cold_actor": 410,
+    "live_resource_rows": 882,
+    "new_helper_descriptors": 5832,
+    "one_successor_hold": 709,
+    "variable_status_bytes": 256
+  },
+  "cap": 262144,
+  "command": "Bounded read of /var/tmp/swingset-stage2-app-cc89f18f5c31/authorization/containers.json, exact stopped helper ID inventory and Docker inspect projections",
+  "exit_code": 0,
+  "format": "stage2-fresh-graph-status-room-v1",
+  "immutable_action_sha256": "45c48ca51203aa58a1b41f0923042c4fbaf51c237b440a81948fcec0bdf3b5c4",
+  "measured_headroom": 2674,
+  "projected_headroom": 8346,
+  "projected_reserve": 8089,
+  "removal_performed": false,
+  "selected_exact_objects": 16,
+  "source_sha256": "27030479fad65ca4238a67597be735804a3fd4b87ae3bdcce9422bcac85099b3",
+  "source_status_bytes": 259470,
+  "trigger": 256000
+}

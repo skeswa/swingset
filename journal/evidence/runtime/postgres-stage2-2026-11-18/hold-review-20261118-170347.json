@@ -1,0 +1,39 @@
+{
+  "activation_exit": 0,
+  "actual_installer_exit": 0,
+  "admin_commands_sha256": "3d96d389faa58e37b270b51cd3f39fc67f633859252128cdf2fca0feeecccd90",
+  "command": [
+    "swingset.deploy.hold_review",
+    "--resume",
+    "swingset-stage2-hold-review-20261118-170347",
+    "--review-sha256",
+    "bb289554f0e1216ea8f3e8650968c9bbd8e25fe716966312eb23bdd16dc552bd"
+  ],
+  "continuity": {
+    "activation_finished_at": "2026-11-18T17:10:18.364389236Z",
+    "activation_started_at": "2026-11-18T17:10:18.188679012Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-18T17:24:56.657804+00:00"
+  },
+  "finalized_exit": 0,
+  "graph_actor": "00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555",
+  "graph_continuation_accepted": true,
+  "installed": "f99ff245a73fcb6d1bcca740ab51dcbe93d2a0a2960f1f09d7ae37a8a593717c",
+  "installer_transport": {
+    "transport_error_type": "TimeoutExpired",
+    "transport_exit_code": null
+  },
+  "maintained_result_sha256": "8f5ee9d741dfdd8a1bc1cbd1aa3eaf0ada509443c2c38bb0193690c636a8a4be",
+  "prior": "96f66e8cc8f1fbc475d0153a242617e87abb6a18a19dc656fca433e5ee8e8f8d",
+  "protected_apps": 12,
+  "reconciliation_sha256": "44f63e86a0ecae69993f9c314ca8a30eb92db455751f704666786dacc8a9ea18",
+  "resumed_indices": [
+    3,
+    4,
+    5,
+    6
+  ],
+  "review_at": "2026-11-18T18:03:47.276698+00:00",
+  "terminal_review_sha256": "1602de7716a84c3d8412747ce390ce21f8463d24d9f2a2b4cf5509a10565a222",
+  "utc": "2026-11-18T17:13:14.594659+00:00"
+}

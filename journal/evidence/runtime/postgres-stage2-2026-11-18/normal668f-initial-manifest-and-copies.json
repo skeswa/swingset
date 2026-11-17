@@ -1,0 +1,64 @@
+{
+  "active_branches": [
+    "sst_copy_276fa5f21e33473280bb7724_1",
+    "sst_copy_276fa5f21e33473280bb7724_2"
+  ],
+  "active_create_or_copy": 0,
+  "catalog_command": {
+    "argv_sha256": "b56cfbdb30c54ece297f7c7965bc4c0e1fec2f452a36f4205cbf78cfaf3c310d",
+    "database": "postgres",
+    "exit": 0,
+    "read_only": true,
+    "snapshot_sha256": "7b2cdde2442cf08cb081e340afadab8b0d8f7d108bd32d5cd3ffc68157d7de6d",
+    "utc": "2026-11-18T17:45:15.901193+00:00"
+  },
+  "command": [
+    "docker",
+    "cp",
+    "00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555:/var/lib/swingset-runtime/receipt.json",
+    "-"
+  ],
+  "initial_receipt": {
+    "bytes": 4357075,
+    "checkpoint": "5039effbf0b79dbb5cef98fb2001e7142be18ec8a80eaf75a8ea9dc233351a61",
+    "complete": false,
+    "context_sha256": "14d034debf0f15fa76001cf6bc92ab783aa8482a98d7a65ddff7f7e6975546e4",
+    "expected_units": 108390,
+    "result_count": 0,
+    "sha256": "75640ed15fba38760a686d7d2c61611c1c72c79431ddd09f9d95b017a1976c9a",
+    "source_checkpoint": "00c831a474ecfa1de29ca0e8402366e33ed62cd5d409a0f294d9db9c4a0e2f37",
+    "unit_set_sha256": "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228",
+    "utc": "2026-11-18T17:24:01.701782+00:00"
+  },
+  "native75_result": null,
+  "normal_terminal_accepted": false,
+  "owner": {
+    "databases": [
+      {
+        "comment": "swingset-scratch:276fa5f21e33473280bb7724",
+        "name": "sst_copy_276fa5f21e33473280bb7724_0",
+        "oid": 10359465,
+        "owner": "postgres",
+        "slot": 0
+      },
+      {
+        "comment": "swingset-scratch:276fa5f21e33473280bb7724",
+        "name": "sst_copy_276fa5f21e33473280bb7724_1",
+        "oid": 10809425,
+        "owner": "postgres",
+        "slot": 1
+      },
+      {
+        "comment": "swingset-scratch:276fa5f21e33473280bb7724",
+        "name": "sst_copy_276fa5f21e33473280bb7724_2",
+        "oid": 10809426,
+        "owner": "postgres",
+        "slot": 2
+      }
+    ],
+    "proof_sha256": "fdc5aba08e9c22ee4b47d5d8c0f9a5419d03ca947c1d2705eebc01e1f0e1e777",
+    "token": "276fa5f21e33473280bb7724"
+  },
+  "read_exit": 0,
+  "source_clients": 0
+}

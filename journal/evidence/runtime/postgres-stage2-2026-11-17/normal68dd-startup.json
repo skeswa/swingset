@@ -1,0 +1,107 @@
+{
+  "actor": {
+    "boot_id": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "cgroup": "/system.slice/docker-270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225.scope",
+    "container_id": "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+    "network_inode": 4026533552,
+    "pid": 132442,
+    "start_ticks": "1034717360",
+    "started_at": "2026-11-17T21:25:35.057273687Z"
+  },
+  "checks": {
+    "C696_observer_connection": false,
+    "IPv4_and_IPv6_perimeter": true,
+    "UID10001_caps0_NNP_seccomp_resource_and_namespace_auth": true,
+    "full_cold_profile_and_11_mounts": true,
+    "guardian_c153_host4_and_exact_producer": true,
+    "private_values_or_hashes_exported": false,
+    "protected14_and_original5_catalog": true
+  },
+  "command": "Once-only maintained python -m swingset.deploy.verification_job via foreground SSH; exact argv in hashed intent",
+  "counts": {
+    "expected_graph_units": 108390,
+    "fresh_public_pulse_commands_exit0": 55,
+    "new_owned_databases_max": 3,
+    "root_final_source_status_commands_exit0": 3,
+    "staging_commands_exit0": 13,
+    "workers": 2
+  },
+  "exit_code": null,
+  "format": "normal68dd-actual-startup-receipt-v1",
+  "hold_successor": {
+    "independent_terminal_sha256": "66a5d48b05cd17967e802621dea23e2a6266f9ea26cd3320eb1fbf3b0f28ef0e",
+    "review_at": "2026-11-17T22:30:17.686931+00:00",
+    "sha256": "fff62543fa9af50b91a99114b769e692a175c263b4c111157f45e4ec839be6d5"
+  },
+  "limits": "Startup only. Source freeze COPY active and only owned_0 observed; no ready/clones/native41/checkpoint/unit-result/performance/graph/rekey/Gate2 acceptance. Actual source preservation and owned cleanup require terminal review.",
+  "local_foreground": {
+    "basis": "Independent exact-PID ps matched the maintained foreground SSH command, plan7134/reviewd97/actor270a; root attached session corroborates.",
+    "birth_ET": "Tue Nov17 16:25:33 2026",
+    "ppid": 45934,
+    "session": 42233,
+    "ssh_pid": 76038,
+    "uid": 501
+  },
+  "owned_catalog_at_startup": [
+    {
+      "comment": "swingset-scratch:68ca2aadc8d64c599bb5f9e3",
+      "name": "sst_copy_68ca2aadc8d64c599bb5f9e3_0",
+      "oid": 9909447,
+      "owner": "postgres"
+    }
+  ],
+  "owned_copy_token": "68ca2aadc8d64c599bb5f9e3",
+  "plan_sha256": "7134b1bc752613a518302b3f50e69e47f1c230d798c3d0aeeadcc1c90132d21b",
+  "process_running_at_observation": true,
+  "producer": {
+    "CONFIG": "sha256:61a239218b5c4bc8e8551499f08ac26decc06b043aad147c344842bdcc9f9d2a",
+    "source": "source-sha256:194f95d50cacc617fff96a770491607107fca0240e01732431ff4749ffb6b701"
+  },
+  "review_sha256": "d97bb0c3262d46c9ea120b38c834ea619b535308312a9f00fca03bbc8780e14e",
+  "scratch_inputs": {
+    "foreground.intent.json": {
+      "bytes": 1034,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/execution-clean-v1/materialized-review-d97-v1/stage-and-pulse-actual-root-v1/foreground.intent.json",
+      "sha256": "b903e049bc589e753a06ff2a0599141ebb965318121c7f10e66f88d07024e6de"
+    },
+    "graph-plan.json": {
+      "bytes": 26166,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/execution-clean-v1/graph-plan.json",
+      "sha256": "7134b1bc752613a518302b3f50e69e47f1c230d798c3d0aeeadcc1c90132d21b"
+    },
+    "graph-review.json": {
+      "bytes": 15160,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/execution-clean-v1/graph-review.json",
+      "sha256": "d97bb0c3262d46c9ea120b38c834ea619b535308312a9f00fca03bbc8780e14e"
+    },
+    "independent-startup-review.json": {
+      "bytes": 5568,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/execution-clean-v1/independent-startup/independent-startup-review.json",
+      "sha256": "bf64f399cdc43235b50795b4002a42e668aa53cd4c8f4907a1f37d65caa60d89"
+    },
+    "launch-GO.json": {
+      "bytes": 2618,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/execution-clean-v1/materialized-review-d97-v1/stage-and-pulse-actual-root-v1/launch-GO.json",
+      "sha256": "bc8733ccc10c94e251670aa5bd16bea8568e6e5422c2a412cd028e4934591a7b"
+    }
+  },
+  "supervisor": {
+    "birth_ticks": "1034717271",
+    "cwd": "/var/tmp/swingset-stage2-graph-job-68dd00727099",
+    "exact_maintained_cli_argv": true,
+    "pgid": 131923,
+    "pid": 131923,
+    "ppid": 131901,
+    "uid": 1000
+  },
+  "timestamp": "2026-11-17T21:48:27.173838+00:00",
+  "unchanged_limits": {
+    "CPU": 6,
+    "PIDs": 256,
+    "graph_seconds": 86400,
+    "memory_bytes": 8589934592,
+    "native_write_seconds": 75,
+    "status_bytes": 262144
+  },
+  "verdict": "ACCEPT_ACTUAL_STARTUP_ONLY"
+}

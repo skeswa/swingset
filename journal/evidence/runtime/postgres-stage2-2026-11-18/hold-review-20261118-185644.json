@@ -1,0 +1,39 @@
+{
+  "command": [
+    "swingset.deploy.hold_review",
+    "--current",
+    "swingset-stage2-current-hold.json"
+  ],
+  "continuity": {
+    "activation_finished_at": "2026-11-18T18:56:56.036325477Z",
+    "activation_started_at": "2026-11-18T18:56:55.863264488Z",
+    "continuous_validity_proven": true,
+    "old_review_at": "2026-11-18T19:25:42.699269+00:00"
+  },
+  "graph_actor": "00b44f7e0483f6a74fa48429e3dbdc928efdbfd35a6a5642bbe4a144eed29555",
+  "graph_continuation_accepted": true,
+  "helper_exits": [
+    0,
+    0
+  ],
+  "helper_ids": [
+    "7292fe709d6139b68021f1be942bb3f78dcd684fef1a0b8d7673fffa1fc3ca07",
+    "fbdc19c0250a84244bff148a97661f542edecf106f8a3d5a89829982ff08bb1f"
+  ],
+  "installed": "91b855243f58066ee3207985b542a15845a80954bb4716475197a6386fba1095",
+  "maintained_result_sha256": "19a9cb7e11a55c9c92574704e8545f1482a33baeb912c7b0ddaaba1eeaae4447",
+  "prior": "b3ff8100248cd25ee53d00b0ef820450e4aa78d840d1f28b8c48e89513b0c331",
+  "protected_apps": 12,
+  "review_at": "2026-11-18T19:56:44.837716+00:00",
+  "terminal_review_sha256": "4ac7ac92ca4be592a55ef91c4607d4d449f3d1a82bd908abba2ed07352c5bb6f",
+  "transport_exits": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "utc": "2026-11-18T18:59:16.219314+00:00"
+}

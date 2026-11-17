@@ -1,0 +1,83 @@
+{
+  "action_review_sha256": "47facc8a80ff0491996ea307a38fd54607edcc619ac59636e7f85de370373248",
+  "actor": "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+  "administrative_db": "postgres",
+  "admission_sha256": "b73efeb1eeedbca78b50acc9f1abd4612dba917a372b51f7e8bdac82dc0bbdae",
+  "after": {
+    "at": "2026-11-18T15:48:51.586075+00:00",
+    "checks": 13,
+    "device": "/dev/sda2",
+    "free_bytes": [
+      576716374016,
+      576716374016
+    ],
+    "owner_ledger_sha256": "b5048ef73b1ac843ead0266fc5213cb1e42475ccf8c0482bd41eb5c47c9db5ca",
+    "remaining_databases": 0
+  },
+  "at": "2026-11-18T15:48:51.586262+00:00",
+  "before": {
+    "at": "2026-11-18T15:48:36.867758+00:00",
+    "checks": 13,
+    "device": "/dev/sda2",
+    "free_bytes": [
+      455052029952,
+      455052029952
+    ],
+    "owner_ledger_sha256": "b5048ef73b1ac843ead0266fc5213cb1e42475ccf8c0482bd41eb5c47c9db5ca",
+    "remaining_databases": 3
+  },
+  "checker_lock_state": "unobserved",
+  "elapsed_seconds": 21.176602584309876,
+  "forced": false,
+  "format": "stage2-exact-three-owned-database-retirement-v1",
+  "go_sha256": "2467df99f06377cc65c2ac26c9a4520b3ad2c3fca1edf001926a1f8b11632dfe",
+  "max_seconds": 900,
+  "original_five_catalog_rows_match": true,
+  "owned_record_retained": true,
+  "protected14_match": true,
+  "retirement_commands": [
+    {
+      "database_oid": 10359412,
+      "guarded_transport": {
+        "at": "2026-11-18T15:48:39.261691+00:00",
+        "bytes": 19,
+        "exit": 0,
+        "sha256": "af696edd019f2e1c50745d67f4dfa7f7f6920be92edd25d8b17c0e280c83b73f",
+        "stderr_bytes": 0
+      },
+      "outcome_snapshot_sha256": "11f3b4ac211905af36b28084222924f7be227ab4c93a0f959c6d404dfe8ddc60",
+      "sql": "DROP DATABASE \"sst_copy_68ca2aadc8d64c599bb5f9e3_2\";",
+      "stdin_sha256": "587eb5b7a47d058b3041285f36b28718285d494fdda870207ec3d525facf06fe"
+    },
+    {
+      "database_oid": 10359411,
+      "guarded_transport": {
+        "at": "2026-11-18T15:48:42.096449+00:00",
+        "bytes": 19,
+        "exit": 0,
+        "sha256": "47ceae8117afa9927ca1e533113a89abc8febf18a83e8828df2b26634bac495e",
+        "stderr_bytes": 0
+      },
+      "outcome_snapshot_sha256": "3679038c7ba81196657fdec73eb59ded0722bec035d06eb96fd0113b229712ab",
+      "sql": "DROP DATABASE \"sst_copy_68ca2aadc8d64c599bb5f9e3_1\";",
+      "stdin_sha256": "1030221b09200bedbf64cbfd488acc404c654f2ef352fe3e4cdaa07de28412c8"
+    },
+    {
+      "database_oid": 9909447,
+      "guarded_transport": {
+        "at": "2026-11-18T15:48:44.484302+00:00",
+        "bytes": 19,
+        "exit": 0,
+        "sha256": "ef9d3da815f284751cb6a597bf9b086aa44ed94108eb24b31fd859e61695536d",
+        "stderr_bytes": 0
+      },
+      "outcome_snapshot_sha256": "9b3b7a57f8e2d6fff3732544027e33ba407800c92d6254f5850b03018bc627ca",
+      "sql": "DROP DATABASE \"sst_copy_68ca2aadc8d64c599bb5f9e3_0\";",
+      "stdin_sha256": "28039b1530256b77ff21d1cb9e2909696ecd6fc2aefdc362de2713089a4f2cdb"
+    }
+  ],
+  "source_observer_connections": 0,
+  "terminal_review_sha256": "fde8d21fb30b8d0e82d23795e827a884d26d91b5579c80df3a5c61b7d5396c57",
+  "token": "68ca2aadc8d64c599bb5f9e3",
+  "verdict": "ACCEPT_EXACT_THREE_DATABASE_RETIREMENT_TERMINAL_ONLY"
+}

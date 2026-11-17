@@ -1,0 +1,66 @@
+{
+  "actor": {
+    "id": "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+    "never_started": true,
+    "pid": 0,
+    "status": "created"
+  },
+  "checks": {
+    "RAM_config_and_forbidden_environment_checks": true,
+    "all16_full_profiles_and_nanosecond_intent_brackets": true,
+    "copy_and_quiet_diff_exit0": true,
+    "host4_same_inode_sealed_root0444": true,
+    "protected14_preserved": true,
+    "secret_bodies_or_digests_exported": false,
+    "source4_numeric_first6_preserved": true,
+    "source_schema38_catalog5_UUID_checksum_preserved": true,
+    "target4_first6_equal_source": true
+  },
+  "command": "108 frozen stock preparation commands once plus two bounded server-RAM inspection pipelines",
+  "counts": {
+    "RAM_true_checks": 6,
+    "commands": 108,
+    "exact_named_absence_exit1": 17,
+    "exit0": 91,
+    "fresh_volumes": 4,
+    "input_bytes": 69548306,
+    "input_files": 1689,
+    "natural_zero_helpers": 16
+  },
+  "exit_code": 0,
+  "format": "normal68dd-cold-preparation-receipt-v1",
+  "limits": "Preparation only; no START, SQL/clone, graph, performance, re-key, Gate2 or production-switch acceptance. Successful helper objects may be retired only by the separate exact-target reviewed cleanup; all copied inputs and actual actor remain.",
+  "producer": {
+    "CONFIG": "sha256:61a239218b5c4bc8e8551499f08ac26decc06b043aad147c344842bdcc9f9d2a",
+    "OCI": "sha256:1209bf1e48e029513676c578cc9343a6500c3536465198ecb96fcb360237c9d7",
+    "source_revision": "source-sha256:194f95d50cacc617fff96a770491607107fca0240e01732431ff4749ffb6b701"
+  },
+  "scratch_inputs": {
+    "RAM32.result.json": {
+      "bytes": 155,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/RAM32.result.json",
+      "sha256": "3b0d896d7eb9b08b6c78fc881ca86263f5584522c88f017c193fbf21927fc944"
+    },
+    "RAM33.result.json": {
+      "bytes": 156,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/RAM33.result.json",
+      "sha256": "c302589e8016ac27c6de4e016ff883d5489f2c09c4fdb812c0aa12c16041c285"
+    },
+    "independent-preparation-terminal-review.json": {
+      "bytes": 15851,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/independent-preparation-terminal-review.json",
+      "sha256": "8a9d46fa149406cdbbcddd7daf37fd85cdf4cd265f6312a701b27ecbb7b9f74b"
+    },
+    "root-GO.json": {
+      "bytes": 3134,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/root-GO.json",
+      "sha256": "340c6a983725296a592efc1a13158b455565e3074f8b7858db25086c3846c666"
+    },
+    "validation-cold-107.json": {
+      "bytes": 310,
+      "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/validation-cold-107.json",
+      "sha256": "c37d2a8d88c95562490815f98dfd79e97ab42c0e07d1fdcffe4f6ed657107857"
+    }
+  },
+  "timestamp": "2026-11-17T20:50:43.125084+00:00"
+}

@@ -1,0 +1,113 @@
+{
+  "actor": "270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+  "actor_exit_code": 137,
+  "actor_supervisor_cgroup_authorization_retired": true,
+  "confirmed_stop": true,
+  "format": "stage2-stopped-verifier-terminal-reconciliation-v1",
+  "inputs": {
+    "actor.stdout": "b4284fd10969bb3ff8cc38490f65308e81552fdc3a3aa876a9bd4718fc6359fd",
+    "catalog.stdout": "f862fa8671629fe5261c87631c0f94126b12243b19db3c118f0f44e2a3c8438e",
+    "independent-owned-retirement-observed.json": "8b09b4f4ae9717b55c1883911a6baeefe7c682f3d45948a74b7e446a5a29495e",
+    "independent-scope-violation-addendum.json": "203e6882a006ebfc1c62b8052a8a223dd6325b664c7042de0d8719d532112b70",
+    "independent-terminal-review.json": "b94f73d221fcc635e67c27fb04bbc87ec11012ccf1a5042df97e2e2642373e05",
+    "post-review-admin-catalog.json": "3ef946485c55cd28a226b6352ec60480fa097d103715ac510e077c4227a0b8bb",
+    "services.stdout": "b44fba6a76362b86a01d2e0fe6d3249ed3571ebcabb4a238cf7fff45977cabc2",
+    "supervisor.stdout": "dfad255a81270bd44e4e2a0237b0903703cec0390fa49dd034bcb1523e9c2d37"
+  },
+  "observed_at": "2026-11-18T15:35:01.270054+00:00",
+  "oom_killed": false,
+  "operations": {
+    "actor": {
+      "at": "2026-11-18T15:05:27.302959+00:00",
+      "bytes": 8253,
+      "command": "timeout --kill-after=10s 120s /usr/bin/timeout --foreground --kill-after=10s 30s docker inspect --format '{\"id\":{{json .Id}},\"name\":{{json .Name}},\"image\":{{json .Image}},\"state\":{\"status\":{{json .State.Status}},\"running\":{{json .State.Running}},\"pid\":{{json .State.Pid}},\"started_at\":{{json .State.StartedAt}},\"finished_at\":{{json .State.FinishedAt}},\"exit_code\":{{json .State.ExitCode}},\"oom\":{{json .State.OOMKilled}}},\"restart\":{{json .RestartCount}},\"config\":{\"user\":{{json .Config.User}},\"entrypoint\":{{json .Config.Entrypoint}},\"command\":{{json .Config.Cmd}},\"labels\":{{json .Config.Labels}}},\"host_config\":{{json .HostConfig}},\"mounts\":{{json .Mounts}}}' 270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225",
+      "exit": 0,
+      "sha256": "b4284fd10969bb3ff8cc38490f65308e81552fdc3a3aa876a9bd4718fc6359fd",
+      "stderr_bytes": 0
+    },
+    "catalog": {
+      "at": "2026-11-18T15:05:27.474357+00:00",
+      "bytes": 1112,
+      "command": "timeout --kill-after=10s 120s /usr/bin/timeout --foreground --kill-after=10s 30s docker exec --user postgres --env 'PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=5000 -c lock_timeout=2000' f8a44ca81bdf27e16f4e9ae8cf02a75c9153b618b7503ed86416aff82fcf7465 psql -X -A -t -v ON_ERROR_STOP=1 -d postgres -c 'SELECT json_build_object('\"'\"'databases'\"'\"',(SELECT json_agg(json_build_object('\"'\"'name'\"'\"',datname,'\"'\"'oid'\"'\"',oid::bigint,'\"'\"'owner'\"'\"',pg_get_userbyid(datdba),'\"'\"'comment'\"'\"',shobj_description(oid,'\"'\"'pg_database'\"'\"')) ORDER BY datname) FROM pg_database),'\"'\"'sessions'\"'\"',(SELECT coalesce(json_agg(json_build_object('\"'\"'database'\"'\"',datname,'\"'\"'user'\"'\"',usename,'\"'\"'application'\"'\"',application_name,'\"'\"'backend_type'\"'\"',backend_type,'\"'\"'state'\"'\"',state)),'\"'\"'[]'\"'\"'::json) FROM pg_stat_activity WHERE left(datname,9)='\"'\"'sst_copy_'\"'\"'),'\"'\"'base_bytes'\"'\"',pg_database_size('\"'\"'sst_copy_c696fead2daf4d3c83adfbbe_0'\"'\"'))'",
+      "exit": 0,
+      "sha256": "f862fa8671629fe5261c87631c0f94126b12243b19db3c118f0f44e2a3c8438e",
+      "stderr_bytes": 0
+    },
+    "receipt.tar": {
+      "at": "2026-11-18T15:05:29.413856+00:00",
+      "bytes": 4358656,
+      "command": "timeout --kill-after=10s 120s docker cp 270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225:/var/lib/swingset-runtime/receipt.json -",
+      "exit": 0,
+      "sha256": "87ee4c01d083a5fc5ed1e29e6777af5056517e5a0bb51894ba2083b2740666e1",
+      "stderr_bytes": 0
+    },
+    "services": {
+      "at": "2026-11-18T15:05:27.327133+00:00",
+      "bytes": 5006,
+      "command": "timeout --kill-after=10s 120s /usr/bin/timeout --foreground --kill-after=10s 30s docker inspect --format '{\"id\":{{json .Id}},\"name\":{{json .Name}},\"image\":{{json .Image}},\"running\":{{json .State.Running}},\"oom\":{{json .State.OOMKilled}},\"restart\":{{json .RestartCount}},\"health\":{{with (index .State \"Health\")}}{{json .Status}}{{else}}null{{end}},\"paused\":{{json .State.Paused}},\"pid\":{{json .State.Pid}},\"started_at\":{{json .State.StartedAt}}}' e13e05f2317cb48f986a931864d0916feef4e021bc4e8fad9c101f2a82e5d88b 5203f099f9053c50ff7fba7a189ca0e9bc40e0f736211670b6ddbc7cf0276b1b 74c66fa35161b73bd676d5939f510970942146dd128c2049fa7a610f9d1d71e8 c25f8b583c3d5b033babf3de9a0991990a3abd20380959cab5a03508b82d1a65 91b75d2fc6c15f332baeb70183813ca073fcbfab360c0ec58600092a7d1a487f a1a0c657d7b696d718d811d7e171ecdea803ebb3ae748cb060dd286bdf4ab0af 8c3ca9490c15d02e2f626c35728b0edf385d3d581c6bbb36b927f32030c6ba57 7e224cba2d246d1598833030ee0916f3c90f6e70b8f19926132072d2c707ecca 5bb60b91632e9f596d15ebe03ae7dd704b72b8b1b469192af28b82d9abdaffe5 298bc1f4518989dfc498803aa18d59bc137158c021134a8c97b02dfa9cbed845 f1d371964f9c000cecd1ab2110e37bad052f0bbf38cd085407ea40106a935754 f8a44ca81bdf27e16f4e9ae8cf02a75c9153b618b7503ed86416aff82fcf7465 c153a4bc68df17ed10618025a269c3e74ea70a8ac47c853c932addcc8c106ed8 270af083aa10286cf485bbe203aa2e71fde4860fc7ac01eea9e3f17550224225 bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+      "exit": 0,
+      "sha256": "b44fba6a76362b86a01d2e0fe6d3249ed3571ebcabb4a238cf7fff45977cabc2",
+      "stderr_bytes": 0
+    },
+    "supervisor": {
+      "at": "2026-11-18T15:05:28.078748+00:00",
+      "bytes": 3361,
+      "command": "timeout --kill-after=10s 120s cat /var/tmp/swingset-stage2-graph-job-68dd00727099/verification-supervisor-result.json",
+      "exit": 0,
+      "sha256": "dfad255a81270bd44e4e2a0237b0903703cec0390fa49dd034bcb1523e9c2d37",
+      "stderr_bytes": 0
+    }
+  },
+  "owned_databases_remaining": [
+    {
+      "comment": "swingset-scratch:68ca2aadc8d64c599bb5f9e3",
+      "name": "sst_copy_68ca2aadc8d64c599bb5f9e3_0",
+      "oid": 9909447,
+      "owner": "postgres"
+    },
+    {
+      "comment": "swingset-scratch:68ca2aadc8d64c599bb5f9e3",
+      "name": "sst_copy_68ca2aadc8d64c599bb5f9e3_1",
+      "oid": 10359411,
+      "owner": "postgres"
+    },
+    {
+      "comment": "swingset-scratch:68ca2aadc8d64c599bb5f9e3",
+      "name": "sst_copy_68ca2aadc8d64c599bb5f9e3_2",
+      "oid": 10359412,
+      "owner": "postgres"
+    }
+  ],
+  "protected14_match": true,
+  "receipt": {
+    "bytes": 4357075,
+    "clean": false,
+    "complete": false,
+    "missing_unit_results": 108390,
+    "persisted_errors": 0,
+    "persisted_results": 0,
+    "sha256": "a62f45bf924d2f361a1d1b0cc73cacd4e02e61d402773a40ddfd2eb39b623f3c",
+    "unique_expected": 108390,
+    "unit_set_digest": "d58f3f45406d1ebdb9e4c5fcd9dcc4cd525118971c97089039206bad47665228"
+  },
+  "registry_matched": true,
+  "review_scope_incident": {
+    "action": "Reviewer opened a read-only schema and identity query on C696, contrary to the postgres-only observation rule. It closed. Root excluded the query from source preservation evidence.",
+    "corrective_check": "Follow-up through postgres found zero scratch sessions.",
+    "observed_at": [
+      "2026-11-18T15:12:55.803847+00:00",
+      "2026-11-18T15:12:56.261767+00:00"
+    ]
+  },
+  "source": {
+    "admin_database": "postgres",
+    "base_bytes": 38409934515,
+    "full_source_content_posthash": false,
+    "original_five_catalog_rows_match": true,
+    "scratch_sessions_after_review": []
+  },
+  "supervisor_complete": false,
+  "supervisor_stop_command_exit": 0,
+  "terminal_scope": "Stopped verifier, expected-unit manifest and limited preservation only. Owned copies remain. No graph or native75 acceptance.",
+  "trigger": "Likely expired hold. Supervisor did not identify the failed predicate."
+}

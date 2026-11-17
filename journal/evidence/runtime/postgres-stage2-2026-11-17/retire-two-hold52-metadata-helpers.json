@@ -1,0 +1,139 @@
+{
+  "commands": {
+    "postcheck": {
+      "all_other_predicates_passed": true,
+      "argv_table": {
+        "bytes": 49240,
+        "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/stock-readonly-postcheck.json",
+        "sha256": "a3b3b2a036982f0dae48e2ab2709fd3efbafadf5300a190d4aa75d708b908cd8"
+      },
+      "count": 25,
+      "exit_codes_all0": true,
+      "first_budget_predicate_passed": false
+    },
+    "preflight": {
+      "argv_table": {
+        "bytes": 54584,
+        "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/stock-readonly-preflight.json",
+        "sha256": "277218029068617151756288d76d11b6a1425bf842ff2fe3ef5778023d0eb2c3"
+      },
+      "count": 25,
+      "exit_codes_all0": true
+    },
+    "remove": {
+      "argv": [
+        "/usr/bin/timeout",
+        "--foreground",
+        "--kill-after=10s",
+        "30s",
+        "docker",
+        "rm",
+        "5bb3477729c957d5939c8b1131468353b66b090ac902da713011c63b52d03e48",
+        "e874680f8cb88bcdfe52a59c510e2df4094de876510e444417a7b669fe9559c2"
+      ],
+      "exit_code": 0,
+      "no_force_or_volume_deletion": true,
+      "stderr_bytes": 0,
+      "stdout_bytes": 130,
+      "stdout_sha256": "f88e33242ca3432f8112b65bc78dc78ec07680587cf13ae68a15c6c78c35a644"
+    },
+    "status_only_reconciliation": {
+      "current53_helpers_present": true,
+      "exit_codes_all0": true,
+      "stat_before_body": true,
+      "two_fixed_removed_IDs_absent": true
+    }
+  },
+  "counts": {
+    "C_actors_preserved": 3,
+    "current_graph_owned_databases": 3,
+    "original_private_databases": 5,
+    "protected_services": 14,
+    "removed": 2
+  },
+  "format": "two-old-hold52-helpers-retired-v1",
+  "limits": "Only exact closed hold52 public helper objects retired; no hold53/C/Source objects or data volumes deleted. Old failed budget observation preserved. Metadata cleanup acceptance grants no C start, marker, recovery, graph or Gate2 proof.",
+  "preserved": "C metadata and Sync exited0, staged PGbf0f Created/PID0/zeroTimes; original05 stopped. Normal270a/supervisor/ownerregistry, original5+owned3, protected14, c153/currentpolicy, files, volumes, images and installedhold53 unchanged. No C696 observer connection or credentialbody/hash export.",
+  "scratch_inputs": {
+    "effect-gate-summary.json": {
+      "bytes": 9518,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/preflight-data-v1/effect-gate-summary.json",
+      "sha256": "eb5c20ad07c78d9a5f3f606dbcbf27e46c31394e6702953608fa6cd4725d7135"
+    },
+    "independent-conditional-action-review.json": {
+      "bytes": 5478,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/independent-conditional-action-review.json",
+      "sha256": "25023321f0acd4807dac9c8fee4912941238ada928686880aa5542bebd3e0833"
+    },
+    "independent-status-reconciliation.json": {
+      "bytes": 2712,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/independent-status-reconciliation.json",
+      "sha256": "cd781ed23b6030d8907672fd23b51558b74102dc65301acd3f97f58df2e1bffc"
+    },
+    "independent-terminal-review.json": {
+      "bytes": 4165,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/independent-terminal-review.json",
+      "sha256": "9b78b9d031a98d5e0393005c427392c00ab418689349c2966cb0304417b6075e"
+    },
+    "plan.json": {
+      "bytes": 24836,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/plan.json",
+      "sha256": "0ec935bc3cf905564b1bcbeac4532ac0890014c438ff281645fa1b663851126e"
+    },
+    "post-gate-summary.json": {
+      "bytes": 9714,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/postcheck-data-v1/post-gate-summary.json",
+      "sha256": "aba30118d62036308ec7b5edcae2e4bd40d5e0295cce2a4fb3a953c7f334eea6"
+    },
+    "preflight-only-intent.json": {
+      "bytes": 1191,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/preflight-only-intent.json",
+      "sha256": "39eb89d10a12b0a7d529a77ff93427d5fb01c701739ffee7bc35fc0efd1087a4"
+    },
+    "remove.intent.json": {
+      "bytes": 1043,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/remove.intent.json",
+      "sha256": "0dab37251190789ac8e452baa2f1c0e68c35e8d981be4205d3151daba544b05c"
+    },
+    "remove.result.json": {
+      "bytes": 364,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/remove.result.json",
+      "sha256": "a4ceb225002017a46a1da3347867d674ff23ee1033edc50e487b044eeb5d4644"
+    },
+    "root-final-pulse.json": {
+      "bytes": 30344,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/root-final-pulse.json",
+      "sha256": "6ff4a189dca827579d19927c97256a557582ddc9b1ac2ea13876476944fe1f46"
+    },
+    "status-reconciliation-gate-summary.json": {
+      "bytes": 1894,
+      "path": "/tmp/swingset-stage2-C-durable-concurrent-194f-DRAFT-20261117-3771a77bafcd/successor-v3-actual270a-c153/retire-hold52-two-v1/operation-root-v1/status-reconciliation-v1/status-reconciliation-gate-summary.json",
+      "sha256": "4450d401ed0fdfc92e8a781974181e3d97fbac8935473e43006cdce27204c78d"
+    }
+  },
+  "status": {
+    "complete_inventory": false,
+    "current53_pair_included": true,
+    "descriptor_count": 700,
+    "first_post_budget_pass": false,
+    "first_post_bytes": 258425,
+    "first_post_headroom": 3719,
+    "fixed_cap": 262144,
+    "observation_error": null,
+    "reconciled_bytes": 257716,
+    "reconciled_headroom": 4428,
+    "required_remaining_C_reserve": 3900,
+    "resource_exit": 0
+  },
+  "timestamp": "2026-11-17T23:56:50.741789+00:00",
+  "timing": {
+    "absolute_deadline_monotonic": 4719911.528033,
+    "minimum_remaining_before_effect": 360,
+    "no_deadline_reset": true,
+    "reconciliation_finished_monotonic": 4719712.144,
+    "remaining_before_once_effect": 484.9189106673002,
+    "start_monotonic": 4719311.528033,
+    "whole_elapsed_seconds": 400.615967,
+    "whole_limit_seconds": 600
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "format": "stage2-transient-inventory-cleanup-trigger-v1",
+  "measurement": {
+    "aggregate_status_bytes": 260913,
+    "fixed_bound_bytes": 262144,
+    "headroom_bytes": 1231,
+    "live_source_database_bytes": 38409934515,
+    "trigger_bytes": 256000
+  },
+  "selection": "Retire only16 just-completed metadata helper CONTAINER objects after independent terminal acceptance; preserve actor, named volumes, images, source/target files, all old protected jobs and receipts. No cap increase or runtime code change. New exact-target action review and receipts required.",
+  "source_terminal": {
+    "bytes": 15851,
+    "path": "/tmp/swingset-stage2-retention-normal-graph-DRAFT-20261117-68dd00727099/final-guard-c153-v3/cold-actual-root-v1/independent-preparation-terminal-review.json",
+    "sha256": "8a9d46fa149406cdbbcddd7daf37fd85cdf4cd265f6312a701b27ecbb7b9f74b"
+  },
+  "timestamp": "2026-11-17T20:50:43.125084+00:00"
+}

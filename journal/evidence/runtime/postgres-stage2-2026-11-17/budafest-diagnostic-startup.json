@@ -1,0 +1,77 @@
+{
+  "action_review_sha256": "fe3559840d20e9fff5a4b0309dddc4ca5de619accf098b1bbd50700b0dafd22c",
+  "actor": {
+    "network_inode": 4026533552,
+    "oom": false,
+    "pid": 2540361,
+    "pid_namespace_inode": 4026533550,
+    "restart_count": 0,
+    "running": true,
+    "start_ticks": "1033450921"
+  },
+  "command": [
+    "env",
+    "-i",
+    "PATH=/usr/local/bin:/usr/bin:/bin",
+    "LANG=C.UTF-8",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "python3",
+    "-m",
+    "swingset.deploy.unit_diagnostic_job",
+    "--plan",
+    "/var/tmp/swingset-stage2-unit-diagnostic-job-cc81666fd6e4/execution-plan.json",
+    "--plan-sha256",
+    "d2cc1c00cadf3bd1a5833cfad4bee8bcc856c71cfd4165c3bcd7d73fc3a4fd1b",
+    "--container",
+    "00980e0e40ec5708475682c7df387eeb0616db063bd6ff2440776b4b5a41e805",
+    "--platform",
+    "0d9661f96172fdf376cb54d642b21b34ccae41d09865f9480ecce30e49b42e7b",
+    "--review",
+    "/var/tmp/swingset-stage2-unit-diagnostic-job-cc81666fd6e4/execution-review.json",
+    "--review-sha256",
+    "fe3559840d20e9fff5a4b0309dddc4ca5de619accf098b1bbd50700b0dafd22c"
+  ],
+  "container_id": "00980e0e40ec5708475682c7df387eeb0616db063bd6ff2440776b4b5a41e805",
+  "format": "swingset-stage2-budafest-startup-v1",
+  "independent_startup_sha256": "971a800bf83f56fb5cc59a1c2ed9541f19f10bd6324b7f8726ddf04be937798f",
+  "launch_go_sha256": "d0f263cf716762d1ecec73b2f013e04ffd483cc7815450ab3345a5f9ef38c117",
+  "limits": {
+    "freeze_seconds": 2700,
+    "overall_seconds": 3600,
+    "report_seconds": 90,
+    "write_seconds": 75
+  },
+  "local_ssh": {
+    "birth": "Tue Nov 17 12:54:28 2026",
+    "exec_session": 91043,
+    "pid": 25694,
+    "uid": 501
+  },
+  "owned_database": {
+    "limit": 1,
+    "name": "sst_copy_9f6be48794454f58b8dfcc8d_0",
+    "oid": 9459504,
+    "token": "9f6be48794454f58b8dfcc8d"
+  },
+  "phase": "freeze_one_new_owned_database",
+  "plan_sha256": "d2cc1c00cadf3bd1a5833cfad4bee8bcc856c71cfd4165c3bcd7d73fc3a4fd1b",
+  "recorded_at": "2026-11-17T18:06:27.089613+00:00",
+  "scope": "Rollback diagnostic only. Source fingerprints and terminal owned-cleanup review remain mandatory. No graph, migration, re-key, provider, publication or production-switch acceptance.",
+  "started_at": "2026-11-17T17:54:30.66904859Z",
+  "supervisor": {
+    "pgid": 2539837,
+    "pid": 2539837,
+    "ppid": 2539817,
+    "sid": 2539837,
+    "start_ticks": "1033450827",
+    "uid": 1000
+  },
+  "verified": {
+    "authorization_kernel_firewalls_caps_code_protected_services": true,
+    "copy_ready_not_yet_claimed": true,
+    "live_admission_reads_zero": 54,
+    "native_entry_not_yet_claimed": true,
+    "source_native38_baseline": true,
+    "staging_rows_zero": 13
+  }
+}

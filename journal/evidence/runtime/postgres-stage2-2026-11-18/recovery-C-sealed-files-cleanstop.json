@@ -1,0 +1,55 @@
+{
+  "action_review_sha256": "8d23754e99765946b6af0ffdd3ff10154649929c6c9f0344bc68ac6f8ba978b6",
+  "at": "2026-11-18T18:56:17.433506+00:00",
+  "command": [
+    "/usr/bin/timeout",
+    "--foreground",
+    "--kill-after=10s",
+    "150s",
+    "docker",
+    "stop",
+    "--timeout",
+    "120",
+    "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78"
+  ],
+  "config_RAM3": {
+    "fixed_user_entrypoint_command_hostname_stop_exact": true,
+    "identities_environment_exact": true,
+    "inherited_fields_and_private_key_scope_exact": true
+  },
+  "consumer_claim_sha256": "940fe0975827df876856099251c4e51ffed965a7a56ce46fd5a2839543f587b0",
+  "observed_terminal": {
+    "exit_code": 0,
+    "finished_at": "2026-11-18T18:52:26.678019477Z",
+    "oom": false,
+    "pid": 0,
+    "running": false,
+    "started_at": "2026-11-18T18:34:58.626391545Z",
+    "status": "exited"
+  },
+  "operation": {
+    "at": "2026-11-18T18:52:37.357644+00:00",
+    "complete_graph": false,
+    "complete_recovery": false,
+    "marker_changed": false,
+    "natural_exit": 0,
+    "owned_start": {
+      "cid": "bf0f1334be3c460728b89b1a97f9f9a5def3b06922b753176b286ae6dfc8ba78",
+      "pid": 3502211,
+      "started_at": "2026-11-18T18:34:58.626391545Z"
+    },
+    "post_rows": 36,
+    "stop_exit": 0
+  },
+  "request_sha256": "9c58e010cffb53b4a3f80e623da675e0a7cfc044a094269e2427c35a0b576752",
+  "source_sha256": "5651bff5c92838341fbe2aa808a2d7e532b07eda92831dea5d737ef5ea487069",
+  "terminal_review_sha256": "fdc4ba1cb35947317d59c7747aa1f97b6280db538b2d9d6fcf941127151dc8c2",
+  "transport": {
+    "at": "2026-11-18T18:52:28.386183+00:00",
+    "bytes": 65,
+    "exit": 0,
+    "sha256": "56549da6c7eb1c006100f7a4fffc748393992561247187189e1e1006d65b00d7",
+    "stderr_bytes": 0
+  },
+  "verdict": "ACCEPT_EXACT_BF0F_SINGLE_CLEANSTOP_TERMINAL_ONLY"
+}

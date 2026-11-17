@@ -1,0 +1,77 @@
+{
+  "checks": {
+    "final_QA_core": 3807,
+    "final_QA_full": 5393,
+    "limited_inventory_false_not_full_health": true,
+    "postcheck_limit_seconds": 180,
+    "postcheck_seconds": 132.77884124964476,
+    "protected14_and_source_catalog_identity_preserved": true,
+    "same_source_inode_installed": true,
+    "source_clients": 0,
+    "total_limit_seconds": 1800,
+    "total_seconds_to_actual_finish": 844.8855834165588
+  },
+  "command": "49 exact reviewed stock commands, once; bounded first-status poll; independent terminal metadata checks",
+  "counts": {
+    "commands": 49,
+    "exact_named_absence_exit1": 3,
+    "exit0": 46,
+    "natural_zero_public_sealers": 2
+  },
+  "exit_code": 0,
+  "format": "swingset-retention-guardian-transition-v1",
+  "limitations": "Image authorization only; no worker/graph start, performance savings, Gate2, re-key, restore or publication acceptance.",
+  "new_guard": {
+    "birth": "1034094195",
+    "boot": "0bc23f5d-11f2-4d23-b208-dcfae3ed59d6",
+    "cgroup": "/system.slice/docker-c153a4bc68df17ed10618025a269c3e74ea70a8ac47c853c932addcc8c106ed8.scope",
+    "container_id": "c153a4bc68df17ed10618025a269c3e74ea70a8ac47c853c932addcc8c106ed8",
+    "image": "sha256:824e5ac0bc1ec5e13193141522a3550eac38830847aa4a6ae14eafb2144aab68",
+    "netns": 4026533272,
+    "network_canonical_sha256": "2a019ffd519098538eaa66187493f7bc8e0a62f2755cf1507a089befbe9c3273",
+    "network_inode": 18769908,
+    "network_raw_sha256": "fb3082474cc423fd0eb064f3d20d9adb6d8d182e2ad8c9c008f408ebd634b6bc",
+    "pid": 3405064,
+    "recorded_at": "2026-11-17T19:51:46.431553+00:00",
+    "runtime_config": "sha256:61a239218b5c4bc8e8551499f08ac26decc06b043aad147c344842bdcc9f9d2a",
+    "scope": "Accepted image-only authorization; no worker or graph authority.",
+    "security_sha256": "abbfc554583f1ce8a2d9d9d2e5f33cb1ddfc0292348439d954ea95dd8d198fab",
+    "started_at": "2026-11-17T19:41:43.410450541Z",
+    "terminal_verdict_sha256": "d49a1f822b8dab745d1ff21060a28149bc0914a8d54e3ba887894c2cac28351c"
+  },
+  "retired_guard": {
+    "exit_code": 143,
+    "id": "0d9661f96172fdf376cb54d642b21b34ccae41d09865f9480ecce30e49b42e7b",
+    "oom": false,
+    "pid": 0,
+    "retained_stopped": true
+  },
+  "scratch_inputs": {
+    "independent-terminal-review.json": {
+      "bytes": 8501,
+      "path": "/tmp/swingset-stage2-retention-guardian-DRAFT-20261117-31ee2e1d5e3c/artifact-61a-v3/operation-root-v1/independent-terminal-review.json",
+      "sha256": "d49a1f822b8dab745d1ff21060a28149bc0914a8d54e3ba887894c2cac28351c"
+    },
+    "operation-summary.json": {
+      "bytes": 2710,
+      "path": "/tmp/swingset-stage2-retention-guardian-DRAFT-20261117-31ee2e1d5e3c/artifact-61a-v3/operation-root-v1/operation-summary.json",
+      "sha256": "044b17d5844ab51dd53e82a4149b2944e4aa3b741d9120026bbbd15982d901d8"
+    },
+    "postvalidator-source-reconciliation.json": {
+      "bytes": 712,
+      "path": "/tmp/swingset-stage2-retention-guardian-DRAFT-20261117-31ee2e1d5e3c/artifact-61a-v3/operation-root-v1/postvalidator-source-reconciliation.json",
+      "sha256": "19cb377415bf2aed3ba14459cb333ecf126322af113323ece2b6786e196d5d78"
+    },
+    "root-GO.json": {
+      "bytes": 3594,
+      "path": "/tmp/swingset-stage2-retention-guardian-DRAFT-20261117-31ee2e1d5e3c/artifact-61a-v3/operation-root-v1/root-GO.json",
+      "sha256": "5e92cf4c85e09036591bd1d45a4d87e861cafc70de01077e66e794db5c033546"
+    },
+    "validation-postcheck.json": {
+      "bytes": 542,
+      "path": "/tmp/swingset-stage2-retention-guardian-DRAFT-20261117-31ee2e1d5e3c/artifact-61a-v3/operation-root-v1/validation-postcheck.json",
+      "sha256": "3437885961a26f1be2ba9dc27995cdf704d3c6d7a52c8e7b0f1d31729a6c9e76"
+    }
+  },
+  "timestamp": "2026-11-17T19:51:46.431553+00:00"
+}

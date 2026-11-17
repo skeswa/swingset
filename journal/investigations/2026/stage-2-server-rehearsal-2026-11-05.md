@@ -7521,3 +7521,944 @@ Gate 2 or re-key acceptance. Four changed link labels, thirteen link
 overruns, the inventory failure and 716 unattempted units remain blocked.
 Budafest preparation may resume only after a fresh boundary and its own
 root GO under the existing preparation review.
+
+### Owner accepts four link differences, 2026-11-17
+
+The owner accepts the four residual event-specific link outputs and asks
+to move on, leaving data QA for later. No causal reconstruction is now
+required. The generated [approval receipt](../../evidence/runtime/postgres-stage2-2026-11-17/owner-accepted-four-link-differences.json)
+binds the exact four units, expected and found labels, row counts,
+dependency hashes and source graph. It makes no causal claim or blanket
+floating-point exception. Preserve the original mismatch records and
+leave changed outputs queued for ordinary re-derivation. Maintenance
+item 46 holds later QA; the plan records the new direction.
+
+The owner also authorizes closing the tested Native41 revision. Change
+`ouvlzsyr`, commit `91d3fed0`, closes with all 3,801 core and 5,387 full-suite
+cases passing, formatting complete and 198 KiB of evidence under the
+200 KiB change budget. A fresh revision opens for continued Stage 2 work.
+No push occurs. Code hashes remain unchanged; the prepared Budafest actor
+is still unstarted and Gate 2 remains open.
+
+### Budafest cold preparation, 2026-11-17
+
+All 123 reviewed preparation rows run once: 105 exit zero and eighteen
+exact named-absence probes return their expected result. All seventeen
+helpers exit naturally with exact full profiles and paired-intent lifetime
+bounds. Seven public source files keep their verified hashes and inodes
+through sealing. The three new owned volumes have the correct identity.
+Copy and quiet diff prove all 1,689 input files and 69,548,306 bytes.
+Source private-file metadata remains identical; target metadata matches
+with distinct inodes. No secret body or digest is read or exported.
+
+Actor `00980e0e40ec5708475682c7df387eeb0616db063bd6ff2440776b4b5a41e805`
+is Created with PID zero and no start time. Its full configuration and
+eleven mounts match the fixed Budafest target. All six private RAM checks
+pass. Postchecks preserve the five-database catalog, C696 identity, zero
+source clients, protected services, guardian, source settings and hold42.
+No actor start, database clone or SQL mutation occurs.
+
+Preparation result SHA-256 is
+`4ef9ae3dabde1591ffb8a4d2d11dfdf70d5c04a71049a1518ae567363c59ecc6`;
+sole terminal verdict SHA-256 is
+`fb3cd375e9c4139da7a17d13cb430838a7311338a18c7cfe79a0aae39e28f5d4`
+under `fresh-continuation42-gfv6vnzo/remaining-cold-actual-fbycd75m`.
+Raw records remain in the Budafest scratch packet. The two local
+validation refusals are retained and reconciled without replay: Docker's
+exact absence newline, and the approved terminal-readback timing bracket.
+The verdict grants preparation only; launch needs its own review and GO.
+
+### Hold43 renewal, 2026-11-17
+
+After all cold postchecks and their independent acceptance, hold43
+activates before hold42's 17:39:35 UTC expiry. Its next review is due
+18:30:29 UTC. All seven transports, both exact natural-zero helpers,
+protected services, three receipt readbacks and pointer pass independent
+review. Current hold hash is `1e80a856…`; verdict SHA-256 is
+`bba6154b0007a602a5648b8ba98a499f06e19df021d80a4079492260df569b6e`
+in `/tmp/swingset-stage2-hold-review-20261117-173029`. This is a fresh pin
+for the separate Budafest action review and grants no launch authority.
+
+### Current Budafest diagnostic starts, 2026-11-17
+
+The separately reviewed maintained diagnostic starts at 17:54:30 UTC on
+actor `00980e0e…e805`. Independent startup review accepts exact actor and
+supervisor identities, current hold43, authorization, IPv4/IPv6 rules,
+resource limits, frozen host/operator code and protected services. Source
+connections by the reviewer use the administrative postgres database only.
+The actual phase is freezing one new owned database, token
+`9f6be48794454f58b8dfcc8d`, OID 9459504. No copy-ready, native41,
+acceptance, trial or cleanup-complete result is claimed.
+
+Root owns foreground session 91043, local SSH PID 25694 and remote
+supervisor PID 2539837. The previous same-size probe took about 46 minutes;
+this is an estimate, not a new deadline. Limits remain 2,700 seconds for
+freeze, 75 for the write, 90 for reporting and 3,600 overall. The exact
+[compact startup receipt](../../evidence/runtime/postgres-stage2-2026-11-17/budafest-diagnostic-startup.json)
+binds plan, action review, launch GO and independent verdict. Raw
+observations and the corrected local display checks stay in scratch.
+
+### Hold44 renewal, 2026-11-17
+
+The ordinary renewal's installer and mover transports each time out.
+Neither command replays. Maintained status reconciles each exact owned
+helper as a natural-zero terminal, with full profiles and public-file
+hashes. Independent reviews authorize only the unattempted remainder,
+first steps 3–6, then step 6. Original timeout and null transport exits
+remain in the record; no all-seven-zero-transport claim is made.
+
+Hold44 activates at 18:16:15 UTC, before hold43's 18:30:29 expiry. Its
+next review is due 19:09:18 UTC. Both helpers, protected services, all
+three receipt readbacks and the final pointer pass independent review.
+Current hold hash is `a1ff8940…`; sole verdict SHA-256 is
+`76a1d0a602b34061c589065e11f9878dccf38602cab5277055296221ab63ac46`.
+The [compact receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-180918.json)
+binds the actual continuation and terminal outcomes. Budafest stays
+within its existing attended scope; no new runtime action is authorized.
+
+Awake helper 17/PID 20932 has actual birth 12:43:57 ET, starts17:43:57 UTC
+and expires19:43:57 UTC. Its mode0600 record and atomic pointer precede
+TERM of exact helper16/PID97814; the old foreground exits143 and its
+process is absent. A local one-second guessed-birth assertion refused
+before any record or process change; actual identity is used throughout.
+
+### Current Budafest diagnostic terminal, 2026-11-17
+
+The actor ends naturally at 18:40:22 UTC, exit zero, with PID zero, no
+OOM and no restart. The diagnostic completes, but its fixed link unit
+exceeds the unchanged 75-second write bound at 75.032 seconds. Snapshot
+loading takes 9.315 seconds and resolution 11.637; the interrupted commit
+span takes 52.716, including 27.831 in completion. These inclusive spans
+overlap. The expiry stack reaches retained-output `_store` through
+`retain_output` and `_fingerprint`; it proves no exact SQL cause.
+
+The observer completes with valid coverage. The writer remains open and
+idle before and after rollback. Fingerprints, run rows and the original
+label/pointer at generation 5370 agree. The source checkpoint stays
+`00c831a4…` before and after; native38 identity and the five-database catalog
+remain unchanged. Owned copy `9f6be48794454f58b8dfcc8d`, OID 9459504, its
+clients, authorization and actor/supervisor incarnations are gone. The
+empty registry directory remains. Protected services, guardian, native87
+and frozen host/operator files are preserved. No manual cleanup occurs.
+
+Sole terminal verdict SHA-256 is
+`54243444e7cad79810813fb607781e78d3133e9278cd644d50ddb3f808796ae3`
+in `/tmp/swingset-stage2-budafest-terminal-20261117-v1`. It accepts only
+measurement, rollback, source preservation and owned cleanup. The unit,
+graph, Gate 2 and re-key remain unaccepted. The
+[compact terminal receipt](../../evidence/runtime/postgres-stage2-2026-11-17/budafest-diagnostic-terminal.json)
+binds the command, original output, exact producer and verdict.
+
+The plan selects bounded retained-output writes from this measurement.
+The candidate changes only the interned `_store` path: at most 256 rows or
+1 MiB of canonical UTF-8 payloads per normal `execute`, with an oversized
+row alone. The input is consumed once. Tests prove exact canonical tuples,
+ordering, shared-payload deduplication, row and byte bounds, duplicate-key
+rejection, deferred labels, iterator errors and complete rollback.
+Legacy storage, restore, residency, schema, versions and deadlines stay
+unchanged. All 39 focused cases and 3,807 core cases pass; the core gate
+takes 198.57 seconds under 300. Formatting leaves both code ASTs unchanged.
+The final full suite is running. Candidate source review and fresh runtime
+qualification precede a separately admitted server action; no savings or
+new graph acceptance is claimed.
+
+### Hold45 renewal, 2026-11-17
+
+After the Budafest terminal review, ordinary hold45 renewal passes all
+seven once-only transports without timeout. Both complete helper profiles
+end naturally with exit zero. Activation at 18:54:06 UTC precedes hold44's
+19:09:18 expiry. Hold `8a31a1a4…` is due at 19:53:55 UTC. Independent public
+readbacks accept root0444/h1 installation, all twelve protected services,
+three receipts and the atomic pointer. Sole verdict SHA-256 is
+`7d69958c0a96f48849dd10d15ed3bc90c0565833cde79024c0a7908ef4741a83`.
+The [compact receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-185355.json)
+adds no runtime authority. Earlier expired gaps remain historical.
+
+Retention source review accepts the two released files conditionally on
+final qualification, with no material blocker. Verdict SHA-256 is
+`66dd8028571bdab0b1440e052a424c24f8a0af3636a3c6f7edf23e9095cfc0dc`
+in `/tmp/swingset-stage2-retention-batch-source-review-20261117-v1`.
+The batch limit permits one pending encoded lookahead and one oversized
+row alone; it is not a total-memory cap. No runtime savings or authority
+follows from this source review.
+
+### Hold46 renewal and retention qualification, 2026-11-17
+
+Hold46 activates at 19:13:28 UTC, before the prior expiry, and is due at
+20:13:17 UTC. Seven transports and both exact helpers finish zero; all
+protected services, receipt metadata/hashes and pointer pass sole review.
+Verdict `1755e8b6…` explicitly accepts this same-identity successor for the
+separate conditional guardian action. The
+[unaltered CLI result](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-191317.json)
+retains the operation. Awake helper18/PID54481, UID501, actual birth
+14:13:18 ET, expires21:13:18 UTC. Its private record and atomic pointer
+precede TERM of exact helper17; the old foreground exits143 and is absent.
+
+The retention candidate passes all 5,393 full-suite cases in1,358.33
+seconds, with all957 inputs unchanged. Core3,807 takes198.57 seconds under
+300; Ruff and mypy376 pass. The
+[final QA receipt](../../evidence/runtime/postgres-stage2-2026-11-17/retention-batch-qualification.json)
+binds source194f95d5, bindinga7ff, exact code hashes and the sole source
+review. Runtime OCI1209bf1e/portableCONFIG61a23921 preserves exact dependency
+B706 and its eight-layer prefix. All570 installed files/376Python files,
+the duplicate app source, all15 OCI blob hashes and archive248,948,224
+bytes/SHA1d7bb27d pass independent byte review24f71b8c. The proof container
+remains Created and never starts. Its exact AMD64-on-ARM warning is
+reconciled without replaying creation. Build concurrency with the final
+native full suite is recorded; the existing builder stays at2CPU/2GiB.
+
+The server cache transfer is underway. Guardian action reviewc44edaaa is
+conditional on final QA, actual cache proof, fresh admission and RootGO.
+Only its remote argv may execute into fresh exclusive captures; legacy
+local redirection strings and stale A30/e68 prose are not executable
+predicates. Correct actual identities are current0d966/raw95f/image2eb and
+newrawfb308/canonical2a019/image61a. No guardian or worker change has run,
+and no timing savings or graph acceptance is claimed.
+
+### Retention runtime image authorization, 2026-11-17
+
+The exact49 reviewed commands run once:46 exit zero and three return their
+exact named-absence result. Both metadata sealers finish naturally after
+complete-profile and own-intent lifetime checks. Only old guardian0d966
+stops, deliberately exit143, and remains retained. The next policy moves
+atomically with inode18769908 unchanged, root0444/h1/884bytes. Only its
+image changes from2eb to61a; old raw95f bytes remain sealed separately.
+
+New guardianc153a4bc, PID3405064/birth1034094195, starts19:41:43 UTC using
+the same operator824/securityAbb. Full configuration, kernel UID0,
+capabilities281000, no-new-privileges, seccomp2, namespace and cgroup pass.
+The first new-policy status sample succeeds in2.548 seconds. Inventory
+remains false/count41, a limited observation. The conservative postcheck
+clock starts before the start intent and finishes in132.779 seconds under
+180; the actual final validation, not later summary assembly, establishes
+completion. The entire operation takes844.886 seconds under1,800.
+
+Local validation corrects two declared-shape assumptions from original
+captures: row24 is a six-field terminal projection; unconfigured
+OomKillDisable permits false/null. The one-use final validator also reads
+the actual numeric UTC epoch. It runs once, exit zero. No remote command
+replays and no deadline or runtime code changes. Original captures and the
+historical validator hash remain unchanged, with the actual executed hash
+recorded separately.
+
+Independent terminal reviewd49a1f82 checks all49 intents and fresh source,
+catalog, protected14, hold46, policy and capacity. It accepts this image-only
+transition. The [compact receipt](../../evidence/runtime/postgres-stage2-2026-11-17/retention-guardian-transition.json)
+binds actual output, final QA/cache proof and the verdict. No worker or graph
+starts, and no performance, Gate2 or re-key acceptance follows. Hold47
+renewal and conditional preparation review for the fresh normal graph are
+underway.
+
+### Hold47 renewal, 2026-11-17
+
+After accepted guardian transitiond49a, hold47 activates19:50:44 UTC,
+before the previous20:13:17 expiry, and is due20:50:32 UTC. Seven transports,
+both exact natural-zero helpers, protected12, all three receipt readbacks
+and pointer pass sole terminal reviewf7448f05. The
+[unaltered CLI result](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-195032.json)
+retains the operation. That review explicitly accepts47 as successor for
+conditional cold preparation71f65f14, plan759502f1, preserving the fixed
+normal75/86400/two-worker limits. Fresh admission and exclusive RootGO
+remain required. The scope ends at Created/PID0 and six RAM checks; it
+supplies no verifier start, clone, SQL or cleanup authority.
+
+### Normal68dd cold preparation and hold48, 2026-11-17
+
+All108 preparation commands run once:91 exit zero and17 return exact
+named-absence results. All16 helpers finish naturally after complete
+profiles and exact nanosecond intent brackets pass. Four new volumes have
+correct identities and empty roots. Host4 files retain their hashes and
+inodes through root0444 seals; package directories become root0555.
+Copy and quiet diff pass. All1,689 input files total69,548,306 bytes.
+Source4 first-six numeric fields match the accepted Buda baseline;
+target4 match them. Historical device/inode fields are not claimed fresh.
+No private values or digests are exported.
+
+Actor270af083 remains Created/PID0/zero start and finish times; its full
+configuration and eleven mounts match. Both bounded server-RAM pipelines
+exit zero with all six expected booleans true. Independent terminal
+review8a9d46fa accepts preparation and fresh source/catalog/protected/guard
+preservation, granting no start, SQL, clone or graph authority
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/normal68dd-cold-preparation.json)).
+
+Hold48 activates20:46:02 UTC before47 expires, due21:45:50 UTC. Seven
+transports, both full-profile helpers, protected12 and all receipt
+readbacks pass sole terminal review16e18a7e. It is the explicit successor
+for the separately reviewed exact16 helper retirement
+([CLI result](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-204550.json)).
+
+Awake19/PID69892, UID501, actual birth16:00:40 ET, expires23:00:40 UTC.
+The private record and atomic pointer precede TERM of exact helper18;
+its foreground exits143 and the old process is absent. Session lock
+`codex-stage2-approved-20261116` renews at20:07:30 UTC.
+
+### Completed metadata helpers retired, 2026-11-17
+
+The aggregate status inventory reaches260,913 bytes under its fixed
+262,144-byte bound. Its exporter lists all retained Docker objects. The
+measured plan selects only the sixteen successful helpers from cold68dd,
+after independent terminal acceptance; no observation or runtime limit
+increases. Action reviewfec74dd6 binds their exact IDs and full profiles.
+
+One `docker container rm` exits zero and returns exactly those sixteen IDs,
+with no force or volume deletion. Fresh checks preserve the Created/PID0
+verifier, all four target volumes, original source volume, host files and
+copied inputs, source38/catalog5/zero source clients, protected services,
+guardian and hold48. Raw outputs and complete-profile receipts remain.
+All older protected jobs, images and databases remain untouched.
+
+The inventory drops from261,623 to255,791 bytes; fresh status retains
+resource0/errornull/currentpolicy and limited inventoryfalse. Independent
+terminal review5e718ac6 accepts the cleanup, with no launch authority
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/retire-normal68dd-metadata-helpers.json)).
+The local public-stat column check and source-holder mount ordering are
+reconciled from original captures under the existing typed/keyed rules;
+no remote action replays. The actual operation ends in256.34 seconds under
+its600-second bound.
+
+### Retained-output candidate normal graph start, 2026-11-17
+
+The ordinary graph starts once at 21:25:35.057273687 UTC on actor270a,
+qualified source194f95, CONFIG61a and guardianc153. Plan7134b1bc and
+reviewd97bb0c3 bind all108,390 units, native75, two workers and the exact
+owned-copy boundary. Root's fresh launchGO bc8733cc binds unchanged source,
+status age34.04 seconds and hold48 with1,217.28 seconds remaining.
+
+Local SSH76038/UID501 starts at16:25:33 ET and stays attached through
+foreground42233. Remote supervisor131923/UID1000 starts21:25:33 UTC,
+birth ticks1034717271. ActorPID132442 starts21:25:35 UTC,
+birth ticks1034717360, network inode4026533552 on the accepted server boot.
+At21:30:08 UTC the maintained live record reports protected12 unchanged,
+no OOM, progress and566,927,134,720 free bytes. Startup inspection and
+terminal coverage/source-preservation/cleanup acceptance remain pending.
+The four exact link-output exceptions remain owner-accepted for later QA;
+no further causal investigation of them is required.
+
+### Attended normal-graph hold renewal 49, 2026-11-17
+
+Hold49 activates at21:35:23.375669036 UTC before48 expires, and is due
+22:30:17 UTC. Install step2 and activation step5 each time out at transport;
+read-only reconciliation proves both exact helpers finish naturally at0.
+The intermediate unknown5 remains recorded. Sole remaining-index reviews
+cc1e9270 and20d95639 permit only unattempted3–6 and then6; no command
+replays. Final step6 exits0 and the current pointer becomes fff62543.
+
+Independent terminal review66a5d48b verifies eight fresh public reads,
+seven exact once-only intents, both complete helper profiles, protected12,
+three stable remote receipt readbacks and pointer. It accepts49 as the
+same-identity successor for the attended normal270a graph under reviewd97,
+without expanding scope ([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-213017.json)).
+
+Sole independent startup review bf64f399 accepts the actual normal actor,
+exact supervisor, complete frozen configuration, eleven mounts, namespace
+authorization, kernel limits, both firewalls, guardian, host files and all
+fourteen protected services. It observes one owned database and source
+freeze activity, granting no clone-readiness or graph-result acceptance
+([startup receipt](../../evidence/runtime/postgres-stage2-2026-11-17/normal68dd-startup.json)).
+
+Hold 50 activates at 21:55:09.527608074 UTC before 49 expires, due
+22:54:46 UTC. All seven transports and both complete-profile helpers exit
+zero; eight independent public reads, protected services, receipt readbacks
+and pointer pass terminal review21f8d51e. It explicitly succeeds 49 for the
+attended graph and conditional recovery-C operation. Recovery still requires
+fresh graph readiness, capacity and its separate execution gate
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-215446.json)).
+
+At 22:05:23 UTC the fresh initial receipt exists: 4,357,075 bytes,
+SHA a62f45bf, all 108,390 unique expected units and digest d58f3f45.
+Its actual business clock is 21:26:21.982421 UTC. Source checkpoint00c
+and accepted checkpoint5039 are freshly observed, with the new actual
+52-audit/98-version/113-input context14d034de; no old context is reused.
+The unsupported projection remains null. Results and errors are empty.
+At 22:05:44 UTC the first owned FILE_COPY creation is active; both-clone
+readiness and recovery admission remain unproved. These progress captures
+stay in scratch, with no graph-result acceptance.
+
+Hold 51 activates at 22:15:53.235205468 UTC before 50 expires, due
+23:14:57 UTC. Its activation transport times out; exact helper reconciliation
+proves natural zero and permits only unattempted final step 6, which exits
+zero. Independent terminal review7ae8dc57 accepts the seven once-only
+commands, eight public checks, complete helpers, protected services,
+readbacks and pointer, explicitly succeeding 50 for the graph and conditional
+C and six-helper cleanup gates ([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-221457.json)).
+
+Hold 52 activates at 22:36:32.578768061 UTC before 51 expires, due
+23:36:20 UTC. Seven transports, both exact natural-zero helpers and eight
+public terminal checks pass review3c29827a, explicitly continuing the graph
+and conditional recovery and metadata-cleanup work
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-223620.json)).
+
+A local Codex daemon restart leaves SSH76038 alive with its original UID
+and birth, reparented to PID1. No remote service restart or graph relaunch
+occurs. Both six-target cleanup preparations have no removal intent or
+remote effect; raw reads and late local validation remain recorded.
+The newly reviewed eight-target proposal adds only the two accepted hold51
+helpers, preserving all other targets and limits. The graph has all three
+owned databases and both worker connections by 22:26 UTC; live progress at
+22:37 remains healthy, with protected services unchanged.
+
+Awake helper20/PID11652 starts at 22:38:33 UTC, UID501, birth17:38:33 ET,
+finite through November18 00:38:33 UTC. Its private record and atomic current
+pointer precede TERM of exact helper19/PID69892; the old process is absent.
+
+### Eight completed hold helpers retired, 2026-11-17
+
+One exact-ID removal returns eight expected IDs, exit zero and empty stderr.
+All 30 preflight commands and 30 post-checks pass; source, normal verifier,
+guardian, protected services, volumes and databases remain preserved.
+The operation finishes in 258.52 seconds under 600, with 471.38 seconds
+remaining before the single effect, above its 360-second reserve.
+
+Fresh status drops from 259,413 to 256,573 bytes. Headroom is 5,571 bytes:
+it covers the measured-schema 5,041-byte C reserve, while the old 5,815-byte
+projection still fails. No observation cap increases. Sole terminal review
+13a54033 accepts the cleanup, granting no C creation or graph acceptance
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/retire-eight-hold-metadata-helpers.json)).
+
+### C offline sync and staged-PG partial, 2026-11-17
+
+The read-only filesystem helper passes complete cold/RAM/terminal checks:
+UID/GID999 own PGDATA mode700; the expected system identifier and clean
+shutdown match; there is no postmaster PID, WAL symlink or external tablespace.
+Its unconfigured OOM field switches false/null presentation; finite same-CID
+review889e5e83 accepts that one representation, with all other fields exact.
+
+The same reviewer accepts a stricter 120-second sync timeout under the
+original clocks (78f2e67c). One sync finishes naturally in0.385168 seconds;
+full terminal checks pass. The new durable PG is created once asbf0f1334,
+PID0/zero times. Its start is refused when only21.73 main seconds remain,
+less than the40-second start-and-tail bound. No server, public sealer,
+marker helper or SQL update starts. No clock resets after effects.
+
+All20 independent post-checks finish35.79 seconds before the original
+1,800-second deadline. Source, normal verifier, protected services, old C
+and current hold52 remain preserved. Review8a95555d accepts this safe partial
+boundary only. Metadata and sync helpers are stopped; the new PG remains
+Created. Starting it and rebinding the still-old prepared marker need a new
+concrete remaining-only action, not a repeat of Create or Sync
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/recovery-C-sync-staged-PG-partial.json)).
+
+Hold53 activates at23:34:01.832995531 UTC before52 expires, due
+November18 00:33:46 UTC. Seven transports, both exact helpers and eight
+terminal public checks pass review109e14ad. It continues the attended graph
+and only newly reviewed remaining C work and exact old52-helper cleanup;
+the previous C operation stays closed ([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261117-233346.json)).
+
+### Exact old hold52 helpers retired, 2026-11-17
+
+One exact two-ID removal exits zero with the expected IDs and empty stderr.
+All25 preflight and25 post commands exit zero. Direct absence and all
+preservation checks pass, including stopped metadata/Sync and never-started
+PGbf0f. The first aggregate observation still has3,719 bytes free and fails
+the3,900-byte future C reserve. It remains a failed observation.
+
+A bounded status-only reconciliation proves both removed IDs absent and
+current53 helpers present:257,716 bytes,4,428 free, resource0/errornull and
+unchanged policy. It finishes within the same600-second window, with no
+second removal or clock reset. Sole terminal review9b78b9d0 accepts the
+cleanup and budget only ([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/retire-two-hold52-metadata-helpers.json)).
+
+### C durable runtime safe partial, 2026-11-18
+
+A separate reviewed remaining-only operation starts existing PGbf0f once.
+The full running profile, private environment booleans, system identifier,
+exact catalog and roles, empty environment and old prepared marker pass.
+Durability settings are fsync, full-page writes and synchronous commit on.
+Initial parallel quiet-client checks see the other probes and fail; their
+raw results remain. Sequential checks pass without changing the predicates.
+
+Public directory creation and two uploads complete once, exit zero. No
+public sealer or marker helper is created or started. With insufficient
+time for the remaining bounded sequence, Root stops only PGbf0f using the
+reviewed stock command. It exits zero at00:11:09.776958 UTC; full terminal
+checks prove the same start identity, PID0, no OOM and exact configuration.
+The marker remains unchanged, and the uploaded public files remain unsealed.
+
+All38 read-only partial post-checks pass within the original1,200-second
+window, including the four exact future-name absence checks. The old C,
+source, current normal graph, guardian, protected services and hold53 are
+preserved. Independent terminal review 18be2ce0 accepts only the safe partial result.
+No recovery, marker update, restore or whole-C acceptance is claimed
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/recovery-C-durable-runtime-safe-partial.json)).
+
+The normal graph at00:10:26 UTC remains running with no 60-minute progress
+alarm or OOM:265,717 transactions and2,685,862,585 tuples observed. These
+are database activity counters, not completed verification-unit counts.
+
+Hold 54 activates at 00:17:31.860705377 UTC before 53 expires, with review
+due November 18 01:17:20 UTC. Sole terminal review 813d8746 accepts the
+seven transports, exact helpers, receipts, protected services and pointer.
+Both prior C operations remain closed; new remaining work needs fresh
+headroom and its own action review
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-17/hold-review-20261118-001720.json)).
+
+Awake helper 21, PID 41341, starts November 18 00:17:48 UTC with UID 501
+and a two-hour limit. Its verified record and atomic current pointer
+precede TERM of exact helper 20, PID 11652; the old process is absent.
+The new helper expires at 02:17:48 UTC.
+
+At 00:19:11 UTC the same normal verifier is still progressing, with no
+stall alarm or OOM and protected services unchanged. Its final unit counts
+and timing acceptance remain pending.
+
+### Normal verifier stopped after hold expiry, 2026-11-18
+
+The 14:57 UTC status check finds the normal verifier stopped, PID 0, exit
+137 without OOM. Its supervisor records incomplete verification, a generic
+ValueError, confirmed stop and no automatic retry. It finishes at 01:19:35
+UTC after 14,040.795 seconds, about 3 hours 54 minutes.
+
+The installed hold still expires at 01:17:20 UTC. The last progress sample
+is 01:17:33; the actor finishes at 01:19:34. The frozen supervisor requires
+a current hold during each peer check. Expiry is therefore the likely stop
+trigger; its generic error does not identify the exact failed predicate.
+The terminal sample reports protected services unchanged and no OOM or
+60-minute progress alarm. Those observations do not prove current source
+preservation or owned-copy cleanup. No completed unit-set or timing
+acceptance is available.
+
+No restart, renewal, cleanup or provider operation occurs during this check.
+A new attended interval and terminal reconciliation must precede another
+verification run. The passing code tests and accepted recovery safe partial
+remain separate from this incomplete runtime result
+([observation](../../evidence/runtime/postgres-stage2-2026-11-18/normal68dd-stopped-status.json)).
+
+### Stopped verifier and ownership reconciliation, 2026-11-18
+
+The runtime receipt matches the initial 4,357,075 bytes and hash
+`a62f45bf…`. It lists 108,390 distinct expected units and zero results.
+There is no unit timing to accept. Independent review confirms the actor,
+supervisor, cgroup and namespace authorization have retired. All fourteen
+protected service profiles match.
+
+The recorded token and process incarnation match the three remaining
+databases, OIDs 9909447, 10359411 and 10359412. Root observed the five
+original catalog rows and the 38,409,934,515-byte source size through
+`postgres`. The reviewer opened one read-only metadata query directly on
+C696 at 15:12:55 UTC, contrary to the administrative observation rule.
+The connection closed. Root excluded that query from preservation evidence
+and a fresh check through `postgres` found zero scratch clients. There was
+no full source-content posthash. Independent review accepts the stopped
+boundary and limited preservation. Exact owned cleanup remains a separate
+operation ([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/normal68dd-terminal-reconciliation.json)).
+
+A new hold activated at 15:34:27 UTC and was due at 16:04:59 UTC.
+The prior interval expired 51,426.925 seconds before activation. The seven
+administrative commands completed and eight independent public checks passed.
+Both helpers exited zero. The sole reviewer accepted the reopened hold in
+verdict `4367b9aa04b1`
+([hold receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-150459.json)).
+
+The 15:44 UTC renewal kept the hold valid through 16:44:05 UTC.
+Its terminal review verified both helper exits, the installed hold,
+receipt readbacks and protected services
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-154405.json)).
+
+### Three verifier databases retired, 2026-11-18
+
+Root dropped the three owned branches in order 2, 1, 0. Each operation
+connected to `postgres`, checked the cluster, catalog, OID, size, owner
+and zero target clients, then dropped the literal database without force.
+Each exit was zero and the intervening catalog checks passed. Independent
+review accepted all three removals. The five original database rows,
+protected services, stopped verifier and its ownership record remain.
+The filesystem had 455,052,029,952 bytes free before and 576,716,374,016
+afterward. The operation took 21.18 seconds
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/normal68dd-owned-database-retirement.json)).
+
+The remaining status-file limit also blocked fresh preparation. Root
+removed the sixteen exited metadata helpers from eight reviewed holds.
+All sixteen returned IDs and direct absence checks matched. The other
+704 container IDs, images, volumes and retained hold receipts matched.
+At 15:59 UTC the refreshed status was 253,798 bytes, leaving 8,346
+against the estimated 8,089 needed. Independent review accepted the
+removal and measured capacity
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/fresh-graph-retired-hold-helpers.json)).
+
+### Fresh verifier prepared, 2026-11-18
+
+At 16:19 UTC actor `00b44f7e…` was created with four fresh volumes. All
+108 preparation commands met their expected exits. Sixteen helpers exited
+zero. The copy contained 1,689 files and 69,548,306 bytes. All six
+configuration predicates passed. Independent review accepted preparation
+after 20 further read-only checks. The actor has never started. At 16:21
+UTC the status file measured 259,632 bytes, leaving 2,512 bytes under
+its 262,144-byte limit
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/normal668f-cold-preparation.json)).
+
+The 16:25 UTC hold renewal activated before the prior interval expired.
+Review is due at 17:24:56 UTC
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-162456.json)).
+The first read-only capacity check expected a created verifier in the
+aggregate. The guardian omits optional stopped actors with exit zero.
+Root checked its full Docker profile directly and allowed 410 status bytes
+for its future running entry. After exact removal of its sixteen completed
+helpers, the status file fell from 260,341 to 254,508 bytes. All direct
+absence checks passed. The original five catalog rows had zero scratch
+clients. Independent review accepted the removal and preservation checks
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/normal668f-preparation-helper-retirement.json)).
+
+### New normal graph started, 2026-11-18
+
+Verifier `00b44f7e…` started once at 16:45:47 UTC, PID 2356580, under
+plan `bfa4ccc2…` and review `2d2b1181…`. The supervisor is PID 2356061.
+The independent startup check confirmed namespace authorization, IPv4 and
+IPv6 rules, resource limits, 14 protected services, one job-owned database
+at OID 10359465 and its ownership record. It observed source-copy work
+through administrative `postgres`. The two worker copies and the final
+108,390-unit receipt were still pending at that check
+([startup](../../evidence/runtime/postgres-stage2-2026-11-18/normal668f-startup.json)).
+
+The startup receipt calls the source database hash `ae3bbcd1…` its
+`qualified_source`. The graph plan records the application source separately
+as `194f95d5…`, the image manifest as `1209bf1e…` and the Docker image
+configuration as `61a23921…`
+([application qualification](../../evidence/runtime/postgres-stage2-2026-11-17/retention-batch-qualification.json)).
+
+The 17:03 UTC hold renewal timed out during the installer transport.
+The same installer exited zero. Independent review accepted continuation
+from step 3. Activation finished at 17:10:18 UTC, before the prior
+interval expired. The reviewer confirmed the graph and supervisor identities,
+protected services and continued monitoring through the new 18:03:47 UTC
+review time ([renewal](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-170347.json)).
+
+The 17:24 UTC manifest contains 108,390 distinct expected units, digest
+`d58f3f45…`, and zero results. The source checkpoint is `00c831a4…` and
+the checkpoint after input acceptance is `5039effb…`. By 17:45 UTC both
+worker branches were active. The catalog and the ownership record agree on
+OIDs 10359465, 10809425 and 10809426. The read-only administrative snapshot
+found zero clients on the two protected sources and zero clone or copy
+statements. The full graph and native75 timing remain open
+([manifest and copies](../../evidence/runtime/postgres-stage2-2026-11-18/normal668f-initial-manifest-and-copies.json)).
+
+### Recovery C preflight stopped before any change, 2026-11-18
+
+The first local launcher passed a string to a path reader and exited
+before opening an operation. After that fix and a fresh review, the
+17:50 UTC preflight received 35 successful SSH responses and two connection
+resets. The last three status reads were never dispatched in that preflight.
+Two successful file-metadata reads included the path requested by `stat`;
+the validator expected only the numeric fields. Four follow-up SSH reads
+also failed. A separate diagnostic checked the final three status commands.
+
+Independent review confirmed that Recovery C's Postgres remained stopped
+with its prior start and finish times. The runner issued no file seal,
+Postgres start or marker change. Keep the original outcomes. Use four
+concurrent readers and validate each returned path along with its metadata
+on the next attempt
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-marker-preflight-no-effect.json)).
+
+### Recovery C public file ownership, 2026-11-18 18:07 UTC
+
+All 40 preflight reads passed using four connections. One helper changed
+ownership of the public directory and its two files and exited with code
+zero. Its Docker command omitted the stop timeout. Docker returned no
+such field, while the check expected ten seconds. The runner stopped
+there. The two archived files had the expected sizes, hashes and ownership.
+Direct child inode and link-count checks must wait until directory access
+is restored. Independent review accepted the ownership change. The file
+mode changes, Postgres restart and prepared-marker update remain pending
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-public-ownership-partial.json)).
+
+### Status capacity during normal graph verification, 2026-11-18 18:21 UTC
+
+The 262,144-byte status limit left 4,371 bytes available. Recovery C and
+one hold renewal needed 4,865. A single reviewed removal retired the
+sixteen exited helpers from eight completed November 16 holds. All sixteen
+IDs were absent afterwards. The other containers, volumes, images and
+historical receipts remained intact. The status file fell to 252,100 bytes.
+The graph kept its original start and three owned databases. The operation
+and its checks took 103.67 seconds
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/normal668f-retired-nov16-hold-helpers.json)).
+
+### Recovery C files sealed and database restarted, 2026-11-18 18:35 UTC
+
+All 42 preflight reads passed. Both permission changes completed. Direct
+checks confirmed the original file and directory inodes, the two file
+hashes and final modes 0444 and 0555. Postgres started once at 18:34:58
+UTC. Its running Docker record retained the previous 00:11:09 shutdown
+timestamp. The running-state check expected an empty timestamp and the
+runner exited before sending SQL or changing the marker. Independent
+review confirmed the same active process, PID 3502211, and the successful
+configuration checks. The runner issued no stop
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-files-sealed-pg-running.json)).
+
+### Recovery C clean shutdown, 2026-11-18 18:52 UTC
+
+The proposed marker operation on the running database had no final action
+approval. Root selected the independently reviewed shutdown. The two choices
+shared one exclusive claim. Fresh checks verified the exact process, its
+configuration and the public files before one stop. The database exited
+with code zero at 18:52:26 UTC. All 36 read-only post-checks returned
+successfully. Independent review accepted the shutdown and confirmed the
+protected services and graph continued. The marker and schema remain unchanged
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-sealed-files-cleanstop.json)).
+
+### Recovery C preflight observed PostgreSQL autovacuum, 2026-11-18 19:16 UTC
+
+The catalog showed both real verification clients and an autovacuum worker
+on one owned scratch database. The preflight required every session to be a
+client connection from the verifier. It refused the autovacuum row before
+claiming or starting the recovery database. An independent check reproduced
+the exact failure from the saved catalog and confirmed the database remained
+stopped with its public files sealed. The verifier continued. Keep both
+client checks and check PostgreSQL maintenance backends separately
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-native-autovacuum-preflight.json)).
+
+### Recovery C marker helper and clean shutdown, 2026-11-18 19:27 UTC
+
+Four sequential SQL checks passed before the helper ran. The helper reported
+that only the prepared database comment changed and that it loaded no rows.
+It exited with code zero. A configuration check still expected the helper’s
+own hostname after it joined the Postgres network namespace. A separate
+read found the exact Postgres hostname and confirmed the expected user,
+entrypoint, command and stop timeout. The original check stopped the run
+before the SQL readback of the marker and database settings. Postgres shut
+down with code zero at 19:27:49 UTC. All four public helpers were subsequently
+observed offline with their original start and finish times. Independent review
+accepted the helper’s reported change and the clean shutdown. The SQL readback
+of the stored marker and the restore drill remain open
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-marker-helper-cleanstop.json)).
+
+### Attended takeover and hold 64, 2026-11-18
+
+The previous operator explicitly releases the checkout and hands over Stage 2
+at 19:35 UTC. Session `codex-stage2-takeover-20261118` acquires the lock,
+starts a finite attended watch and verifies the same graph remains healthy.
+No commit, push or cutover is authorized.
+
+A read-only marker proposal reaches final refresh at 19:48 UTC but refuses
+an inherited 1,920-second initial lease floor. No Root GO, claim or C mutation
+exists; the local failure remains in scratch. A narrow successor pins its
+exact admission source through reviewed settings and GO, retaining every
+state, transport and timing predicate. A fresh hold is required before it.
+
+Hold 64 activates at 19:49:28.336909901 UTC before hold 63 expires, with
+review due 20:49:17.243130 UTC. Sole review `5479bfc8` accepts all 39 checks
+and continued monitoring of the same actor and supervisor only. The first
+empty-stdin process-observation attempt remains recorded; a separate bounded
+public script proves the exact process identities. No C authority comes
+from renewal ([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-194917.json)).
+
+### C marker SQL verification complete, 2026-11-18
+
+The separately reviewed read-only action starts only existing PGbf0f,
+verifies its genuinely new 19:56:47.924505066 UTC birth and retained exact
+19:27:49.647353717 prior finish, then runs four sequential read-only queries.
+Cluster identity, roles and grants, UTC, durable settings and the prepared
+marker match. The owned C database has zero environment rows and no other
+clients. No COMMENT, helper, permission or setup command repeats.
+
+The same PG stops naturally at 19:56:53.705845952 UTC, exit zero, PID zero
+and no OOM. RAM3 passes. All 37 post observations pass, with the descriptor
+and resource counts unchanged. Status uses 256,045 bytes, leaving 6,099
+inside the unchanged cap and covering the measured 965-byte next renewal.
+The complete action takes 46.604 seconds inside its original 1,200-second
+window. Sole terminal review `733ab55f` independently recomputes the queries,
+all saved post predicates and preserved boundaries.
+
+This closes prepared-marker compatibility and verified offline state only.
+Native41 indexes, restore, recovery and full graph acceptance remain open.
+The earlier helper RAM failure stays recorded with its separately accepted
+exact phase-specific hostname explanation
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/recovery-C-readonly-marker-verification.json)).
+
+Hold 65 activates at 20:15:11.878091914 UTC before hold 64 expires, with
+review due 21:15:01.011170 UTC. Sole terminal review `87d96bf9` accepts
+all 39 checks and continued monitoring of the same graph only. The C SQL
+verification and its independent terminal acceptance precede renewal; no
+C operation overlaps it ([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-201501.json)).
+
+Finite awake helper 26, PID 80228 and UID 501, starts at 20:12:18 UTC
+with its exact command and birth verified. Its private record and atomic,
+directory-fsynced pointer precede further work. It expires at 22:12:18 UTC;
+helper 25 is left to expire naturally. The new hold review independently
+checks the selected awake identity.
+
+Hold 66 activates at 20:45:23.013575339 UTC before hold 65 expires, with
+review due 21:45:12.342918 UTC. Sole terminal review `4573c5eb` accepts
+all 39 checks and continued monitoring of the same graph only. Awake26
+remains verified through 22:12:18 UTC; no C or shared audit overlaps
+renewal ([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-204512.json)).
+
+A separate 20:48 UTC read-only status measurement has 4,677 bytes free.
+The prepared Shared141 cold geometry needs 5,191 using the prior measured
+next pair, so exact historical-helper inventory preparation is selected;
+no removal has occurred. Future cold admission still needs a fresh estimate
+and actual completed graph and owned cleanup
+([measurement](../../evidence/runtime/postgres-stage2-2026-11-18/shared141-status-capacity-trigger.json)).
+
+Hold 67 activates at 21:14:12.382080933 UTC before hold 66 expires, with
+review due 22:14:01.979412 UTC. Sole terminal review `990b056c` accepts
+all 39 checks and continued monitoring of the same graph only. Awake26
+expires at 22:12:18 UTC, so its next finite replacement remains scheduled
+before that point ([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-211401.json)).
+
+A new finite read-only watch at 21:14 UTC surfaces the supervisor's probe
+failure, stop reason, failed and paused fields. Their absence is preserved
+as unknown rather than explicit false or per-unit success. Its first
+sample is healthy. Only after that sample, exact UID/birth/argv checks
+precede TERM of the two superseded local watch processes. The graph actor
+and supervisor are unchanged. Original pinned watcher files are untouched.
+
+### Space for the shared audit, 2026-11-18 21:37 UTC
+
+One command removed the 16 exited Docker helpers from hold reviews 55–62.
+The collector now has 9,639 bytes free against the shared audit’s 5,191-byte
+requirement. Direct checks found all 16 absent and preserved the other 699
+containers, 123 volumes and 36 images. The graph continued with both worker
+connections. The original post-check failed on four PostgreSQL parallel
+workers on the owned databases. It did not record their leader PIDs. A later
+read through `postgres` linked two different parallel workers to the second
+verification client. Independent review accepted the removal and current
+resource preservation. The shared audit still awaits full graph verification
+and owned database cleanup
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/retired-hold55-62-helpers.json)).
+
+At 21:43:22 UTC the next hold activated before its predecessor expired.
+All seven administrative steps completed and 39 independent checks passed.
+The same verifier continued with a review deadline of 22:43:11 UTC
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-18/hold-review-20261118-214311.json)).
+
+### All units returned and 13 writes timed out, 2026-11-19
+
+The November 18 verifier exited with code 1 at 22:23:22 UTC, before the
+22:43:11 hold deadline. It ran for about 5 hours 38 minutes. The terminal
+receipt was read November 19. No overnight terminal report reached the
+user. Docker recorded no OOM kill. All 108,390 expected units returned once.
+There were 107,474 matches, 903 mismatches and 13 failures. Twelve link
+units and the inventory unit rolled back when their writes exceeded 75
+seconds. No shard aborted. The supervisor recorded a generic error after
+exit; the graph receipt identifies the individual failures.
+
+The 653 previously witnessed or owner-accepted rows match exactly. Of the
+716 units missing in the preceding comparable graph, 467 now match and 249
+differ. One formerly timed-out unit supplies the 250th additional mismatch.
+Of these 250, 248 differ only in dependencies. The 2026 year projection differs in output
+and dependencies. The Easter 2026 link unit differs only in output. Forty-two dependency pairs appear in the earlier witness. The
+additional rows have no blanket disposition.
+
+Independent review verified that all three owned databases and their
+registry entries were gone. The original five catalog entries, source size
+and 14 protected service records matched. Administrative observations
+used `postgres`. The source had zero clients. These observations cover
+catalog and size, without a new full source-content hash. The reviewer
+accepted the failed measurement and cleanup. Shared migration and re-key
+still await graph acceptance. Preparation of the owner's one-run diagnostic
+continues ([receipt](../../evidence/runtime/postgres-stage2-2026-11-19/normal668f-terminal.json)).
+
+The rehearsal hold reopened on November 19 at 15:34:33 UTC, 16 hours
+51 minutes after expiry. All seven steps completed and 32 independent
+checks passed. The review deadline is 16:30:55 UTC. The verifier remained
+stopped throughout this reopening ([receipt](../../evidence/runtime/postgres-stage2-2026-11-19/hold-reopened-20261119-153055.json)).
+
+### Stage 2 time limits waived, 2026-11-19
+
+The owner extended the waiver to all Stage 2 time limits until further
+notice. The core runner now reports elapsed time and whether it exceeded
+300 seconds. All 68 runner tests passed, including a simulated 302-second
+complete run and existing failure and cleanup cases. Ruff and mypy passed.
+The full suites last ran before this change.
+
+The rehearsal timing format passed 51 synthetic checks. A projection using
+one rollback event for each of the 108,390 actual unit names fits in
+85,547,136 bytes under the 134,217,728-byte receipt cap. Removing validated
+timing data recovers the original rows exactly. These checks used saved rows.
+The next server run still needs the broader workload waiver wired through
+the supervisor and owned database sessions, a qualified image and launch.
+Local free space is about 64 GiB against the 80 GiB minimum for a build
+([waiver](../../../docs/plans/postgres-migration/7-stage-2.md#stage-2-time-limits-waived-until-further-notice)).
+
+The next verifier candidate now covers the 75-second write limit, whole-graph
+and clone deadlines, session statement, lock, idle and transaction timeouts,
+and the supervisor’s elapsed hold-review check. It passed 67 synthetic checks.
+On the local PostgreSQL 17.11 test service, the exact SQL emitted by the
+candidate set all four session timeouts from 50 ms to zero. A read-only query
+that slept for 125 ms completed. A new connection showed the original settings.
+This exercised the database settings only. Source identity and ownership
+checks still need the full server run. The local observer also reproduced the
+November 18 terminal result from saved bytes and kept watching through an
+earlier warning. Neither the verifier nor the observer has been launched.
+
+The November 19 hold review took effect at 16:11:08 UTC before its
+predecessor expired. All seven steps returned zero and the independent
+review passed 38 checks. The verifier was still stopped. The five catalog
+rows, source size and 14 protected service records matched the terminal
+observation. The next review is due at 17:10:46 UTC
+([receipt](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-161046.json)).
+
+At 16:52 UTC the server assembled the verifier archive using the qualified
+base image archive and the new timeout settings. The helper exited zero
+after 8.42 seconds. Independent review confirmed the archive checksum, all
+23 entries and the 249,067,520-byte length. The five database catalog rows,
+source size and 14 protected services matched the earlier observation.
+Docker image loading, installed-file checks and a fresh graph run are pending
+([archive receipt](../../evidence/runtime/postgres-stage2-2026-11-19/waived-verifier-archive.json)).
+
+The hold review took effect at 16:58:40 UTC. All seven steps returned zero
+and the independent review passed 44 checks. The verifier was stopped.
+The next review is due at 17:58:30 UTC. The current revision has one byte
+left in its 200 KiB evidence allowance. Image loading and the next graph
+run await room for their receipts. Closing the local revision needs owner
+approval under the repository rules
+([hold review](../../evidence/runtime/postgres-stage2-2026-11-19/hold-review-20261119-165830.json)).
+
+### November 18 verifier mismatch accounting, 2026-11-19
+
+The November 18 verifier reported 903 distinct mismatches. A per-unit join
+against the raw receipt returned each unit once. It excluded all 13 failed
+writes. The 401 previously witnessed link version differences, 248 previously
+witnessed inventory differences and four owner-accepted link differences
+match the November 17 result rows exactly. The four retain their earlier
+disposition for later data QA.
+
+For the next 248 dependency-only units, four saved November 11 server
+captures contain the same unit names, generations, output labels, recipes
+and dependency hash pairs. For every unit, replacing only the previous
+selected inventory group and sorting the outer manifest reproduces the
+November 18 found hash. These 248 consumers share 207 distinct roots.
+Together with the earlier 248 they account for 492 resolution units and
+four year units. Their stored output hashes already matched the verifier.
+The full historical reconstruction has SHA-256
+`2f1387527b6ebff2c563b2fdcbfefded816f8e261ec7134173304a60af235904`
+([earlier reviewed captures](#all-496-dependency-differences-reconstructed)).
+
+Two diagnostic reconstructions reproduced the exact remaining labels.
+
+- Easter Swing 2026 has 5,759 rows. Changing only the string
+  `identity_links.linker_version` from `9` to `10` on 1,339 rows
+  reproduced its found hash. Its dependency digest stayed the same.
+- The 2026 year projection has 15,140 rows. Applying the year transform with
+  the November 18 verifier clock reproduced its found hash. Two coverage
+  rows changed. The listed-only event count fell from 9 to 8 for the WSDC
+  calendar via Wayback, and from 1 to 0 for the WSDC registry via origin.
+  Both rows took the verifier's change timestamp. All 202 event tiers and
+  14,931 placement associations matched. The inventory substitution also
+  reproduced the changed year dependency root. The historical event or
+  membership change behind the two old counters is unverified.
+
+The operator incorrectly directed agents to use the SQLite reader that
+had been stopped pending source-writer visibility. Two agents transferred
+row data into local scratch despite the server-only rule. Reads stopped.
+The owner authorized deletion of the six local exports and row-level
+derivatives. After an independent metadata check, the operator unlinked the
+six exact files and verified their absence at 19:04 UTC. They totaled
+34,536,905 logical bytes. Hash-and-count summaries remain. The two output
+reconstructions require confirmation through an admitted server-local
+reader. No original source, graph result or deployed data was changed.
+
+Independent review at 19:05 UTC accepted the exact union of 897
+hash-attributed units and the four existing owner dispositions. It rejected
+the two new SQLite-based explanations as gate evidence. Their next check
+needs an admitted owned copy and hash-only reporting. The review has
+SHA-256 `b15a3da3bab4e5a11ab5a5f7c487ba1bf067ff86b52b5ab1ccd9f8709b13ce28`.
+The six-file deletion log has SHA-256
+`b21f1c55928f88b751e40fc201cffa0ac59018c16679988c1995c1ba08f2284e`.
+Both files are in the same local scratch directory as the accounting.
+
+The local per-unit accounting is `/tmp/swingset-sol-all-7kj0ht4w/mismatches-903.csv`,
+SHA-256 `523918627dfecb609f78f5603f13fc1a9deb242872cfe430be8a2a8b9ee27f94`.
+Keep all 903 units outside clean re-key and use the normal re-derivation queue.
+This investigation grants no graph acceptance. The 13 rolled-back writes
+still need a successful run
+([November 18 receipt](../../evidence/runtime/postgres-stage2-2026-11-19/normal668f-terminal.json)).
